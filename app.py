@@ -37,7 +37,7 @@ from datetime import datetime
 
 from flask import render_template, request, flash, redirect, url_for
 
-from models import Epargne, TransactionEpargne, Client, HistoriqueEmploye, PartnerIntegration
+from models import HistoriqueEmploye
 
 from models import Pret, Client
 from datetime import datetime, timedelta
