@@ -1,6 +1,6 @@
 # Utiliser une image Python officielle légère
-FROM python:3.11-slim
 
+FROM python:3.11-slim
 # Installer les dépendances système (dont CMake et les compilateurs)
 RUN apt-get update && apt-get install -y \
     cmake \
@@ -13,9 +13,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Définir le répertoire de travail
+
 WORKDIR /app
 
 # Copier et installer les dépendances Python
+RUN pip install --upgrade pip
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
