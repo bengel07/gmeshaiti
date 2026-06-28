@@ -1,6 +1,5 @@
 
 import sqlite3
-from turtle import distance
 import time
 import json
 # ==================== FLASK CORE ====================
