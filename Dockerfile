@@ -29,4 +29,5 @@ COPY . .
 EXPOSE 10000
 
 # Démarrer l'application avec Gunicorn
-CMD ["python", "app.py"]
+# Dans votre Dockerfile
+CMD ["gunicorn", "-k", "eventlet", "--worker-connections", "1000", "app:app"]
