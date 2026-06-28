@@ -1069,8 +1069,12 @@ class User(UserMixin, db.Model):
 
 
     # ➕ AJOUTEZ CETTE RELATION (vers ligne ~600)
-    permissions = db.relationship('Permission', secondary='user_permissions',
-                                  back_populates='users', lazy='dynamic')
+    permissions = db.relationship(
+        "Permission",
+        secondary=user_permissions,
+        back_populates="users",
+        lazy="select"
+    )
 
     def generer_matricule(self):
         import random
