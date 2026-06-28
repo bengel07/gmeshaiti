@@ -1,0 +1,47 @@
+```html
+<h2>📊 Statistiques des Groupes</h2>
+
+<table id="table-groupes" border="1" width="100%">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nom Groupe</th>
+            <th>Membres</th>
+            <th>Prêts Actifs</th>
+            <th>Montant Total</th>
+            <th>Zone</th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+
+<script>
+fetch("/api/statistiques-groupes")
+.then(response => response.json())
+.then(data => {
+
+    let tbody = document.querySelector("#table-groupes tbody");
+    tbody.innerHTML = "";
+
+    data.forEach(groupe => {
+
+        tbody.innerHTML += `
+            <tr>
+                <td>${groupe.groupe_id}</td>
+                <td>${groupe.nom_groupe}</td>
+                <td>${groupe.nombre_membres}</td>
+                <td>${groupe.prets_actifs}</td>
+                <td>${groupe.montant_total_prets.toLocaleString()}</td>
+                <td>${groupe.zone || '-'}</td>
+            </tr>
+        `;
+
+    });
+
+})
+.catch(error => {
+    console.error(error);
+});
+</script>
+```

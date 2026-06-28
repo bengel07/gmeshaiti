@@ -1,0 +1,787 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-shield-alt me-2"></i>
+                            Responsable Conformité
+                        </h2>
+                        <p class="mb-0 mt-2">
+                            <i class="fas fa-user-tie me-1"></i>
+                            {{ current_user.prenom }} {{ current_user.nom }}
+                            <span class="badge bg-light text-dark ms-2">Conformité & AML/CFT</span>
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <h1 class="mb-0">📊 Tableau de Bord Conformité</h1>
+                        <small>{{ now().strftime('%d %B %Y') if now else '' }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs Conformité -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                KYC en attente
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.kyc_en_attente or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-id-card fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Alertes AML/CFT
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.alertes_aml or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Documents expirés
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.documents_expires or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Vérifications annuelles
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.verifications_annuelles or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertes AML/CFT -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Alertes AML/CFT à traiter
+                    </h5>
+                    <span class="badge bg-light text-dark">{{ alertes_aml|length }} non traitées</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Client</th>
+                                    <th>Type d'alerte</th>
+                                    <th>Niveau risque</th>
+                                    <th>Montant concerné</th>
+                                    <th>Date détection</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alerte in alertes_aml %}
+                                <tr>
+                                    <td>#{{ alerte.id }}</td>
+                                    <td>
+                                        <strong>{{ alerte.client_nom }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ alerte.client_cin }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ alerte.type_couleur }}">
+                                            {{ alerte.type }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ alerte.risque_couleur }}">
+                                            {{ alerte.risque }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">{{ "{:,.0f}".format(alerte.montant) }} FG</td>
+                                    <td>{{ alerte.date_detection.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td>
+                                        {% if alerte.statut == 'nouvelle' %}
+                                            <span class="badge bg-danger">Nouvelle</span>
+                                        {% elif alerte.statut == 'en_cours' %}
+                                            <span class="badge bg-warning">En cours</span>
+                                        {% elif alerte.statut == 'traitee' %}
+                                            <span class="badge bg-success">Traitée</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('voir_alerte', alerte_id=alerte.id) }}"
+                                               class="btn btn-outline-info" title="Voir détails">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('traiter_alerte', alerte_id=alerte.id) }}"
+                                               class="btn btn-outline-warning" title="Traiter">
+                                                <i class="fas fa-check-circle"></i>
+                                            </a>
+                                            <a href="{{ url_for('escalader_alerte', alerte_id=alerte.id) }}"
+                                               class="btn btn-outline-danger" title="Escalader">
+                                                <i class="fas fa-arrow-up"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-4">
+                                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                        <h5>Aucune alerte AML/CFT en attente</h5>
+                                        <p class="text-muted">Tous les dossiers sont conformes</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KYC en attente et Documents expirés -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-id-card me-2"></i>
+                        KYC en attente de vérification
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for kyc in kyc_en_attente %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ kyc.client_nom }}</h6>
+                                <small class="text-warning">En attente depuis {{ kyc.jours_attente }}j</small>
+                            </div>
+                            <p class="mb-1">
+                                <i class="fas fa-id-card me-1"></i> CIN: {{ kyc.cin }}<br>
+                                <i class="fas fa-calendar me-1"></i> Date demande: {{ kyc.date_demande.strftime('%d/%m/%Y') }}
+                            </p>
+                            <div class="mt-2">
+                                <a href="{{ url_for('verifier_kyc', client_id=kyc.client_id) }}"
+                                   class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-check-circle"></i> Vérifier
+                                </a>
+                                <a href="{{ url_for('voir_documents_kyc', client_id=kyc.client_id) }}"
+                                   class="btn btn-sm btn-outline-info">
+                                    <i class="fas fa-eye"></i> Voir documents
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucun KYC en attente</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>
+                        Documents d'identité expirés
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for doc in documents_expires %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ doc.client_nom }}</h6>
+                                <span class="badge bg-danger">Expiré</span>
+                            </div>
+                            <p class="mb-1">
+                                <strong>{{ doc.type_piece }}:</strong> {{ doc.numero }}<br>
+                                <small class="text-muted">
+                                    Expiré depuis: {{ doc.jours_expires }} jours
+                                </small>
+                            </p>
+                            <div class="mt-2">
+                                <a href="{{ url_for('renouveler_document', doc_id=doc.id) }}"
+                                   class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-sync-alt"></i> Renouveler
+                                </a>
+                                <a href="{{ url_for('notifier_client', client_id=doc.client_id) }}"
+                                   class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-bell"></i> Notifier
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucun document expiré</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques de conformité -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Évolution des alertes AML
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="amlChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Répartition par niveau de risque
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="risqueChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vérifications annuelles -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Vérifications annuelles à effectuer
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Dernière vérification</th>
+                                    <th>Échéance</th>
+                                    <th>Jours restants</th>
+                                    <th>Priorité</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for verif in verifications_annuelles %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ verif.client_nom }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ verif.cin }}</small>
+                                    </td>
+                                    <td>{{ verif.derniere_verif.strftime('%d/%m/%Y') }}</td>
+                                    <td>{{ verif.echeance.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ verif.jours_couleur }}">
+                                            {{ verif.jours_restants }} jours
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ verif.priorite_couleur }}">
+                                            {{ verif.priorite }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if verif.statut == 'a_faire' %}
+                                            <span class="badge bg-warning">À faire</span>
+                                        {% elif verif.statut == 'en_cours' %}
+                                            <span class="badge bg-info">En cours</span>
+                                        {% elif verif.statut == 'fait' %}
+                                            <span class="badge bg-success">Fait</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('effectuer_verification', client_id=verif.client_id) }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-check-circle"></i> Vérifier
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center">Aucune vérification annuelle en attente</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions suspectes -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-money-bill-wave me-2"></i>
+                        Transactions suspectes détectées
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID Transaction</th>
+                                    <th>Client</th>
+                                    <th>Montant</th>
+                                    <th>Type</th>
+                                    <th>Date</th>
+                                    <th>Agent</th>
+                                    <th>Motif suspicion</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in transactions_suspectes %}
+                                <tr>
+                                    <td>#{{ transaction.id }}</td>
+                                    <td>
+                                        <strong>{{ transaction.client_nom }}</strong>
+                                    </td>
+                                    <td class="text-danger">{{ "{:,.0f}".format(transaction.montant) }} FG</td>
+                                    <td>{{ transaction.type }}</td>
+                                    <td>{{ transaction.date.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td>{{ transaction.agent_nom }}</td>
+                                    <td>
+                                        <small>{{ transaction.motif }}</small>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('analyser_transaction', transaction_id=transaction.id) }}"
+                                           class="btn btn-sm btn-outline-warning">
+                                            Analyser
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center">Aucune transaction suspecte détectée</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formation et sensibilisation -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-graduation-cap me-2"></i>
+                        Formations AML/CFT à jour
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="progress mb-3" style="height: 30px;">
+                        <div class="progress-bar bg-success" style="width: {{ stats.taux_formation }}%">
+                            {{ stats.taux_formation }}% des employés formés
+                        </div>
+                    </div>
+                    <div class="list-group">
+                        {% for formation in formations %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ formation.titre }}</h6>
+                                <span class="badge bg-{{ formation.statut_couleur }}">
+                                    {{ formation.participants }}/{{ formation.capacite }}
+                                </span>
+                            </div>
+                            <p class="mb-1">{{ formation.date.strftime('%d/%m/%Y') }}</p>
+                            <small class="text-muted">{{ formation.description }}</small>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune formation planifiée</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bell me-2"></i>
+                        Employés sans formation AML
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for employe in employes_non_formes %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ employe.nom }} {{ employe.prenom }}</h6>
+                                <span class="badge bg-danger">Non formé</span>
+                            </div>
+                            <p class="mb-1">
+                                Succursale: {{ employe.succursale }}<br>
+                                Fonction: {{ employe.fonction }}
+                            </p>
+                            <div class="mt-2">
+                                <a href="{{ url_for('inscrire_formation', employe_id=employe.id) }}"
+                                   class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-graduation-cap"></i> Inscrire à la formation
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Tous les employés sont formés</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rapports de conformité -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>
+                        Rapports de conformité récents
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-file-pdf fa-3x text-danger mb-2"></i>
+                                    <h6>Rapport mensuel</h6>
+                                    <small>{{ rapport_mensuel.date }}</small>
+                                    <div class="mt-2">
+                                        <a href="{{ url_for('telecharger_rapport', type='mensuel') }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-download"></i> Télécharger
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-file-pdf fa-3x text-danger mb-2"></i>
+                                    <h6>Rapport BRH</h6>
+                                    <small>{{ rapport_brh.date }}</small>
+                                    <div class="mt-2">
+                                        <a href="{{ url_for('telecharger_rapport', type='brh') }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-download"></i> Télécharger
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-file-pdf fa-3x text-danger mb-2"></i>
+                                    <h6>Rapport KYC</h6>
+                                    <small>{{ rapport_kyc.date }}</small>
+                                    <div class="mt-2">
+                                        <a href="{{ url_for('telecharger_rapport', type='kyc') }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-download"></i> Télécharger
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-file-pdf fa-3x text-danger mb-2"></i>
+                                    <h6>Rapport annuel</h6>
+                                    <small>{{ rapport_annuel.date }}</small>
+                                    <div class="mt-2">
+                                        <a href="{{ url_for('telecharger_rapport', type='annuel') }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-download"></i> Télécharger
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides conformité -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Actions rapides
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('nouvelle_alerte_aml') }}" class="btn btn-outline-danger w-100 py-3">
+                                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
+                                Nouvelle alerte AML
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('verifier_kyc') }}" class="btn btn-outline-warning w-100 py-3">
+                                <i class="fas fa-id-card fa-2x mb-2"></i><br>
+                                Vérifier KYC
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('planifier_formation_aml') }}" class="btn btn-outline-success w-100 py-3">
+                                <i class="fas fa-graduation-cap fa-2x mb-2"></i><br>
+                                Planifier formation
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('rapport_conformite') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-file-alt fa-2x mb-2"></i><br>
+                                Générer rapport
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('liste_noire') }}" class="btn btn-outline-dark w-100 py-3">
+                                <i class="fas fa-ban fa-2x mb-2"></i><br>
+                                Liste noire
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('audit_conformite') }}" class="btn btn-outline-secondary w-100 py-3">
+                                <i class="fas fa-clipboard-check fa-2x mb-2"></i><br>
+                                Audit conformité
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('declaration_brh') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-file-export fa-2x mb-2"></i><br>
+                                Déclaration BRH
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('procedure_conformite') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-book fa-2x mb-2"></i><br>
+                                Procédures
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug info -->
+    {% if config['DEBUG'] %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="fas fa-bug me-2"></i>Informations de débogage</h5>
+                </div>
+                <div class="card-body">
+                    <pre class="mb-0">
+ID: {{ current_user.id }}
+Username: {{ current_user.username }}
+Rôle: {{ current_user.role }}
+Fonction: {{ current_user.fonction }}
+Statut: {{ current_user.statut }}
+Succursale: {{ current_user.succursale.nom if current_user.succursale else 'Aucune' }}
+Email: {{ current_user.email }}
+                    </pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .border-left-primary { border-left: 4px solid #4e73df !important; }
+    .border-left-success { border-left: 4px solid #1cc88a !important; }
+    .border-left-info { border-left: 4px solid #36b9cc !important; }
+    .border-left-warning { border-left: 4px solid #f6c23e !important; }
+    .border-left-danger { border-left: 4px solid #e74a3b !important; }
+
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .btn-outline-danger:hover { background: #e74a3b; color: white; }
+    .btn-outline-warning:hover { background: #f6c23e; color: white; }
+    .btn-outline-success:hover { background: #1cc88a; color: white; }
+    .btn-outline-info:hover { background: #36b9cc; color: white; }
+    .btn-outline-dark:hover { background: #5a5c69; color: white; }
+    .btn-outline-secondary:hover { background: #858796; color: white; }
+    .btn-outline-primary:hover { background: #4e73df; color: white; }
+
+    .progress {
+        border-radius: 10px;
+    }
+
+    .list-group-item {
+        border: none;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .list-group-item:last-child {
+        border-bottom: none;
+    }
+</style>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Graphique AML
+        const amlCtx = document.getElementById('amlChart').getContext('2d');
+        new Chart(amlCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+                datasets: [
+                    {
+                        label: 'Alertes AML',
+                        data: [12, 15, 18, 14, 22, 25, 28, 30, 26, 24, 20, 18],
+                        borderColor: '#e74a3b',
+                        backgroundColor: 'rgba(231, 74, 59, 0.05)',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Alertes traitées',
+                        data: [10, 12, 14, 12, 18, 20, 22, 24, 22, 20, 18, 16],
+                        borderColor: '#1cc88a',
+                        backgroundColor: 'rgba(28, 200, 138, 0.05)',
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // Graphique des risques
+        const risqueCtx = document.getElementById('risqueChart').getContext('2d');
+        new Chart(risqueCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Risque Faible', 'Risque Moyen', 'Risque Élevé'],
+                datasets: [{
+                    data: [65, 25, 10],
+                    backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit des Accès - Système Bancaire</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-blue: #1a237e;
+            --secondary-blue: #283593;
+            --danger-red: #c62828;
+            --warning-orange: #ef6c00;
+            --success-green: #2e7d32;
+            --gray-light: #f5f5f5;
+            --gray-medium: #e0e0e0;
+            --gray-dark: #424242;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .audit-header {
+            background: linear-gradient(135deg, var(--primary-blue), #0d1b4c);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-title .breadcrumb {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid white;
+            color: white;
+        }
+
+        .btn-outline:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-danger {
+            background-color: var(--danger-red);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #b71c1c;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .filters-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--gray-dark);
+        }
+
+        select, input {
+            padding: 0.75rem;
+            border: 1px solid var(--gray-medium);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .date-range {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border-left: 4px solid;
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card p {
+            color: var(--gray-dark);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .audit-table-container {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .table-header {
+            background-color: var(--gray-light);
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--gray-medium);
+        }
+
+        .table-header h2 {
+            color: var(--primary-blue);
+        }
+
+        .audit-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1.5fr 1fr 1fr 1fr;
+            padding: 1.2rem 1.5rem;
+            border-bottom: 1px solid var(--gray-light);
+            align-items: center;
+        }
+
+        .audit-row.header {
+            background-color: var(--gray-light);
+            font-weight: 600;
+            color: var(--primary-blue);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status-success { background-color: #e8f5e9; color: var(--success-green); }
+        .status-danger { background-color: #ffebee; color: var(--danger-red); }
+        .status-warning { background-color: #fff3e0; color: var(--warning-orange); }
+
+        .severity-critical { color: var(--danger-red); font-weight: bold; }
+        .severity-high { color: var(--warning-orange); }
+        .severity-medium { color: #ff9800; }
+        .severity-low { color: var(--gray-dark); }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .pagination-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--gray-medium);
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .pagination-btn.active {
+            background-color: var(--primary-blue);
+            color: white;
+            border-color: var(--primary-blue);
+        }
+
+        .export-options {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .export-options h3 {
+            margin-bottom: 1rem;
+            color: var(--primary-blue);
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-success {
+            background-color: var(--success-green);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #1b5e20;
+        }
+
+        .btn-info {
+            background-color: #0288d1;
+            color: white;
+        }
+
+        .empty-state {
+            padding: 4rem 2rem;
+            text-align: center;
+            color: var(--gray-dark);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--gray-medium);
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 1200px) {
+            .audit-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+
+            .audit-row.header {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="audit-header">
+        <div class="header-content">
+            <div class="header-title">
+                <h1><i class="fas fa-history"></i> Audit des Accès Système</h1>
+                <div class="breadcrumb">
+                    <span>Succursale: Tabarre 27 (GMES-00002)</span> •
+                    <span>Période: 30 derniers jours</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <a href="/admin/employes?succursale=GMES-00002" class="btn btn-outline">
+                    <i class="fas fa-arrow-left"></i> Retour employés
+                </a>
+                <a href="/admin/succursale-details?code=GMES-00002" class="btn btn-outline">
+                    <i class="fas fa-building"></i> Succursale
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Filtres -->
+        <div class="filters-card">
+            <h3 style="margin-bottom: 1rem; color: var(--primary-blue);">Filtrer les logs d'audit</h3>
+            <form id="auditFilters">
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label>Type d'événement</label>
+                        <select id="eventType">
+                            <option value="">Tous les événements</option>
+                            <option value="connexion">Connexion/Déconnexion</option>
+                            <option value="creation">Création employé</option>
+                            <option value="modification">Modification données</option>
+                            <option value="suppression">Suppression</option>
+                            <option value="permission">Changement permission</option>
+                            <option value="transaction">Transaction sensible</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Statut</label>
+                        <select id="status">
+                            <option value="">Tous les statuts</option>
+                            <option value="success">Réussi</option>
+                            <option value="failed">Échoué</option>
+                            <option value="warning">Avertissement</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Utilisateur</label>
+                        <input type="text" id="username" placeholder="Nom d'utilisateur...">
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Plage de dates</label>
+                        <div class="date-range">
+                            <input type="date" id="startDate">
+                            <span>à</span>
+                            <input type="date" id="endDate">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button type="button" class="btn btn-danger" onclick="applyFilters()">
+                        <i class="fas fa-filter"></i> Appliquer filtres
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="resetFilters()" style="color: var(--gray-dark); border-color: var(--gray-medium);">
+                        <i class="fas fa-redo"></i> Réinitialiser
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Statistiques -->
+        <div class="stats-grid">
+            <div class="stat-card" style="border-color: var(--success-green);">
+                <h3>1,247</h3>
+                <p><i class="fas fa-check-circle" style="color: var(--success-green);"></i> Événements réussis</p>
+            </div>
+
+            <div class="stat-card" style="border-color: var(--danger-red);">
+                <h3>23</h3>
+                <p><i class="fas fa-times-circle" style="color: var(--danger-red);"></i> Tentatives échouées</p>
+            </div>
+
+            <div class="stat-card" style="border-color: var(--warning-orange);">
+                <h3>7</h3>
+                <p><i class="fas fa-exclamation-triangle" style="color: var(--warning-orange);"></i> Alertes sécurité</p>
+            </div>
+
+            <div class="stat-card" style="border-color: var(--primary-blue);">
+                <h3>42</h3>
+                <p><i class="fas fa-user-edit" style="color: var(--primary-blue);"></i> Modifications données</p>
+            </div>
+        </div>
+
+        <!-- Tableau d'audit -->
+        <div class="audit-table-container">
+            <div class="table-header">
+                <h2><i class="fas fa-list-alt"></i> Journal d'audit des accès</h2>
+                <div style="color: var(--gray-dark);">
+                    <span id="total-events">1,277 événements</span> |
+                    <span id="filtered-events">1,277 affichés</span>
+                </div>
+            </div>
+
+            <!-- En-têtes -->
+            <div class="audit-row header">
+                <div>Date & Heure</div>
+                <div>Utilisateur</div>
+                <div>Événement</div>
+                <div>Adresse IP</div>
+                <div>Statut</div>
+                <div>Sévérité</div>
+            </div>
+
+            <!-- Entrées d'audit -->
+            <div class="audit-row">
+                <div>
+                    <strong>05/11/2024</strong><br>
+                    <small>09:15:23</small>
+                </div>
+                <div>
+                    <strong>admin.system</strong><br>
+                    <small>Directeur agence</small>
+                </div>
+                <div>Création nouvel employé: Jean Delmas</div>
+                <div>192.168.1.100</div>
+                <div><span class="status-badge status-success">Réussi</span></div>
+                <div class="severity-medium">Moyenne</div>
+            </div>
+
+            <div class="audit-row">
+                <div>
+                    <strong>05/11/2024</strong><br>
+                    <small>08:45:12</small>
+                </div>
+                <div>
+                    <strong>test.user</strong><br>
+                    <small>Externe</small>
+                </div>
+                <div>Tentative connexion échouée</div>
+                <div>41.111.222.33</div>
+                <div><span class="status-badge status-danger">Échoué</span></div>
+                <div class="severity-high">Élevée</div>
+            </div>
+
+            <div class="audit-row">
+                <div>
+                    <strong>04/11/2024</strong><br>
+                    <small>16:30:45</small>
+                </div>
+                <div>
+                    <strong>marie.claude</strong><br>
+                    <small>Gestionnaire</small>
+                </div>
+                <div>Modification permissions employé</div>
+                <div>192.168.1.150</div>
+                <div><span class="status-badge status-success">Réussi</span></div>
+                <div class="severity-high">Élevée</div>
+            </div>
+
+            <div class="audit-row">
+                <div>
+                    <strong>04/11/2024</strong><br>
+                    <small>14:22:10</small>
+                </div>
+                <div>
+                    <strong>pierre.jean</strong><br>
+                    <small>Caissier</small>
+                </div>
+                <div>Consultation données sensibles</div>
+                <div>192.168.1.120</div>
+                <div><span class="status-badge status-success">Réussi</span></div>
+                <div class="severity-medium">Moyenne</div>
+            </div>
+
+            <div class="audit-row">
+                <div>
+                    <strong>03/11/2024</strong><br>
+                    <small>11:05:33</small>
+                </div>
+                <div>
+                    <strong>unknown</strong><br>
+                    <small>Externe</small>
+                </div>
+                <div>Tentative accès API non autorisé</div>
+                <div>185.65.123.88</div>
+                <div><span class="status-badge status-danger">Échoué</span></div>
+                <div class="severity-critical">Critique</div>
+            </div>
+
+            <!-- Plus d'entrées... -->
+
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+            <button class="pagination-btn" onclick="changePage(1)">«</button>
+            <button class="pagination-btn active" onclick="changePage(1)">1</button>
+            <button class="pagination-btn" onclick="changePage(2)">2</button>
+            <button class="pagination-btn" onclick="changePage(3)">3</button>
+            <button class="pagination-btn" onclick="changePage(4)">4</button>
+            <button class="pagination-btn" onclick="changePage(5)">5</button>
+            <button class="pagination-btn" onclick="changePage(2)">»</button>
+        </div>
+
+        <!-- Export -->
+        <div class="export-options">
+            <h3><i class="fas fa-download"></i> Exporter les logs d'audit</h3>
+            <div class="export-buttons">
+                <button class="btn btn-success" onclick="exportAudit('pdf')">
+                    <i class="fas fa-file-pdf"></i> Exporter PDF
+                </button>
+                <button class="btn btn-info" onclick="exportAudit('csv')">
+                    <i class="fas fa-file-csv"></i> Exporter CSV
+                </button>
+                <button class="btn" style="background-color: var(--gray-dark); color: white;" onclick="exportAudit('excel')">
+                    <i class="fas fa-file-excel"></i> Exporter Excel
+                </button>
+                <button class="btn btn-danger" onclick="generateComplianceReport()">
+                    <i class="fas fa-file-contract"></i> Rapport conformité BRH
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Données simulées
+        let auditLogs = [];
+        let currentPage = 1;
+        const itemsPerPage = 10;
+
+        // Appliquer les filtres
+        function applyFilters() {
+            const eventType = document.getElementById('eventType').value;
+            const status = document.getElementById('status').value;
+            const username = document.getElementById('username').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            alert(`Filtres appliqués:\n\n` +
+                  `Type: ${eventType || 'Tous'}\n` +
+                  `Statut: ${status || 'Tous'}\n` +
+                  `Utilisateur: ${username || 'Tous'}\n` +
+                  `Période: ${startDate || 'Début'} à ${endDate || 'Fin'}`);
+
+            // Ici, vous feriez une requête AJAX ou rechargeriez la page
+            // avec les paramètres de filtrage
+            const params = new URLSearchParams();
+            if (eventType) params.append('type', eventType);
+            if (status) params.append('status', status);
+            if (username) params.append('user', username);
+            if (startDate) params.append('start', startDate);
+            if (endDate) params.append('end', endDate);
+
+            // Simuler un rechargement
+            console.log('Redirection avec filtres:', params.toString());
+            // window.location.href = `/admin/audit-acces?${params.toString()}`;
+        }
+
+        // Réinitialiser les filtres
+        function resetFilters() {
+            document.getElementById('eventType').value = '';
+            document.getElementById('status').value = '';
+            document.getElementById('username').value = '';
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+
+            // Recharger sans filtres
+            // window.location.href = '/admin/audit-acces';
+        }
+
+        // Changer de page
+        function changePage(page) {
+            currentPage = page;
+            document.querySelectorAll('.pagination-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Ici, vous chargeriez les données pour la page sélectionnée
+            console.log(`Chargement page ${page}`);
+        }
+
+        // Exporter l'audit
+        function exportAudit(format) {
+            alert(`Export des logs d'audit en format ${format.toUpperCase()}\n\n` +
+                  `Le téléchargement commencera automatiquement.`);
+
+            // URLs d'export réelles
+            const exportUrls = {
+                pdf: '/admin/audit-acces/export?format=pdf',
+                csv: '/admin/audit-acces/export?format=csv',
+                excel: '/admin/audit-acces/export?format=excel'
+            };
+
+            // Simulation de téléchargement
+            console.log(`Export vers: ${exportUrls[format]}`);
+            // window.location.href = exportUrls[format];
+        }
+
+        // Générer rapport de conformité BRH
+        function generateComplianceReport() {
+            const reportDate = new Date().toLocaleDateString('fr-FR');
+            const report = `
+            RAPPORT DE CONFORMITÉ BRH - AUDIT DES ACCÈS
+            ===========================================
+
+            Agence: Tabarre 27 (GMES-00002)
+            Date: ${reportDate}
+            Période: 30 derniers jours
+
+            RÉSULTATS D'AUDIT:
+            • Événements total: 1,277
+            • Tentatives échouées: 23 (1.8%)
+            • Alertes sécurité: 7
+            • Conformité: 98.2%
+
+            RECOMMANDATIONS:
+            1. Renforcer l'authentification pour IP externes
+            2. Réviser les permissions des caissiers
+            3. Archiver les logs au-delà de 90 jours
+
+            RESPONSABLE: Directeur d'agence
+            DATE DE PROCHAIN AUDIT: 05/12/2024
+            `;
+
+            alert(report);
+
+            if (confirm("Voulez-vous générer un rapport officiel PDF pour la BRH ?")) {
+                exportAudit('pdf');
+            }
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Définir les dates par défaut (30 derniers jours)
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 30);
+
+            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+
+            // Gestionnaire pour la touche Entrée dans la recherche
+            document.getElementById('username').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    applyFilters();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

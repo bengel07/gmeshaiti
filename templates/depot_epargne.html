@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Dépôt - {{ client.nom }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Formulaire de dépôt</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Informations du client -->
+                    <div class="alert alert-info">
+                        <strong>Client :</strong> {{ client.nom }} {{ client.prenom }}<br>
+                        {% if client.telephone %}
+                        <strong>Téléphone :</strong> {{ client.telephone }}<br>
+                        {% endif %}
+                        {% if client.email %}
+                        <strong>Email :</strong> {{ client.email }}
+                        {% endif %}
+                    </div>
+
+                    <!-- Formulaire de dépôt -->
+                    <form method="POST" action="{{ url_for('traiter_depot', client_id=client.id) }}">
+                        {{ form.hidden_tag() if form else '' }}
+
+                        <div class="mb-3">
+                            <label for="montant" class="form-label">Montant du dépôt *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">€</span>
+                                <input type="number"
+                                       class="form-control"
+                                       id="montant"
+                                       name="montant"
+                                       step="0.01"
+                                       min="0.01"
+                                       required
+                                       placeholder="0.00">
+                            </div>
+                            <div class="form-text">Entrez le montant à déposer</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="date_depot" class="form-label">Date du dépôt</label>
+                            <input type="date"
+                                   class="form-control"
+                                   id="date_depot"
+                                   name="date_depot"
+                                   value="{{ today if today else '' }}">
+                            <div class="form-text">Laissez vide pour utiliser la date d'aujourd'hui</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="mode_paiement" class="form-label">Mode de paiement</label>
+                            <select class="form-select" id="mode_paiement" name="mode_paiement">
+                                <option value="especes">Espèces</option>
+                                <option value="cheque">Chèque</option>
+                                <option value="carte">Carte bancaire</option>
+                                <option value="virement">Virement</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description / Notes</label>
+                            <textarea class="form-control"
+                                      id="description"
+                                      name="description"
+                                      rows="3"
+                                      placeholder="Informations complémentaires sur le dépôt..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reference" class="form-label">Référence (optionnel)</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="reference"
+                                   name="reference"
+                                   placeholder="N° de chèque, référence de virement...">
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('rechercher_client') }}" class="btn btn-secondary me-md-2">
+                                <i class="fas fa-times"></i> Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Enregistrer le dépôt
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Historique des dépôts récents (optionnel) -->
+            {% if client.depots %}
+            <div class="card mt-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Historique des dépôts récents</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Montant</th>
+                                    <th>Mode</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for depot in client.depots|sort(attribute='date_depot', reverse=true)|slice(5) %}
+                                <tr>
+                                    <td>{{ depot.date_depot.strftime('%d/%m/%Y') if depot.date_depot else 'N/A' }}</td>
+                                    <td>{{ "%.2f"|format(depot.montant) }} €</td>
+                                    <td>{{ depot.mode_paiement|capitalize }}</td>
+                                    <td>
+                                        {% if depot.statut == 'valide' %}
+                                        <span class="badge bg-success">Validé</span>
+                                        {% elif depot.statut == 'en_attente' %}
+                                        <span class="badge bg-warning">En attente</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ depot.statut }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+// Validation du formulaire côté client
+document.querySelector('form').addEventListener('submit', function(e) {
+    const montant = document.getElementById('montant').value;
+    if (montant <= 0) {
+        e.preventDefault();
+        alert('Le montant doit être supérieur à 0');
+        return false;
+    }
+});
+
+// Formatage automatique du montant
+document.getElementById('montant').addEventListener('blur', function() {
+    if (this.value) {
+        this.value = parseFloat(this.value).toFixed(2);
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

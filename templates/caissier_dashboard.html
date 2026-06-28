@@ -39,7 +39,7 @@
             </div>
             <div class="stat-card">
                 <h3>📊 Montant Total</h3>
-                <p style="font-size: 2rem; color: #17a2b8;">{{ stats.montant_total|default(0) }} €</p>
+                <p style="font-size: 2rem; color: #17a2b8;">{{ stats.montant_total|default(0) }} HTG</p>
                 <small>Encaisse du jour</small>
             </div>
             <div class="stat-card">
@@ -82,7 +82,7 @@
                             <small>{{ remb.client.telephone }}</small>
                         </td>
                         <td>{{ remb.pret.motif|default('N/A') }}</td>
-                        <td>{{ remb.montant }} €</td>
+                        <td>{{ remb.montant }} HTG</td>
                         <td>
                             <span class="badge
                                 {% if remb.type_paiement == 'especes' %}badge-warning
@@ -137,7 +137,7 @@
                     <tr>
                         <td>{{ retard.client.prenom }} {{ retard.client.nom }}</td>
                         <td>{{ retard.pret.motif|default('N/A') }}</td>
-                        <td>{{ retard.montant }} €</td>
+                        <td>{{ retard.montant }} HTG</td>
                         <td>
                             <span class="badge badge-danger">{{ retard.jours_retard }} jours</span>
                         </td>
