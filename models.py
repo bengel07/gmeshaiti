@@ -627,6 +627,8 @@ class Permission(db.Model):
     description = db.Column(db.String(255), nullable=True)
     categorie = db.Column(db.String(50), nullable=True)  # Ex: 'client', 'credit', 'paiement', 'employe'
 
+
+
     # Relations many-to-many avec User
     users = db.relationship('User', secondary='user_permissions', back_populates='permissions')
 
