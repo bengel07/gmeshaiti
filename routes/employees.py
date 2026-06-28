@@ -1,7 +1,10 @@
 
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
 from flask_login import login_required
 from models import Employe, Succursale, User
+from sqlalchemy import or_
+# from app import db
+
 from utils.security import filtrer_par_role
 
 employees_bp = Blueprint(
@@ -11,23 +14,160 @@ employees_bp = Blueprint(
 )
 
 
+
 @employees_bp.route('/<succursale_code>')
 @login_required
 def list(succursale_code):
+
+    # =========================
+    # SUCCURSALE
+    # =========================
+
     succursale = Succursale.query.filter_by(
         code=succursale_code
     ).first_or_404()
 
-    # CORRECTION : Filtre d'abord par succursale, puis par rôle
-    employes = Employe.query.filter_by(
-        succursale_id=succursale.id
-    ).all()
+    # =========================
+    # FILTRES
+    # =========================
 
-    # Ensuite filtre par rôle
-    employes = filtrer_par_role(employes, 'employe')
+    statut = request.args.get('statut', '').strip()
+    habilitation = request.args.get('habilitation', '').strip()
+    search = request.args.get('search', '').strip()
+
+    # =========================
+    # QUERY USERS
+    # =========================
+
+    users_query = User.query.filter(
+        User.succursale_id == succursale.id
+    ).filter(
+        User.role != 'client'
+    )
+
+    # ---------- FILTRE STATUT ----------
+    if statut:
+        users_query = users_query.filter(
+            User.statut == statut
+        )
+
+    # ---------- FILTRE HABILITATION ----------
+    if habilitation:
+        users_query = users_query.filter(
+            User.niveau_habilitation == int(habilitation)
+        )
+
+    # ---------- RECHERCHE ----------
+    if search:
+
+        search_term = f"%{search}%"
+
+        users_query = users_query.filter(
+            or_(
+
+                # Nom
+                User.nom.ilike(search_term),
+
+                # Prénom
+                User.prenom.ilike(search_term),
+
+                # Nom complet
+                (
+                    db.func.coalesce(User.prenom, '') +
+                    ' ' +
+                    db.func.coalesce(User.nom, '')
+                ).ilike(search_term),
+
+                # Email
+                User.email.ilike(search_term),
+
+                # Téléphone
+                User.telephone.ilike(search_term),
+
+                # Username
+                User.username.ilike(search_term),
+
+                # Matricule
+                User.matricule.ilike(search_term)
+            )
+        )
+
+    # EXÉCUTION QUERY USERS
+    users_employes = users_query.all()
+
+    # =========================
+    # QUERY EMPLOYES
+    # =========================
+
+    employes_query = Employe.query.filter_by(
+        succursale_id=succursale.id
+    )
+
+    # ---------- FILTRE STATUT ----------
+    if statut:
+        employes_query = employes_query.filter(
+            Employe.statut == statut
+        )
+
+    # ---------- FILTRE HABILITATION ----------
+    if habilitation and hasattr(Employe, 'niveau_habilitation'):
+
+        employes_query = employes_query.filter(
+            Employe.niveau_habilitation == int(habilitation)
+        )
+
+    # ---------- RECHERCHE ----------
+    if search:
+
+        search_term = f"%{search}%"
+
+        employes_query = employes_query.filter(
+            or_(
+
+                # Nom
+                Employe.nom.ilike(search_term),
+
+                # Prénom
+                Employe.prenom.ilike(search_term),
+
+                # Email
+                Employe.email.ilike(search_term),
+
+                # Téléphone
+                Employe.telephone.ilike(search_term),
+
+                # Matricule
+                Employe.matricule.ilike(search_term)
+            )
+        )
+
+    # EXÉCUTION QUERY EMPLOYES
+    employes_table = employes_query.all()
+
+    # =========================
+    # FUSION
+    # =========================
+
+    employes = users_employes + employes_table
+
+    # =========================
+    # POSTES AUTORISÉS
+    # =========================
+
+    postes_autorises = len(set([
+        getattr(emp, 'role', 'employe')
+        for emp in employes
+        if getattr(emp, 'role', None)
+    ]))
+
+    # =========================
+    # TEMPLATE
+    # =========================
 
     return render_template(
         'employees/list.html',
         succursale=succursale,
-        employes=employes
+        employees=employes,
+        postes_autorises=postes_autorises
     )
+
