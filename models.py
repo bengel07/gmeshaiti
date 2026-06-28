@@ -630,7 +630,7 @@ class Permission(db.Model):
 
 
     # Relations many-to-many avec User
-    users = db.relationship('User', secondary='user_permissions', back_populates='permissions')
+    # users = db.relationship('User', secondary='user_permissions', back_populates='permissions')
 
     # Métadonnées
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
