@@ -1,9 +1,174 @@
+#
+# import time
+# import json
+# # ==================== FLASK CORE ====================
+#
+# # ==================== DATABASE ====================
+# from flask_sqlalchemy import SQLAlchemy
+# from sqlalchemy.exc import IntegrityError
+# from sqlalchemy import inspect, text
+#
+# # ==================== SECURITY ====================
+# from werkzeug.security import generate_password_hash, check_password_hash
+# from werkzeug.utils import secure_filename
+# from werkzeug.exceptions import RequestEntityTooLarge
+# from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+#
+# # ==================== SOCKET / REALTIME ====================
+# from flask_socketio import SocketIO, emit, join_room, leave_room
+# from flask_sock import Sock
+# from flask import Blueprint
+#
+# from reportlab.lib.pagesizes import A4
+# from reportlab.lib.units import mm
+# from reportlab.lib import colors
+# from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+# from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+# from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+# from reportlab.pdfgen import canvas
+# import qrcode
+# import os
+# from datetime import datetime
+#
+# from flask import render_template, request, flash, redirect, url_for
+#
+#
+#
+# from models import Pret, Client
+# from datetime import datetime, timedelta
+# from reportlab.lib.pagesizes import A4
+# from reportlab.lib.units import mm
+# from reportlab.lib import colors
+# from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+# from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+# from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+# from reportlab.pdfgen import canvas
+# import qrcode
+# import os
+#
+#
+# from flask import render_template, request, flash, redirect, url_for
+# from flask_login import login_required, current_user
+# from models import Epargne, TransactionEpargne, Client, Depense
+#
+# from datetime import datetime
+#
+#
+# # ==================== EMAIL ====================
+# from flask_mail import Mail, Message
+#
+# # ==================== CORS / PROXY ====================
+# from flask_cors import CORS
+# from werkzeug.middleware.proxy_fix import ProxyFix
+#
+# # ==================== ENV ====================
+# from dotenv import load_dotenv
+#
+# # ==================== DATE / TIME ====================
+# from datetime import datetime, timedelta
+#
+# # ==================== STANDARD LIB ====================
+# import os
+# import uuid
+# import random
+# import json
+# import re
+# import io
+# import base64
+# import traceback
+# import warnings
+#
+# # ==================== WARNINGS ====================
+# from pkg_resources import PkgResourcesDeprecationWarning
+#
+# # ==================== IMAGE / AI ====================
+# import cv2
+# import numpy as np
+# from PIL import Image
+# from datetime import datetime, timedelta
+# import schedule
+# import threading
+#
+# # ==================== QR / JWT ====================
+# import qrcode
+# import jwt
+#
+# # ==================== PDF ====================
+# from reportlab.platypus import SimpleDocTemplate, Paragraph, Image as RLImage, Table, TableStyle
+# from reportlab.lib.styles import getSampleStyleSheet
+# from reportlab.pdfgen import canvas
+# from reportlab.lib.pagesizes import A4
+# from reportlab.lib import colors
+# from functools import wraps
+# from flask import flash, redirect, url_for
+#
+# # ==================== MATH ====================
+#
+# # ==================== LOCAL CONFIG ====================
+# from config import Config, allowed_file, UPLOAD_FOLDER, MAX_FILE_SIZE, ALLOWED_EXTENSIONS, send_email
+#
+# # ==================== DATABASE CUSTOM ====================
+# from database import db, init_db
+#
+#
+#
+# # ==================== MODELS ====================
+# from models import (
+#     Pret, Notification, Pointage, Employe, Remboursement, Journal,
+#     Transaction, TransactionCaisse, AuditLog, Paiement,
+#     CreerGroupeForm, Succursale, ErrorLog, Competence, Note,
+#     ContactHistorique, HistoriqueAction, Tracking, QuestionSecrete,
+#     Client, Groupe, User, Document, Dossier, Action, RetardPaiement, ScoringCredit, HistoriqueEmploye)
+#
+# # ==================== ROUTES / BLUEPRINTS ====================
+# from routes import *
+# from routes.auth import auth_bp
+# from routes.prets import prets_bp
+# from routes.accueil import accueil_bp
+# from routes.employees import employees_bp
+# from routes.terms import terms_bp
+# from routes.clients import clients_bp
+# from routes.functions import functions_bp
+# from config import Config
+#
+# # routes/api.py (ou dans le même fichier)
+# from utils.stats import (
+#      get_stats_dashboard,get_stats_employes_succursale,
+#     get_stats_direction_succursale,get_stats_remboursements_succursale,
+#      get_stats_dossiers_attente, get_stats_caissier,get_stats_succursale,
+#     get_stats_admin_succursale, get_stats_verifications_brh,
+#      get_stats_employe, get_stats_employes, get_stats_succursales, get_detail_succursale_stats,
+#      get_stats_admin_central_succursales ) # ← IMPORTER
+#
+#
+#
+# # ==================== UTILS ====================
+# from utils.errors import humanize_unique_error
+# from jinja2.exceptions import TemplateNotFound
+# # ==================== DECORATORS ====================
+# from functools import wraps
+#
+# from utils.notifications import notification_manager
 
-import sqlite3
-import time
+
+# ==================== STANDARD LIB ====================
+import os
+import uuid
+import random
 import json
+import re
+import io
+import base64
+import time
+import traceback
+import warnings
+from datetime import datetime, timedelta
+
 # ==================== FLASK CORE ====================
-from flask import Flask, render_template, redirect, url_for, flash, request, session, jsonify, abort, g, send_file
+from flask import (
+    Flask, render_template, redirect, url_for, flash,
+    request, session, jsonify, abort, g, send_file, Blueprint
+)
 
 # ==================== AUTH ====================
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -17,13 +182,12 @@ from sqlalchemy import inspect, text
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
 # ==================== SOCKET / REALTIME ====================
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_sock import Sock
-from flask import Blueprint
 
+# ==================== PDF ====================
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib import colors
@@ -31,88 +195,31 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.pdfgen import canvas
+
+# ==================== QR / IMAGE ====================
 import qrcode
-import os
-from datetime import datetime
+import cv2
+import numpy as np
+from PIL import Image
 
-from flask import render_template, request, flash, redirect, url_for
-
-from models import HistoriqueEmploye
-
-from models import Pret, Client
-from datetime import datetime, timedelta
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import mm
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
-from reportlab.pdfgen import canvas
-import qrcode
-import os
-
-
-from flask import render_template, request, flash, redirect, url_for
-from flask_login import login_required, current_user
-from models import Epargne, TransactionEpargne, Client, Depense
-
-from datetime import datetime
-
+# ==================== JWT ====================
+import jwt
 
 # ==================== EMAIL ====================
 from flask_mail import Mail, Message
 
-# ==================== CORS / PROXY ====================
+# ==================== CORS ====================
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # ==================== ENV ====================
 from dotenv import load_dotenv
 
-# ==================== DATE / TIME ====================
-from datetime import datetime, timedelta
-
-# ==================== STANDARD LIB ====================
-import os
-import uuid
-import random
-import json
-import re
-import io
-import base64
-import traceback
-import warnings
-
 # ==================== WARNINGS ====================
 from pkg_resources import PkgResourcesDeprecationWarning
 
-# ==================== IMAGE / AI ====================
-import cv2
-import numpy as np
-from PIL import Image
-from datetime import datetime, timedelta
-import schedule
-import threading
-
-# ==================== QR / JWT ====================
-import qrcode
-import jwt
-
-# ==================== PDF ====================
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Image as RLImage, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
-from reportlab.lib import colors
+# ==================== DECORATORS ====================
 from functools import wraps
-from flask import flash, redirect, url_for
-
-# ==================== MATH ====================
-from math import radians, cos, sin, asin, sqrt
-
-# ==================== FASTAPI (si utilisé) ====================
-# from fastapi import FastAPI, WebSocket
-# from fastapi.middleware.cors import CORSMiddleware
 
 # ==================== LOCAL CONFIG ====================
 from config import Config, allowed_file, UPLOAD_FOLDER, MAX_FILE_SIZE, ALLOWED_EXTENSIONS, send_email
@@ -126,7 +233,9 @@ from models import (
     Transaction, TransactionCaisse, AuditLog, Paiement,
     CreerGroupeForm, Succursale, ErrorLog, Competence, Note,
     ContactHistorique, HistoriqueAction, Tracking, QuestionSecrete,
-    Client, Groupe, User, Document, Dossier, Action, RetardPaiement, ScoringCredit)
+    Client, Groupe, User, Document, Dossier, Action, RetardPaiement,
+    ScoringCredit, HistoriqueEmploye, Epargne, TransactionEpargne, Depense
+)
 
 # ==================== ROUTES / BLUEPRINTS ====================
 from routes import *
@@ -137,28 +246,23 @@ from routes.employees import employees_bp
 from routes.terms import terms_bp
 from routes.clients import clients_bp
 from routes.functions import functions_bp
-from config import Config
-
-# routes/api.py (ou dans le même fichier)
-from utils.stats import (
-     get_stats_dashboard,get_stats_employes_succursale,
-    get_stats_direction_succursale,get_stats_remboursements_succursale,
-     get_stats_dossiers_attente, get_stats_caissier,get_stats_succursale,
-    get_stats_admin_succursale, get_stats_verifications_brh,
-     get_stats_employe, get_stats_employes, get_stats_succursales, get_detail_succursale_stats,
-     get_stats_admin_central_succursales ) # ← IMPORTER
-
-
 
 # ==================== UTILS ====================
+from utils.stats import (
+    get_stats_dashboard, get_stats_employes_succursale,
+    get_stats_direction_succursale, get_stats_remboursements_succursale,
+    get_stats_dossiers_attente, get_stats_caissier, get_stats_succursale,
+    get_stats_admin_succursale, get_stats_verifications_brh,
+    get_stats_employe, get_stats_employes, get_stats_succursales,
+    get_detail_succursale_stats, get_stats_admin_central_succursales
+)
 from utils.errors import humanize_unique_error
-from jinja2.exceptions import TemplateNotFound
-# ==================== DECORATORS ====================
-from functools import wraps
-
 from utils.notifications import notification_manager
+from jinja2.exceptions import TemplateNotFound
 
-
+# ==================== SCHEDULER (si utilisé) ====================
+import schedule
+import threading
 
 
 mail = Mail()
@@ -19571,18 +19675,9 @@ def create_partner_integration_direct():
     pass
 
 
+
+
 if __name__ == '__main__':
     import os
-    from sqlalchemy.exc import OperationalError
-
-    is_render = os.environ.get('RENDER', False)
     port = int(os.environ.get("PORT", 10000))
-
-    # 🚀 LANCEMENT
-    socketio.run(
-        app,
-        host="0.0.0.0",
-        port=port,
-        debug=True,
-        use_reloader=False   # 🔥 IMPORTANT
-    )
+    socketio.run(app, host='0.0.0.0', port=port, debug=False, use_reloader=False)
