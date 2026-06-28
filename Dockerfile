@@ -26,4 +26,4 @@ COPY . .
 EXPOSE 10000
 
 # Démarrer l'application avec Gunicorn
-CMD ["gunicorn", "-k", "eventlet", "--worker-connections", "1000", "app:app"]
+CMD ["python", "app.py"]
