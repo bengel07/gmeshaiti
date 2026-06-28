@@ -26,4 +26,4 @@ COPY . .
 EXPOSE 10000
 
 # Démarrer l'application avec Gunicorn
-CMD ["gunicorn", "app:app"]
+CMD ["gunicorn", "-k", "eventlet", "app:app"]
