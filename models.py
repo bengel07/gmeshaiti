@@ -627,10 +627,8 @@ class Permission(db.Model):
     description = db.Column(db.String(255), nullable=True)
     categorie = db.Column(db.String(50), nullable=True)  # Ex: 'client', 'credit', 'paiement', 'employe'
 
-
-
-    # Relations many-to-many avec User
-    # users = db.relationship('User', secondary='user_permissions', back_populates='permissions')
+    # 👇 AJOUTEZ CETTE LIGNE (décommentez ou ajoutez-la)
+    users = db.relationship('User', secondary='user_permissions', back_populates='permissions')
 
     # Métadonnées
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -956,7 +954,6 @@ class User(UserMixin, db.Model):
     statut = db.Column(db.String(20), default='actif')  # 'actif', 'en_attente', 'inactif'
 
     # approuve_par = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Admin qui a approuvé
-    date_approbation = db.Column(db.DateTime, nullable=True)
 
     # permissions = db.Column(db.Text)  # Stocke les permissions en JSON
     nom_complet=db.Column(db.String(100))
