@@ -1,14 +1,29 @@
 
+
+import sys
+
+if "models" in sys.modules:
+    del sys.modules["models"]
+
 from database import db
-# user_permissions = db.Table(
-#     'user_permissions',
-#     db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
-#     db.Column('permission_id', db.Integer, db.ForeignKey('permissions.id'))
-# )
+from datetime import datetime, date
+
+user_permissions = db.Table(
+    'user_permissions',
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
+    db.Column('permission_id', db.Integer, db.ForeignKey('permissions.id'))
+)
+
+# Table d'association pour la relation many-to-many entre Dossier et Document
+dossier_documents = db.Table('dossier_documents',
+                             db.Column('dossier_id', db.Integer, db.ForeignKey('dossiers.id'), primary_key=True),
+                             db.Column('document_id', db.Integer, db.ForeignKey('documents.id'), primary_key=True),
+                             db.Column('date_ajout', db.DateTime, default=datetime.utcnow)
+                             )
 
 import os  # ← AJOUTEZ CETTE LIGNE
 import pickle
-from datetime import datetime, date
+
 
 import requests
 import flet as ft  # Assurez-vous d'avoir importé votre bibliothèque d'interface
@@ -158,12 +173,12 @@ class User(UserMixin, db.Model):
 
 
     # ➕ AJOUTEZ CETTE RELATION (vers ligne ~600)
-    # permissions = db.relationship(
-    #     "Permission",
-    #     secondary='user_permissions',
-    #     back_populates="users",
-    #     lazy="select"
-    # )
+    permissions = db.relationship(
+        "Permission",
+        secondary='user_permissions',
+        back_populates="users",
+        lazy="select"
+    )
 
     def generer_matricule(self):
         import random
@@ -314,7 +329,7 @@ class Permission(db.Model):
     categorie = db.Column(db.String(50), nullable=True)  # Ex: 'client', 'credit', 'paiement', 'employe'
 
     # 👇 AJOUTEZ CETTE LIGNE (décommentez ou ajoutez-la)
-    # users = db.relationship('User', secondary='user_permissions', back_populates='permissions')
+    users = db.relationship('User', secondary='user_permissions', back_populates='permissions')
 
     # Métadonnées
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -5291,18 +5306,6 @@ class ErrorLog(db.Model):
 
 
 
-# Modèle pour les erreurs
-class ErrorLog(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    message = db.Column(db.Text)
-    traceback = db.Column(db.Text)
-    url = db.Column(db.String(500))
-    employe_id = db.Column(db.Integer)
-    succursale_id = db.Column(db.Integer)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    seen = db.Column(db.Boolean, default=False)
-    level = db.Column(db.String(20), default='error')
-
 
 class Note(db.Model):
     __tablename__ = 'notes'
@@ -5619,16 +5622,6 @@ class Dossier(db.Model):
         self.statut = 'archive'
         db.session.commit()
 
-
-# Table d'association pour la relation many-to-many entre Dossier et Document
-dossier_documents = db.Table('dossier_documents',
-                             db.Column('dossier_id', db.Integer, db.ForeignKey('dossiers.id'), primary_key=True),
-                             db.Column('document_id', db.Integer, db.ForeignKey('documents.id'), primary_key=True),
-                             db.Column('date_ajout', db.DateTime, default=datetime.utcnow)
-                             )
-
-class Account:
-    pass
 
 
 class Decision(db.Model):
