@@ -1,7 +1,14 @@
+
+from database import db
+# user_permissions = db.Table(
+#     'user_permissions',
+#     db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
+#     db.Column('permission_id', db.Integer, db.ForeignKey('permissions.id'))
+# )
+
 import os  # ← AJOUTEZ CETTE LIGNE
 import pickle
 from datetime import datetime, date
-from database import db
 
 import requests
 import flet as ft  # Assurez-vous d'avoir importé votre bibliothèque d'interface
@@ -20,11 +27,12 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SelectField, DecimalField, DateField, BooleanField, IntegerField
 from wtforms.validators import DataRequired, Length, Optional
 
-user_permissions = db.Table('user_permissions',
-                            db.Column('employe_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
-                            db.Column('permission_id', db.Integer, db.ForeignKey('permissions.id'),
-                                      primary_key=True)
-                            )
+
+from sqlalchemy import MetaData
+metadata = MetaData()
+
+
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
 
@@ -149,10 +157,10 @@ class User(UserMixin, db.Model):
 
 
 
-    # # ➕ AJOUTEZ CETTE RELATION (vers ligne ~600)
+    # ➕ AJOUTEZ CETTE RELATION (vers ligne ~600)
     # permissions = db.relationship(
     #     "Permission",
-    #     secondary=user_permissions,
+    #     secondary='user_permissions',
     #     back_populates="users",
     #     lazy="select"
     # )
@@ -306,7 +314,7 @@ class Permission(db.Model):
     categorie = db.Column(db.String(50), nullable=True)  # Ex: 'client', 'credit', 'paiement', 'employe'
 
     # 👇 AJOUTEZ CETTE LIGNE (décommentez ou ajoutez-la)
-    users = db.relationship('User', secondary='user_permissions', back_populates='permissions')
+    # users = db.relationship('User', secondary='user_permissions', back_populates='permissions')
 
     # Métadonnées
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
