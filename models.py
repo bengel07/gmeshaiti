@@ -25,6 +25,406 @@ user_permissions = db.Table('user_permissions',
                             db.Column('permission_id', db.Integer, db.ForeignKey('permissions.id'),
                                       primary_key=True)
                             )
+class User(UserMixin, db.Model):
+    __tablename__ = 'users'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Champs communs à tous les utilisateurs
+    username = db.Column(db.String(80), unique=True, nullable=True)
+    email = db.Column(db.String(120), unique=True)
+    password_hash = db.Column(db.String(255))
+    role = db.Column(db.String(20), default='client')  # client, employe, admin, superviseur
+    statut = db.Column(db.String(20), default='actif')  # 'actif', 'en_attente', 'inactif'
+
+    # approuve_par = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Admin qui a approuvé
+
+    # permissions = db.Column(db.Text)  # Stocke les permissions en JSON
+    nom_complet=db.Column(db.String(100))
+    nom = db.Column(db.String(100))
+    prenom = db.Column(db.String(100))
+    telephone = db.Column(db.String(20))
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    groupe_id = db.Column(db.Integer, db.ForeignKey('groupes.id'), nullable=True)
+
+    # Champs spécifiques aux clients
+    id_client = db.Column(db.String(20), unique=True, nullable=True)
+    adresse = db.Column(db.Text)
+    cin_nif = db.Column(db.String(50), unique=True, nullable=True)
+    date_naissance = db.Column(db.DateTime, nullable=True)
+    profession = db.Column(db.String(100))
+    lieu_naissance = db.Column(db.String(100))
+    nationalite = db.Column(db.String(100))
+    autre_nationalite = db.Column(db.String(100))
+    commune = db.Column(db.String(100))
+    duree_adresse = db.Column(db.Integer)
+    etat_civil = db.Column(db.String(100))
+    nom_conjoint = db.Column(db.String(100))
+    nb_enfants = db.Column(db.Integer)
+
+    revenu_mensuel = db.Column(db.Float, default=0)
+    date_inscription = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # ⚠️ AJOUTEZ CES CHAMPS MANQUANTS :
+    niveau_habilitation = db.Column(db.Integer, default=1)  # Niveau 1-4
+    derniere_activite = db.Column(db.DateTime, default=datetime.utcnow)
+    verifications_completes = db.Column(db.Boolean, default=False)
+    formation_aml_cft = db.Column(db.Boolean, default=False)
+    matricule = db.Column(db.String(20), unique=True, default=lambda: "EMP-" + ''.join(random.choices("0123456789", k=6)))  # Matricule d'employé
+
+    # Nouveaux champs
+    depenses_mensuelles = db.Column(db.Float, default=0)
+    capacite_remboursement = db.Column(db.Float, default=0)
+    photo_id = db.Column(db.String(255))
+    photo_selfie = db.Column(db.String(255))
+    verification_faciale = db.Column(db.Boolean, default=False)
+    score_verification = db.Column(db.Float, default=0)
+    terms_accepted = db.Column(db.Boolean, default=False, nullable=False)  # This should exist
+
+    succursale_id = db.Column(db.Integer, db.ForeignKey('succursale.id'), nullable=True)
+
+    succursale = db.relationship('Succursale',
+                                 foreign_keys=[succursale_id],
+                                 back_populates='users')
+
+    role_succursale = db.Column(db.String(50))  # directeur, caissier, conseiller_succursale
+
+    # Champs pour l'historique
+    date_embauche = db.Column(db.DateTime, nullable=True)
+    date_depart = db.Column(db.DateTime, nullable=True)
+    motif_depart = db.Column(db.String(100), nullable=True)
+    fonction = db.Column(db.String(100), nullable=True)  # si vous avez ajouté ce champ
+
+    # Dans models.py, classe User
+    cree_par_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    token_signature = db.Column(db.String(100), unique=True, nullable=True)
+    date_envoi_terms = db.Column(db.DateTime, nullable=True)
+    date_signature = db.Column(db.DateTime, nullable=True)
+    sexe = db.Column(db.String(1), nullable=True)  # 'M' ou 'F'
+
+    parent_nom = db.Column(db.String(100), nullable=True)
+    parent_signature = db.Column(db.Text, nullable=True)
+    date_expiration_token = db.Column(db.DateTime, nullable=True)
+    date_signature_terms = db.Column(db.DateTime, nullable=True)
+
+    date_approbation = db.Column(db.DateTime, nullable=True)
+    approuve_par_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    motif_rejet = db.Column(db.Text, nullable=True)
+    date_rejet = db.Column(db.DateTime, nullable=True)
+    rejete_par_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    derniere_connexion = db.Column(db.DateTime, nullable=True)
+
+    photo_profil = db.Column(db.String(255))
+    photo_recto = db.Column(db.String(255))
+    photo_verso = db.Column(db.String(255))
+
+    id_number = db.Column(db.String(100), unique=True)
+    id_type = db.Column(db.String(50))
+
+    carte_generee = db.Column(db.Boolean, default=False)
+    carte_path = db.Column(db.String(200))
+
+
+    photo = db.Column(db.String(200))
+    qr_code = db.Column(db.String(200))
+    qr_token = db.Column(db.String(200), unique=True)
+    carte_expiration = db.Column(db.DateTime)
+    actif = db.Column(db.Boolean, default=False)
+    departement = db.Column(db.String(100), nullable=True)
+    # Exigences BRH
+    # date_embauche = db.Column(db.Date, default=datetime.utcnow)
+    verification_antecedents = db.Column(db.Boolean, default=False)
+    date_verification_antecedents = db.Column(db.DateTime)
+    # formation_aml_cft = db.Column(db.Boolean, default=False)
+    date_formation_aml_cft = db.Column(db.DateTime)
+    statut_conformite = db.Column(db.String(50), default='en_attente')  # 'en_attente', 'conforme', 'non_conforme'
+
+    carte_numero = db.Column(db.String(50), unique=True, nullable=True)
+    est_actif = db.Column(db.Boolean, default=True)
+
+    # Relation avec Partner
+
+
+    # Ajoute cette ligne pour la relation avec Partner
+
+
+
+    # # ➕ AJOUTEZ CETTE RELATION (vers ligne ~600)
+    # permissions = db.relationship(
+    #     "Permission",
+    #     secondary=user_permissions,
+    #     back_populates="users",
+    #     lazy="select"
+    # )
+
+    def generer_matricule(self):
+        import random
+        import string
+        return "EMP-" + ''.join(random.choices(string.digits, k=6))
+
+    def generate_unique_carte_numero(self):
+        while True:
+            numero = generate_carte_numero()
+            if not User.query.filter_by(carte_numero=numero).first():
+                return numero
+
+
+
+    # Relations
+
+    modifications_effectuees = db.relationship("HistoriqueEmploye", foreign_keys="HistoriqueEmploye.modifie_par_id", back_populates="modifie_par")
+
+    # 🔐 Gestion du premier changement
+    premier_connexion = db.Column(db.Boolean, default=True)  # True = doit changer son mot de passe
+    date_premiere_connexion = db.Column(db.DateTime, nullable=True)
+
+    # 📝 Questions secrètes
+    question_secrete_1 = db.Column(db.String(200), nullable=True)
+    reponse_secrete_1 = db.Column(db.String(200), nullable=True)
+    question_secrete_2 = db.Column(db.String(200), nullable=True)
+    reponse_secrete_2 = db.Column(db.String(200), nullable=True)
+    question_secrete_3 = db.Column(db.String(200), nullable=True)
+    reponse_secrete_3 = db.Column(db.String(200), nullable=True)
+
+    # 🔑 Demande de changement de mot de passe
+    reset_token = db.Column(db.String(100), unique=True, nullable=True)
+    reset_token_expiration = db.Column(db.DateTime, nullable=True)
+    demande_reset_date = db.Column(db.DateTime, nullable=True)
+
+    # 🆔 Changement d'username
+    nouveau_username_demande = db.Column(db.String(80), nullable=True)
+    demande_username_status = db.Column(db.String(20), default='aucune')  # 'en_attente', 'approuve', 'rejete'
+    demande_username_date = db.Column(db.DateTime, nullable=True)
+
+    entreprise = db.Column(db.String(200), nullable=True)
+    adresse_travail = db.Column(db.String(500), nullable=True)
+    tel_travail = db.Column(db.String(50), nullable=True)
+    autres_revenus = db.Column(db.Float, default=0)
+    photo_face = db.Column(db.String(500), nullable=True)
+    photo_dos = db.Column(db.String(500), nullable=True)
+
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def has_permission(self, permission_name):
+        """
+        Vérifie si l'utilisateur a une permission spécifique
+        Version robuste avec gestion d'erreurs
+        """
+        # Sécurité : si l'utilisateur n'existe pas
+        if not self or not self.is_authenticated:
+            return False
+
+        # 1️⃣ SUPER ADMIN - Tous les accès
+        if self.role == 'super_admin':
+            return True
+
+        # 2️⃣ ADMIN - Tous les accès
+        if self.role == 'admin':
+            return True
+
+        # 3️⃣ ADMIN SUCCURSALE - Accès à toutes les permissions de sa succursale
+        if self.role == 'admin_succursale':
+            # Les admins de succursale ont accès à toutes les permissions
+            return True
+
+        # 4️⃣ SUPERVISEUR - Accès à tous les dashboards employés
+        if self.role == 'superviseur':
+            superviseur_permissions = [
+                'caissier',
+                'conseiller',
+                'analyste_credit',
+                'gestionnaire_groupe',
+                'rapports',
+                'agent_credit',
+                'agent_remboursement'
+            ]
+            return permission_name in superviseur_permissions
+
+        # 5️⃣ EMPLOYÉ - Vérification des permissions spécifiques
+        if self.role == 'employe':
+            # Vérifier d'abord par la fonction (plus simple)
+            if hasattr(self, 'fonction') and self.fonction == permission_name:
+                return True
+
+            # Ensuite vérifier par la liste JSON des permissions
+            if hasattr(self, 'permissions') and self.permissions:
+                try:
+                    import json
+                    # Si c'est déjà une liste, pas besoin de json.loads
+                    if isinstance(self.permissions, list):
+                        return permission_name in self.permissions
+                    # Sinon, essayer de parser le JSON
+                    elif isinstance(self.permissions, str):
+                        permissions_list = json.loads(self.permissions)
+                        return permission_name in permissions_list
+                except (json.JSONDecodeError, TypeError, ValueError) as e:
+                    # Log l'erreur pour debug
+                    print(f"⚠️ Erreur parsing permissions pour {self.username}: {e}")
+                    # Fallback: vérification par la fonction (déjà fait)
+                    pass
+
+            # Vérifier par l'attribut fonction (fallback)
+            return getattr(self, 'fonction', None) == permission_name
+
+        # 6️⃣ CLIENT - Pas de permissions spéciales
+        if self.role == 'client':
+            return False
+
+        # 7️⃣ AUTRES RÔLES - Par défaut, pas de permissions
+        return False
+
+    def has_any_permission(self, *permission_names):
+        """
+        Vérifie si l'utilisateur a au moins une des permissions
+        Utile pour les pages accessibles par plusieurs rôles
+        """
+        return any(self.has_permission(p) for p in permission_names)
+
+    def has_all_permissions(self, *permission_names):
+        """
+        Vérifie si l'utilisateur a toutes les permissions
+        Utile pour les actions sensibles
+        """
+        return all(self.has_permission(p) for p in permission_names)
+
+
+
+
+
+
+class Permission(db.Model):
+    __tablename__ = 'permissions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    nom = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.String(255), nullable=True)
+    categorie = db.Column(db.String(50), nullable=True)  # Ex: 'client', 'credit', 'paiement', 'employe'
+
+    # 👇 AJOUTEZ CETTE LIGNE (décommentez ou ajoutez-la)
+    users = db.relationship('User', secondary='user_permissions', back_populates='permissions')
+
+    # Métadonnées
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Permission {self.nom}>'
+
+    @classmethod
+    def init_default_permissions(cls):
+        """Initialise les permissions par défaut dans la base de données"""
+
+        permissions_data = [
+            # 👥 CLIENTS
+            ('voir_clients', 'Voir la liste des clients', 'clients'),
+            ('creer_client', 'Créer un nouveau client', 'clients'),
+            ('modifier_client', 'Modifier les informations client', 'clients'),
+            ('supprimer_client', 'Supprimer un client', 'clients'),
+            ('exporter_clients', 'Exporter la liste des clients', 'clients'),
+
+            # 💰 CRÉDITS
+            ('voir_credits', 'Voir la liste des crédits', 'credits'),
+            ('creer_credit', 'Créer une demande de crédit', 'credits'),
+            ('modifier_credit', 'Modifier un crédit', 'credits'),
+            ('approuver_credit', 'Approuver les crédits', 'credits'),
+            ('rejeter_credit', 'Rejeter les crédits', 'credits'),
+            ('annuler_credit', 'Annuler un crédit', 'credits'),
+            ('voir_analyse_credit', 'Voir les analyses de crédit', 'credits'),
+            ('simuler_credit', 'Simuler un crédit', 'credits'),
+
+            # 💵 PAIEMENTS
+            ('voir_paiements', 'Voir l\'historique des paiements', 'paiements'),
+            ('enregistrer_paiement', 'Enregistrer un paiement', 'paiements'),
+            ('modifier_paiement', 'Modifier un paiement', 'paiements'),
+            ('annuler_paiement', 'Annuler un paiement', 'paiements'),
+            ('exporter_paiements', 'Exporter les paiements', 'paiements'),
+            ('voir_echeances', 'Voir les échéances', 'paiements'),
+
+            # 📊 RAPPORTS
+            ('voir_rapports', 'Voir les rapports', 'rapports'),
+            ('exporter_rapports', 'Exporter les rapports', 'rapports'),
+            ('creer_rapport_personnalise', 'Créer des rapports personnalisés', 'rapports'),
+            ('voir_tableau_bord', 'Voir le tableau de bord', 'rapports'),
+
+            # 👔 EMPLOYÉS (pour superviseurs)
+            ('voir_employes', 'Voir la liste des employés', 'employes'),
+            ('creer_employe', 'Créer un nouvel employé', 'employes'),
+            ('modifier_employe', 'Modifier un employé', 'employes'),
+            ('suspendre_employe', 'Suspendre un employé', 'employes'),
+            ('reactiver_employe', 'Réactiver un employé', 'employes'),
+            ('supprimer_employe', 'Supprimer un employé', 'employes'),
+            ('gerer_permissions', 'Gérer les permissions des employés', 'employes'),
+
+            # 🏦 SUCCURSALES
+            ('voir_succursales', 'Voir les succursales', 'succursales'),
+            ('creer_succursale', 'Créer une succursale', 'succursales'),
+            ('modifier_succursale', 'Modifier une succursale', 'succursales'),
+
+            # 🏧 CAISSE (pour caissiers)
+            ('gerer_caisse', 'Gérer la caisse', 'caisse'),
+            ('ouvrir_caisse', 'Ouvrir la caisse', 'caisse'),
+            ('fermer_caisse', 'Fermer la caisse', 'caisse'),
+            ('voir_mouvements_caisse', 'Voir les mouvements de caisse', 'caisse'),
+            ('faire_depot_caisse', 'Faire un dépôt en caisse', 'caisse'),
+            ('faire_retrait_caisse', 'Faire un retrait de caisse', 'caisse'),
+            ('cloturer_caisse', 'Clôturer la caisse en fin de journée', 'caisse'),
+
+            # 📈 ANALYSE (pour analystes crédit)
+            ('analyser_credit', 'Analyser les demandes de crédit', 'analyse'),
+            ('voir_scoring', 'Voir le scoring des clients', 'analyse'),
+            ('proposer_credit', 'Proposer des crédits', 'analyse'),
+            ('voir_historique_client', 'Voir l\'historique complet du client', 'analyse'),
+
+            # 🎯 GROUPES (pour gestionnaires de groupes)
+            ('creer_groupe', 'Créer un groupe de clients', 'groupes'),
+            ('gerer_groupe', 'Gérer les groupes de clients', 'groupes'),
+            ('voir_groupes', 'Voir les groupes', 'groupes'),
+            ('animer_groupe', 'Animer les réunions de groupe', 'groupes'),
+
+            # 🚗 TERRAIN (pour agents terrain)
+            ('planifier_visite', 'Planifier des visites terrain', 'terrain'),
+            ('enregistrer_visite', 'Enregistrer une visite', 'terrain'),
+            ('voir_tournee', 'Voir sa tournée', 'terrain'),
+            ('collecter_paiement', 'Collecter des paiements sur le terrain', 'terrain'),
+
+            # 🔐 ADMINISTRATION
+            ('gerer_utilisateurs', 'Gérer les utilisateurs', 'admin'),
+            ('voir_logs', 'Voir les logs système', 'admin'),
+            ('configurer_systeme', 'Configurer le système', 'admin'),
+            ('sauvegarder_donnees', 'Sauvegarder les données', 'admin'),
+            ('restaurer_donnees', 'Restaurer les données', 'admin'),
+
+            # 📋 CONFORMITÉ (pour agents conformité)
+            ('verifier_kyc', 'Vérifier les documents KYC', 'conformite'),
+            ('voir_alertes_conformite', 'Voir les alertes de conformité', 'conformite'),
+            ('traiter_alerte', 'Traiter une alerte de conformité', 'conformite'),
+            ('exporter_rapports_conformite', 'Exporter les rapports de conformité', 'conformite'),
+
+            # 📚 FORMATION
+            ('voir_formations', 'Voir les formations disponibles', 'formation'),
+            ('participer_formation', 'Participer à une formation', 'formation'),
+            ('creer_formation', 'Créer une formation', 'formation'),
+            ('evaluer_formation', 'Évaluer une formation', 'formation'),
+        ]
+
+        for nom, description, categorie in permissions_data:
+            permission = cls.query.filter_by(nom=nom).first()
+            if not permission:
+                permission = cls(
+                    nom=nom,
+                    description=description,
+                    categorie=categorie
+                )
+                db.session.add(permission)
+
+        db.session.commit()
+        print(f"✅ {len(permissions_data)} permissions initialisées")
+
+
 
 
 class Journal(db.Model):
@@ -95,6 +495,8 @@ class Journal(db.Model):
     def get_recent(cls, limit=100):
         """Récupère les actions récentes"""
         return cls.query.order_by(cls.timestamp.desc()).limit(limit).all()
+
+
 
 
 
@@ -619,132 +1021,7 @@ class Employe(db.Model):
         return f"{self.prenom} {self.nom}"
 
 
-class Permission(db.Model):
-    __tablename__ = 'permissions'
 
-    id = db.Column(db.Integer, primary_key=True)
-    nom = db.Column(db.String(100), unique=True, nullable=False)
-    description = db.Column(db.String(255), nullable=True)
-    categorie = db.Column(db.String(50), nullable=True)  # Ex: 'client', 'credit', 'paiement', 'employe'
-
-    # 👇 AJOUTEZ CETTE LIGNE (décommentez ou ajoutez-la)
-    users = db.relationship('User', secondary='user_permissions', back_populates='permissions')
-
-    # Métadonnées
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def __repr__(self):
-        return f'<Permission {self.nom}>'
-
-    @classmethod
-    def init_default_permissions(cls):
-        """Initialise les permissions par défaut dans la base de données"""
-
-        permissions_data = [
-            # 👥 CLIENTS
-            ('voir_clients', 'Voir la liste des clients', 'clients'),
-            ('creer_client', 'Créer un nouveau client', 'clients'),
-            ('modifier_client', 'Modifier les informations client', 'clients'),
-            ('supprimer_client', 'Supprimer un client', 'clients'),
-            ('exporter_clients', 'Exporter la liste des clients', 'clients'),
-
-            # 💰 CRÉDITS
-            ('voir_credits', 'Voir la liste des crédits', 'credits'),
-            ('creer_credit', 'Créer une demande de crédit', 'credits'),
-            ('modifier_credit', 'Modifier un crédit', 'credits'),
-            ('approuver_credit', 'Approuver les crédits', 'credits'),
-            ('rejeter_credit', 'Rejeter les crédits', 'credits'),
-            ('annuler_credit', 'Annuler un crédit', 'credits'),
-            ('voir_analyse_credit', 'Voir les analyses de crédit', 'credits'),
-            ('simuler_credit', 'Simuler un crédit', 'credits'),
-
-            # 💵 PAIEMENTS
-            ('voir_paiements', 'Voir l\'historique des paiements', 'paiements'),
-            ('enregistrer_paiement', 'Enregistrer un paiement', 'paiements'),
-            ('modifier_paiement', 'Modifier un paiement', 'paiements'),
-            ('annuler_paiement', 'Annuler un paiement', 'paiements'),
-            ('exporter_paiements', 'Exporter les paiements', 'paiements'),
-            ('voir_echeances', 'Voir les échéances', 'paiements'),
-
-            # 📊 RAPPORTS
-            ('voir_rapports', 'Voir les rapports', 'rapports'),
-            ('exporter_rapports', 'Exporter les rapports', 'rapports'),
-            ('creer_rapport_personnalise', 'Créer des rapports personnalisés', 'rapports'),
-            ('voir_tableau_bord', 'Voir le tableau de bord', 'rapports'),
-
-            # 👔 EMPLOYÉS (pour superviseurs)
-            ('voir_employes', 'Voir la liste des employés', 'employes'),
-            ('creer_employe', 'Créer un nouvel employé', 'employes'),
-            ('modifier_employe', 'Modifier un employé', 'employes'),
-            ('suspendre_employe', 'Suspendre un employé', 'employes'),
-            ('reactiver_employe', 'Réactiver un employé', 'employes'),
-            ('supprimer_employe', 'Supprimer un employé', 'employes'),
-            ('gerer_permissions', 'Gérer les permissions des employés', 'employes'),
-
-            # 🏦 SUCCURSALES
-            ('voir_succursales', 'Voir les succursales', 'succursales'),
-            ('creer_succursale', 'Créer une succursale', 'succursales'),
-            ('modifier_succursale', 'Modifier une succursale', 'succursales'),
-
-            # 🏧 CAISSE (pour caissiers)
-            ('gerer_caisse', 'Gérer la caisse', 'caisse'),
-            ('ouvrir_caisse', 'Ouvrir la caisse', 'caisse'),
-            ('fermer_caisse', 'Fermer la caisse', 'caisse'),
-            ('voir_mouvements_caisse', 'Voir les mouvements de caisse', 'caisse'),
-            ('faire_depot_caisse', 'Faire un dépôt en caisse', 'caisse'),
-            ('faire_retrait_caisse', 'Faire un retrait de caisse', 'caisse'),
-            ('cloturer_caisse', 'Clôturer la caisse en fin de journée', 'caisse'),
-
-            # 📈 ANALYSE (pour analystes crédit)
-            ('analyser_credit', 'Analyser les demandes de crédit', 'analyse'),
-            ('voir_scoring', 'Voir le scoring des clients', 'analyse'),
-            ('proposer_credit', 'Proposer des crédits', 'analyse'),
-            ('voir_historique_client', 'Voir l\'historique complet du client', 'analyse'),
-
-            # 🎯 GROUPES (pour gestionnaires de groupes)
-            ('creer_groupe', 'Créer un groupe de clients', 'groupes'),
-            ('gerer_groupe', 'Gérer les groupes de clients', 'groupes'),
-            ('voir_groupes', 'Voir les groupes', 'groupes'),
-            ('animer_groupe', 'Animer les réunions de groupe', 'groupes'),
-
-            # 🚗 TERRAIN (pour agents terrain)
-            ('planifier_visite', 'Planifier des visites terrain', 'terrain'),
-            ('enregistrer_visite', 'Enregistrer une visite', 'terrain'),
-            ('voir_tournee', 'Voir sa tournée', 'terrain'),
-            ('collecter_paiement', 'Collecter des paiements sur le terrain', 'terrain'),
-
-            # 🔐 ADMINISTRATION
-            ('gerer_utilisateurs', 'Gérer les utilisateurs', 'admin'),
-            ('voir_logs', 'Voir les logs système', 'admin'),
-            ('configurer_systeme', 'Configurer le système', 'admin'),
-            ('sauvegarder_donnees', 'Sauvegarder les données', 'admin'),
-            ('restaurer_donnees', 'Restaurer les données', 'admin'),
-
-            # 📋 CONFORMITÉ (pour agents conformité)
-            ('verifier_kyc', 'Vérifier les documents KYC', 'conformite'),
-            ('voir_alertes_conformite', 'Voir les alertes de conformité', 'conformite'),
-            ('traiter_alerte', 'Traiter une alerte de conformité', 'conformite'),
-            ('exporter_rapports_conformite', 'Exporter les rapports de conformité', 'conformite'),
-
-            # 📚 FORMATION
-            ('voir_formations', 'Voir les formations disponibles', 'formation'),
-            ('participer_formation', 'Participer à une formation', 'formation'),
-            ('creer_formation', 'Créer une formation', 'formation'),
-            ('evaluer_formation', 'Évaluer une formation', 'formation'),
-        ]
-
-        for nom, description, categorie in permissions_data:
-            permission = cls.query.filter_by(nom=nom).first()
-            if not permission:
-                permission = cls(
-                    nom=nom,
-                    description=description,
-                    categorie=categorie
-                )
-                db.session.add(permission)
-
-        db.session.commit()
-        print(f"✅ {len(permissions_data)} permissions initialisées")
 
 
 class LoanRecommendationController:
@@ -940,273 +1217,6 @@ def generate_carte_numero():
     # Format: GMES-XXXX-XXXX
     return f"GMES-{''.join(random.choices(string.ascii_uppercase + string.digits, k=4))}-{''.join(random.choices(string.digits, k=4))}"
 
-
-class User(UserMixin, db.Model):
-    __tablename__ = 'users'
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    # Champs communs à tous les utilisateurs
-    username = db.Column(db.String(80), unique=True, nullable=True)
-    email = db.Column(db.String(120), unique=True)
-    password_hash = db.Column(db.String(255))
-    role = db.Column(db.String(20), default='client')  # client, employe, admin, superviseur
-    statut = db.Column(db.String(20), default='actif')  # 'actif', 'en_attente', 'inactif'
-
-    # approuve_par = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Admin qui a approuvé
-
-    # permissions = db.Column(db.Text)  # Stocke les permissions en JSON
-    nom_complet=db.Column(db.String(100))
-    nom = db.Column(db.String(100))
-    prenom = db.Column(db.String(100))
-    telephone = db.Column(db.String(20))
-    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
-    groupe_id = db.Column(db.Integer, db.ForeignKey('groupes.id'), nullable=True)
-
-    # Champs spécifiques aux clients
-    id_client = db.Column(db.String(20), unique=True, nullable=True)
-    adresse = db.Column(db.Text)
-    cin_nif = db.Column(db.String(50), unique=True, nullable=True)
-    date_naissance = db.Column(db.DateTime, nullable=True)
-    profession = db.Column(db.String(100))
-    lieu_naissance = db.Column(db.String(100))
-    nationalite = db.Column(db.String(100))
-    autre_nationalite = db.Column(db.String(100))
-    commune = db.Column(db.String(100))
-    duree_adresse = db.Column(db.Integer)
-    etat_civil = db.Column(db.String(100))
-    nom_conjoint = db.Column(db.String(100))
-    nb_enfants = db.Column(db.Integer)
-
-    revenu_mensuel = db.Column(db.Float, default=0)
-    date_inscription = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # ⚠️ AJOUTEZ CES CHAMPS MANQUANTS :
-    niveau_habilitation = db.Column(db.Integer, default=1)  # Niveau 1-4
-    derniere_activite = db.Column(db.DateTime, default=datetime.utcnow)
-    verifications_completes = db.Column(db.Boolean, default=False)
-    formation_aml_cft = db.Column(db.Boolean, default=False)
-    matricule = db.Column(db.String(20), unique=True, default=lambda: "EMP-" + ''.join(random.choices("0123456789", k=6)))  # Matricule d'employé
-
-    # Nouveaux champs
-    depenses_mensuelles = db.Column(db.Float, default=0)
-    capacite_remboursement = db.Column(db.Float, default=0)
-    photo_id = db.Column(db.String(255))
-    photo_selfie = db.Column(db.String(255))
-    verification_faciale = db.Column(db.Boolean, default=False)
-    score_verification = db.Column(db.Float, default=0)
-    terms_accepted = db.Column(db.Boolean, default=False, nullable=False)  # This should exist
-
-    succursale_id = db.Column(db.Integer, db.ForeignKey('succursale.id'), nullable=True)
-
-    succursale = db.relationship('Succursale',
-                                 foreign_keys=[succursale_id],
-                                 back_populates='users')
-
-    role_succursale = db.Column(db.String(50))  # directeur, caissier, conseiller_succursale
-
-    # Champs pour l'historique
-    date_embauche = db.Column(db.DateTime, nullable=True)
-    date_depart = db.Column(db.DateTime, nullable=True)
-    motif_depart = db.Column(db.String(100), nullable=True)
-    fonction = db.Column(db.String(100), nullable=True)  # si vous avez ajouté ce champ
-
-    # Dans models.py, classe User
-    cree_par_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    token_signature = db.Column(db.String(100), unique=True, nullable=True)
-    date_envoi_terms = db.Column(db.DateTime, nullable=True)
-    date_signature = db.Column(db.DateTime, nullable=True)
-    sexe = db.Column(db.String(1), nullable=True)  # 'M' ou 'F'
-
-    parent_nom = db.Column(db.String(100), nullable=True)
-    parent_signature = db.Column(db.Text, nullable=True)
-    date_expiration_token = db.Column(db.DateTime, nullable=True)
-    date_signature_terms = db.Column(db.DateTime, nullable=True)
-
-    date_approbation = db.Column(db.DateTime, nullable=True)
-    approuve_par_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    motif_rejet = db.Column(db.Text, nullable=True)
-    date_rejet = db.Column(db.DateTime, nullable=True)
-    rejete_par_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    derniere_connexion = db.Column(db.DateTime, nullable=True)
-
-    photo_profil = db.Column(db.String(255))
-    photo_recto = db.Column(db.String(255))
-    photo_verso = db.Column(db.String(255))
-
-    id_number = db.Column(db.String(100), unique=True)
-    id_type = db.Column(db.String(50))
-
-    carte_generee = db.Column(db.Boolean, default=False)
-    carte_path = db.Column(db.String(200))
-
-
-    photo = db.Column(db.String(200))
-    qr_code = db.Column(db.String(200))
-    qr_token = db.Column(db.String(200), unique=True)
-    carte_expiration = db.Column(db.DateTime)
-    actif = db.Column(db.Boolean, default=False)
-    departement = db.Column(db.String(100), nullable=True)
-    # Exigences BRH
-    # date_embauche = db.Column(db.Date, default=datetime.utcnow)
-    verification_antecedents = db.Column(db.Boolean, default=False)
-    date_verification_antecedents = db.Column(db.DateTime)
-    # formation_aml_cft = db.Column(db.Boolean, default=False)
-    date_formation_aml_cft = db.Column(db.DateTime)
-    statut_conformite = db.Column(db.String(50), default='en_attente')  # 'en_attente', 'conforme', 'non_conforme'
-
-    carte_numero = db.Column(db.String(50), unique=True, nullable=True)
-    est_actif = db.Column(db.Boolean, default=True)
-
-    # Relation avec Partner
-
-
-    # Ajoute cette ligne pour la relation avec Partner
-
-
-
-    # ➕ AJOUTEZ CETTE RELATION (vers ligne ~600)
-    permissions = db.relationship(
-        "Permission",
-        secondary=user_permissions,
-        back_populates="users",
-        lazy="select"
-    )
-
-    def generer_matricule(self):
-        import random
-        import string
-        return "EMP-" + ''.join(random.choices(string.digits, k=6))
-
-    def generate_unique_carte_numero(self):
-        while True:
-            numero = generate_carte_numero()
-            if not User.query.filter_by(carte_numero=numero).first():
-                return numero
-
-
-
-    # Relations
-
-    modifications_effectuees = db.relationship("HistoriqueEmploye", foreign_keys="HistoriqueEmploye.modifie_par_id", back_populates="modifie_par")
-
-    # 🔐 Gestion du premier changement
-    premier_connexion = db.Column(db.Boolean, default=True)  # True = doit changer son mot de passe
-    date_premiere_connexion = db.Column(db.DateTime, nullable=True)
-
-    # 📝 Questions secrètes
-    question_secrete_1 = db.Column(db.String(200), nullable=True)
-    reponse_secrete_1 = db.Column(db.String(200), nullable=True)
-    question_secrete_2 = db.Column(db.String(200), nullable=True)
-    reponse_secrete_2 = db.Column(db.String(200), nullable=True)
-    question_secrete_3 = db.Column(db.String(200), nullable=True)
-    reponse_secrete_3 = db.Column(db.String(200), nullable=True)
-
-    # 🔑 Demande de changement de mot de passe
-    reset_token = db.Column(db.String(100), unique=True, nullable=True)
-    reset_token_expiration = db.Column(db.DateTime, nullable=True)
-    demande_reset_date = db.Column(db.DateTime, nullable=True)
-
-    # 🆔 Changement d'username
-    nouveau_username_demande = db.Column(db.String(80), nullable=True)
-    demande_username_status = db.Column(db.String(20), default='aucune')  # 'en_attente', 'approuve', 'rejete'
-    demande_username_date = db.Column(db.DateTime, nullable=True)
-
-    entreprise = db.Column(db.String(200), nullable=True)
-    adresse_travail = db.Column(db.String(500), nullable=True)
-    tel_travail = db.Column(db.String(50), nullable=True)
-    autres_revenus = db.Column(db.Float, default=0)
-    photo_face = db.Column(db.String(500), nullable=True)
-    photo_dos = db.Column(db.String(500), nullable=True)
-
-
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-    def has_permission(self, permission_name):
-        """
-        Vérifie si l'utilisateur a une permission spécifique
-        Version robuste avec gestion d'erreurs
-        """
-        # Sécurité : si l'utilisateur n'existe pas
-        if not self or not self.is_authenticated:
-            return False
-
-        # 1️⃣ SUPER ADMIN - Tous les accès
-        if self.role == 'super_admin':
-            return True
-
-        # 2️⃣ ADMIN - Tous les accès
-        if self.role == 'admin':
-            return True
-
-        # 3️⃣ ADMIN SUCCURSALE - Accès à toutes les permissions de sa succursale
-        if self.role == 'admin_succursale':
-            # Les admins de succursale ont accès à toutes les permissions
-            return True
-
-        # 4️⃣ SUPERVISEUR - Accès à tous les dashboards employés
-        if self.role == 'superviseur':
-            superviseur_permissions = [
-                'caissier',
-                'conseiller',
-                'analyste_credit',
-                'gestionnaire_groupe',
-                'rapports',
-                'agent_credit',
-                'agent_remboursement'
-            ]
-            return permission_name in superviseur_permissions
-
-        # 5️⃣ EMPLOYÉ - Vérification des permissions spécifiques
-        if self.role == 'employe':
-            # Vérifier d'abord par la fonction (plus simple)
-            if hasattr(self, 'fonction') and self.fonction == permission_name:
-                return True
-
-            # Ensuite vérifier par la liste JSON des permissions
-            if hasattr(self, 'permissions') and self.permissions:
-                try:
-                    import json
-                    # Si c'est déjà une liste, pas besoin de json.loads
-                    if isinstance(self.permissions, list):
-                        return permission_name in self.permissions
-                    # Sinon, essayer de parser le JSON
-                    elif isinstance(self.permissions, str):
-                        permissions_list = json.loads(self.permissions)
-                        return permission_name in permissions_list
-                except (json.JSONDecodeError, TypeError, ValueError) as e:
-                    # Log l'erreur pour debug
-                    print(f"⚠️ Erreur parsing permissions pour {self.username}: {e}")
-                    # Fallback: vérification par la fonction (déjà fait)
-                    pass
-
-            # Vérifier par l'attribut fonction (fallback)
-            return getattr(self, 'fonction', None) == permission_name
-
-        # 6️⃣ CLIENT - Pas de permissions spéciales
-        if self.role == 'client':
-            return False
-
-        # 7️⃣ AUTRES RÔLES - Par défaut, pas de permissions
-        return False
-
-    def has_any_permission(self, *permission_names):
-        """
-        Vérifie si l'utilisateur a au moins une des permissions
-        Utile pour les pages accessibles par plusieurs rôles
-        """
-        return any(self.has_permission(p) for p in permission_names)
-
-    def has_all_permissions(self, *permission_names):
-        """
-        Vérifie si l'utilisateur a toutes les permissions
-        Utile pour les actions sensibles
-        """
-        return all(self.has_permission(p) for p in permission_names)
 
 
 
