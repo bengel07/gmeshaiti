@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, request, jsonify, session
+from flask import Blueprint, render_template, request, jsonify, session, abort, redirect, url_for
 from flask_login import login_required, current_user
-from models import User, Transaction
+from models import User, Transaction, Epargne
 from database import db
 from models import Client, Succursale
 from utils.security import filtrer_par_role
@@ -45,14 +45,14 @@ def client_dashboard():
         abort(403, "Client sans compte bancaire")
 
     # Récupérer les informations du compte
-    account = Account.query.filter_by(employe_id=current_user.id).first()
+    account = Epargne.query.filter_by(employe_id=current_user.id).first()
     transactions = Transaction.query.filter_by(employe_id=current_user.id) \
         .order_by(Transaction.date_created.desc()) \
         .limit(10).all()
 
     # Récupérer les prêts
-    from models import Loan
-    loans = Loan.query.filter_by(employe_id=current_user.id).all()
+    from models import     Pret
+    loans = Pret.query.filter_by(employe_id=current_user.id).all()
 
     return render_template('client_portal.html',
                            account=account,
