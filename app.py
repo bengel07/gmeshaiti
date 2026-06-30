@@ -267,6 +267,15 @@ import schedule
 import threading
 
 
+from flask import request, jsonify, session, Blueprint
+
+# from models import Partner, PartnerAPIKey, PartnerWebhook, PartnerIntegration
+from services.partner_service import PartnerService
+from middleware.auth import login_requis
+from datetime import datetime
+import logging
+
+
 mail = Mail()
 
 app = Flask(__name__)
@@ -280,6 +289,10 @@ app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 app.config['DEBUG'] = True  # Pour le développement
 
 app.config.from_object(Config)  # ← Charge TOUTES les configs (y compris email)
+
+
+
+
 
 
 sock = Sock(app)
@@ -313,6 +326,17 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 # employees_bp = Blueprint('employees', __name__, url_prefix='/employees')
 
 mail.init_app(app)
+
+
+
+
+
+logger = logging.getLogger(__name__)
+
+# Si tu utilises un Blueprint
+partner_portal_bp = Blueprint('partner_portal', __name__, url_prefix='/api/partner/portal')
+
+
 
 def role_required(*roles):
     def decorator(f):
@@ -19322,64 +19346,6 @@ def fermeture_caisse():
         aujourd_hui=aujourd_hui
     )
 
-
-# @app.route('/api/partner/portal/integrations', methods=['POST'])
-# @login_requis
-# def create_partner_integration():
-#     """Le partenaire enregistre ses identifiants pour une intégration"""
-#     from models import Partner, PartnerAPIKey, PartnerWebhook
-#     from services.partner_service import PartnerService
-#     from extensions import db
-#
-#     data = request.json
-#
-#     # Vérifier les identifiants
-#     api_key = PartnerService.verify_api_key(
-#         data.get('client_id'),
-#         data.get('client_secret')
-#     )
-#
-#     if not api_key:
-#         return jsonify({'success': False, 'message': 'Identifiants invalides'}), 401
-#
-#     # Récupérer le partenaire
-#     partner = Partner.query.get(api_key.partner_id)
-#
-#     if not partner or not partner.is_active:
-#         return jsonify({'success': False, 'message': 'Partenaire inactif'}), 403
-#
-#     # Créer l'intégration (stockée dans PartnerWebhook ou une table dédiée)
-#     integration = PartnerIntegration(
-#         partner_id=partner.id,
-#         api_key_id=api_key.id,
-#         name=data.get('name'),
-#         webhook_url=data.get('webhook_url'),
-#         events=data.get('events', ['payment']),
-#         is_active=True
-#     )
-#     db.session.add(integration)
-#     db.session.commit()
-#
-#     return jsonify({
-#         'success': True,
-#         'message': 'Intégration créée avec succès',
-#         'integration_id': integration.id
-#     }), 201
-
-# app.py ou routes/partner_routes.py
-
-from flask import request, jsonify, session, Blueprint
-
-# from models import Partner, PartnerAPIKey, PartnerWebhook, PartnerIntegration
-from services.partner_service import PartnerService
-from middleware.auth import login_requis
-from datetime import datetime
-import logging
-
-logger = logging.getLogger(__name__)
-
-# Si tu utilises un Blueprint
-partner_portal_bp = Blueprint('partner_portal', __name__, url_prefix='/api/partner/portal')
 
 
 @partner_portal_bp.route('/integrations', methods=['POST'])
