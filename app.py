@@ -228,16 +228,16 @@ from config import Config, allowed_file, UPLOAD_FOLDER, MAX_FILE_SIZE, ALLOWED_E
 from database import db, init_db
 
 # ==================== MODELS ====================
-import models
 
-# from models import (
-#     Pret, Notification, Pointage, Employe, Remboursement, Journal,
-#     Transaction, TransactionCaisse, AuditLog, Paiement,
-#     CreerGroupeForm, Succursale, ErrorLog, Competence, Note,
-#     ContactHistorique, HistoriqueAction, Tracking, QuestionSecrete,
-#     Client, Groupe, User, Document, Dossier, Action, RetardPaiement,
-#     ScoringCredit, HistoriqueEmploye, Epargne, TransactionEpargne, Depense
-# )
+
+from models import (
+    Pret, Notification, Pointage, Employe, Remboursement, Journal,
+    Transaction, TransactionCaisse, AuditLog, Paiement,
+    CreerGroupeForm, Succursale, ErrorLog, Competence, Note,
+    ContactHistorique, HistoriqueAction, Tracking, QuestionSecrete,
+    Client, Groupe, User, Document, Dossier, Action, RetardPaiement,
+    ScoringCredit, HistoriqueEmploye, Epargne, TransactionEpargne, Depense
+)
 
 # ==================== ROUTES / BLUEPRINTS ====================
 from routes import *
