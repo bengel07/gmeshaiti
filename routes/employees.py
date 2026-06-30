@@ -174,6 +174,9 @@ def list(succursale_code):
     )
 
 
+
+
+
 # Dans ton blueprint pour les succursales ou employés
 @employees_bp.route('/<branch_code>/dashboard')
 @login_required
