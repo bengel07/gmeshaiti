@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-4">
+    <h2 class="mb-4">📊 Rapport Journalier</h2>
+
+    <p><strong>Date :</strong> {{ date_jour.strftime('%d/%m/%Y') }}</p>
+    <p><strong>Succursale :</strong> {{ succursale.nom }}</p>
+
+    <!-- Cartes KPI -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card bg-success text-white mb-3">
+                <div class="card-body">
+                    <h5>💰 Dépôts</h5>
+                    <h3>{{ "{:,.2f}".format(total_depots) }} HTG</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-danger text-white mb-3">
+                <div class="card-body">
+                    <h5>💸 Retraits</h5>
+                    <h3>{{ "{:,.2f}".format(total_retraits) }} HTG</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-info text-white mb-3">
+                <div class="card-body">
+                    <h5>📝 Opérations</h5>
+                    <h3>{{ nombre_operations }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark mb-3">
+                <div class="card-body">
+                    <h5>⚖️ Encaisse Nette</h5>
+                    <h3>{{ "{:,.2f}".format(encaisse_nette) }} HTG</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nouveaux clients et comptes -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5>👤 Nouveaux Clients</h5>
+                    <h3>{{ nouveaux_clients|default(0) }}</h3>  <!-- ✅ avec valeur par défaut -->
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5>🏦 Nouveaux Comptes</h5>
+                    <h3>{{ nouveaux_comptes }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau des transactions -->
+    <h4 class="mt-4">📋 Liste des transactions du jour</h4>
+
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Date</th>
+                <th>N° Compte</th>
+                <th>Type</th>
+                <th>Montant</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in transactions %}
+            <tr>
+                <td>{{ t.date_transaction.strftime('%d/%m/%Y %H:%M') }}</td>
+                <td>{{ t.compte.numero_compte }}</td>
+                <td>
+                    <span class="badge
+                        {% if t.type_transaction == 'depot' %}bg-success
+                        {% elif t.type_transaction == 'retrait' %}bg-danger
+                        {% elif 'transfert' in t.type_transaction %}bg-info
+                        {% else %}bg-secondary
+                        {% endif %}">
+                        {{ t.type_transaction }}
+                    </span>
+                </td>
+                <td class="text-end">{{ "{:,.2f}".format(t.montant) }} HTG</td>
+                <td>{{ t.description or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="text-center">Aucune transaction aujourd'hui</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

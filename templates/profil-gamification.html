@@ -4,15 +4,21 @@
 <div class="container">
     <h2>💎 Gamification</h2>
 
-    <!-- Section Niveau (déjà présente) -->
+    <!-- Section Niveau -->
     <div class="card mb-4">
         <div class="card-body text-center">
             <h3>🏆 Mon niveau</h3>
-            <!-- Votre code existant pour le niveau -->
+            <div class="display-1" id="niveau-display">1</div>
+            <div class="progress mb-3" style="height: 20px;">
+                <div class="progress-bar bg-success" id="progress-bar" role="progressbar" style="width: 0%;">0%</div>
+            </div>
+            <p class="text-muted" id="points-display">
+                <i class="fas fa-star"></i> 0 points • Prochain niveau: 500 points
+            </p>
         </div>
     </div>
 
-    <!-- Grille des fonctionnalités AVEC JAVASCRIPT -->
+    <!-- Grille des fonctionnalités -->
     <div class="row">
         <div class="col-md-6 mb-3">
             <div class="card h-100 text-center">
@@ -20,7 +26,7 @@
                     <h1>🎯</h1>
                     <h5>Défis & objectifs</h5>
                     <p>Relevez des défis pour gagner des points</p>
-                    <button onclick="showDefis()" class="btn btn-primary">Voir les défis</button>
+                    <button onclick="loadDefis()" class="btn btn-primary">Voir les défis</button>
                 </div>
             </div>
         </div>
@@ -31,7 +37,7 @@
                     <h1>🎁</h1>
                     <h5>Mes récompenses</h5>
                     <p>Échangez vos points contre des avantages</p>
-                    <button onclick="showRecompenses()" class="btn btn-primary">Voir les récompenses</button>
+                    <button onclick="loadRecompenses()" class="btn btn-primary">Voir les récompenses</button>
                 </div>
             </div>
         </div>
@@ -42,7 +48,7 @@
                     <h1>📈</h1>
                     <h5>Classement</h5>
                     <p>Comparez-vous aux autres membres</p>
-                    <button onclick="showClassement()" class="btn btn-primary">Voir le classement</button>
+                    <button onclick="loadClassement()" class="btn btn-primary">Voir le classement</button>
                 </div>
             </div>
         </div>
@@ -53,7 +59,7 @@
                     <h1>🏆</h1>
                     <h5>Mes badges</h5>
                     <p>Débloquez des badges exclusifs</p>
-                    <button onclick="showBadges()" class="btn btn-primary">Voir mes badges</button>
+                    <button onclick="loadBadges()" class="btn btn-primary">Voir mes badges</button>
                 </div>
             </div>
         </div>
@@ -69,70 +75,227 @@
 </div>
 
 <script>
-function showDefis() {
-    document.getElementById('dynamic-content').innerHTML = `
-        <h4>🎯 Vos Défis</h4>
-        <div class="alert alert-info">
-            <h5>Premier prêt</h5>
-            <p>Obtenez votre premier prêt</p>
-            <span class="badge bg-success">🎁 100 points</span>
-        </div>
-        <div class="alert alert-warning">
-            <h5>Remboursement ponctuel</h5>
-            <p>3 remboursements à temps</p>
-            <span class="badge bg-success">🎁 50 points</span>
-            <span class="badge bg-primary">✅ 2/3 terminés</span>
-        </div>
-    `;
-    showContent();
+// Charger les points et le niveau au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    updatePointsDisplay();
+});
+
+function updatePointsDisplay() {
+    fetch('/api/gamification/points')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('niveau-display').textContent = data.niveau;
+            const progressionValue = parseFloat(data.progression);
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = `${progressionValue}%`;
+            progressBar.textContent = `${progressionValue}%`;
+            document.getElementById('points-display').innerHTML = `<i class="fas fa-star"></i> ${data.points} points • Prochain niveau: ${data.points_prochain_niveau} points`;
+        })
+        .catch(error => console.error('Erreur:', error));
 }
 
-function showRecompenses() {
-    document.getElementById('dynamic-content').innerHTML = `
-        <h4>🎁 Vos Récompenses Disponibles</h4>
-        <div class="alert alert-success">
-            <h5>Réduction de taux 1%</h5>
-            <p>300 points - <strong>✅ Disponible</strong></p>
-            <button class="btn btn-sm btn-success">Échanger</button>
-        </div>
-        <div class="alert alert-secondary">
-            <h5>Frais de dossier offerts</h5>
-            <p>500 points - ❌ Points insuffisants</p>
-        </div>
-    `;
-    showContent();
+function loadDefis() {
+    fetch('/api/gamification/defis')
+        .then(response => response.json())
+        .then(data => {
+            let html = '<h4>🎯 Vos Défis</h4>';
+
+            if (data.defis && data.defis.length > 0) {
+                data.defis.forEach(defi => {
+                    const classe = defi.termine ? 'success' : 'warning';
+                    html += `
+                        <div class="alert alert-${classe}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5>${defi.nom}</h5>
+                                    <p>${defi.description}</p>
+                                    <span class="badge bg-success">🎁 ${defi.recompense} points</span>
+                                    ${defi.progression ? `<span class="badge bg-primary">✅ ${defi.progression}</span>` : ''}
+                                </div>
+                                ${!defi.termine && defi.progression === '3/3' ?
+                                    `<button onclick="completeDefi(${defi.id})" class="btn btn-success">Compléter</button>` :
+                                    defi.termine ? '<span class="badge bg-success">✅ Terminé</span>' : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                html += '<p class="text-muted">Aucun défi disponible pour le moment.</p>';
+            }
+
+            document.getElementById('dynamic-content').innerHTML = html;
+            showContent();
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            document.getElementById('dynamic-content').innerHTML = '<div class="alert alert-danger">Erreur de chargement des défis</div>';
+            showContent();
+        });
 }
 
-function showClassement() {
-    document.getElementById('dynamic-content').innerHTML = `
-        <h4>📈 Classement</h4>
-        <ol>
-            <li>Marie Dupont - 850 points 🥇</li>
-            <li>Jean Martin - 720 points 🥈</li>
-            <li><strong>Vous - 650 points</strong> 🥉</li>
-            <li>Sophie Laurent - 580 points</li>
-        </ol>
-    `;
-    showContent();
+function loadRecompenses() {
+    fetch('/api/gamification/recompenses')
+        .then(response => response.json())
+        .then(data => {
+            let html = '<h4>🎁 Vos Récompenses</h4>';
+
+            if (data.recompenses && data.recompenses.length > 0) {
+                data.recompenses.forEach(recompense => {
+                    const classe = recompense.disponible ? 'success' : 'secondary';
+                    html += `
+                        <div class="alert alert-${classe}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5>${recompense.nom}</h5>
+                                    <p>${recompense.description}</p>
+                                    <span class="badge bg-info">${recompense.points} points</span>
+                                </div>
+                                ${recompense.disponible ?
+                                    `<button onclick="echangerRecompense(${recompense.id})" class="btn btn-success">Échanger</button>` :
+                                    '<span class="badge bg-secondary">❌ Points insuffisants</span>'}
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                html += '<p class="text-muted">Aucune récompense disponible.</p>';
+            }
+
+            document.getElementById('dynamic-content').innerHTML = html;
+            showContent();
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            document.getElementById('dynamic-content').innerHTML = '<div class="alert alert-danger">Erreur de chargement des récompenses</div>';
+            showContent();
+        });
 }
 
-function showBadges() {
-    document.getElementById('dynamic-content').innerHTML = `
-        <h4>🏆 Vos Badges</h4>
-        <div class="row">
-            <div class="col-md-6">
-                <h5>✅ Débloqués</h5>
-                <p>🥉 Bronze - Premier prêt</p>
-                <p>⭐ Débutant - Première connexion</p>
-            </div>
-            <div class="col-md-6">
-                <h5>🔒 À débloquer</h5>
-                <p>🥈 Argent - 5 remboursements</p>
-                <p>🥇 Or - Score > 750</p>
-            </div>
-        </div>
-    `;
-    showContent();
+function loadClassement() {
+    fetch('/api/gamification/classement')
+        .then(response => response.json())
+        .then(data => {
+            let html = '<h4>📈 Classement</h4><ol class="list-group">';
+
+            if (data.classement && data.classement.length > 0) {
+                data.classement.forEach(entry => {
+                    const medal = entry.position === 1 ? '🥇' : entry.position === 2 ? '🥈' : entry.position === 3 ? '🥉' : '';
+                    const isCurrentUser = entry.id === {{ current_user.id }};
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center ${isCurrentUser ? 'bg-light' : ''}">
+                            <span>
+                                <strong>${entry.position}</strong> ${medal}
+                                ${entry.nom} ${isCurrentUser ? '<span class="badge bg-primary">Vous</span>' : ''}
+                            </span>
+                            <span class="badge bg-success rounded-pill">${entry.points} pts</span>
+                        </li>
+                    `;
+                });
+            } else {
+                html += '<li class="list-group-item">Aucun classement disponible</li>';
+            }
+
+            html += '</ol>';
+            document.getElementById('dynamic-content').innerHTML = html;
+            showContent();
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            document.getElementById('dynamic-content').innerHTML = '<div class="alert alert-danger">Erreur de chargement du classement</div>';
+            showContent();
+        });
+}
+
+function loadBadges() {
+    fetch('/api/gamification/badges')
+        .then(response => response.json())
+        .then(data => {
+            let html = '<h4>🏆 Mes Badges</h4><div class="row">';
+
+            if (data.badges && data.badges.length > 0) {
+                const obtenus = data.badges.filter(b => b.obtenu);
+                const nonObtenus = data.badges.filter(b => !b.obtenu);
+
+                if (obtenus.length > 0) {
+                    html += '<div class="col-md-6"><h5>✅ Débloqués</h5>';
+                    obtenus.forEach(badge => {
+                        html += `
+                            <div class="card mb-2">
+                                <div class="card-body text-center">
+                                    <h1>${badge.icone}</h1>
+                                    <h6>${badge.nom}</h6>
+                                    <p class="small text-muted">${badge.description}</p>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+
+                if (nonObtenus.length > 0) {
+                    html += '<div class="col-md-6"><h5>🔒 À débloquer</h5>';
+                    nonObtenus.forEach(badge => {
+                        html += `
+                            <div class="card mb-2 opacity-50">
+                                <div class="card-body text-center">
+                                    <h1>${badge.icone}</h1>
+                                    <h6>${badge.nom}</h6>
+                                    <p class="small text-muted">${badge.description}</p>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+            } else {
+                html += '<p class="text-muted">Aucun badge disponible.</p>';
+            }
+
+            html += '</div>';
+            document.getElementById('dynamic-content').innerHTML = html;
+            showContent();
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            document.getElementById('dynamic-content').innerHTML = '<div class="alert alert-danger">Erreur de chargement des badges</div>';
+            showContent();
+        });
+}
+
+function completeDefi(defiId) {
+    fetch(`/api/gamification/complete-defi/${defiId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`✅ Défi complété ! +${data.points_gagnes} points`);
+                loadDefis();
+                updatePointsDisplay();
+            } else {
+                alert('Erreur: ' + (data.error || 'Impossible de compléter le défi'));
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la validation du défi');
+        });
+}
+
+function echangerRecompense(recompenseId) {
+    fetch(`/api/gamification/echanger-recompense/${recompenseId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                loadRecompenses();
+                updatePointsDisplay();
+            } else {
+                alert('Erreur: ' + (data.error || 'Impossible d\'échanger la récompense'));
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors de l\'échange');
+        });
 }
 
 function showContent() {

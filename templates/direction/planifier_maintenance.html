@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Planifier une Maintenance - GMES{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-secondary">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="text-white mb-2">
+                            <i class="fas fa-tools me-2"></i>Planifier une Maintenance
+                        </h1>
+                        <p class="text-white opacity-8 mb-0">
+                            Planifiez une intervention de maintenance système
+                        </p>
+                    </div>
+                    <a href="{{ url_for('directeur_operations_dashboard') }}" class="btn btn-light">
+                        <i class="fas fa-arrow-left me-2"></i>Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire de planification -->
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h6>Nouvelle planification</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="maintenanceForm">
+                        <div class="mb-3">
+                            <label class="form-label">Titre de l'intervention *</label>
+                            <input type="text" class="form-control" name="titre" required
+                                   placeholder="Ex: Mise à jour serveur, Sauvegarde système...">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" rows="3"
+                                      placeholder="Détails de l'intervention..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Type de maintenance *</label>
+                            <select class="form-control" name="type_maintenance" required>
+                                <option value="">Sélectionnez...</option>
+                                <option value="preventive">🛡️ Préventive</option>
+                                <option value="curative">🔧 Curative</option>
+                                <option value="evolution">📈 Évolutive</option>
+                                <option value="securite">🔒 Sécurité</option>
+                                <option value="sauvegarde">💾 Sauvegarde</option>
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date et heure de début *</label>
+                                <input type="datetime-local" class="form-control" name="date_debut"
+                                       value="{{ maintenant.strftime('%Y-%m-%dT%H:%M') }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date et heure de fin *</label>
+                                <input type="datetime-local" class="form-control" name="date_fin"
+                                       value="{{ (maintenant + timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M') }}" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Succursale concernée</label>
+                            <select class="form-control" name="succursale_id">
+                                <option value="">Toutes les succursales</option>
+                                {% for s in succursales %}
+                                <option value="{{ s.id }}">{{ s.nom }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Laissez vide pour une maintenance générale</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Notifier les utilisateurs</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="notifier_tous" checked>
+                                <label class="form-check-label">Tous les utilisateurs</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="notifier_conseillers">
+                                <label class="form-check-label">Conseillers uniquement</label>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Pendant la maintenance, les services concernés seront indisponibles.
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-calendar-check me-2"></i>Planifier la maintenance
+                            </button>
+                            <a href="{{ url_for('directeur_operations_dashboard') }}" class="btn btn-outline-secondary btn-lg ms-2">
+                                Annuler
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendrier des maintenances à venir -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6>Maintenances à venir</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Titre</th>
+                                    <th>Type</th>
+                                    <th>Succursale</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">
+                                        Aucune maintenance planifiée
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-gradient-secondary {
+    background: linear-gradient(310deg, #627594, #a8b8d8);
+}
+</style>
+
+<script>
+// Validation que la date de fin est après la date de début
+document.getElementById('maintenanceForm').addEventListener('submit', function(e) {
+    const debut = new Date(document.querySelector('[name="date_debut"]').value);
+    const fin = new Date(document.querySelector('[name="date_fin"]').value);
+
+    if (fin <= debut) {
+        e.preventDefault();
+        alert('❌ La date de fin doit être postérieure à la date de début');
+    }
+});
+</script>
+{% endblock %}

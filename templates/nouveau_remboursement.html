@@ -5,80 +5,442 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nouveau Remboursement - GMES</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 2rem; background: #f5f5f5; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 2rem; border-radius: 10px; }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
-        input, select { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 5px; }
-        button { background: #28a745; color: white; padding: 1rem 2rem; border: none; border-radius: 5px; cursor: pointer; }
-        .pret-info { background: #e8f5e8; padding: 1rem; border-radius: 5px; margin-bottom: 1rem; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(145deg, #e0edf5 0%, #c8dceb 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0b3b4f, #1a566e);
+            color: white;
+            padding: 1.5rem 2rem;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .header p {
+            margin-top: 0.5rem;
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        .pret-info {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6d9);
+            border-radius: 15px;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #28a745;
+        }
+
+        .pret-info h3 {
+            color: #0b3b4f;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .pret-info p {
+            margin: 0.3rem 0;
+            color: #2c5a2e;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #0b3b4f;
+        }
+
+        label i {
+            margin-right: 0.5rem;
+            color: #1a566e;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #28a745;
+            box-shadow: 0 0 0 3px rgba(40,167,69,0.1);
+        }
+
+        .montant-recommande {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: #28a745;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        button {
+            flex: 1;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40,167,69,0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .info-message {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+            .content {
+                padding: 1.5rem;
+            }
+            .btn-group {
+                flex-direction: column;
+            }
+        }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <h1>💳 Nouveau Remboursement</h1>
-
-        <div class="pret-info">
-            <h3>Informations du prêt</h3>
-            <p id="pret-details">Sélectionnez un prêt pour voir les détails</p>
+        <div class="header">
+            <h1>
+                <i class="fas fa-hand-holding-usd"></i>
+                Nouveau Remboursement
+            </h1>
+            <p>Effectuez votre paiement en toute sécurité</p>
         </div>
 
-        <form method="POST">
-            <div class="form-group">
-                <label for="pret_id">Prêt à rembourser:</label>
-                <select name="pret_id" id="pret_id" onchange="chargerDetailsPret()" required>
-                    <option value="">Sélectionnez un prêt</option>
-                    {% for pret in prets %}
-                    <option value="{{ pret.id }}" data-montant="{{ pret.montant }}" data-mensualite="{{ pret.mensualite }}">
-                        Prêt #{{ pret.id }} - {{ pret.montant }} HTG ({{ pret.mensualite }} HTG/mois)
-                    </option>
+        <div class="content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="{% if category == 'error' %}error-message{% else %}info-message{% endif %}">
+                            <i class="fas fa-{% if category == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                            {{ message }}
+                        </div>
                     {% endfor %}
-                </select>
+                {% endif %}
+            {% endwith %}
+
+            <div class="pret-info" id="pretInfo">
+                <h3><i class="fas fa-file-invoice"></i> Informations du prêt</h3>
+                <p>Sélectionnez un prêt pour voir les détails</p>
             </div>
 
-            <div class="form-group">
-                <label>Montant du remboursement (HTG):</label>
-                <input type="number" name="montant" step="0.01" required>
-            </div>
+            <form method="POST">
+                <div class="form-group">
+                    <div>
+                        <label>🔎 Rechercher un client ou prêt</label>
+                        <input type="text" id="searchInput" placeholder="Nom, téléphone, email, ID client ou numero prêt">
+                        <button type="button" onclick="rechercher()">Rechercher</button>
+                    </div>
+                    <label for="pret_id">
+                        <i class="fas fa-tag"></i> Prêt à rembourser:
+                    </label>
+                    <select name="pret_id" id="pret_id" onchange="chargerDetailsPret()" required>
+                        <option value="">-- Sélectionnez un prêt --</option>
+                        {% for pret in prets %}
+                        <option value="{{ pret.id }}"
+                                data-montant="{{ pret.montant or 0 }}"
+                                data-mensualite="{{ pret.mensualite or 0  }}"
+                                data-solde="{{ pret.solde_restant or pret.montant_total or 0 }}"
+                                data-statut="{{ pret.statut or 'inconnu'}}">
+                            Prêt #{{ pret.id }} - {{ "{:,.0f}".format(pret.montant or 0) }} HTG
+                            (Mensualité: {{ "{:,.0f}".format(pret.mensualite or 0) }} HTG)
+                            {% if pret.solde_restant %} - Solde: {{ "{:,.0f}".format(pret.solde_restant) }} HTG  {% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-            <div class="form-group">
-                <label>Méthode de paiement:</label>
-                <select name="type_paiement" required>
-                    <option value="espece">Espèces</option>
-                    <option value="mobile_money">Mobile Money</option>
-                    <option value="virement">Virement bancaire</option>
-                    <option value="cheque">Chèque</option>
-                </select>
-            </div>
+                <div class="form-group">
+                    <label for="montant">
+                        <i class="fas fa-money-bill-wave"></i> Montant du remboursement (HTG):
+                    </label>
+                    <input type="number" name="montant" id="montant" step="any" min="0" required>
+                    <div class="montant-recommande" id="recommandation">
+                        <i class="fas fa-lightbulb"></i>
+                        <span>Le montant recommandé est la mensualité</span>
+                    </div>
+                </div>
 
-            <div class="form-group">
-                <label>Référence de paiement:</label>
-                <input type="text" name="reference" placeholder="Numéro de transaction ou référence">
-            </div>
+                <div class="form-group">
+                    <label for="type_paiement">
+                        <i class="fas fa-credit-card"></i> Méthode de paiement:
+                    </label>
+                    <select name="type_paiement" required>
+                        <option value="espece">💵 Espèces</option>
+                        <option value="mobile_money">📱 Mobile Money</option>
+                        <option value="virement">🏦 Virement bancaire</option>
+                        <option value="cheque">📝 Chèque</option>
+                        <option value="carte">💳 Carte bancaire</option>
+                    </select>
+                </div>
 
-            <button type="submit">💸 Effectuer le remboursement</button>
-        </form>
+                <div class="form-group">
+                    <label for="reference">
+                        <i class="fas fa-qrcode"></i> Référence de paiement:
+                    </label>
+                    <input type="text" name="reference" id="reference" placeholder="Numéro de transaction ou référence">
+                </div>
 
-        <a href="{{ url_for('client_dashboard') }}" style="display: inline-block; margin-top: 1rem;">← Retour</a>
+                <div class="btn-group">
+                    <button type="submit">
+                        <i class="fas fa-check-circle"></i> Effectuer le remboursement
+                    </button>
+                    <a href="{{ url_for('client_dashboard') }}" class="btn-secondary" style="background: #6c757d; padding: 1rem; border-radius: 10px; text-align: center;">
+                        <i class="fas fa-arrow-left"></i> Annuler
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
         function chargerDetailsPret() {
             const select = document.getElementById('pret_id');
             const selectedOption = select.options[select.selectedIndex];
-            const details = document.getElementById('pret-details');
+            const pretInfo = document.getElementById('pretInfo');
+            const montantInput = document.getElementById('montant');
+            const recommandation = document.getElementById('recommandation');
 
             if (selectedOption.value) {
-                const montant = selectedOption.getAttribute('data-montant');
-                const mensualite = selectedOption.getAttribute('data-mensualite');
-                details.innerHTML = `
-                    <strong>Montant du prêt:</strong> ${montant} HTG<br>
-                    <strong>Mensualité:</strong> ${mensualite} HTG<br>
-                    <strong>Recommandé:</strong> ${mensualite} HTG
+                const montantPret = parseFloat(selectedOption.getAttribute('data-montant'));
+                const mensualite = parseFloat(selectedOption.getAttribute('data-mensualite'));
+                const soldeRestant = parseFloat(selectedOption.getAttribute('data-solde'));
+                const statut = selectedOption.getAttribute('data-statut');
+
+                const formatMoney = (value) => {
+                    return new Intl.NumberFormat('fr-FR').format(Math.round(value));
+                };
+
+                let statutHtml = '';
+                if (statut === 'actif') {
+                    statutHtml = '<span style="color: #28a745;">✓ Prêt actif</span>';
+                } else if (statut === 'en_retard') {
+                    statutHtml = '<span style="color: #dc3545;">⚠️ Prêt en retard</span>';
+                } else {
+                    statutHtml = `<span style="color: #ffc107;">⏳ ${statut}</span>`;
+                }
+
+                pretInfo.innerHTML = `
+                    <h3><i class="fas fa-file-invoice"></i> Informations du prêt</h3>
+                    <p><strong>💰 Montant initial:</strong> ${formatMoney(montantPret)} HTG</p>
+                    <p><strong>📆 Mensualité:</strong> ${formatMoney(mensualite)} HTG</p>
+                    <p><strong>💵 Mensualité à payer:</strong> ${formatMoney(mensualite)} HTG</p>
+                    <p><strong>💰 Solde total restant:</strong> ${formatMoney(soldeRestant)} HTG <small style="font-size:0.7rem;">(total du prêt)</small></p>
+                    <p><strong>📊 Statut:</strong> ${statutHtml}</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        <i class="fas fa-info-circle"></i>
+                        Le montant recommandé est la mensualité. Vous pouvez payer plus pour réduire le solde.
+                    </p>
                 `;
+
+                // Pré-remplir le montant avec la mensualité
+                montantInput.value = mensualite;
+                recommandation.innerHTML = `
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Montant recommandé: ${formatMoney(mensualite)} HTG (mensualité)</span>
+                `;
+
+                // Validation du montant
+                montantInput.addEventListener('input', function() {
+                    const value = parseFloat(this.value);
+                    if (value > soldeRestant) {
+                        this.style.borderColor = '#dc3545';
+                        recommandation.innerHTML = `
+                            <i class="fas fa-exclamation-triangle" style="color: #dc3545;"></i>
+                            <span style="color: #dc3545;">Le montant dépasse le solde restant (${formatMoney(soldeRestant)} HTG)</span>
+                        `;
+                    } else {
+                        this.style.borderColor = '#28a745';
+                        recommandation.innerHTML = `
+                            <i class="fas fa-lightbulb"></i>
+                            <span>Montant recommandé: ${formatMoney(mensualite)} HTG (mensualité)</span>
+                        `;
+                    }
+                });
+
             } else {
-                details.textContent = 'Sélectionnez un prêt pour voir les détails';
+                pretInfo.innerHTML = `
+                    <h3><i class="fas fa-file-invoice"></i> Informations du prêt</h3>
+                    <p>Sélectionnez un prêt pour voir les détails</p>
+                `;
+                montantInput.value = '';
+                recommandation.innerHTML = `
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Le montant recommandé est la mensualité</span>
+                `;
             }
+        }
+
+        // Validation avant soumission
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const select = document.getElementById('pret_id');
+            const montant = parseFloat(document.getElementById('montant').value);
+
+            if (!select.value) {
+                e.preventDefault();
+                alert('Veuillez sélectionner un prêt');
+                return false;
+            }
+
+            if (!montant || montant <= 0) {
+                e.preventDefault();
+                alert('Veuillez saisir un montant valide');
+                return false;
+            }
+
+            const soldeRestant = parseFloat(select.options[select.selectedIndex].getAttribute('data-solde'));
+            if (montant > soldeRestant) {
+                e.preventDefault();
+                alert(`Le montant ne peut pas dépasser le solde restant (${soldeRestant} HTG)`);
+                return false;
+            }
+
+            if (confirm(`Confirmez-vous le remboursement de ${montant} HTG ?`)) {
+                return true;
+            }
+            e.preventDefault();
+            return false;
+        });
+
+        async function rechercher() {
+            const query = document.getElementById("searchInput").value;
+
+            const response = await fetch("/api/recherche-client-pret?q=" + encodeURIComponent(query));
+            const data = await response.json();
+
+            const select = document.getElementById("pret_id");
+
+            select.innerHTML = "";
+
+            // ✅ CAS AUCUN RESULTAT
+            if (!data.results || data.results.length === 0) {
+                select.innerHTML = `<option>${data.message || "Aucun résultat"}</option>`;
+                return;
+            }
+
+            // ✅ AFFICHER RESULTATS
+            data.results.forEach(item => {
+                const option = document.createElement("option");
+                option.value = item.pret_id;
+                option.text = `#${item.pret_id} - ${item.client_nom} ${item.client_prenom} (${item.telephone}) - ${item.statut}`;
+                option.setAttribute("data-montant", item.montant || 0);
+                option.setAttribute("data-mensualite", item.mensualite || 0);
+                option.setAttribute("data-solde", item.solde || 0);
+                option.setAttribute("data-statut", item.statut || "inconnu");
+                select.appendChild(option);
+            });
         }
     </script>
 </body>

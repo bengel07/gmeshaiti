@@ -1,0 +1,719 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient bg-success text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-map-marked-alt me-2"></i>
+                            Coordination Terrain
+                        </h2>
+                        <p class="mb-0 mt-2">
+                            <i class="fas fa-user-tie me-1"></i>
+                            {{ current_user.prenom }} {{ current_user.nom }}
+                            <span class="badge bg-light text-dark ms-2">Coordinateur Terrain</span>
+                        </p>
+                        <p class="mb-0 mt-1">
+                            <i class="fas fa-globe me-1"></i>
+                            Zone: <strong>{{ zone.nom }}</strong> ({{ zone.code }})
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <h1 class="mb-0">🗺️ Tableau de Bord Terrain</h1>
+                        <small>{{ now().strftime('%d %B %Y') if now else '' }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs terrain -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Agents terrain actifs
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.agents_terrain or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Visites aujourd'hui
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.visites_aujourdhui or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Collectes du jour
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "{:,.0f}".format(stats.collectes_jour or 0) }} FG
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-hand-holding-usd fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Clients visités (mois)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.clients_visites_mois or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Carte des visites et tableau de bord -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-map-marked-alt me-2"></i>
+                        Carte des visites du jour
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" style="height: 400px; border-radius: 0 0 15px 15px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>
+                        Prochaines visites
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for visite in prochaines_visites %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ visite.client_nom }}</h6>
+                                <small class="text-{{ visite.statut_couleur }}">{{ visite.heure }}</small>
+                            </div>
+                            <p class="mb-1">
+                                <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                                {{ visite.adresse }}
+                            </p>
+                            <small class="text-muted">
+                                Agent: {{ visite.agent_nom }} | {{ visite.type }}
+                            </small>
+                            <div class="mt-2">
+                                <a href="{{ url_for('voir_visite', visite_id=visite.id) }}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    Détails
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune visite planifiée</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance des agents terrain -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Performance des agents terrain
+                    </h5>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-light" onclick="changerVue('aujourdhui')">Aujourd'hui</button>
+                        <button class="btn btn-sm btn-light" onclick="changerVue('semaine')">Semaine</button>
+                        <button class="btn btn-sm btn-light" onclick="changerVue('mois')">Mois</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Agent</th>
+                                    <th>Succursale</th>
+                                    <th class="text-center">Visites planifiées</th>
+                                    <th class="text-center">Visites réalisées</th>
+                                    <th class="text-center">Taux réalisation</th>
+                                    <th class="text-end">Collectes</th>
+                                    <th class="text-center">Distance</th>
+                                    <th class="text-center">Statut</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for agent in agents %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ agent.nom }} {{ agent.prenom }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ agent.matricule }}</small>
+                                    </td>
+                                    <td>{{ agent.succursale }}</td>
+                                    <td class="text-center">{{ agent.visites_planifiees }}</td>
+                                    <td class="text-center">{{ agent.visites_realisees }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-{{ agent.taux_couleur }}">
+                                            {{ agent.taux_realisation }}%
+                                        </span>
+                                    </td>
+                                    <td class="text-end">{{ "{:,.0f}".format(agent.collectes) }} FG</td>
+                                    <td class="text-center">{{ agent.distance }} km</td>
+                                    <td class="text-center">
+                                        {% if agent.statut == 'en_mission' %}
+                                            <span class="badge bg-success">En mission</span>
+                                        {% elif agent.statut == 'disponible' %}
+                                            <span class="badge bg-info">Disponible</span>
+                                        {% elif agent.statut == 'repos' %}
+                                            <span class="badge bg-secondary">Repos</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('voir_agent_terrain', employe_id=user.id) }}"
+                                               class="btn btn-outline-info" title="Voir">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('assigner_visite', employe_id=user.id) }}"
+                                               class="btn btn-outline-success" title="Assigner visite">
+                                                <i class="fas fa-plus-circle"></i>
+                                            </a>
+                                            <a href="{{ url_for('localiser_agent', employe_id=user.id) }}"
+                                               class="btn btn-outline-warning" title="Localiser">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secteurs et zones -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-map-signs me-2"></i>
+                        Secteurs d'intervention
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for secteur in secteurs %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6>{{ secteur.nom }}</h6>
+                                    <div class="d-flex justify-content-between small">
+                                        <span>Agents: {{ secteur.agents }}</span>
+                                        <span>Clients: {{ secteur.clients }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between small mt-1">
+                                        <span>Visites/semaine: {{ secteur.visites_semaine }}</span>
+                                        <span class="text-{{ secteur.couverture_couleur }}">
+                                            Couverture: {{ secteur.couverture }}%
+                                        </span>
+                                    </div>
+                                    <div class="progress mt-2" style="height: 5px;">
+                                        <div class="progress-bar bg-{{ secteur.couverture_couleur }}"
+                                             style="width: {{ secteur.couverture }}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Points d'attention terrain
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for alerte in alertes_terrain %}
+                        <div class="list-group-item list-group-item-{{ alerte.type }}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">
+                                    <i class="fas fa-{{ alerte.icone }} me-2"></i>
+                                    {{ alerte.titre }}
+                                </h6>
+                                <small class="text-{{ alerte.type }}">{{ alerte.priorite }}</small>
+                            </div>
+                            <p class="mb-1">{{ alerte.description }}</p>
+                            <small class="text-muted">
+                                {{ alerte.secteur }} - {{ alerte.date }}
+                            </small>
+                            <div class="mt-2">
+                                <a href="{{ alerte.lien }}" class="btn btn-sm btn-outline-{{ alerte.type }}">
+                                    Traiter
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune alerte terrain</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tournées en cours -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-route me-2"></i>
+                        Tournées en cours
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Agent</th>
+                                    <th>Zone</th>
+                                    <th>Début</th>
+                                    <th>Fin prévue</th>
+                                    <th>Visites effectuées</th>
+                                    <th>Progression</th>
+                                    <th>Dernière position</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tournee in tournees %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ tournee.agent_nom }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ tournee.agent_matricule }}</small>
+                                    </td>
+                                    <td>{{ tournee.zone }}</td>
+                                    <td>{{ tournee.debut.strftime('%H:%M') }}</td>
+                                    <td>{{ tournee.fin_prevue.strftime('%H:%M') }}</td>
+                                    <td class="text-center">{{ tournee.visites_effectuees }}/{{ tournee.visites_total }}</td>
+                                    <td style="width: 200px;">
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success"
+                                                 style="width: {{ tournee.progression }}%">
+                                                {{ tournee.progression }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small>
+                                            <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                                            {{ tournee.derniere_position }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('suivre_tournee', tournee_id=tournee.id) }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> Suivre
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center">Aucune tournée en cours</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historique des collectes -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Dernières collectes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for collecte in dernieres_collectes %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ collecte.client_nom }}</h6>
+                                <small class="text-success">{{ collecte.montant }} FG</small>
+                            </div>
+                            <p class="mb-1">
+                                Agent: {{ collecte.agent_nom }} |
+                                {{ collecte.date.strftime('%d/%m/%Y %H:%M') }}
+                            </p>
+                            <small class="text-muted">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                {{ collecte.adresse }}
+                            </small>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune collecte récente</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Performance de collecte
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="collecteChart" style="height: 250px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Planning des tournées -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Planning des tournées - Semaine {{ semaine_numero }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Agent</th>
+                                    <th>Lundi</th>
+                                    <th>Mardi</th>
+                                    <th>Mercredi</th>
+                                    <th>Jeudi</th>
+                                    <th>Vendredi</th>
+                                    <th>Samedi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for agent in planning_agents %}
+                                <tr>
+                                    <td><strong>{{ agent.nom }}</strong></td>
+                                    <td class="{{ agent.lundi.classe }}">{{ agent.lundi.zone }}</td>
+                                    <td class="{{ agent.mardi.classe }}">{{ agent.mardi.zone }}</td>
+                                    <td class="{{ agent.mercredi.classe }}">{{ agent.mercredi.zone }}</td>
+                                    <td class="{{ agent.jeudi.classe }}">{{ agent.jeudi.zone }}</td>
+                                    <td class="{{ agent.vendredi.classe }}">{{ agent.vendredi.zone }}</td>
+                                    <td class="{{ agent.samedi.classe }}">{{ agent.samedi.zone }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('editer_planning') }}" class="btn btn-outline-warning">
+                            <i class="fas fa-edit"></i> Éditer le planning
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides terrain -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Actions rapides terrain
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('planifier_tournee') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-route fa-2x mb-2"></i><br>
+                                Planifier tournée
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('assigner_visite') }}" class="btn btn-outline-success w-100 py-3">
+                                <i class="fas fa-calendar-plus fa-2x mb-2"></i><br>
+                                Assigner visite
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('localiser_tous_agents') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-map-marked-alt fa-2x mb-2"></i><br>
+                                Localiser tous les agents
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('rapport_terrain') }}" class="btn btn-outline-warning w-100 py-3">
+                                <i class="fas fa-file-alt fa-2x mb-2"></i><br>
+                                Rapport terrain
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('urgence_terrain') }}" class="btn btn-outline-danger w-100 py-3">
+                                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
+                                Urgence terrain
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('formation_terrain') }}" class="btn btn-outline-secondary w-100 py-3">
+                                <i class="fas fa-graduation-cap fa-2x mb-2"></i><br>
+                                Formation terrain
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('materiel_terrain') }}" class="btn btn-outline-dark w-100 py-3">
+                                <i class="fas fa-tools fa-2x mb-2"></i><br>
+                                Gestion matériel
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('communication_agents') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-broadcast-tower fa-2x mb-2"></i><br>
+                                Communication agents
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug info -->
+    {% if config['DEBUG'] %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="fas fa-bug me-2"></i>Informations de débogage</h5>
+                </div>
+                <div class="card-body">
+                    <pre class="mb-0">
+ID: {{ current_user.id }}
+Username: {{ current_user.username }}
+Rôle: {{ current_user.role }}
+Fonction: {{ current_user.fonction }}
+Statut: {{ current_user.statut }}
+Zone: {{ zone.nom }} ({{ zone.code }})
+Email: {{ current_user.email }}
+                    </pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .border-left-primary { border-left: 4px solid #4e73df !important; }
+    .border-left-success { border-left: 4px solid #1cc88a !important; }
+    .border-left-info { border-left: 4px solid #36b9cc !important; }
+    .border-left-warning { border-left: 4px solid #f6c23e !important; }
+
+    .bg-gradient {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .btn-outline-primary:hover { background: #4e73df; color: white; }
+    .btn-outline-success:hover { background: #1cc88a; color: white; }
+    .btn-outline-info:hover { background: #36b9cc; color: white; }
+    .btn-outline-warning:hover { background: #f6c23e; color: white; }
+    .btn-outline-danger:hover { background: #e74a3b; color: white; }
+    .btn-outline-secondary:hover { background: #858796; color: white; }
+    .btn-outline-dark:hover { background: #5a5c69; color: white; }
+
+    .progress {
+        border-radius: 10px;
+    }
+
+    .list-group-item {
+        border: none;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .list-group-item:last-child {
+        border-bottom: none;
+    }
+
+    .table-bordered td {
+        vertical-align: middle;
+    }
+
+    .zone-rouge { background-color: #f8d7da; }
+    .zone-jaune { background-color: #fff3cd; }
+    .zone-verte { background-color: #d4edda; }
+    .zone-bleue { background-color: #d1ecf1; }
+</style>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialisation de la carte
+        var map = L.map('map').setView([18.5333, -72.3333], 11); // Coordonnées Haïti
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Ajouter des marqueurs pour les visites du jour
+        {% for visite in prochaines_visites %}
+            L.marker([{{ visite.latitude }}, {{ visite.longitude }}])
+                .bindPopup('<b>{{ visite.client_nom }}</b><br>{{ visite.heure }}<br>Agent: {{ visite.agent_nom }}')
+                .addTo(map);
+        {% endfor %}
+
+        // Ajouter les positions des agents
+        {% for agent in agents %}
+            {% if agent.latitude and agent.longitude %}
+                L.marker([{{ agent.latitude }}, {{ agent.longitude }}], {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    })
+                })
+                .bindPopup('<b>{{ agent.nom }} {{ agent.prenom }}</b><br>Statut: {{ agent.statut }}<br>Dernière collecte: {{ agent.derniere_collecte }}')
+                .addTo(map);
+            {% endif %}
+        {% endfor %}
+
+        // Graphique de collecte
+        const collecteCtx = document.getElementById('collecteChart').getContext('2d');
+        new Chart(collecteCtx, {
+            type: 'line',
+            data: {
+                labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'],
+                datasets: [{
+                    label: 'Collectes (Milliers FG)',
+                    data: [150, 180, 165, 210, 195, 220],
+                    borderColor: '#1cc88a',
+                    backgroundColor: 'rgba(28, 200, 138, 0.05)',
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    });
+
+    function changerVue(periode) {
+        // Fonction pour changer la période d'affichage
+        alert('Changement de période: ' + periode);
+        // À implémenter avec AJAX
+    }
+</script>
+{% endblock %}

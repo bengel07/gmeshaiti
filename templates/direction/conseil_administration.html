@@ -1,0 +1,775 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-gavel me-2"></i>
+                            Conseil d'Administration
+                        </h2>
+                        <p class="mb-0 mt-2">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            {{ session.date|default('15 Mars 2024') }} |
+                            <i class="fas fa-clock me-1"></i>
+                            {{ session.heure|default('10:00 - 13:00') }}
+                        </p>
+                        <p class="mb-0">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            {{ session.lieu|default('Salle du Conseil - Siège Social') }}
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-light text-dark mb-2">Session Ordinaire N°{{ session.numero|default('24-01') }}</span>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-light" onclick="changerSession('prec')">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="btn btn-sm btn-light" onclick="changerSession('suiv')">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Participants et Quorum -->
+    <div class="row mb-4">
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-tie me-2"></i>
+                        Membres du Conseil
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="progress mb-3" style="height: 25px;">
+                        <div class="progress-bar bg-success" style="width: 80%">
+                            Quorum: 8/10 présents
+                        </div>
+                    </div>
+                    <div class="list-group">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-crown text-warning me-2"></i>
+                                <strong>Jean Dupont</strong>
+                                <br>
+                                <small class="text-muted">Président du Conseil</small>
+                            </div>
+                            <span class="badge bg-success">Présent</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-user-tie text-primary me-2"></i>
+                                <strong>Marie Joseph</strong>
+                                <br>
+                                <small class="text-muted">Vice-Présidente</small>
+                            </div>
+                            <span class="badge bg-success">Présent</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-user-tie text-info me-2"></i>
+                                <strong>Pierre Bernard</strong>
+                                <br>
+                                <small class="text-muted">Administrateur</small>
+                            </div>
+                            <span class="badge bg-success">Présent</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-user-tie text-secondary me-2"></i>
+                                <strong>Sophie Martin</strong>
+                                <br>
+                                <small class="text-muted">Administrateur Indépendant</small>
+                            </div>
+                            <span class="badge bg-warning">En visio</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-user-tie text-danger me-2"></i>
+                                <strong>Marc Petit</strong>
+                                <br>
+                                <small class="text-muted">Administrateur</small>
+                            </div>
+                            <span class="badge bg-secondary">Absent excusé</span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Prochaine session: 15 Juin 2024
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>
+                        Ordre du Jour
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span><i class="fas fa-circle text-success me-2"></i> 1. Approbation PV précédent</span>
+                            <span class="badge bg-secondary">10 min</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span><i class="fas fa-circle text-primary me-2"></i> 2. Rapport du Directeur Général</span>
+                            <span class="badge bg-primary">30 min</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span><i class="fas fa-circle text-warning me-2"></i> 3. Résultats financiers T1 2024</span>
+                            <span class="badge bg-warning">25 min</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span><i class="fas fa-circle text-info me-2"></i> 4. Plan stratégique 2025-2027</span>
+                            <span class="badge bg-info">45 min</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span><i class="fas fa-circle text-danger me-2"></i> 5. Nomination nouveaux administrateurs</span>
+                            <span class="badge bg-danger">20 min</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between">
+                            <span><i class="fas fa-circle text-secondary me-2"></i> 6. Questions diverses</span>
+                            <span class="badge bg-secondary">20 min</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-pdf me-2"></i>
+                        Documents de la Session
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <i class="fas fa-file-pdf text-danger me-2"></i>
+                            Ordre du jour détaillé
+                            <small class="text-muted d-block">PDF - 245 KB</small>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <i class="fas fa-file-pdf text-danger me-2"></i>
+                            PV de la session précédente
+                            <small class="text-muted d-block">PDF - 1.2 MB</small>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <i class="fas fa-file-excel text-success me-2"></i>
+                            Rapport financier T1 2024
+                            <small class="text-muted d-block">XLSX - 890 KB</small>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <i class="fas fa-file-powerpoint text-warning me-2"></i>
+                            Présentation stratégique
+                            <small class="text-muted d-block">PPTX - 3.5 MB</small>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <i class="fas fa-file-word text-primary me-2"></i>
+                            Projet de résolutions
+                            <small class="text-muted d-block">DOCX - 180 KB</small>
+                        </a>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary w-100">
+                            <i class="fas fa-cloud-upload-alt"></i> Ajouter un document
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Points à l'ordre du jour détaillés -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Déroulement de la Session
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="sessionAccordion">
+                        <!-- Point 1 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#point1">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    Point 1 - Approbation du procès-verbal de la session précédente
+                                </button>
+                            </h2>
+                            <div id="point1" class="accordion-collapse collapse show" data-bs-parent="#sessionAccordion">
+                                <div class="accordion-body">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <p><strong>Présenté par:</strong> Jean Dupont, Président</p>
+                                            <p><strong>Résumé:</strong> Examen et approbation du PV de la session du 15 Décembre 2023</p>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="approuve1" checked>
+                                                <label class="form-check-label" for="approuve1">
+                                                    Approuvé à l'unanimité
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card bg-light">
+                                                <div class="card-body">
+                                                    <h6>Vote</h6>
+                                                    <p class="mb-1"><span class="badge bg-success">8 Pour</span></p>
+                                                    <p class="mb-1"><span class="badge bg-secondary">0 Contre</span></p>
+                                                    <p class="mb-0"><span class="badge bg-info">0 Abstention</span></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Point 2 - Rapport DG -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#point2">
+                                    <i class="fas fa-chart-line text-primary me-2"></i>
+                                    Point 2 - Rapport d'activité du Directeur Général
+                                </button>
+                            </h2>
+                            <div id="point2" class="accordion-collapse collapse" data-bs-parent="#sessionAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Présenté par:</strong> Pierre Durand, Directeur Général</p>
+
+                                    <div class="row mt-3">
+                                        <div class="col-md-3">
+                                            <div class="card bg-light text-center">
+                                                <div class="card-body">
+                                                    <h5 class="text-primary">+15%</h5>
+                                                    <small>Croissance portefeuille</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="card bg-light text-center">
+                                                <div class="card-body">
+                                                    <h5 class="text-success">2,500</h5>
+                                                    <small>Nouveaux clients</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="card bg-light text-center">
+                                                <div class="card-body">
+                                                    <h5 class="text-warning">4.2%</h5>
+                                                    <small>PAR > 30j</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="card bg-light text-center">
+                                                <div class="card-body">
+                                                    <h5 class="text-info">12</h5>
+                                                    <small>Succursales actives</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <h6>Points clés:</h6>
+                                        <ul>
+                                            <li>Lancement réussi du crédit jeunes entrepreneurs</li>
+                                            <li>Ouverture de 2 nouvelles succursales</li>
+                                            <li>Digitalisation des processus en cours</li>
+                                            <li>Recrutement de 15 nouveaux agents</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Point 3 - Résultats financiers -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#point3">
+                                    <i class="fas fa-coins text-warning me-2"></i>
+                                    Point 3 - Résultats financiers T1 2024
+                                </button>
+                            </h2>
+                            <div id="point3" class="accordion-collapse collapse" data-bs-parent="#sessionAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Présenté par:</strong> Marie Joseph, Directrice Financière</p>
+
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Indicateur</th>
+                                                    <th class="text-end">T1 2024</th>
+                                                    <th class="text-end">T1 2023</th>
+                                                    <th class="text-end">Variation</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Produit net bancaire</td>
+                                                    <td class="text-end">125.3 M HTG</td>
+                                                    <td class="text-end">108.2 M HTG</td>
+                                                    <td class="text-end text-success">+15.8%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Résultat net</td>
+                                                    <td class="text-end">32.5 M HTG</td>
+                                                    <td class="text-end">28.1 M HTG</td>
+                                                    <td class="text-end text-success">+15.7%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Total bilan</td>
+                                                    <td class="text-end">450.2 M HTG</td>
+                                                    <td class="text-end">385.6 M HTG</td>
+                                                    <td class="text-end text-success">+16.8%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Fonds propres</td>
+                                                    <td class="text-end">185.4 M HTG</td>
+                                                    <td class="text-end">165.2 M HTG</td>
+                                                    <td class="text-end text-success">+12.2%</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Point 4 - Plan stratégique -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#point4">
+                                    <i class="fas fa-flag text-info me-2"></i>
+                                    Point 4 - Plan stratégique 2025-2027
+                                </button>
+                            </h2>
+                            <div id="point4" class="accordion-collapse collapse" data-bs-parent="#sessionAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Présenté par:</strong> Pierre Durand, Directeur Général</p>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6>Axes stratégiques:</h6>
+                                            <ul>
+                                                <li><strong>Digitalisation</strong> - 100% des processus en ligne</li>
+                                                <li><strong>Expansion</strong> - 10 nouvelles succursales</li>
+                                                <li><strong>Innovation</strong> - 5 nouveaux produits</li>
+                                                <li><strong>RSE</strong> - Programme d'inclusion financière</li>
+                                            </ul>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Objectifs 2027:</h6>
+                                            <ul>
+                                                <li>Portefeuille: 500 M HTG</li>
+                                                <li>Clients: 50,000</li>
+                                                <li>Part de marché: 25%</li>
+                                                <li>Rentabilité: ROE > 15%</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Point 5 - Nominations -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#point5">
+                                    <i class="fas fa-user-plus text-danger me-2"></i>
+                                    Point 5 - Nominations et renouvellements
+                                </button>
+                            </h2>
+                            <div id="point5" class="accordion-collapse collapse" data-bs-parent="#sessionAccordion">
+                                <div class="accordion-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="card">
+                                                <div class="card-header bg-light">
+                                                    <h6>Nouveaux administrateurs proposés</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <ul class="list-unstyled">
+                                                        <li class="mb-2">
+                                                            <i class="fas fa-user-circle me-2"></i>
+                                                            <strong>Claire Dubois</strong> - Expert financier
+                                                        </li>
+                                                        <li class="mb-2">
+                                                            <i class="fas fa-user-circle me-2"></i>
+                                                            <strong>Thomas Martin</strong> - Expert en digital
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card">
+                                                <div class="card-header bg-light">
+                                                    <h6>Renouvellements</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <ul class="list-unstyled">
+                                                        <li class="mb-2">
+                                                            <i class="fas fa-user-circle me-2"></i>
+                                                            <strong>Sophie Martin</strong> - 3 ans
+                                                        </li>
+                                                        <li class="mb-2">
+                                                            <i class="fas fa-user-circle me-2"></i>
+                                                            <strong>Marc Petit</strong> - 2 ans
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Résolutions et Votes -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-gavel me-2"></i>
+                        Résolutions soumises au vote
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>N° Résolution</th>
+                                    <th>Objet</th>
+                                    <th>Présentée par</th>
+                                    <th>Vote</th>
+                                    <th>Résultat</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>R-2024-01</strong></td>
+                                    <td>Approbation des comptes annuels 2023</td>
+                                    <td>Conseil</td>
+                                    <td>
+                                        <span class="badge bg-success">8 Pour</span>
+                                        <span class="badge bg-secondary">0 Contre</span>
+                                        <span class="badge bg-info">0 Abst.</span>
+                                    </td>
+                                    <td><span class="badge bg-success">Adoptée</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>R-2024-02</strong></td>
+                                    <td>Plan stratégique 2025-2027</td>
+                                    <td>DG</td>
+                                    <td>
+                                        <span class="badge bg-success">7 Pour</span>
+                                        <span class="badge bg-secondary">0 Contre</span>
+                                        <span class="badge bg-info">1 Abst.</span>
+                                    </td>
+                                    <td><span class="badge bg-success">Adoptée</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>R-2024-03</strong></td>
+                                    <td>Nomination de deux nouveaux administrateurs</td>
+                                    <td>Président</td>
+                                    <td>
+                                        <span class="badge bg-success">6 Pour</span>
+                                        <span class="badge bg-secondary">1 Contre</span>
+                                        <span class="badge bg-info">1 Abst.</span>
+                                    </td>
+                                    <td><span class="badge bg-success">Adoptée</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>R-2024-04</strong></td>
+                                    <td>Augmentation du capital social</td>
+                                    <td>Conseil</td>
+                                    <td>
+                                        <span class="badge bg-warning">4 Pour</span>
+                                        <span class="badge bg-danger">3 Contre</span>
+                                        <span class="badge bg-info">1 Abst.</span>
+                                    </td>
+                                    <td><span class="badge bg-danger">Rejetée</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comité et Commissions -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        Comités du Conseil
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6>Comité d'Audit</h6>
+                                    <small>Président: Pierre Bernard</small>
+                                </div>
+                                <span class="badge bg-success">3 membres</span>
+                            </div>
+                            <p class="mt-2 mb-0 small">Prochaine réunion: 10 Avril 2024</p>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6>Comité des Risques</h6>
+                                    <small>Président: Sophie Martin</small>
+                                </div>
+                                <span class="badge bg-success">4 membres</span>
+                            </div>
+                            <p class="mt-2 mb-0 small">Prochaine réunion: 12 Avril 2024</p>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6>Comité des Nominations</h6>
+                                    <small>Président: Jean Dupont</small>
+                                </div>
+                                <span class="badge bg-success">3 membres</span>
+                            </div>
+                            <p class="mt-2 mb-0 small">Prochaine réunion: 15 Avril 2024</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tasks me-2"></i>
+                        Actions post-Conseil
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span>Rédiger PV de la session</span>
+                                <span class="badge bg-primary">En cours</span>
+                            </div>
+                            <small>Responsable: Secrétariat du Conseil</small>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span>Mise en œuvre résolution R-2024-02</span>
+                                <span class="badge bg-warning">À faire</span>
+                            </div>
+                            <small>Responsable: Direction Générale</small>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span>Préparation prochaine session</span>
+                                <span class="badge bg-info">Planifié</span>
+                            </div>
+                            <small>Échéance: 15 Mai 2024</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informations complémentaires -->
+    <div class="row mb-4">
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Calendrier des sessions 2024
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> 15 Mars 2024 - Session ordinaire</li>
+                        <li class="mb-2"><i class="fas fa-clock text-warning me-2"></i> 15 Juin 2024 - Session ordinaire</li>
+                        <li class="mb-2"><i class="fas fa-clock text-warning me-2"></i> 15 Septembre 2024 - Session ordinaire</li>
+                        <li class="mb-2"><i class="fas fa-clock text-warning me-2"></i> 15 Décembre 2024 - Session budgétaire</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-invoice me-2"></i>
+                        Rapport annuel 2023
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <i class="fas fa-file-pdf fa-4x text-danger mb-3"></i>
+                    <h6>Rapport Annuel 2023</h6>
+                    <p class="small text-muted">Approuvé lors de cette session</p>
+                    <button class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-download"></i> Télécharger
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Composition du Conseil
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="compositionChart" style="height: 150px;"></canvas>
+                    <div class="text-center mt-2">
+                        <small>10 membres | 2 comités</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Boutons d'action -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <button class="btn btn-primary btn-lg me-2" onclick="cloturerSession()">
+                <i class="fas fa-check-circle"></i> Clôturer la session
+            </button>
+            <button class="btn btn-success btn-lg me-2" onclick="genererPV()">
+                <i class="fas fa-file-word"></i> Générer le PV
+            </button>
+            <button class="btn btn-info btn-lg" onclick="planifierProchaine()">
+                <i class="fas fa-calendar-plus"></i> Planifier prochaine session
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .accordion-item {
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background-color: #f8f9fa;
+        color: #4e73df;
+    }
+
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .list-group-item {
+        border: none;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .list-group-item:last-child {
+        border-bottom: none;
+    }
+</style>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Graphique de composition
+        const compoCtx = document.getElementById('compositionChart').getContext('2d');
+        new Chart(compoCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Administrateurs', 'Indépendants', 'Observateurs'],
+                datasets: [{
+                    data: [6, 3, 1],
+                    backgroundColor: ['#4e73df', '#1cc88a', '#f6c23e']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    });
+
+    function changerSession(direction) {
+        alert('Changement de session: ' + direction);
+    }
+
+    function cloturerSession() {
+        if(confirm('Clôturer la session en cours ?')) {
+            alert('Session clôturée avec succès');
+        }
+    }
+
+    function genererPV() {
+        alert('Génération du procès-verbal en cours...');
+    }
+
+    function planifierProchaine() {
+        alert('Planification de la prochaine session');
+    }
+</script>
+{% endblock %}

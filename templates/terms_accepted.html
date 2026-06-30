@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero-microcredit">
+    <div class="hero-content" style="text-align:center; padding:50px;">
+        <h1>✅ Merci {{ client.prenom }} !</h1>
+        <p>Vous avez accepté nos <strong>Conditions d'utilisation</strong>.</p>
+        <p>Vous pouvez maintenant continuer votre processus de prêt.</p>
+        <a href="{{ url_for('connexion') }}" class="btn btn-primary">Accéder à votre espace</a>
+    </div>
+</div>
+{% endblock %}

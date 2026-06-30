@@ -1,0 +1,14 @@
+<!-- templates/terms_already_accepted.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="alert alert-info text-center">
+        <h2>✅ Conditions déjà acceptées</h2>
+        <p>Bonjour {{ client.prenom }}, vous avez déjà accepté les conditions générales.</p>
+        <a href="{{ url_for('client_dashboard') }}" class="btn btn-primary">
+            Accéder à mon espace client
+        </a>
+    </div>
+</div>
+{% endblock %}

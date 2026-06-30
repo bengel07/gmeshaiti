@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Retrait sur compte d'épargne</h2>
+    <p>Client: <strong>{{ client.nom }} {{ client.prenom }}</strong></p>
+    <p>Email: <strong>{{ client.email }}</strong></p>
+
+    <form method="POST" action="{{ url_for('envoyer_confirmation_retrait', client_id=client.id) }}"
+          id="formRetrait" class="mt-4">
+
+        <div class="form-group">
+            <label>Compte épargne source *</label>
+            <select name="compte_epargne_id" id="compteSelect" class="form-control" required>
+                <option value="">Sélectionner un compte</option>
+                {% for compte in comptes %}
+                <option value="{{ compte.id }}"
+                        data-solde="{{ compte.solde_disponible }}"
+                        data-plafond-restant="{{ compte.plafond_retrait_journalier - compte.total_retrait_jour }}">
+                    {{ compte.numero_compte }} -
+                    Solde disponible: {{ compte.solde_disponible|round(0)|int }} HTG
+                    {% if compte.intitule_compte %} - {{ compte.intitule_compte }}{% endif %}
+                    <small class="text-muted">
+                        (Plafond restant: {{ (compte.plafond_retrait_journalier - compte.total_retrait_jour)|round(0)|int }} HTG)
+                    </small>
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Montant à retirer (HTG) *</label>
+            <input type="number" name="montant" id="montantInput"
+                   class="form-control" step="any" min="1000" required>
+            <small class="form-text text-muted">
+                Montant minimum: 1000 HTG
+            </small>
+            <div id="montantErreur" class="invalid-feedback"></div>
+        </div>
+
+        <div class="form-group">
+            <label>Mode de retrait *</label>
+            <select name="mode_retrait" class="form-control" required>
+                <option value="especes">Espèces</option>
+                <option value="cheque">Chèque</option>
+                <option value="virement">Virement bancaire</option>
+                <option value="carte">Carte bancaire</option>
+                <option value="mobile">Mobile money</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Description (optionnel)</label>
+            <textarea name="description" class="form-control" rows="2"
+                      placeholder="Motif du retrait..."></textarea>
+        </div>
+
+        <!-- ========== ZONE DE SIGNATURE OBLIGATOIRE ========== -->
+        <div class="form-group">
+            <label>Signature électronique du client *</label>
+            <div class="signature-pad" style="border: 2px solid #ddd; border-radius: 8px; padding: 10px; background: #f8f9fa;">
+                <canvas id="signatureCanvas" width="400" height="200" style="border: 1px solid #ccc; background: white; width: 100%; height: auto;"></canvas>
+                <div class="mt-2">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="effacerSignature()">🗑️ Effacer</button>
+                    <button type="button" class="btn btn-sm btn-success" onclick="validerSignature()">✅ Valider la signature</button>
+                </div>
+            </div>
+            <input type="hidden" name="signature_data" id="signatureData" required>
+            <small class="form-text text-muted">
+                <span id="signatureStatus" class="text-danger">⚠️ Signature requise avant de continuer</span>
+            </small>
+        </div>
+
+        <!-- Zone d'information dynamique -->
+        <div id="infoZone" class="alert alert-info" style="display: none;">
+            <strong>📊 Informations:</strong>
+            <ul id="infoList" class="mb-0"></ul>
+        </div>
+
+        <div class="alert alert-primary">
+            <strong>📧 Confirmation par email:</strong>
+            <ul class="mb-0">
+                <li>Un email de confirmation sera envoyé à <strong>{{ client.email }}</strong></li>
+                <li>Vous devrez cliquer sur le lien dans l'email pour finaliser le retrait</li>
+                <li>Le lien est valable 30 minutes</li>
+                <li>Un reçu sera imprimé après confirmation</li>
+            </ul>
+        </div>
+
+        <div class="alert alert-warning">
+            <strong>⚠️ Attention:</strong>
+            <ul class="mb-0">
+                <li>Le retrait n'est pas immédiat - une confirmation par email est requise</li>
+                <li>Vérifiez bien le montant avant validation</li>
+                <li>Le client doit avoir accès à son email</li>
+            </ul>
+        </div>
+
+        <button type="submit" id="btnValider" class="btn btn-primary" disabled>
+            <i class="fas fa-envelope"></i> Envoyer la confirmation par email
+        </button>
+        <a href="{{ url_for('voir_client', client_id=client.id) }}" class="btn btn-secondary">Annuler</a>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+<script>
+let signaturePad;
+let signatureValidee = false;
+
+// Initialisation du pad de signature
+const canvas = document.getElementById('signatureCanvas');
+canvas.width = 400;
+canvas.height = 200;
+signaturePad = new SignaturePad(canvas);
+
+function effacerSignature() {
+    signaturePad.clear();
+    signatureValidee = false;
+    document.getElementById('signatureData').value = '';
+    document.getElementById('signatureData').required = true;
+    document.getElementById('signatureStatus').innerHTML = '⚠️ Signature requise avant de continuer';
+    document.getElementById('signatureStatus').className = 'text-danger';
+    document.getElementById('btnValider').disabled = true;
+}
+
+function validerSignature() {
+    if (signaturePad.isEmpty()) {
+        alert('❌ Veuillez signer dans le cadre avant de valider');
+        return;
+    }
+    const signatureData = signaturePad.toDataURL();
+    document.getElementById('signatureData').value = signatureData;
+    signatureValidee = true;
+    document.getElementById('signatureStatus').innerHTML = '✅ Signature validée !';
+    document.getElementById('signatureStatus').className = 'text-success';
+    document.getElementById('btnValider').disabled = false;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const compteSelect = document.getElementById('compteSelect');
+    const montantInput = document.getElementById('montantInput');
+    const btnValiderOriginal = document.getElementById('btnValider');
+    const infoZone = document.getElementById('infoZone');
+    const infoList = document.getElementById('infoList');
+
+    let compteCourant = null;
+
+    // Quand le compte change
+    compteSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (this.value) {
+            compteCourant = {
+                id: this.value,
+                soldeDisponible: parseFloat(selectedOption.dataset.solde),
+                plafondRestant: parseFloat(selectedOption.dataset.plafondRestant)
+            };
+
+            // Afficher les infos
+            infoZone.style.display = 'block';
+            infoList.innerHTML = `
+                <li>Solde disponible: <strong>${compteCourant.soldeDisponible.toLocaleString()} HTG</strong></li>
+                <li>Plafond retrait restant: <strong>${compteCourant.plafondRestant.toLocaleString()} HTG</strong></li>
+                <li>Retrait maximum possible: <strong>${Math.min(compteCourant.soldeDisponible, compteCourant.plafondRestant).toLocaleString()} HTG</strong></li>
+            `;
+
+            montantInput.max = Math.min(compteCourant.soldeDisponible, compteCourant.plafondRestant);
+            montantInput.placeholder = `Maximum: ${Math.min(compteCourant.soldeDisponible, compteCourant.plafondRestant).toLocaleString()} HTG`;
+        } else {
+            infoZone.style.display = 'none';
+            compteCourant = null;
+            montantInput.max = '';
+        }
+
+        verifierMontant();
+    });
+
+    // Vérification en temps réel du montant
+    montantInput.addEventListener('input', verifierMontant);
+
+    function verifierMontant() {
+        const montant = parseFloat(montantInput.value);
+
+        if (!compteCourant || isNaN(montant)) {
+            btnValiderOriginal.disabled = true;
+            return;
+        }
+
+        if (montant <= 0) {
+            montantInput.classList.add('is-invalid');
+            document.getElementById('montantErreur').textContent = 'Le montant doit être positif';
+            btnValiderOriginal.disabled = true;
+            return;
+        }
+
+        if (montant < 1000) {
+            montantInput.classList.add('is-invalid');
+            document.getElementById('montantErreur').textContent = 'Le montant minimum est de 1000 HTG';
+            btnValiderOriginal.disabled = true;
+            return;
+        }
+
+        if (montant > compteCourant.soldeDisponible) {
+            montantInput.classList.add('is-invalid');
+            document.getElementById('montantErreur').textContent = `Solde insuffisant. Maximum: ${compteCourant.soldeDisponible.toLocaleString()} HTG`;
+            btnValiderOriginal.disabled = true;
+            return;
+        }
+
+        if (montant > compteCourant.plafondRestant) {
+            montantInput.classList.add('is-invalid');
+            document.getElementById('montantErreur').textContent = `Plafond journalier dépassé. Restant: ${compteCourant.plafondRestant.toLocaleString()} HTG`;
+            btnValiderOriginal.disabled = true;
+            return;
+        }
+
+        // Tout est OK pour le montant, mais la signature doit être validée séparément
+        montantInput.classList.remove('is-invalid');
+        // Le bouton sera activé/désactivé par la signature
+        updateButtonState();
+    }
+
+    function updateButtonState() {
+        const montantOk = montantInput.value && compteCourant && parseFloat(montantInput.value) > 0;
+        btnValiderOriginal.disabled = !(montantOk && signatureValidee);
+    }
+
+    // Observer les changements de signature
+    const observer = new MutationObserver(function() {
+        updateButtonState();
+    });
+    observer.observe(document.getElementById('signatureStatus'), { attributes: true, childList: true, subtree: true });
+
+    // Confirmation avant envoi email
+    document.getElementById('formRetrait').addEventListener('submit', function(e) {
+        const montant = parseFloat(montantInput.value);
+        const nomCompte = compteSelect.options[compteSelect.selectedIndex]?.text || '';
+
+        if (!signatureValidee) {
+            e.preventDefault();
+            alert('❌ Veuillez signer et cliquer sur "Valider la signature" avant d\'envoyer la demande');
+            return false;
+        }
+
+        if (!confirm(`✍️ Signature validée !\n\nConfirmez-vous l'envoi de la demande de retrait de ${montant.toLocaleString()} HTG ?\n\n📧 Un email de confirmation sera envoyé à ${client.email}.\n🔗 Le client devra cliquer sur le lien pour finaliser le retrait.`)) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
+
+<style>
+.signature-pad canvas {
+    cursor: crosshair;
+    touch-action: none;
+    max-width: 100%;
+    height: auto;
+}
+</style>
+{% endblock %}

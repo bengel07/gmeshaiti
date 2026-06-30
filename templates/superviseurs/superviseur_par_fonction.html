@@ -43,7 +43,7 @@
                     <p><strong>Embauche:</strong> {{ emp.date_creation.strftime('%d/%m/%Y') }}</p>
 
                     <div style="margin-top: 1rem;">
-                        <a href="{{ url_for('superviseur_voir_employe', employe_id=emp.id) }}" class="btn">👁️ Voir Détails</a>
+                        <a href="{{ url_for('superviseur_voir_employe', employe_id=user.id) }}" class="btn">👁️ Voir Détails</a>
                         <a href="tel:{{ emp.telephone }}" class="btn" style="background: #28a745;">📞 Appeler</a>
                     </div>
                 </div>

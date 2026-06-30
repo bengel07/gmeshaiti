@@ -262,6 +262,8 @@ from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 from datetime import datetime
 
+from models import Groupe, User, db
+
 auth_bp = Blueprint('auth', __name__)
 
 
@@ -280,11 +282,45 @@ def validate_password(password):
 
 
 # Routes d'authentification de base
-@auth_bp.route('/login', methods=['GET', 'POST'])
-def login():
-    """Route de connexion alternative"""
-    return redirect(url_for('connexion'))
-
+# @auth_bp.route('/login', methods=['GET', 'POST'])
+# def login():
+#     """Route de connexion alternative"""
+#     return redirect(url_for('connexion'))
+#
+#
+# @auth_bp.route('/connexion', methods=['GET', 'POST'])
+# def connexion():
+#     if request.method == 'POST':
+#         identifiant = request.form.get('identifiant')
+#         password = request.form.get('password')
+#
+#         # ... ton code d'authentification existant ...
+#
+#         # APRÈS avoir authentifié l'utilisateur avec succès
+#         if user and check_password_hash(user.password, password):
+#             login_user(user, remember=remember)
+#
+#             # RÉGLER LE VRAI PROBLÈME : Redirection selon le rôle
+#             next_page = request.args.get('next')
+#
+#             # Si une page next est spécifiée et valide
+#             if next_page and url_parse(next_page).netloc == '':
+#                 return redirect(next_page)
+#
+#             # SINON, rediriger selon le rôle
+#             if user.role == 'client':
+#                 return redirect(url_for('clients.client_dashboard'))
+#             elif user.role in ['admin_succursale', 'admin_principal', 'employee']:
+#                 # Pour les employés/admins, rediriger vers le dashboard employé
+#                 return redirect(url_for('employees.employee_dashboard'))
+#             else:
+#                 # Fallback
+#                 return redirect(url_for('main.index'))
+#
+#         # ... reste du code pour l'échec de connexion ...
+#
+#     # ... code pour GET request ...
+#     return render_template('connexion.html')
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
@@ -302,7 +338,7 @@ def logout():
     """Déconnexion"""
     logout_user()
     session.clear()
-    return redirect(url_for('index'))
+    return redirect(url_for('main.accueil'))
 
 
 # Routes API Mobile simplifiées
@@ -316,6 +352,7 @@ def mobile_login():
 
         # Import ici pour éviter les dépendances circulaires
         from app import User
+
 
         # Recherche de l'utilisateur
         user = User.query.filter(
@@ -364,13 +401,13 @@ def mobile_register():
         )
         new_user.set_password(data.get('password'))
 
-        db.session.add(new_user)
-        db.session.commit()
+        session.add(new_user)
+        session.commit()
 
         return jsonify({
             'success': True,
             'message': 'Compte créé avec succès',
-            'user_id': new_user.id
+            'employe_id': new_user.id
         })
 
     except Exception as e:

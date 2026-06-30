@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sélection prêt - Test Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .client-info {
+            background: #f0f4ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        .pret-list {
+            list-style: none;
+            padding: 0;
+        }
+        .pret-item {
+            padding: 15px;
+            margin: 10px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+        .pret-item:hover {
+            background: #e9ecef;
+            border-left-color: #28a745;
+            transform: translateX(5px);
+        }
+        .pret-item a {
+            text-decoration: none;
+            color: #333;
+            display: block;
+        }
+        .pret-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .pret-montant {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #28a745;
+        }
+        .pret-details {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        .badge {
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: normal;
+        }
+        .badge-actif {
+            background: #28a745;
+            color: white;
+        }
+        .badge-en_attente {
+            background: #ffc107;
+            color: #333;
+        }
+        .badge-termine {
+            background: #6c757d;
+            color: white;
+        }
+        .badge-refuse {
+            background: #dc3545;
+            color: white;
+        }
+        .no-prets {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #667eea;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Test de Notification</h1>
+
+        <div class="client-info">
+            <strong>Client sélectionné :</strong> {{ client.prenom }} {{ client.nom }}<br>
+            <strong>Email :</strong> {{ client.email or 'Non renseigné' }}<br>
+            <strong>ID :</strong> {{ client.id }}
+        </div>
+
+        {% if prets %}
+            <p>Sélectionnez un prêt pour envoyer la notification :</p>
+            <ul class="pret-list">
+                {% for pret in prets %}
+                <li class="pret-item">
+                    <a href="{{ url_for('test_notification', client_id=client.id, pret_id=pret.id) }}">
+                        <div class="pret-info">
+                            <div>
+                                <span class="pret-montant">{{ pret.montant }} GDES</span>
+                                <div class="pret-details">
+                                    Durée: {{ pret.duree_mois }} mois |
+                                    Mensualité: {{ pret.mensualite }} GDES
+                                </div>
+                            </div>
+                            <span class="badge badge-{{ pret.statut|replace(' ', '_') }}">
+                                {{ pret.statut }}
+                            </span>
+                        </div>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="no-prets">
+                <p style="font-size: 3rem; margin: 0;">❌</p>
+                <h3>Aucun prêt trouvé</h3>
+                <p>Ce client n'a pas encore de prêt.</p>
+                <p>Créez d'abord un prêt pour ce client avant de tester les notifications.</p>
+                <a href="{{ url_for('demande_pret') }}?client_id={{ client.id }}"
+                   style="display: inline-block; margin-top: 15px; padding: 10px 20px;
+                          background: #28a745; color: white; text-decoration: none;
+                          border-radius: 5px;">
+                    ➕ Créer un prêt pour ce client
+                </a>
+            </div>
+        {% endif %}
+
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <a href="{{ url_for('test_notification') }}" class="back-link">← Choisir un autre client</a>
+            <a href="{{ url_for('admin_dashboard') }}" class="back-link" style="margin-left: auto;">Tableau de bord</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -59,7 +59,9 @@
             <h2>📋 Remboursements du Jour</h2>
             <div style="margin-bottom: 1rem;">
                 <a href="{{ url_for('nouveau_remboursement') }}" class="btn btn-success">➕ Nouveau Remboursement</a>
-                <a href="#" class="btn btn-warning">📊 Rapport Journalier</a>
+                <a href="{{ url_for('rapport_journalier',succursale_id=current_user.succursale_id) }}" class="btn btn-warning">
+                    📊 Rapport Journalier
+                </a>
             </div>
 
             <table class="table">
@@ -162,9 +164,9 @@
             <h2>⚡ Actions Rapides</h2>
             <div>
                 <a href="{{ url_for('nouveau_remboursement') }}" class="btn btn-success">💰 Nouveau Remboursement</a>
-                <a href="#" class="btn">📊 Rapport Journalier</a>
-                <a href="#" class="btn">🧾 Imprimer Reçus</a>
-                <a href="#" class="btn btn-warning">💸 Fermeture Caisse</a>
+                <a href="{{ url_for('rapport_journalier',succursale_id=current_user.succursale_id) }}" class="btn btn-warning"> 📊 Rapport Journalier </a>
+                <a href="{{ url_for('imprimer_recus_jour') }}" class="btn btn-info">🧾 Imprimer Reçus </a>
+                <a href="{{ url_for('fermeture_caisse') }}" class="btn btn-warning"> 💸 Fermeture Caisse </a>
             </div>
         </div>
     </div>

@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>➕ Ajouter un nouvel Admin</h2>
+    <form method="POST" enctype="multipart/form-data">
+
+        <div class="form-group">
+            <label>Nom </label>
+            <input type="text" name="nom" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+            <label>Prenom </label>
+            <input type="text" name="prenom" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+            <label>Nom d'utilisateur</label>
+            <input type="text" name="nom_utilisateur" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" name="email" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+            <label>Téléphone</label>
+            <input type="tel" name="telephone" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+            <label>Adresse</label>
+            <input type="text" name="adresse" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label>Date de naissance</label>
+            <input type="date" name="date_naissance" class="form-control">
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <label class="form-label required">Numéro CIN/NIF</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                <input type="text" class="form-control" name="cin_nif" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Photo de id</label>
+            <input type="file" name="photo" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label>Mot de passe</label>
+            <input type="password" name="password" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+            <label>Rôle</label>
+            <select name="role" class="form-control" required>
+                <option value="admin_central">Admin Central</option>
+                <option value="admin_succursale">Admin Succursale</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Fonction</label>
+            <select name="fonction" class="form-control" required>
+                <option value="">-- Choisir une fonction --</option>
+                <option value="admin">Administrateur</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Succursale (si admin de succursale)</label>
+            <select name="succursale_id" class="form-control">
+                <option value="">--Aucune--</option>
+                {% for s in succursales %}
+                    <option value="{{ s.id }}">{{ s.nom }} - {{ s.ville }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Photo de profil</label>
+            <input type="file" name="photo_selfie" class="form-control">
+        </div>
+
+        <!-- ✅ BOUTON POUR AFFICHER/MASQUER LES QUESTIONS SECRÈTES -->
+        <div class="mt-3 mb-3">
+            <button type="button" id="toggleQuestionsBtn" class="btn btn-outline-info" onclick="toggleQuestions()">
+                <i class="fas fa-question-circle"></i> Ajouter des questions secrètes (optionnel)
+            </button>
+        </div>
+
+        <!-- ✅ SECTION QUESTIONS SECRÈTES (MASQUÉE PAR DÉFAUT) -->
+        <div id="questionsSecretes" style="display: none;">
+            <div class="card mt-3 mb-3" style="background-color: #f8f9fa;">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Questions secrètes</h5>
+                    <small>Ces questions permettront de réinitialiser le mot de passe en cas d'oubli</small>
+                </div>
+                <div class="card-body">
+                    <!-- Question 1 -->
+                    <div class="mb-3">
+                        <label class="form-label">Question 1</label>
+                        <select name="question_1" class="form-control">
+                            <option value="">-- Choisissez une question --</option>
+                            <option value="Quel est le nom de jeune fille de votre mère ?">Quel est le nom de jeune fille de votre mère ?</option>
+                            <option value="Quel est le nom de votre premier animal de compagnie ?">Quel est le nom de votre premier animal de compagnie ?</option>
+                            <option value="Quelle est votre ville de naissance ?">Quelle est votre ville de naissance ?</option>
+                            <option value="Quel est le nom de votre école primaire ?">Quel est le nom de votre école primaire ?</option>
+                            <option value="Quel est le métier de votre père ?">Quel est le métier de votre père ?</option>
+                            <option value="Quelle est votre chanson préférée ?">Quelle est votre chanson préférée ?</option>
+                            <option value="Quel est le nom de votre meilleur ami ?">Quel est le nom de votre meilleur ami ?</option>
+                        </select>
+                        <input type="text" name="reponse_1" class="form-control mt-2" placeholder="Votre réponse">
+                    </div>
+
+                    <!-- Question 2 -->
+                    <div class="mb-3">
+                        <label class="form-label">Question 2</label>
+                        <select name="question_2" class="form-control">
+                            <option value="">-- Choisissez une question --</option>
+                            <option value="Quel est le nom de jeune fille de votre mère ?">Quel est le nom de jeune fille de votre mère ?</option>
+                            <option value="Quel est le nom de votre premier animal de compagnie ?">Quel est le nom de votre premier animal de compagnie ?</option>
+                            <option value="Quelle est votre ville de naissance ?">Quelle est votre ville de naissance ?</option>
+                            <option value="Quel est le nom de votre école primaire ?">Quel est le nom de votre école primaire ?</option>
+                            <option value="Quel est le métier de votre père ?">Quel est le métier de votre père ?</option>
+                            <option value="Quelle est votre chanson préférée ?">Quelle est votre chanson préférée ?</option>
+                            <option value="Quel est le nom de votre meilleur ami ?">Quel est le nom de votre meilleur ami ?</option>
+                        </select>
+                        <input type="text" name="reponse_2" class="form-control mt-2" placeholder="Votre réponse">
+                    </div>
+
+                    <!-- Question 3 -->
+                    <div class="mb-3">
+                        <label class="form-label">Question 3</label>
+                        <select name="question_3" class="form-control">
+                            <option value="">-- Choisissez une question --</option>
+                            <option value="Quel est le nom de jeune fille de votre mère ?">Quel est le nom de jeune fille de votre mère ?</option>
+                            <option value="Quel est le nom de votre premier animal de compagnie ?">Quel est le nom de votre premier animal de compagnie ?</option>
+                            <option value="Quelle est votre ville de naissance ?">Quelle est votre ville de naissance ?</option>
+                            <option value="Quel est le nom de votre école primaire ?">Quel est le nom de votre école primaire ?</option>
+                            <option value="Quel est le métier de votre père ?">Quel est le métier de votre père ?</option>
+                            <option value="Quelle est votre chanson préférée ?">Quelle est votre chanson préférée ?</option>
+                            <option value="Quel est le nom de votre meilleur ami ?">Quel est le nom de votre meilleur ami ?</option>
+                        </select>
+                        <input type="text" name="reponse_3" class="form-control mt-2" placeholder="Votre réponse">
+                    </div>
+
+                    <div class="alert alert-info small">
+                        <i class="fas fa-info-circle"></i> Ces questions seront utilisées pour réinitialiser votre mot de passe en cas d'oubli. Gardez vos réponses en sécurité.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-3">Ajouter Admin</button>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary mt-3">Annuler</a>
+
+    </form>
+</div>
+
+<script>
+function toggleQuestions() {
+    const div = document.getElementById('questionsSecretes');
+    const btn = document.getElementById('toggleQuestionsBtn');
+
+    if (div.style.display === 'none') {
+        div.style.display = 'block';
+        btn.innerHTML = '<i class="fas fa-question-circle"></i> Masquer les questions secrètes';
+        btn.classList.remove('btn-outline-info');
+        btn.classList.add('btn-info');
+    } else {
+        div.style.display = 'none';
+        btn.innerHTML = '<i class="fas fa-question-circle"></i> Ajouter des questions secrètes (optionnel)';
+        btn.classList.remove('btn-info');
+        btn.classList.add('btn-outline-info');
+    }
+}
+</script>
+{% endblock %}

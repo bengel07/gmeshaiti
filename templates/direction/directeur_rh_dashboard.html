@@ -1,0 +1,578 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-users-cog me-2"></i>
+                            Direction des Ressources Humaines
+                        </h2>
+                        <p class="mb-0 mt-2">
+                            <i class="fas fa-user-tie me-1"></i>
+                            {{ current_user.prenom }} {{ current_user.nom }}
+                            <span class="badge bg-light text-dark ms-2">Directeur RH</span>
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <h1 class="mb-0">📊 Tableau de Bord RH</h1>
+                        <small>{{ now().strftime('%d %B %Y') if now else '' }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cartes KPI RH -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Effectif total
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.effectif_total or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Présents aujourd'hui
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.presents or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                En congés
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.en_conges or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-umbrella-beach fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Recrues (mois)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.recrues_mois or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-plus fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deuxième ligne de KPI -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Départs (mois)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.departs_mois or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-minus fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-secondary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                En période d'essai
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.periode_essai or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-hourglass-half fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Anniversaires (mois)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.anniversaires_mois or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-birthday-cake fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Taux d'absentéisme
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.taux_absentéisme }}%</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-times fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Répartition par succursale et statut -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-building me-2"></i>
+                        Effectif par succursale
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="succursaleChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Répartition par statut
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statutChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demandes de congés en attente -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>
+                        Demandes de congés en attente
+                    </h5>
+                    <span class="badge bg-light text-dark">{{ demandes_conges|length }} en attente</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Employé</th>
+                                    <th>Succursale</th>
+                                    <th>Type de congé</th>
+                                    <th>Du</th>
+                                    <th>Au</th>
+                                    <th>Jours</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for demande in demandes_conges %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ demande.employe.prenom }} {{ demande.employe.nom }}</strong><br>
+                                        <small class="text-muted">{{ demande.employe.fonction }}</small>
+                                    </td>
+                                    <td>{{ demande.employe.succursale.nom }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ demande.type_conge }}</span>
+                                    </td>
+                                    <td>{{ demande.date_debut.strftime('%d/%m/%Y') }}</td>
+                                    <td>{{ demande.date_fin.strftime('%d/%m/%Y') }}</td>
+                                    <td><strong>{{ demande.nb_jours }}</strong></td>
+                                    <td>
+                                        <span class="badge bg-warning">En attente</span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('approuver_conge', demande_id=demande.id) }}"
+                                           class="btn btn-sm btn-success">
+                                            <i class="fas fa-check"></i>
+                                        </a>
+                                        <a href="{{ url_for('refuser_conge', demande_id=demande.id) }}"
+                                           class="btn btn-sm btn-danger">
+                                            <i class="fas fa-times"></i>
+                                        </a>
+                                        <a href="{{ url_for('voir_demande_conge', demande_id=demande.id) }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-4">
+                                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                        <h5>Aucune demande de congé en attente</h5>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recrutements et formations -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-graduation-cap me-2"></i>
+                        Formations en cours
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for formation in formations %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ formation.titre }}</h6>
+                                <small>{{ formation.participants|length }} participants</small>
+                            </div>
+                            <p class="mb-1">{{ formation.description|truncate(100) }}</p>
+                            <small class="text-muted">
+                                Du {{ formation.date_debut.strftime('%d/%m') }} au {{ formation.date_fin.strftime('%d/%m/%Y') }}
+                            </small>
+                            <div class="progress mt-2" style="height: 5px;">
+                                <div class="progress-bar bg-info" style="width: {{ formation.progression }}%"></div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune formation en cours</p>
+                        {% endfor %}
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('planifier_formation') }}" class="btn btn-outline-info">
+                            <i class="fas fa-plus"></i> Planifier une formation
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-graduate me-2"></i>
+                        Prochains recrutements
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for recrutement in recrutements %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ recrutement.poste }}</h6>
+                                <span class="badge bg-primary">{{ recrutement.candidats }} candidats</span>
+                            </div>
+                            <p class="mb-1">{{ recrutement.description }}</p>
+                            <small class="text-muted">
+                                Date limite: {{ recrutement.date_limite.strftime('%d/%m/%Y') }}
+                            </small>
+                            <div class="mt-2">
+                                <a href="{{ url_for('voir_recrutement', recrutement_id=recrutement.id) }}"
+                                   class="btn btn-sm btn-outline-success">
+                                    Gérer
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucun recrutement en cours</p>
+                        {% endfor %}
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('nouveau_recrutement') }}" class="btn btn-outline-success">
+                            <i class="fas fa-plus"></i> Nouveau recrutement
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Anniversaires et événements -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Anniversaires & Événements du mois
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for event in anniversaires %}
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-birthday-cake fa-3x text-warning mb-2"></i>
+                                    <h6>{{ event.employe.prenom }} {{ event.employe.nom }}</h6>
+                                    <p class="mb-0">{{ event.employe.fonction }}</p>
+                                    <small class="text-muted">{{ event.date_naissance.strftime('%d %B') }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="col-12">
+                            <p class="text-muted text-center my-3">Aucun anniversaire ce mois-ci</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides RH -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Actions rapides RH
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('liste_employes') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-users fa-2x mb-2"></i><br>
+                                Gérer employés
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('liste_conges') }}" class="btn btn-outline-warning w-100 py-3">
+                                <i class="fas fa-umbrella-beach fa-2x mb-2"></i><br>
+                                Gérer congés
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('liste_formations') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-graduation-cap fa-2x mb-2"></i><br>
+                                Formations
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('recrutements') }}" class="btn btn-outline-success w-100 py-3">
+                                <i class="fas fa-user-plus fa-2x mb-2"></i><br>
+                                Recrutements
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('bulletins_paie') }}" class="btn btn-outline-danger w-100 py-3">
+                                <i class="fas fa-file-invoice fa-2x mb-2"></i><br>
+                                Bulletins de paie
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('evaluations') }}" class="btn btn-outline-secondary w-100 py-3">
+                                <i class="fas fa-star fa-2x mb-2"></i><br>
+                                Évaluations
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('contrats') }}" class="btn btn-outline-dark w-100 py-3">
+                                <i class="fas fa-file-signature fa-2x mb-2"></i><br>
+                                Contrats
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('rapport_rh') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-chart-bar fa-2x mb-2"></i><br>
+                                Rapport RH
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug info -->
+    {% if config['DEBUG'] %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="fas fa-bug me-2"></i>Informations de débogage</h5>
+                </div>
+                <div class="card-body">
+                    <pre class="mb-0">
+ID: {{ current_user.id }}
+Username: {{ current_user.username }}
+Rôle: {{ current_user.role }}
+Fonction: {{ current_user.fonction }}
+Statut: {{ current_user.statut }}
+Succursale: {{ current_user.succursale.nom if current_user.succursale else 'Aucune' }}
+Email: {{ current_user.email }}
+                    </pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .border-left-primary { border-left: 4px solid #4e73df !important; }
+    .border-left-success { border-left: 4px solid #1cc88a !important; }
+    .border-left-info { border-left: 4px solid #36b9cc !important; }
+    .border-left-warning { border-left: 4px solid #f6c23e !important; }
+    .border-left-danger { border-left: 4px solid #e74a3b !important; }
+    .border-left-secondary { border-left: 4px solid #858796 !important; }
+
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .btn-outline-primary:hover { background: #4e73df; color: white; }
+    .btn-outline-warning:hover { background: #f6c23e; color: white; }
+    .btn-outline-info:hover { background: #36b9cc; color: white; }
+    .btn-outline-success:hover { background: #1cc88a; color: white; }
+    .btn-outline-danger:hover { background: #e74a3b; color: white; }
+    .btn-outline-secondary:hover { background: #858796; color: white; }
+    .btn-outline-dark:hover { background: #5a5c69; color: white; }
+
+    pre {
+        background: #f8f9fc;
+        padding: 1rem;
+        border-radius: 0.5rem;
+    }
+</style>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Graphique par succursale
+        const succursaleCtx = document.getElementById('succursaleChart').getContext('2d');
+        new Chart(succursaleCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ succursales_noms|safe }},
+                datasets: [{
+                    label: 'Effectif',
+                    data: {{ succursales_effectifs|safe }},
+                    backgroundColor: '#4e73df'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // Graphique par statut
+        const statutCtx = document.getElementById('statutChart').getContext('2d');
+        new Chart(statutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Actifs', 'En congés', 'Suspendus', 'Inactifs'],
+                datasets: [{
+                    data: [
+                        {{ stats.actifs or 0 }},
+                        {{ stats.en_conges or 0 }},
+                        {{ stats.suspendus or 0 }},
+                        {{ stats.inactifs or 0 }}
+                    ],
+                    backgroundColor: ['#28a745', '#ffc107', '#fd7e14', '#6c757d']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    });
+</script>
+{% endblock %}

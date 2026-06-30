@@ -1,0 +1,801 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-map-marked-alt me-2"></i>
+                            Direction Régionale
+                        </h2>
+                        <p class="mb-0 mt-2">
+                            <i class="fas fa-user-tie me-1"></i>
+                            {{ current_user.prenom }} {{ current_user.nom }}
+                            <span class="badge bg-light text-dark ms-2">Directeur Régional</span>
+                        </p>
+                        <p class="mb-0 mt-1">
+                            <i class="fas fa-building me-1"></i>
+                            Région: <strong>{{ region.nom }}</strong> ({{ region.code }})
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <h1 class="mb-0">📊 Tableau de Bord Régional</h1>
+                        <small>{{ now().strftime('%d %B %Y') if now else '' }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs régionaux -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Portefeuille Régional
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "{:,.0f}".format(stats.portefeuille_regional or 0) }} FG
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-pie fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+       <!-- Bouton pour les dossiers en attente d'approbation (CORRIGÉ) -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow border-0" style="background: linear-gradient(135deg, #f6c23e, #f4b619);">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div class="text-white">
+                            <h4 class="mb-2">
+                                <i class="fas fa-folder-open me-2"></i>
+                                Dossiers en attente d'approbation
+                            </h4>
+                            <p class="mb-0">
+                                <i class="fas fa-clock me-1"></i>
+                                {{ stats.en_attente if stats and stats.en_attente else 0 }} dossier(s) en attente de validation
+                            </p>
+                        </div>
+                        <a href="{{ url_for('directeur_tous_les_dossiers') }}" class="btn btn-light btn-lg px-5">
+                            <i class="fas fa-check-circle me-2 text-success"></i>
+                            Traiter les dossiers
+                            {% if stats.en_attente > 0 %}
+                            <span class="badge bg-danger ms-2">{{ stats.en_attente }}</span>
+                            {% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Nombre de succursales
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.nb_succursales or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-building fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Total Clients
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_clients or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Performance Régionale
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.performance_regionale }}%</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicateurs régionaux -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">PAR > 30 jours</h6>
+                    <h3 class="mb-0 text-warning">{{ stats.par_30 }}%</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Croissance annuelle</h6>
+                    <h3 class="mb-0 text-success">{{ stats.croissance_annuelle }}%</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Taux de pénétration</h6>
+                    <h3 class="mb-0 text-primary">{{ stats.taux_penetration }}%</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Satisfaction client</h6>
+                    <h3 class="mb-0 text-info">{{ stats.satisfaction }}%</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques régionaux -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Performance des succursales
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="performanceSuccursalesChart" style="height: 350px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Répartition du portefeuille
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="repartitionRegionChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance des succursales -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-building me-2"></i>
+                        Performance des succursales de la région
+                    </h5>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-light" onclick="trierPar('performance')">Performance</button>
+                        <button class="btn btn-sm btn-light" onclick="trierPar('croissance')">Croissance</button>
+                        <button class="btn btn-sm btn-light" onclick="trierPar('par')">PAR</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Succursale</th>
+                                    <th>Chef d'agence</th>
+                                    <th class="text-end">Encours</th>
+                                    <th class="text-end">Clients</th>
+                                    <th class="text-end">PAR 30</th>
+                                    <th class="text-end">Performance</th>
+                                    <th class="text-center">Tendance</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for succ in succursales %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ succ.nom }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ succ.code }} - {{ succ.ville }}</small>
+                                    </td>
+                                    <td>
+                                        {% if succ.chef_agence %}
+                                            {{ succ.chef_agence.prenom }} {{ succ.chef_agence.nom }}
+                                        {% else %}
+                                            <span class="text-muted">Non assigné</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">{{ "{:,.0f}".format(succ.encours) }} FG</td>
+                                    <td class="text-end">{{ succ.clients }}</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-{{ succ.par_30_couleur }}">
+                                            {{ succ.par_30 }}%
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                                <div class="progress-bar bg-{{ succ.performance_couleur }}"
+                                                     style="width: {{ succ.performance }}%"></div>
+                                            </div>
+                                            <span>{{ succ.performance }}%</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if succ.tendance == 'hausse' %}
+                                            <i class="fas fa-arrow-up text-success"></i>
+                                        {% elif succ.tendance == 'baisse' %}
+                                            <i class="fas fa-arrow-down text-danger"></i>
+                                        {% else %}
+                                            <i class="fas fa-minus text-secondary"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('voir_succursale', succ_id=succ.id) }}"
+                                               class="btn btn-outline-primary" title="Voir détails">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('rapport_succursale', succ_id=succ.id) }}"
+                                               class="btn btn-outline-info" title="Rapport">
+                                                <i class="fas fa-chart-bar"></i>
+                                            </a>
+                                            <a href="{{ url_for('visite_succursale', succ_id=succ.id) }}"
+                                               class="btn btn-outline-success" title="Planifier visite">
+                                                <i class="fas fa-calendar-plus"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top et Bottom performers -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-star me-2"></i>
+                        Top 3 succursales
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for succ in top_succursales %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">
+                                    <i class="fas fa-trophy text-warning me-2"></i>
+                                    {{ succ.nom }}
+                                </h6>
+                                <span class="badge bg-success">{{ succ.performance }}%</span>
+                            </div>
+                            <p class="mb-1">
+                                Encours: {{ "{:,.0f}".format(succ.encours) }} FG |
+                                Clients: {{ succ.clients }} |
+                                PAR: {{ succ.par_30 }}%
+                            </p>
+                            <small class="text-muted">
+                                Chef: {{ succ.chef_agence.prenom }} {{ succ.chef_agence.nom if succ.chef_agence else 'Non assigné' }}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Succursales à surveiller
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for succ in bottom_succursales %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">
+                                    <i class="fas fa-exclamation-circle text-danger me-2"></i>
+                                    {{ succ.nom }}
+                                </h6>
+                                <span class="badge bg-danger">{{ succ.performance }}%</span>
+                            </div>
+                            <p class="mb-1">
+                                Encours: {{ "{:,.0f}".format(succ.encours) }} FG |
+                                PAR: <span class="text-danger">{{ succ.par_30 }}%</span>
+                            </p>
+                            <div class="mt-2">
+                                <a href="{{ url_for('planifier_visite', succ_id=succ.id) }}"
+                                   class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-calendar-check"></i> Planifier visite
+                                </a>
+                                <a href="{{ url_for('analyse_succursale', succ_id=succ.id) }}"
+                                   class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-search"></i> Analyser
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendrier des visites -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Planning des visites terrain
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Succursale</th>
+                                    <th>Objet</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for visite in visites %}
+                                <tr>
+                                    <td>{{ visite.date.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <strong>{{ visite.succursale.nom }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ visite.succursale.ville }}</small>
+                                    </td>
+                                    <td>{{ visite.objet }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ visite.statut_couleur }}">
+                                            {{ visite.statut }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('voir_visite', visite_id=visite.id) }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">Aucune visite planifiée</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('planifier_visite') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-plus"></i> Planifier une visite
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Réunions régionales -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        Prochaines réunions régionales
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for reunion in reunions %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ reunion.titre }}</h6>
+                                <small>{{ reunion.date.strftime('%d/%m/%Y %H:%M') }}</small>
+                            </div>
+                            <p class="mb-1">{{ reunion.ordre_jour }}</p>
+                            <small class="text-muted">
+                                Participants: {{ reunion.participants }} |
+                                Lieu: {{ reunion.lieu }}
+                            </small>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune réunion planifiée</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tasks me-2"></i>
+                        Actions à suivre
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for action in actions %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ action.titre }}</h6>
+                                <span class="badge bg-{{ action.priorite_couleur }}">
+                                    {{ action.priorite }}
+                                </span>
+                            </div>
+                            <p class="mb-1">{{ action.description }}</p>
+                            <small class="text-muted">
+                                Échéance: {{ action.date_echeance.strftime('%d/%m/%Y') }}
+                            </small>
+                            <div class="progress mt-2" style="height: 5px;">
+                                <div class="progress-bar bg-{{ action.couleur }}"
+                                     style="width: {{ action.progression }}%"></div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune action en cours</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Objectifs régionaux -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bullseye me-2"></i>
+                        Objectifs régionaux {{ now().year }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <h6>Croissance du portefeuille</h6>
+                            <div class="progress mb-2" style="height: 20px;">
+                                <div class="progress-bar bg-success" style="width: {{ objectifs.croissance_portefeuille }}%">
+                                    {{ objectifs.croissance_portefeuille }}%
+                                </div>
+                            </div>
+                            <small>Objectif: 15% | Réalisé: {{ objectifs.croissance_portefeuille_realise }}%</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <h6>Réduction PAR</h6>
+                            <div class="progress mb-2" style="height: 20px;">
+                                <div class="progress-bar bg-info" style="width: {{ objectifs.reduction_par }}%">
+                                    {{ objectifs.reduction_par }}%
+                                </div>
+                            </div>
+                            <small>Objectif: 3% | Actuel: {{ objectifs.par_actuel }}%</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <h6>Nouveaux clients</h6>
+                            <div class="progress mb-2" style="height: 20px;">
+                                <div class="progress-bar bg-warning" style="width: {{ objectifs.nouveaux_clients }}%">
+                                    {{ objectifs.nouveaux_clients }}%
+                                </div>
+                            </div>
+                            <small>Objectif: {{ objectifs.nouveaux_clients_objectif }} | Réalisé: {{ objectifs.nouveaux_clients_realise }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides régionales -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Actions rapides
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('rapport_regional') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-chart-pie fa-2x mb-2"></i><br>
+                                Rapport régional
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('calendrier_visites') }}" class="btn btn-outline-success w-100 py-3">
+                                <i class="fas fa-calendar-alt fa-2x mb-2"></i><br>
+                                Calendrier visites
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('reunion_regionale') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-users fa-2x mb-2"></i><br>
+                                Réunion régionale
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('analyse_marche_regional') }}" class="btn btn-outline-warning w-100 py-3">
+                                <i class="fas fa-chart-line fa-2x mb-2"></i><br>
+                                Analyse marché
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('objectifs_regionaux') }}" class="btn btn-outline-danger w-100 py-3">
+                                <i class="fas fa-bullseye fa-2x mb-2"></i><br>
+                                Objectifs
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('formations_regionales') }}" class="btn btn-outline-secondary w-100 py-3">
+                                <i class="fas fa-graduation-cap fa-2x mb-2"></i><br>
+                                Formations
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('budget_regional') }}" class="btn btn-outline-dark w-100 py-3">
+                                <i class="fas fa-calculator fa-2x mb-2"></i><br>
+                                Budget régional
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('concours_regional') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-trophy fa-2x mb-2"></i><br>
+                                Concours régional
+                            </a>
+                        </div>
+                        <!-- À ajouter dans la section des actions rapides ou après les KPIs -->
+
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card shadow border-0 bg-gradient bg-warning text-white">
+                                    <div class="card-body d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h4 class="mb-2">
+                                                <i class="fas fa-folder-open me-2"></i>
+                                                Dossiers en attente d'approbation
+                                            </h4>
+                                            <p class="mb-0">
+                                                <i class="fas fa-clock me-1"></i>
+                                                {{ stats.en_attente }} dossier(s) en attente de validation
+                                            </p>
+                                        </div>
+                                        <a href="{{ url_for('directeur_tous_les_dossiers') }}" class="btn btn-light btn-lg">
+                                            <i class="fas fa-check-circle me-2"></i>
+                                            Traiter les dossiers
+                                            <span class="badge bg-danger ms-2">{{ stats.en_attente }}</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug info -->
+    {% if config['DEBUG'] %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="fas fa-bug me-2"></i>Informations de débogage</h5>
+                </div>
+                <div class="card-body">
+                    <pre class="mb-0">
+ID: {{ current_user.id }}
+Username: {{ current_user.username }}
+Rôle: {{ current_user.role }}
+Fonction: {{ current_user.fonction }}
+Statut: {{ current_user.statut }}
+Région: {{ region.nom }} ({{ region.code }})
+Email: {{ current_user.email }}
+                    </pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .border-left-primary { border-left: 4px solid #4e73df !important; }
+    .border-left-success { border-left: 4px solid #1cc88a !important; }
+    .border-left-info { border-left: 4px solid #36b9cc !important; }
+    .border-left-warning { border-left: 4px solid #f6c23e !important; }
+
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .btn-outline-primary:hover { background: #4e73df; color: white; }
+    .btn-outline-success:hover { background: #1cc88a; color: white; }
+    .btn-outline-info:hover { background: #36b9cc; color: white; }
+    .btn-outline-warning:hover { background: #f6c23e; color: white; }
+    .btn-outline-danger:hover { background: #e74a3b; color: white; }
+    .btn-outline-secondary:hover { background: #858796; color: white; }
+    .btn-outline-dark:hover { background: #5a5c69; color: white; }
+
+    .progress {
+        border-radius: 10px;
+    }
+
+    .list-group-item {
+        border: none;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .list-group-item:last-child {
+        border-bottom: none;
+    }
+</style>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Graphique de performance des succursales
+        const perfCtx = document.getElementById('performanceSuccursalesChart').getContext('2d');
+        new Chart(perfCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ succursales_noms|safe }},
+                datasets: [
+                    {
+                        label: 'Encours (Millions FG)',
+                        data: {{ succursales_encours_millions|safe }},
+                        backgroundColor: '#4e73df',
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'PAR 30 (%)',
+                        data: {{ succursales_par_30|safe }},
+                        backgroundColor: '#e74a3b',
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Encours (Millions FG)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'PAR 30 (%)'
+                        },
+                        min: 0,
+                        max: 10
+                    }
+                }
+            }
+        });
+
+        // Graphique de répartition du portefeuille
+        const repartitionCtx = document.getElementById('repartitionRegionChart').getContext('2d');
+        new Chart(repartitionCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Crédits Classiques', 'Microcrédits', 'Crédits Groupes', 'Autres'],
+                datasets: [{
+                    data: [45, 30, 20, 5],
+                    backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    });
+
+    function trierPar(critere) {
+        // Fonction pour trier le tableau
+        alert('Tri par: ' + critere);
+        // À implémenter avec AJAX
+    }
+</script>
+{% endblock %}

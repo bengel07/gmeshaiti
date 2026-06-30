@@ -5,46 +5,290 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mes Remboursements - GMES</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
-        .header { background: #007bff; color: white; padding: 1rem 2rem; }
-        .container { max-width: 1000px; margin: 0 auto; padding: 2rem; }
-        .remboursement-card { background: white; padding: 1.5rem; margin-bottom: 1rem; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .btn { display: inline-block; padding: 0.5rem 1rem; background: #28a745; color: white; text-decoration: none; border-radius: 5px; margin: 0.5rem; }
-        .statut { display: inline-block; padding: 0.3rem 0.8rem; border-radius: 15px; font-size: 0.9rem; }
-        .statut-paye { background: #d1ecf1; color: #0c5460; }
-        .statut-en_retard { background: #f8d7da; color: #721c24; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(145deg, #e0edf5 0%, #c8dceb 100%);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0b3b4f, #1a566e);
+            color: white;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        .header a {
+            color: white;
+            text-decoration: none;
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .header a:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40,167,69,0.3);
+        }
+
+        .remboursement-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .remboursement-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-header h3 {
+            color: #0b3b4f;
+            font-size: 1.2rem;
+        }
+
+        .statut {
+            display: inline-block;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .statut-paye {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .statut-en_attente {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .statut-en_retard {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .statut-approuve {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .statut-annule {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .detail-item i {
+            width: 30px;
+            color: #1a566e;
+            font-size: 1.1rem;
+        }
+
+        .detail-item strong {
+            color: #0b3b4f;
+            min-width: 100px;
+        }
+
+        .detail-item span {
+            color: #555;
+        }
+
+        .montant {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .empty-card {
+            background: white;
+            border-radius: 15px;
+            padding: 3rem;
+            text-align: center;
+            color: #6c757d;
+        }
+
+        .empty-card i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #adb5bd;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <div class="header">
-        <h1>📋 Mes Remboursements</h1>
-        <a href="{{ url_for('client_dashboard') }}" style="color: white;">← Retour</a>
+        <h1><i class="fas fa-money-bill-wave"></i> Mes Remboursements</h1>
+        <a href="{{ url_for('client_dashboard') }}">
+            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+        </a>
     </div>
 
     <div class="container">
-        <a href="{{ url_for('nouveau_remboursement') }}" class="btn">💳 Nouveau Remboursement</a>
+        <a href="{{ url_for('nouveau_remboursement') }}" class="btn">
+            <i class="fas fa-plus-circle"></i> Nouveau Remboursement
+        </a>
 
         {% if remboursements_avec_prets %}
             {% for item in remboursements_avec_prets %}
             <div class="remboursement-card">
-                <h3>Remboursement #{{ item.remboursement.id }}</h3>
-                <p><strong>Prêt:</strong> #{{ item.pret.id }} - {{ item.pret.montant }} HTG</p>
-                <p><strong>Montant remboursé:</strong> {{ item.remboursement.montant }} HTG</p>
-                <p><strong>Date:</strong> {{ item.remboursement.date_remboursement.strftime('%d/%m/%Y à %H:%M') }}</p>
-                <p><strong>Méthode:</strong> {{ item.remboursement.type_paiement }}</p>
-                <p><strong>Référence:</strong> {{ item.remboursement.reference }}</p>
-                <p><strong>Statut:</strong>
+                <div class="card-header">
+                    <h3>
+                        <i class="fas fa-receipt"></i>
+                        Remboursement #{{ item.remboursement.id }}
+                    </h3>
                     <span class="statut statut-{{ item.remboursement.statut }}">
+                        <i class="fas {% if item.remboursement.statut == 'paye' %}fa-check-circle{% elif item.remboursement.statut == 'en_attente' %}fa-clock{% elif item.remboursement.statut == 'en_retard' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %}"></i>
                         {% if item.remboursement.statut == 'paye' %}✅ Payé
-                        {% elif item.remboursement.statut == 'en_retard' %}⏰ En retard
+                        {% elif item.remboursement.statut == 'en_attente' %}⏳ En attente
+                        {% elif item.remboursement.statut == 'en_retard' %}⚠️ En retard
                         {% else %}{{ item.remboursement.statut }}{% endif %}
                     </span>
-                </p>
+                </div>
+
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <i class="fas fa-file-invoice"></i>
+                        <strong>Prêt N°:</strong>
+                        <span>#{{ item.pret.id }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-dollar-sign"></i>
+                        <strong>Montant prêt:</strong>
+                        <span>{{ "{:,.0f}".format(item.pret.montant) }} HTG</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-hand-holding-usd"></i>
+                        <strong>Montant remboursé:</strong>
+                        <span class="montant">{{ "{:,.0f}".format(item.remboursement.montant) }} HTG</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-calendar-day"></i>
+                        <strong>Date:</strong>
+                        <span>{{ item.remboursement.date_remboursement.strftime('%d/%m/%Y à %H:%M') }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-credit-card"></i>
+                        <strong>Méthode:</strong>
+                        <span>{{ item.remboursement.type_paiement }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <i class="fas fa-qrcode"></i>
+                        <strong>Référence:</strong>
+                        <span>{{ item.remboursement.reference or 'N/A' }}</span>
+                    </div>
+                </div>
+
+                {% if item.pret.solde_restant %}
+                <div class="detail-item" style="margin-top: 1rem; background: #e8f5e9;">
+                    <i class="fas fa-chart-line"></i>
+                    <strong>Solde restant:</strong>
+                     <span>{{ "{:,.0f}".format(item.solde_restant) }} HTG</span>  <!-- Utilisez item.solde_restant -->
+                </div>
+                {% endif %}
+
+                {% if item.remboursement.commentaire %}
+                <div class="detail-item" style="margin-top: 0.5rem;">
+                    <i class="fas fa-comment"></i>
+                    <strong>Commentaire:</strong>
+                    <span>{{ item.remboursement.commentaire }}</span>
+                </div>
+                {% endif %}
+
+                {% if item.remboursement.statut == 'en_attente' %}
+                <div style="margin-top: 1rem; text-align: right;">
+                    <a href="{{ url_for('annuler_remboursement', remboursement_id=item.remboursement.id) }}"
+                       class="btn" style="background: #dc3545; padding: 0.5rem 1rem; font-size: 0.8rem;"
+                       onclick="return confirm('Annuler ce remboursement ?')">
+                        <i class="fas fa-times"></i> Annuler
+                    </a>
+                </div>
+                {% endif %}
             </div>
             {% endfor %}
         {% else %}
-            <div class="remboursement-card">
+            <div class="empty-card">
+                <i class="fas fa-coins"></i>
                 <p>Aucun remboursement effectué pour le moment.</p>
+                <p style="margin-top: 1rem;">Vous pouvez effectuer votre premier remboursement en cliquant sur le bouton ci-dessus.</p>
             </div>
         {% endif %}
     </div>

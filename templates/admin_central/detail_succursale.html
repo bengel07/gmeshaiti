@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 50px auto; padding: 30px; border-radius: 8px; background: #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <h2 style="color: #2c3e50;">📊 Détails de la succursale: {{ succursale.nom }} ({{ succursale.code }})</h2>
+
+    <div style="margin-top: 20px;">
+        <p><strong>Ville:</strong> {{ succursale.ville }}</p>
+        <p><strong>Adresse:</strong> {{ succursale.adresse }}</p>
+        <p><strong>Téléphone:</strong> {{ succursale.telephone }}</p>
+        <p><strong>Email:</strong> {{ succursale.email }}</p>
+        <p><strong>Directeur:</strong> {{ succursale.directeur.nom if succursale.directeur else 'Non assigné' }}</p>
+        <p><strong>Date de création:</strong> {{ succursale.date_creation.strftime('%d/%m/%Y') }}</p>
+        <p><strong>Statut:</strong> {{ succursale.statut }}</p>
+    </div>
+
+    <h3 style="margin-top: 30px;">📌 Statistiques</h3>
+    <ul>
+        <li>Nombre de clients: {{ stats.nombre_clients }}</li>
+        <li>Prêts actifs: {{ stats.prets_actifs }}</li>
+        <li>Remboursements: {{ stats.remboursements }}</li>
+        <li>Employés: {{ stats.employes|length }}</li>
+    </ul>
+
+    <h3 style="margin-top: 20px;">👥 Liste des employés</h3>
+    <ul>
+        {% for employe in stats.employes %}
+            <li>{{ employe.nom }} {{ employe.prenom }} ({{ employe.role_succursale }})</li>
+        {% else %}
+            <li>Aucun employé</li>
+        {% endfor %}
+    </ul>
+
+    <div style="margin-top: 30px; text-align: center;">
+        <a href="{{ url_for('admin_dashboard') }}" style="color: #3498db; text-decoration: none;">⬅ Retour au tableau de bord</a>
+    </div>
+</div>
+{% endblock %}

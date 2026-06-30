@@ -1,0 +1,658 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-building me-2"></i>
+                            Direction d'Agence
+                        </h2>
+                        <p class="mb-0 mt-2">
+                            <i class="fas fa-user-tie me-1"></i>
+                            {{ current_user.prenom }} {{ current_user.nom }}
+                            <span class="badge bg-light text-dark ms-2">Chef d'Agence</span>
+                        </p>
+                        <p class="mb-0 mt-1">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            Agence: <strong>{{ agence.nom }}</strong> ({{ agence.code }})
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <h1 class="mb-0">📊 Tableau de Bord</h1>
+                        <small>{{ now().strftime('%d %B %Y') if now else '' }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs principaux de l'agence -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Portefeuille crédits
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "{:,.0f}".format(stats.portefeuille_total or 0) }} HTG
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-hand-holding-usd fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Épargne collectée
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "{:,.0f}".format(stats.epargne_total or 0) }} FG
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-piggy-bank fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Nombre de clients
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.clients_actifs or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Personnel
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.effectif_total or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-friends fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance de l'agence -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Performance mensuelle
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="performanceChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Répartition des crédits
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="repartitionCreditChart" style="height: 250px;"></canvas>
+                    <hr>
+                    <div class="text-center mt-3">
+                        <h6>PAR > 30 jours</h6>
+                        <h3 class="text-warning">{{ stats.par_30 }}%</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Équipe et présences -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        Mon équipe
+                    </h5>
+                    <span class="badge bg-light text-dark">{{ stats.effectif_total }} employés</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Employé</th>
+                                    <th>Fonction</th>
+                                    <th>Statut</th>
+                                    <th>Performance</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for emp in equipe %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ emp.prenom }} {{ emp.nom }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ emp.matricule }}</small>
+                                    </td>
+                                    <td>{{ emp.fonction }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ emp.statut_couleur }}">
+                                            {{ emp.statut }}
+                                        </span>
+                                        {% if emp.en_conge %}
+                                            <span class="badge bg-warning">Congé</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-{{ emp.perf_couleur }}"
+                                                 style="width: {{ emp.performance }}%"></div>
+                                        </div>
+                                        <small>{{ emp.performance }}%</small>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('voir_employe', employe_id=user.id) }}"
+                                           class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Présences du jour
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-4">
+                        <div class="col-4">
+                            <h3 class="text-success">{{ stats.presents }}</h3>
+                            <small>Présents</small>
+                        </div>
+                        <div class="col-4">
+                            <h3 class="text-warning">{{ stats.en_conge }}</h3>
+                            <small>En congé</small>
+                        </div>
+                        <div class="col-4">
+                            <h3 class="text-danger">{{ stats.absents }}</h3>
+                            <small>Absents</small>
+                        </div>
+                    </div>
+                    <div class="list-group">
+                        {% for absence in absences %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>{{ absence.employe }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ absence.motif }}</small>
+                                </div>
+                                <span class="badge bg-{{ absence.type_couleur }}">
+                                    {{ absence.type }}
+                                </span>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Tous les employés sont présents</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activités récentes et alertes -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>
+                        Activités récentes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for act in activites %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ act.titre }}</h6>
+                                <small>{{ act.heure }}</small>
+                            </div>
+                            <p class="mb-1">{{ act.description }}</p>
+                            <small class="text-muted">Par: {{ act.employe }}</small>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune activité récente</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Alertes et points d'attention
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for alerte in alertes %}
+                        <div class="list-group-item list-group-item-{{ alerte.type }}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ alerte.titre }}</h6>
+                                <small class="text-{{ alerte.type }}">{{ alerte.priorite }}</small>
+                            </div>
+                            <p class="mb-1">{{ alerte.description }}</p>
+                            <small>{{ alerte.date }}</small>
+                            <div class="mt-2">
+                                <a href="{{ alerte.lien }}" class="btn btn-sm btn-outline-{{ alerte.type }}">
+                                    Traiter
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune alerte</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Objectifs de l'agence -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bullseye me-2"></i>
+                        Objectifs de l'agence ({{ now().year }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <h6>Volume de crédits</h6>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar bg-success"
+                                     style="width: {{ objectifs.credit_pct }}%">
+                                    {{ "{:,.0f}".format(objectifs.credit_atteint) }} /
+                                    {{ "{:,.0f}".format(objectifs.credit_objectif) }} FG
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <h6>Collecte d'épargne</h6>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar bg-info"
+                                     style="width: {{ objectifs.epargne_pct }}%">
+                                    {{ "{:,.0f}".format(objectifs.epargne_atteint) }} /
+                                    {{ "{:,.0f}".format(objectifs.epargne_objectif) }} FG
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <h6>Nouveaux clients</h6>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar bg-warning"
+                                     style="width: {{ objectifs.clients_pct }}%">
+                                    {{ objectifs.clients_atteint }} / {{ objectifs.clients_objectif }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dernières transactions importantes -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exchange-alt me-2"></i>
+                        Transactions importantes ( > 1M FG)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Client</th>
+                                    <th>Type</th>
+                                    <th>Montant</th>
+                                    <th>Agent</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for trans in transactions_importantes %}
+                                <tr>
+                                    <td>#{{ trans.id }}</td>
+                                    <td>{{ trans.client }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ trans.type_couleur }}">
+                                            {{ trans.type }}
+                                        </span>
+                                    </td>
+                                    <td class="text-danger">{{ "{:,.0f}".format(trans.montant) }} FG</td>
+                                    <td>{{ trans.agent }}</td>
+                                    <td>{{ trans.date.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('voir_transaction', trans_id=trans.id) }}"
+                                           class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center">Aucune transaction importante</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Échéances et rappels -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-check me-2"></i>
+                        Échéances importantes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for echeance in echeances %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>{{ echeance.client }}</strong>
+                                    <br>
+                                    <small>Crédit #{{ echeance.credit_id }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-{{ echeance.couleur }}">
+                                        {{ echeance.montant }} FG
+                                    </span>
+                                    <br>
+                                    <small>{{ echeance.date_echeance }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune échéance critique</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tasks me-2"></i>
+                        Tâches à valider
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for tache in taches %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>{{ tache.titre }}</strong>
+                                    <br>
+                                    <small>{{ tache.description }}</small>
+                                </div>
+                                <div>
+                                    <a href="{{ tache.lien }}" class="btn btn-sm btn-outline-success">
+                                        Valider
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune tâche en attente</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides chef d'agence -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Actions rapides
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('gerer_employes') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-users-cog fa-2x mb-2"></i><br>
+                                Gérer équipe
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('valider_credit') }}" class="btn btn-outline-success w-100 py-3">
+                                <i class="fas fa-check-circle fa-2x mb-2"></i><br>
+                                Valider crédits
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('rapport_agence') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-chart-bar fa-2x mb-2"></i><br>
+                                Rapport agence
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('calendrier_conges') }}" class="btn btn-outline-warning w-100 py-3">
+                                <i class="fas fa-calendar-alt fa-2x mb-2"></i><br>
+                                Gérer congés
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('inventaire') }}" class="btn btn-outline-secondary w-100 py-3">
+                                <i class="fas fa-boxes fa-2x mb-2"></i><br>
+                                Inventaire
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('cloture_caisse') }}" class="btn btn-outline-danger w-100 py-3">
+                                <i class="fas fa-cash-register fa-2x mb-2"></i><br>
+                                Clôture caisse
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('reunion_equipe') }}" class="btn btn-outline-dark w-100 py-3">
+                                <i class="fas fa-users fa-2x mb-2"></i><br>
+                                Réunion d'équipe
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('objectifs_agence') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-bullseye fa-2x mb-2"></i><br>
+                                Objectifs
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-left-primary { border-left: 4px solid #4e73df !important; }
+    .border-left-success { border-left: 4px solid #1cc88a !important; }
+    .border-left-info { border-left: 4px solid #36b9cc !important; }
+    .border-left-warning { border-left: 4px solid #f6c23e !important; }
+
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .btn-outline-primary:hover { background: #4e73df; color: white; }
+    .btn-outline-success:hover { background: #1cc88a; color: white; }
+    .btn-outline-info:hover { background: #36b9cc; color: white; }
+    .btn-outline-warning:hover { background: #f6c23e; color: white; }
+    .btn-outline-danger:hover { background: #e74a3b; color: white; }
+    .btn-outline-secondary:hover { background: #858796; color: white; }
+    .btn-outline-dark:hover { background: #5a5c69; color: white; }
+
+    .progress {
+        border-radius: 10px;
+    }
+</style>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Graphique de performance
+        const perfCtx = document.getElementById('performanceChart').getContext('2d');
+        new Chart(perfCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'],
+                datasets: [
+                    {
+                        label: 'Crédits (Millions)',
+                        data: [45, 52, 48, 55, 60, 58, 62, 68, 65, 70, 75, 80],
+                        borderColor: '#1cc88a',
+                        backgroundColor: 'rgba(28, 200, 138, 0.05)',
+                        yAxisID: 'y',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Épargne (Millions)',
+                        data: [30, 35, 32, 38, 42, 40, 45, 48, 50, 52, 55, 58],
+                        borderColor: '#4e73df',
+                        backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                        yAxisID: 'y',
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // Graphique de répartition des crédits
+        const repartCtx = document.getElementById('repartitionCreditChart').getContext('2d');
+        new Chart(repartCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Crédits sains', 'À risque', 'Impayés'],
+                datasets: [{
+                    data: [80, 15, 5],
+                    backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

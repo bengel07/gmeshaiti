@@ -5,12 +5,3 @@ db = SQLAlchemy()
 
 def init_db(app):
     db.init_app(app)
-
-    with app.app_context():
-        # Nettoyer le metadata existant
-        db.metadata.clear()
-
-        # Créer toutes les tables
-        db.create_all()
-
-    return db

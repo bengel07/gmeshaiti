@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-file-invoice me-2"></i>
+                            Nouvelle Demande de Prêt
+                        </h2>
+                        <p class="mb-0 mt-2">
+                            <i class="fas fa-user-tie me-1"></i>
+                            Agent: {{ current_user.prenom }} {{ current_user.nom }}
+                        </p>
+                        <p class="mb-0">
+                            <i class="fas fa-building me-1"></i>
+                            Succursale: {{ succursale.nom }} ({{ succursale.code }})
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <a href="{{ url_for('agent_credit_dashboard', succursale_code=succursale.code) }}"
+                           class="btn btn-light">
+                            <i class="fas fa-arrow-left"></i> Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Formulaire principal -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>
+                        Informations du prêt
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="formDemande">
+                        <!-- Sélection du client -->
+                        <div class="mb-4">
+                            <label class="form-label required">Client</label>
+                            <select class="form-select" name="client_id" id="clientSelect" required>
+                                <option value="">Sélectionnez un client</option>
+                                {% for client in clients %}
+                                <option value="{{ client.id }}"
+                                        data-revenu="{{ client.revenu_mensuel }}"
+                                        data-profession="{{ client.profession }}">
+                                    {{ client.nom }} {{ client.prenom }} - {{ client.id_client }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text" id="clientInfo"></div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Montant -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required">Montant demandé (FG)</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" name="montant" id="montant"
+                                           min="10000" max="10000000" step="10000" required>
+                                    <span class="input-group-text">HTG</span>
+                                </div>
+                                <div class="form-text">Min: 10 000 HTG - Max: 10 000 000 HTG</div>
+                            </div>
+
+                            <!-- Durée -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required">Durée (mois)</label>
+                                <select class="form-select" name="duree" id="duree" required>
+                                    <option value="3">3 mois</option>
+                                    <option value="6" selected>6 mois</option>
+                                    <option value="9">9 mois</option>
+                                    <option value="12">12 mois</option>
+                                    <option value="18">18 mois</option>
+                                    <option value="24">24 mois</option>
+                                    <option value="36">36 mois</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Taux d'intérêt -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required">Taux d'intérêt annuel (%)</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" name="taux" id="taux"
+                                           min="5" max="30" step="0.1" value="12" required>
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+
+                            <!-- Type de prêt -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required">Type de prêt</label>
+                                <select class="form-select" name="type_pret" id="typePret" required>
+                                    <option value="classique">Crédit Classique</option>
+                                    <option value="jeune">Crédit Jeune Entrepreneur</option>
+                                    <option value="agricole">Crédit Agricole</option>
+                                    <option value="urgence">Crédit Urgence</option>
+                                    <option value="femme">Crédit Femme</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Motif -->
+                        <div class="mb-3">
+                            <label class="form-label required">Motif du prêt</label>
+                            <textarea class="form-control" name="motif" rows="3" required
+                                      placeholder="Décrivez l'objet du prêt..."></textarea>
+                        </div>
+
+                        <!-- Garantie (optionnel) -->
+                        <div class="mb-3">
+                            <label class="form-label">Garantie proposée</label>
+                            <input type="text" class="form-control" name="garantie"
+                                   placeholder="ex: Titre de propriété, véhicule, etc.">
+                        </div>
+
+                        <!-- Boutons -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('agent_credit_dashboard', succursale_code=succursale.code) }}"
+                               class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Annuler
+                            </a>
+                            <button type="submit" class="btn btn-success" id="submitBtn">
+                                <i class="fas fa-save"></i> Créer la demande
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonne droite : Informations et simulation -->
+        <div class="col-lg-4 mb-4">
+            <!-- Simulation en temps réel -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calculator me-2"></i>
+                        Simulation
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="fw-bold">Mensualité estimée</label>
+                        <h3 class="text-primary" id="simMensualite">0 HTG</h3>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Total à rembourser</label>
+                        <h4 class="text-success" id="simTotal">0 HTG</h4>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Dont intérêts</label>
+                        <h5 class="text-warning" id="simInterets">0 HTG</h5>
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <label class="fw-bold">Capacité de remboursement</label>
+                        <div id="capaciteMessage" class="mt-2"></div>
+                        <div class="progress mt-2" id="capaciteProgress" style="display: none;">
+                            <div class="progress-bar" role="progressbar" style="width: 0%" id="capaciteBar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informations client (si sélectionné) -->
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-circle me-2"></i>
+                        Informations client
+                    </h5>
+                </div>
+                <div class="card-body" id="infoClient">
+                    <p class="text-muted text-center my-3">
+                        Sélectionnez un client pour voir ses informations
+                    </p>
+                </div>
+            </div>
+
+            <!-- Conseils rapides -->
+            <div class="card mt-4 shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Conseils
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>Capacité:</strong> Mensualité ≤ 35% des revenus
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>Durée:</strong> Plus longue = mensualités plus faibles
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>Garantie:</strong> Augmente les chances d'approbation
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .required::after {
+        content: " *";
+        color: #dc3545;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Éléments du formulaire
+        const clientSelect = document.getElementById('clientSelect');
+        const montantInput = document.getElementById('montant');
+        const dureeSelect = document.getElementById('duree');
+        const tauxInput = document.getElementById('taux');
+
+        // Éléments de simulation
+        const simMensualite = document.getElementById('simMensualite');
+        const simTotal = document.getElementById('simTotal');
+        const simInterets = document.getElementById('simInterets');
+
+        // Éléments de capacité
+        const capaciteMessage = document.getElementById('capaciteMessage');
+        const capaciteProgress = document.getElementById('capaciteProgress');
+        const capaciteBar = document.getElementById('capaciteBar');
+
+        // Info client
+        const infoClient = document.getElementById('infoClient');
+
+        // Données des clients (passées depuis le backend ou construites)
+        const clientsData = {};
+        {% for client in clients %}
+        clientsData[{{ client.id }}] = {
+            nom: "{{ client.nom }} {{ client.prenom }}",
+            code: "{{ client.id_client }}",
+            revenu: {{ client.revenu_mensuel|default(0) }},
+            profession: "{{ client.profession|default('Non spécifiée') }}",
+            telephone: "{{ client.telephone|default('Non renseigné') }}"
+        };
+        {% endfor %}
+
+        // Fonction de calcul de mensualité
+        function calculerMensualite(montant, tauxAnnuel, dureeMois) {
+            if (montant <= 0 || dureeMois <= 0) return 0;
+            const tauxMensuel = (tauxAnnuel / 100) / 12;
+            if (tauxMensuel === 0) return montant / dureeMois;
+
+            const facteur = Math.pow(1 + tauxMensuel, dureeMois);
+            return (montant * tauxMensuel * facteur) / (facteur - 1);
+        }
+
+        // Fonction de mise à jour de la simulation
+        function mettreAJourSimulation() {
+            const montant = parseFloat(montantInput.value) || 0;
+            const duree = parseInt(dureeSelect.value) || 6;
+            const taux = parseFloat(tauxInput.value) || 12;
+
+            if (montant > 0) {
+                const mensualite = calculerMensualite(montant, taux, duree);
+                const total = mensualite * duree;
+                const interets = total - montant;
+
+                simMensualite.textContent = formatMontant(mensualite) + ' FG';
+                simTotal.textContent = formatMontant(total) + ' FG';
+                simInterets.textContent = formatMontant(interets) + ' FG';
+
+                // Vérifier la capacité de remboursement si un client est sélectionné
+                const clientId = clientSelect.value;
+                if (clientId && clientsData[clientId]) {
+                    const revenu = clientsData[clientId].revenu;
+                    if (revenu > 0) {
+                        const ratio = (mensualite / revenu) * 100;
+                        capaciteProgress.style.display = 'block';
+                        capaciteBar.style.width = ratio + '%';
+
+                        if (ratio <= 35) {
+                            capaciteBar.className = 'progress-bar bg-success';
+                            capaciteMessage.innerHTML = `<span class="text-success">✅ Capacité suffisante (${ratio.toFixed(1)}% des revenus)</span>`;
+                        } else {
+                            capaciteBar.className = 'progress-bar bg-warning';
+                            capaciteMessage.innerHTML = `<span class="text-warning">⚠️ Capacité limite (${ratio.toFixed(1)}% des revenus)</span>`;
+                        }
+                    } else {
+                        capaciteProgress.style.display = 'none';
+                        capaciteMessage.innerHTML = '<span class="text-muted">Revenu client non renseigné</span>';
+                    }
+                } else {
+                    capaciteProgress.style.display = 'none';
+                    capaciteMessage.innerHTML = '';
+                }
+            } else {
+                simMensualite.textContent = '0 HTG';
+                simTotal.textContent = '0 HTG';
+                simInterets.textContent = '0 HTG';
+                capaciteProgress.style.display = 'none';
+                capaciteMessage.innerHTML = '';
+            }
+        }
+
+        // Fonction pour afficher les infos client
+        function afficherInfoClient() {
+            const clientId = clientSelect.value;
+            if (clientId && clientsData[clientId]) {
+                const c = clientsData[clientId];
+                infoClient.innerHTML = `
+                    <h6 class="fw-bold">${c.nom}</h6>
+                    <p class="mb-1"><i class="fas fa-id-card me-2"></i> ${c.code}</p>
+                    <p class="mb-1"><i class="fas fa-phone me-2"></i> ${c.telephone}</p>
+                    <p class="mb-1"><i class="fas fa-briefcase me-2"></i> ${c.profession}</p>
+                    <p class="mb-0"><i class="fas fa-coins me-2"></i> Revenu: ${formatMontant(c.revenu)} FG</p>
+                `;
+            } else {
+                infoClient.innerHTML = `
+                    <p class="text-muted text-center my-3">
+                        Sélectionnez un client pour voir ses informations
+                    </p>
+                `;
+            }
+            mettreAJourSimulation();
+        }
+
+        // Fonction pour formater les montants
+        function formatMontant(montant) {
+            return new Intl.NumberFormat('fr-FR').format(Math.round(montant));
+        }
+
+        // Écouteurs d'événements
+        clientSelect.addEventListener('change', afficherInfoClient);
+        montantInput.addEventListener('input', mettreAJourSimulation);
+        dureeSelect.addEventListener('change', mettreAJourSimulation);
+        tauxInput.addEventListener('input', mettreAJourSimulation);
+
+        // Validation du formulaire
+        document.getElementById('formDemande').addEventListener('submit', function(e) {
+            const montant = parseFloat(montantInput.value) || 0;
+            if (montant < 10000) {
+                e.preventDefault();
+                alert('Le montant minimum est de 10 000 HTG');
+                return;
+            }
+
+            if (!clientSelect.value) {
+                e.preventDefault();
+                alert('Veuillez sélectionner un client');
+                return;
+            }
+
+            // Vérification de la capacité si revenu disponible
+            const clientId = clientSelect.value;
+            if (clientId && clientsData[clientId] && clientsData[clientId].revenu > 0) {
+                const mensualite = calculerMensualite(montant, parseFloat(tauxInput.value), parseInt(dureeSelect.value));
+                const ratio = (mensualite / clientsData[clientId].revenu) * 100;
+
+                if (ratio > 50) {
+                    if (!confirm('⚠️ Le ratio d\'endettement est très élevé (' + ratio.toFixed(1) + '%). Continuer quand même ?')) {
+                        e.preventDefault();
+                        return;
+                    }
+                } else if (ratio > 35) {
+                    if (!confirm('⚠️ Le ratio d\'endettement est élevé (' + ratio.toFixed(1) + '%). Voulez-vous continuer ?')) {
+                        e.preventDefault();
+                        return;
+                    }
+                }
+            }
+        });
+
+        // Initialisation
+        mettreAJourSimulation();
+    });
+</script>
+{% endblock %}

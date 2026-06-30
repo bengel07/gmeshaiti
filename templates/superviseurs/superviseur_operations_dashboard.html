@@ -1,0 +1,638 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-tasks me-2"></i>
+                            Supervision des Opérations
+                        </h2>
+                        <p class="mb-0 mt-2">
+                            <i class="fas fa-user-tie me-1"></i>
+                            {{ current_user.prenom }} {{ current_user.nom }}
+                            <span class="badge bg-light text-dark ms-2">Superviseur Opérations</span>
+                        </p>
+                        <p class="mb-0 mt-1">
+                            <i class="fas fa-building me-1"></i>
+                            Succursale: <strong>{{ current_user.succursale.nom if current_user.succursale else 'Toutes' }}</strong>
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <h1 class="mb-0">📊 Tableau de Bord</h1>
+                        <small>{{ now().strftime('%d %B %Y') if now else '' }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs Opérations du jour -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Transactions aujourd'hui
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.transactions_jour or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exchange-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Volume traité
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "{:,.0f}".format(stats.volume_jour or 0) }} FG
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-coins fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Agents en service
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.agents_actifs or 0 }}/{{ stats.agents_total or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Temps moyen traitement
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.temps_moyen }} min</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statut des caisses et files d'attente -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cash-register me-2"></i>
+                        Statut des caisses
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Caisse</th>
+                                    <th>Agent</th>
+                                    <th>Statut</th>
+                                    <th>File d'attente</th>
+                                    <th>Dernière transaction</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for caisse in caisses %}
+                                <tr>
+                                    <td><strong>Caisse #{{ caisse.numero }}</strong></td>
+                                    <td>
+                                        {% if caisse.agent %}
+                                            {{ caisse.agent.prenom }} {{ caisse.agent.nom }}
+                                        {% else %}
+                                            <span class="text-muted">Non assigné</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ caisse.statut_couleur }}">
+                                            {{ caisse.statut }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">{{ caisse.file_attente }} personnes</td>
+                                    <td>
+                                        {% if caisse.derniere_transaction %}
+                                            {{ caisse.derniere_transaction.strftime('%H:%M') }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('voir_caisse', caisse_id=caisse.id) }}"
+                                           class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center">Aucune caisse active</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        File d'attente en temps réel
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for client in file_attente %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ client.nom }}</strong>
+                                <br>
+                                <small class="text-muted">Ticket #{{ client.ticket }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-info">Attente: {{ client.temps_attente }} min</span>
+                                <br>
+                                <small class="text-muted">{{ client.service }}</small>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucun client en attente</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activité des agents -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-clock me-2"></i>
+                        Activité des agents (aujourd'hui)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Agent</th>
+                                    <th>Fonction</th>
+                                    <th>Heure arrivée</th>
+                                    <th>Statut</th>
+                                    <th>Transactions</th>
+                                    <th>Volume traité</th>
+                                    <th>Pause</th>
+                                    <th>Performance</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for agent in agents %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ agent.prenom }} {{ agent.nom }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ agent.matricule }}</small>
+                                    </td>
+                                    <td>{{ agent.fonction }}</td>
+                                    <td>{{ agent.heure_arrivee.strftime('%H:%M') if agent.heure_arrivee else '-' }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ agent.statut_couleur }}">
+                                            {{ agent.statut }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">{{ agent.transactions_jour }}</td>
+                                    <td class="text-end">{{ "{:,.0f}".format(agent.volume_jour) }} FG</td>
+                                    <td class="text-center">
+                                        {% if agent.en_pause %}
+                                            <span class="badge bg-warning">Depuis {{ agent.pause_duree }}min</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-{{ agent.performance_couleur }}"
+                                                 style="width: {{ agent.performance }}%"></div>
+                                        </div>
+                                        <small>{{ agent.performance }}%</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('voir_agent', employe_id=user.id) }}"
+                                               class="btn btn-outline-info" title="Voir">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('envoyer_message', employe_id=user.id) }}"
+                                               class="btn btn-outline-primary" title="Message">
+                                                <i class="fas fa-comment"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Anomalies et incidents -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Anomalies du jour
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for anomalie in anomalies %}
+                        <div class="list-group-item list-group-item-{{ anomalie.type }}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ anomalie.titre }}</h6>
+                                <small class="text-{{ anomalie.type }}">{{ anomalie.heure }}</small>
+                            </div>
+                            <p class="mb-1">{{ anomalie.description }}</p>
+                            <small class="text-muted">
+                                Agent: {{ anomalie.agent }} | Priorité: {{ anomalie.priorite }}
+                            </small>
+                            <div class="mt-2">
+                                <a href="{{ url_for('traiter_anomalie', anomalie_id=anomalie.id) }}"
+                                   class="btn btn-sm btn-outline-{{ anomalie.type }}">
+                                    Traiter
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune anomalie signalée</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Dernières validations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for validation in validations %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ validation.type }}</h6>
+                                <small>{{ validation.heure }}</small>
+                            </div>
+                            <p class="mb-1">
+                                Montant: {{ "{:,.0f}".format(validation.montant) }} FG<br>
+                                Client: {{ validation.client }}
+                            </p>
+                            <small class="text-muted">Validé par: {{ validation.valideur }}</small>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune validation récente</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques d'activité -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Transactions par heure
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="transactionsChart" style="height: 250px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Répartition par type
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="repartitionChart" style="height: 250px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pauses et absences -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-coffee me-2"></i>
+                        Agents en pause / Absents
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for pause in pauses %}
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6>{{ pause.agent }}</h6>
+                                    <p class="mb-1">
+                                        <span class="badge bg-warning">{{ pause.type }}</span>
+                                    </p>
+                                    <small>
+                                        Depuis: {{ pause.debut.strftime('%H:%M') }}<br>
+                                        Retour prévu: {{ pause.retour_prevu.strftime('%H:%M') }}
+                                    </small>
+                                    <div class="mt-2">
+                                        <a href="{{ url_for('relancer_agent', employe_id=pause.employe_id) }}"
+                                           class="btn btn-sm btn-outline-warning">
+                                            Relancer
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="col-12">
+                            <p class="text-muted text-center my-3">Tous les agents sont en poste</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Objectifs journaliers -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bullseye me-2"></i>
+                        Objectifs journaliers
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <h6>Volume de transactions</h6>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar bg-success"
+                                     style="width: {{ objectifs.volume_pct }}%">
+                                    {{ "{:,.0f}".format(stats.volume_jour) }} / {{ "{:,.0f}".format(objectifs.volume_cible) }} FG
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <h6>Nombre de transactions</h6>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar bg-info"
+                                     style="width: {{ objectifs.transactions_pct }}%">
+                                    {{ stats.transactions_jour }} / {{ objectifs.transactions_cible }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <h6>Satisfaction client</h6>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar bg-warning"
+                                     style="width: {{ objectifs.satisfaction_pct }}%">
+                                    {{ objectifs.satisfaction }}% / 95%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides supervision -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Actions rapides
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('ouvrir_caisse') }}" class="btn btn-outline-success w-100 py-3">
+                                <i class="fas fa-cash-register fa-2x mb-2"></i><br>
+                                Ouvrir caisse
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('fermer_caisse') }}" class="btn btn-outline-danger w-100 py-3">
+                                <i class="fas fa-cash-register fa-2x mb-2"></i><br>
+                                Fermer caisse
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('valider_transaction') }}" class="btn btn-outline-warning w-100 py-3">
+                                <i class="fas fa-check-circle fa-2x mb-2"></i><br>
+                                Valider transaction
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('gerer_pauses') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-coffee fa-2x mb-2"></i><br>
+                                Gérer pauses
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('rapport_operation') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-file-alt fa-2x mb-2"></i><br>
+                                Rapport opérations
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('incident') }}" class="btn btn-outline-danger w-100 py-3">
+                                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
+                                Signaler incident
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('communication_equipe') }}" class="btn btn-outline-secondary w-100 py-3">
+                                <i class="fas fa-bullhorn fa-2x mb-2"></i><br>
+                                Communication
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('planning_demain') }}" class="btn btn-outline-dark w-100 py-3">
+                                <i class="fas fa-calendar-alt fa-2x mb-2"></i><br>
+                                Planning demain
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-left-primary { border-left: 4px solid #4e73df !important; }
+    .border-left-success { border-left: 4px solid #1cc88a !important; }
+    .border-left-info { border-left: 4px solid #36b9cc !important; }
+    .border-left-warning { border-left: 4px solid #f6c23e !important; }
+
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .btn-outline-success:hover { background: #1cc88a; color: white; }
+    .btn-outline-danger:hover { background: #e74a3b; color: white; }
+    .btn-outline-warning:hover { background: #f6c23e; color: white; }
+    .btn-outline-info:hover { background: #36b9cc; color: white; }
+    .btn-outline-primary:hover { background: #4e73df; color: white; }
+    .btn-outline-secondary:hover { background: #858796; color: white; }
+    .btn-outline-dark:hover { background: #5a5c69; color: white; }
+
+    .progress {
+        border-radius: 10px;
+    }
+
+    .list-group-item {
+        border: none;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .list-group-item:last-child {
+        border-bottom: none;
+    }
+</style>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Graphique des transactions par heure
+        const transCtx = document.getElementById('transactionsChart').getContext('2d');
+        new Chart(transCtx, {
+            type: 'line',
+            data: {
+                labels: ['8h', '9h', '10h', '11h', '12h', '13h', '14h', '15h', '16h', '17h'],
+                datasets: [{
+                    label: 'Transactions',
+                    data: [15, 25, 35, 40, 30, 20, 38, 42, 35, 28],
+                    borderColor: '#4e73df',
+                    backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // Graphique de répartition
+        const repartCtx = document.getElementById('repartitionChart').getContext('2d');
+        new Chart(repartCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Dépôts', 'Retraits', 'Paiements', 'Autres'],
+                datasets: [{
+                    data: [45, 30, 20, 5],
+                    backgroundColor: ['#1cc88a', '#f6c23e', '#4e73df', '#858796']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

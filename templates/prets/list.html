@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>💰 Prêts — {{ succursale.nom }}</h2>
+
+<a class="btn btn-success"
+   href="{{ url_for('prets.ajouter_pret', succursale_code=succursale.code) }}">
+   ➕ Nouveau prêt
+</a>
+
+<table class="table">
+    <tr>
+        <th>Client</th>
+        <th>Montant</th>
+        <th>Durée</th>
+        <th>Taux</th>
+        <th>Statut</th>
+    </tr>
+    {% for pret in prets %}
+    <tr>
+        <td>{{ pret.client.nom }}</td>
+        <td>{{ pret.montant }} GDES</td>
+        <td>{{ pret.duree_mois }} mois</td>
+        <td>{{ pret.taux_interet }}%</td>
+        <td>
+            {% if pret.statut == 'approuve' %}
+                ✅ Actif
+            {% elif pret.statut == 'en_attente' %}
+                ⏳ En attente
+            {% elif pret.statut == 'refuse' %}
+                ❌ Refusé
+            {% elif pret.statut == 'cloture' %}
+                🔒 Clôturé
+            {% else %}
+                ⚠️ Inconnu
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

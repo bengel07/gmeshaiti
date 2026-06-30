@@ -1,0 +1,545 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Rapport d'Activité
+                        </h2>
+                        <p class="mb-0 mt-2">
+                            <i class="fas fa-user-tie me-1"></i>
+                            {{ current_user.prenom }} {{ current_user.nom }}
+                            <span class="badge bg-light text-dark ms-2">Agent de Crédit</span>
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-light" onclick="exporterPDF()">
+                                <i class="fas fa-file-pdf"></i> PDF
+                            </button>
+                            <button class="btn btn-sm btn-light" onclick="exporterExcel()">
+                                <i class="fas fa-file-excel"></i> Excel
+                            </button>
+                            <button class="btn btn-sm btn-light" onclick="imprimer()">
+                                <i class="fas fa-print"></i> Imprimer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres de période -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Période</label>
+                            <select class="form-select" name="periode" onchange="this.form.submit()">
+                                <option value="aujourdhui" {% if periode == 'aujourdhui' %}selected{% endif %}>Aujourd'hui</option>
+                                <option value="semaine" {% if periode == 'semaine' %}selected{% endif %}>Cette semaine</option>
+                                <option value="mois" {% if periode == 'mois' %}selected{% endif %}>Ce mois</option>
+                                <option value="trimestre" {% if periode == 'trimestre' %}selected{% endif %}>Ce trimestre</option>
+                                <option value="annee" {% if periode == 'annee' %}selected{% endif %}>Cette année</option>
+                                <option value="personnalise" {% if periode == 'personnalise' %}selected{% endif %}>Personnalisée</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Date début</label>
+                            <input type="date" class="form-control" name="date_debut" value="{{ date_debut }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Date fin</label>
+                            <input type="date" class="form-control" name="date_fin" value="{{ date_fin }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-sync-alt"></i> Actualiser
+                            </button>
+                        </div>
+                        <div class="col-md-3 text-end">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="btn-group w-100">
+                                <button type="button" class="btn btn-outline-success" onclick="envoyerRapport()">
+                                    <i class="fas fa-envelope"></i> Envoyer
+                                </button>
+                                <button type="button" class="btn btn-outline-info" onclick="sauvegarderRapport()">
+                                    <i class="fas fa-save"></i> Sauvegarder
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs Principaux -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Crédits Octroyés
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.credits_octroyes or 0 }}</div>
+                            <div class="small text-muted">
+                                vs période préc: <span class="text-{{ stats.tendance_credits_couleur }}">{{ stats.tendance_credits }}%</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-hand-holding-usd fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Montant Total
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "{:,.0f}".format(stats.montant_total or 0) }} FG
+                            </div>
+                            <div class="small text-muted">
+                                Montant moyen: {{ "{:,.0f}".format(stats.montant_moyen or 0) }} FG
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-coins fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Nouveaux Clients
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.nouveaux_clients or 0 }}</div>
+                            <div class="small text-muted">
+                                Taux conversion: {{ stats.taux_conversion }}%
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-plus fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Performance
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.performance }}%</div>
+                            <div class="small text-muted">
+                                Objectif: {{ stats.objectif }}%
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques d'activité -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Évolution des crédits octroyés
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="evolutionChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Répartition par type
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="repartitionChart" style="height: 250px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques détaillées -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Crédits par statut
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Statut</th>
+                                    <th class="text-end">Nombre</th>
+                                    <th class="text-end">Montant</th>
+                                    <th class="text-end">%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-warning">En attente</span>
+                                    </td>
+                                    <td class="text-end">{{ stats.credits_en_attente or 0 }}</td>
+                                    <td class="text-end">{{ "{:,.0f}".format(stats.montant_en_attente or 0) }} FG</td>
+                                    <td class="text-end">{{ stats.pourcentage_en_attente }}%</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-primary">En cours</span>
+                                    </td>
+                                    <td class="text-end">{{ stats.credits_en_cours or 0 }}</td>
+                                    <td class="text-end">{{ "{:,.0f}".format(stats.montant_en_cours or 0) }} FG</td>
+                                    <td class="text-end">{{ stats.pourcentage_en_cours }}%</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-success">Remboursés</span>
+                                    </td>
+                                    <td class="text-end">{{ stats.credits_rembourses or 0 }}</td>
+                                    <td class="text-end">{{ "{:,.0f}".format(stats.montant_rembourses or 0) }} FG</td>
+                                    <td class="text-end">{{ stats.pourcentage_rembourses }}%</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-danger">Impayés</span>
+                                    </td>
+                                    <td class="text-end">{{ stats.credits_impayes or 0 }}</td>
+                                    <td class="text-end">{{ "{:,.0f}".format(stats.montant_impayes or 0) }} FG</td>
+                                    <td class="text-end">{{ stats.pourcentage_impayes }}%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Activité quotidienne
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Période</th>
+                                    <th class="text-end">Crédits</th>
+                                    <th class="text-end">Montant</th>
+                                    <th class="text-end">Clients</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Aujourd'hui</td>
+                                    <td class="text-end">{{ stats.credits_aujourdhui or 0 }}</td>
+                                    <td class="text-end">{{ "{:,.0f}".format(stats.montant_aujourdhui or 0) }} FG</td>
+                                    <td class="text-end">{{ stats.clients_aujourdhui or 0 }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Cette semaine</td>
+                                    <td class="text-end">{{ stats.credits_semaine or 0 }}</td>
+                                    <td class="text-end">{{ "{:,.0f}".format(stats.montant_semaine or 0) }} FG</td>
+                                    <td class="text-end">{{ stats.clients_semaine or 0 }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Ce mois</td>
+                                    <td class="text-end">{{ stats.credits_mois or 0 }}</td>
+                                    <td class="text-end">{{ "{:,.0f}".format(stats.montant_mois or 0) }} FG</td>
+                                    <td class="text-end">{{ stats.clients_mois or 0 }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des derniers crédits -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Derniers crédits octroyés
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Client</th>
+                                    <th>Type</th>
+                                    <th class="text-end">Montant</th>
+                                    <th>Statut</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for credit in derniers_credits %}
+                                <tr>
+                                    <td>{{ credit.date_demande.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <strong>{{ credit.client.nom }} {{ credit.client.prenom }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ credit.client.id_client }}</small>
+                                    </td>
+                                    <td>{{ credit.type_credit }}</td>
+                                    <td class="text-end">{{ "{:,.0f}".format(credit.montant) }} FG</td>
+                                    <td>
+                                        <span class="badge bg-{{ credit.statut_couleur }}">
+                                            {{ credit.statut }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{{ url_for('voir_credit', credit_id=credit.id) }}"
+                                           class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center">Aucun crédit trouvé</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Commentaires et notes -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-pen me-2"></i>
+                        Notes et observations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <textarea class="form-control" rows="4" id="notes" placeholder="Ajoutez vos observations pour ce rapport...">{{ rapport.notes or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Boutons d'action -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <button class="btn btn-primary btn-lg me-2" onclick="sauvegarderRapport()">
+                <i class="fas fa-save"></i> Sauvegarder le rapport
+            </button>
+            <button class="btn btn-success btn-lg me-2" onclick="envoyerSuperviseur()">
+                <i class="fas fa-paper-plane"></i> Envoyer au superviseur
+            </button>
+            <a href="{{ url_for('agent_credit_dashboard', succursale_code=current_user.succursale.code) }}"
+               class="btn btn-secondary btn-lg">
+                <i class="fas fa-arrow-left"></i> Retour au dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-left-primary { border-left: 4px solid #4e73df !important; }
+    .border-left-success { border-left: 4px solid #1cc88a !important; }
+    .border-left-info { border-left: 4px solid #36b9cc !important; }
+    .border-left-warning { border-left: 4px solid #f6c23e !important; }
+
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+</style>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Graphique d'évolution
+        const evolCtx = document.getElementById('evolutionChart').getContext('2d');
+        new Chart(evolCtx, {
+            type: 'line',
+            data: {
+                labels: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4', 'Sem 5', 'Sem 6', 'Sem 7', 'Sem 8'],
+                datasets: [
+                    {
+                        label: 'Nombre de crédits',
+                        data: [5, 7, 8, 12, 10, 15, 18, 22],
+                        borderColor: '#4e73df',
+                        backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                        tension: 0.3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Montant (millions)',
+                        data: [2.5, 3.2, 3.8, 5.5, 4.8, 6.2, 7.5, 9.2],
+                        borderColor: '#1cc88a',
+                        backgroundColor: 'rgba(28, 200, 138, 0.05)',
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Nombre de crédits'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Montant (Millions FG)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Graphique de répartition
+        const repartCtx = document.getElementById('repartitionChart').getContext('2d');
+        new Chart(repartCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Classique', 'Jeune', 'Agricole', 'Urgence'],
+                datasets: [{
+                    data: [45, 30, 15, 10],
+                    backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    });
+
+    function exporterPDF() {
+        alert('Export PDF en cours...');
+    }
+
+    function exporterExcel() {
+        alert('Export Excel en cours...');
+    }
+
+    function imprimer() {
+        window.print();
+    }
+
+    function envoyerRapport() {
+        alert('Rapport envoyé par email');
+    }
+
+    function sauvegarderRapport() {
+        alert('Rapport sauvegardé');
+    }
+
+    function envoyerSuperviseur() {
+        if(confirm('Envoyer ce rapport à votre superviseur ?')) {
+            alert('Rapport envoyé au superviseur');
+        }
+    }
+</script>
+{% endblock %}

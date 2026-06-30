@@ -1,0 +1,193 @@
+<!-- templates/fonctions/caissier/dashboard.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h2><i class="fas fa-cash-register me-2"></i>Espace Caissier</h2>
+                    <p class="mb-0">Succursale: {{ succursale.nom }} ({{ succursale.code }})</p>
+                    <small>{{ succursale.ville }} | {{ succursale.adresse }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques du jour -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <div style="border-left: 4px solid #4e73df; padding-left: 15px;">
+                        <h5 class="text-primary">Aujourd'hui</h5>
+                        <h3>{{ stats.paiements_aujourd_hui|default(0) }} transactions</h3>
+                        <p class="h4">{{ "{:,.0f}".format(stats.montant_aujourd_hui|default(0)) }} HTG</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <div style="border-left: 4px solid #1cc88a; padding-left: 15px;">
+                        <h5 class="text-success">Ce mois</h5>
+                        <h3>{{ stats.paiements_mois|default(0) }} transactions</h3>
+                        <p class="h4">{{ "{:,.0f}".format(stats.montant_mois|default(0)) }} HTG</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <a href="{{ url_for('nouveau_remboursement', succursale_code=succursale.code) if succursale else '#' }}"
+               class="btn btn-primary btn-lg w-100">
+                <i class="fas fa-money-bill-wave fa-2x mb-2"></i><br>
+                Enregistrer un paiement
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ url_for('historique_remboursements', succursale_code=succursale.code) if succursale else '#' }}"
+               class="btn btn-info btn-lg w-100">
+                <i class="fas fa-history fa-2x mb-2"></i><br>
+                Historique des paiements
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ url_for('rechercher_client', succursale_code=succursale.code) if succursale else '#' }}"
+               class="btn btn-warning btn-lg w-100">
+                <i class="fas fa-search fa-2x mb-2"></i><br>
+                Rechercher un client
+            </a>
+        </div>
+    </div>
+
+    <!-- Derniers paiements -->
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Derniers paiements enregistrés</h5>
+        </div>
+        <div class="card-body">
+            {% if derniers_paiements and derniers_paiements|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Client</th>
+                                <th>Référence prêt #</th>
+                                <th>Montant</th>
+                                <th>Mode</th>
+                                <td>Statut/Pénalité</td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for remboursement in derniers_paiements %}
+                            <tr>
+                                <td>
+                                    {% if remboursement.date_remboursement %}
+                                        {{ remboursement.date_remboursement.strftime('%d/%m/%Y %H:%M') }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if remboursement.pret and remboursement.pret.client %}
+                                        {{ remboursement.pret.client.prenom }} {{ remboursement.pret.client.nom }}
+                                    {% else %}
+                                        <span class="text-muted">Client inconnu</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if remboursement.pret %}
+                                        {{ remboursement.pret.id }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="text-success fw-bold">
+                                    {% if remboursement.montant %}
+                                        {{ "{:,.0f}".format(remboursement.montant) }} HTG
+                                    {% else %}
+                                        0 HTG
+                                    {% endif %}
+                                </td>
+                                <td>{{ remboursement.mode_remboursement or remboursement.type_paiement or 'Non spécifié' }}
+                                </td>
+                                <td>
+                                    {% set pret = remboursement.pret %}
+
+                                    {% if pret %}
+                                        {% set total_du = pret.montant or 0 %}
+                                        {% set total_rembourse = pret.montant_rembourse or 0 %}
+                                    {% else %}
+                                        {% set total_du = 0 %}
+                                        {% set total_rembourse = 0 %}
+                                    {% endif %}
+
+                                    {% set total_rembourse = pret.montant_rembourse or 0 %}
+                                    {% set solde_restant = total_du - total_rembourse %}
+                                    {% set penalite = pret.penalite if pret else 0 %}
+                                    {% set est_solder = solde_restant <= 0 %}
+
+                                    <div class="d-flex flex-column">
+                                        {% if est_solde %}
+                                            <span class="badge bg-success mb-1">✓ Paiement final effectué</span>
+                                            {% if penalite and penalite > 0 %}
+                                                <small class="text-danger">Pénalité payée: {{ "{:,.0f}".format(penalite) }} HTG</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-primary mb-1">Paiement partiel</span>
+                                            <small class="text-muted">Reste: {{ "{:,.0f}".format(solde_restant) }} HTG</small>
+                                            {% if penalite and penalite > 0 %}
+                                                <small class="text-danger">⚠️ Pénalité: {{ "{:,.0f}".format(penalite) }} HTG</small>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </td>
+<!--                                <td>✓ Payé</td>-->
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <!-- TODO: Ajouter pagination ici -->
+                <!-- <nav>...<ul class="pagination">...</ul></nav> -->
+            {% else %}
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle"></i> Aucun paiement enregistré pour le moment.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Styles inline minimisés -->
+<style>
+    .btn {
+        padding: 20px;
+        white-space: normal;
+        word-wrap: break-word;
+    }
+    .btn i {
+        display: block;
+    }
+    .card.h-100 {
+        height: 100%;
+    }
+    @media (max-width: 768px) {
+        .btn {
+            padding: 12px;
+            font-size: 0.9rem;
+        }
+        .btn i {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}

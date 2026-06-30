@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Confirmation en attente</title>
+    <style>
+        body{
+            font-family: Arial;
+            text-align:center;
+            padding:50px;
+            background:#f5f5f5;
+        }
+        .box{
+            background:white;
+            padding:40px;
+            border-radius:10px;
+            max-width:600px;
+            margin:auto;
+            box-shadow:0 0 10px rgba(0,0,0,0.1);
+        }
+        .spinner{
+            width:60px;
+            height:60px;
+            border:6px solid #ddd;
+            border-top:6px solid #4e73df;
+            border-radius:50%;
+            animation:spin 1s linear infinite;
+            margin:auto;
+        }
+        @keyframes spin{
+            100%{ transform:rotate(360deg); }
+        }
+        .btn-retour{
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #4e73df;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="box">
+    <div class="spinner"></div>
+    <h2>📧 Confirmation envoyée</h2>
+    <p>Un email de confirmation a été envoyé à :</p>
+    <h3>{{ email }}</h3>
+    <p>En attente de validation du client...</p>
+    <p><small>Cette page se mettra à jour automatiquement quand le client confirmera.</small></p>
+    <a href="{{ url_for('retrait_client_form', client_id=client.id) }}" class="btn-retour">Retour au client</a>
+</div>
+</body>
+</html>
+
+<script>
+
+// Stocker l'interval
+const intervalRetrait = setInterval(() => {
+
+    fetch("/api/retrait/status/{{ token }}")
+    .then(response => response.json())
+
+    .then(data => {
+
+        console.log("DATA =", data);
+
+        // ✅ Si confirmé
+        if(data.confirmed){
+
+            console.log("CONFIRMÉ");
+
+            // ✅ Stop boucle
+            clearInterval(intervalRetrait);
+
+            // ✅ Redirection reçu
+            window.location.href = data.redirect_url;
+        }
+
+    })
+
+    .catch(error => console.log('Erreur:', error));
+
+}, 3000);
+
+</script>

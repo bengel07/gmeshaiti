@@ -1,0 +1,301 @@
+<!-- templates/premier_changement.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-gradient-warning text-white text-center py-4" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);">
+                    <div class="mb-3">
+                        <i class="fas fa-user-astronaut fa-3x"></i>
+                    </div>
+                    <h3 class="mb-0 fw-bold">Bienvenue ! 🎉</h3>
+                    <p class="mb-0 mt-2 opacity-75">Première connexion - Personnalisez votre compte</p>
+                </div>
+
+                <div class="card-body p-4 p-lg-5">
+                    <div class="alert alert-info border-0 bg-light rounded-3 mb-4">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-shield-alt fa-2x text-info"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <p class="mb-0 fw-semibold">Pour sécuriser votre compte, veuillez choisir un mot de passe personnel et (optionnellement) modifier votre nom d'utilisateur.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="POST" id="formPremierChangement">
+                        <!-- Champ Nom d'utilisateur -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-user me-2 text-warning"></i>Nom d'utilisateur
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0 rounded-start-3">
+                                    <i class="fas fa-at text-muted"></i>
+                                </span>
+                                <input type="text"
+                                       name="nouveau_username"
+                                       class="form-control form-control-lg border-0 bg-light rounded-end-3"
+                                       value="{{ current_user.username }}"
+                                       placeholder="Votre nom d'utilisateur">
+                            </div>
+                            <small class="text-muted mt-2 d-block">
+                                <i class="fas fa-info-circle me-1"></i>Laissez vide pour garder "{{ current_user.username }}"
+                            </small>
+                        </div>
+
+                        <!-- Champ Mot de passe -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-lock me-2 text-warning"></i>Nouveau mot de passe
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0 rounded-start-3">
+                                    <i class="fas fa-key text-muted"></i>
+                                </span>
+                                <input type="password"
+                                       name="nouveau_mot_de_passe"
+                                       id="password"
+                                       class="form-control form-control-lg border-0 bg-light"
+                                       required>
+                                <button class="btn btn-outline-secondary border-0" type="button" id="togglePassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="password-strength mt-2" id="passwordStrength"></div>
+                        </div>
+
+                        <!-- Champ Confirmation -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-check-circle me-2 text-warning"></i>Confirmer le mot de passe
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0 rounded-start-3">
+                                    <i class="fas fa-check text-muted"></i>
+                                </span>
+                                <input type="password"
+                                       name="confirmation"
+                                       id="confirmPassword"
+                                       class="form-control form-control-lg border-0 bg-light"
+                                       required>
+                            </div>
+                            <div class="invalid-feedback" id="passwordMatchFeedback"></div>
+                        </div>
+
+                        <!-- Sécurité des mots de passe -->
+                        <div class="alert alert-secondary border-0 bg-light rounded-3 mb-4">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-shield-alt fa-2x text-secondary me-3"></i>
+                                <div>
+                                    <strong class="d-block">Exigences de sécurité :</strong>
+                                    <small class="text-muted">• Minimum 8 caractères<br>
+                                    • Au moins une majuscule<br>
+                                    • Au moins un chiffre<br>
+                                    • Au moins un caractère spécial</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Boutons d'action -->
+                        <div class="d-grid gap-3 mt-4">
+                            <button type="submit" class="btn btn-warning btn-lg rounded-3 py-3 fw-bold" id="submitBtn">
+                                <i class="fas fa-save me-2"></i>Enregistrer et continuer
+                            </button>
+                            <a href="{{ url_for('dashboard_redirect') }}" class="btn btn-outline-secondary btn-lg rounded-3 py-2">
+                                <i class="fas fa-times me-2"></i>Annuler
+                            </a>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card-footer bg-light text-center py-3">
+                    <small class="text-muted">
+                        <i class="fas fa-lock me-1"></i>Vos informations sont sécurisées
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-gradient-warning {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+}
+
+.password-strength {
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+}
+
+.password-strength .strength-meter {
+    height: 4px;
+    background: #e9ecef;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.password-strength .strength-meter-fill {
+    height: 100%;
+    width: 0%;
+    transition: all 0.3s ease;
+}
+
+.password-strength-weak .strength-meter-fill {
+    width: 25%;
+    background: #dc3545;
+}
+
+.password-strength-fair .strength-meter-fill {
+    width: 50%;
+    background: #ffc107;
+}
+
+.password-strength-good .strength-meter-fill {
+    width: 75%;
+    background: #17a2b8;
+}
+
+.password-strength-strong .strength-meter-fill {
+    width: 100%;
+    background: #28a745;
+}
+
+.password-strength-text {
+    margin-top: 0.25rem;
+}
+
+.password-strength-weak .password-strength-text { color: #dc3545; }
+.password-strength-fair .password-strength-text { color: #ffc107; }
+.password-strength-good .password-strength-text { color: #17a2b8; }
+.password-strength-strong .password-strength-text { color: #28a745; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordInput = document.getElementById('password');
+    const confirmInput = document.getElementById('confirmPassword');
+    const submitBtn = document.getElementById('submitBtn');
+    const passwordStrengthDiv = document.getElementById('passwordStrength');
+    const passwordMatchFeedback = document.getElementById('passwordMatchFeedback');
+
+    // Toggle password visibility
+    const togglePassword = document.getElementById('togglePassword');
+    togglePassword.addEventListener('click', function() {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.querySelector('i').classList.toggle('fa-eye');
+        this.querySelector('i').classList.toggle('fa-eye-slash');
+    });
+
+    // Vérifier la force du mot de passe
+    function checkPasswordStrength(password) {
+        let strength = 0;
+        const checks = {
+            length: password.length >= 8,
+            uppercase: /[A-Z]/.test(password),
+            lowercase: /[a-z]/.test(password),
+            number: /[0-9]/.test(password),
+            special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+        };
+
+        strength = Object.values(checks).filter(Boolean).length;
+
+        if (password.length === 0) return { level: 0, text: '' };
+        if (strength <= 2) return { level: 1, text: 'Faible', class: 'weak' };
+        if (strength === 3) return { level: 2, text: 'Moyen', class: 'fair' };
+        if (strength === 4) return { level: 3, text: 'Bon', class: 'good' };
+        return { level: 4, text: 'Fort', class: 'strong' };
+    }
+
+    // Mettre à jour l'affichage de la force du mot de passe
+    function updatePasswordStrength() {
+        const password = passwordInput.value;
+        const strength = checkPasswordStrength(password);
+
+        if (strength.level === 0) {
+            passwordStrengthDiv.innerHTML = '';
+            return;
+        }
+
+        passwordStrengthDiv.innerHTML = `
+            <div class="password-strength password-strength-${strength.class}">
+                <div class="strength-meter">
+                    <div class="strength-meter-fill"></div>
+                </div>
+                <div class="password-strength-text">
+                    <i class="fas fa-${strength.class === 'weak' ? 'exclamation-triangle' : 'check-circle'} me-1"></i>
+                    Force du mot de passe : ${strength.text}
+                </div>
+            </div>
+        `;
+    }
+
+    // Vérifier la correspondance des mots de passe
+    function checkPasswordMatch() {
+        const password = passwordInput.value;
+        const confirm = confirmInput.value;
+
+        if (confirm.length === 0) {
+            passwordMatchFeedback.textContent = '';
+            return true;
+        }
+
+        if (password !== confirm) {
+            passwordMatchFeedback.textContent = 'Les mots de passe ne correspondent pas';
+            confirmInput.classList.add('is-invalid');
+            return false;
+        } else {
+            passwordMatchFeedback.textContent = '';
+            confirmInput.classList.remove('is-invalid');
+            confirmInput.classList.add('is-valid');
+            return true;
+        }
+    }
+
+    // Valider le formulaire avant soumission
+    function validateForm() {
+        const password = passwordInput.value;
+        const confirm = confirmInput.value;
+
+        if (password.length < 8) {
+            alert('Le mot de passe doit contenir au moins 8 caractères.');
+            return false;
+        }
+
+        if (!/[A-Z]/.test(password)) {
+            alert('Le mot de passe doit contenir au moins une majuscule.');
+            return false;
+        }
+
+        if (!/[0-9]/.test(password)) {
+            alert('Le mot de passe doit contenir au moins un chiffre.');
+            return false;
+        }
+
+        if (password !== confirm) {
+            alert('Les mots de passe ne correspondent pas.');
+            return false;
+        }
+
+        return true;
+    }
+
+    // Écouter les événements
+    passwordInput.addEventListener('input', updatePasswordStrength);
+    passwordInput.addEventListener('input', checkPasswordMatch);
+    confirmInput.addEventListener('input', checkPasswordMatch);
+
+    document.getElementById('formPremierChangement').addEventListener('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

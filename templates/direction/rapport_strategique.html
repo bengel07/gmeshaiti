@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1>📊 Rapport Stratégique</h1>
+
+    <!-- Section Retards de paiement -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning">
+            <h3><i class="fas fa-exclamation-triangle"></i> Situation des retards de paiement</h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="stat-box">
+                        <h4>{{ stats_retards.total_retards_actifs }}</h4>
+                        <p>Retards actifs</p>
+                        <small class="text-muted">Paiements en souffrance</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-box">
+                        <h4>{{ stats_retards.total_clients_impactes }}</h4>
+                        <p>Clients impactés</p>
+                        <small class="text-muted">Avec au moins 1 retard</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-box">
+                        <h4>{{ stats_retards.total_jours_retard }} jours</h4>
+                        <p>Cumul des retards</p>
+                        <small class="text-muted">Total jours de retard</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-box {% if tendance.evolution > 0 %}bg-danger{% else %}bg-success{% endif %}">
+                        <h4>{{ "%.1f"|format(tendance.evolution) }}%</h4>
+                        <p>Tendance mensuelle</p>
+                        <small>vs mois précédent</small>
+                    </div>
+                </div>
+            </div>
+
+            <h4 class="mt-4">📋 Top 5 clients les plus en retard</h4>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th>Total jours de retard</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for client in stats_retards.top_5_clients_retard %}
+                    <tr>
+                        <td>{{ client.nom }} {{ client.prenom }}</td>
+                        <td class="text-danger"><strong>{{ client.total_retard }} jours</strong></td>
+                        <td>
+                            <a href="{{ url_for('details_client', id=client.id) }}" class="btn btn-sm btn-info">
+                                Gérer
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Graphique d'évolution des retards -->
+            <div class="mt-4">
+                <canvas id="retardsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('retardsChart').getContext('2d');
+const retardsChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: [{% for mois, count in stats_retards.retards_par_mois %}'{{ mois }}',{% endfor %}],
+        datasets: [{
+            label: 'Nombre de retards par mois',
+            data: [{% for mois, count in stats_retards.retards_par_mois %}{{ count }},{% endfor %}],
+            borderColor: 'rgb(255, 99, 132)',
+            tension: 0.1
+        }]
+    }
+});
+</script>
+{% endblock %}

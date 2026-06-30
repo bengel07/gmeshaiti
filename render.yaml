@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: gmes-microcredit
+    env: python
+    buildCommand: |
+      apt-get update && apt-get install -y python3.11 python3.11-venv python3.11-dev
+      python3.11 -m venv .venv
+      . .venv/bin/activate
+      pip install --upgrade pip setuptools wheel
+      pip install cmake==3.27.7
+      pip install dlib==19.24.2
+      pip install -r requirements.txt
+    startCommand: |
+      . .venv/bin/activate && gunicorn app:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+
+
+
+

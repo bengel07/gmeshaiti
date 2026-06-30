@@ -46,7 +46,7 @@
                 <div class="stats">
                     <div class="stat-item">
                         <strong>Membres</strong><br>
-                        {{ Client.query.filter_by(groupe_id=groupe.id).count() }}
+                        {{ groupe_stats.nb_clients }}
                     </div>
                     <div class="stat-item">
                         <strong>Prêts actifs</strong><br>

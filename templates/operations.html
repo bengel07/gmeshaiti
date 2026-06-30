@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opérations Bancaires - GMES</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(145deg, #e0edf5 0%, #c8dceb 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* En-tête */
+        .header {
+            background: linear-gradient(135deg, #0b3b4f, #1a566e);
+            color: white;
+            padding: 1.5rem 2rem;
+            border-radius: 20px;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .header a {
+            color: white;
+            text-decoration: none;
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .header a:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Carte solde */
+        .solde-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .solde-card h3 {
+            color: #0b3b4f;
+            margin-bottom: 0.5rem;
+        }
+
+        .solde-montant {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        /* Onglets */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 1rem;
+            background: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            color: #0b3b4f;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #0b3b4f, #1a566e);
+            color: white;
+            box-shadow: 0 5px 15px rgba(11,59,79,0.3);
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        /* Formulaires */
+        .form-container {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #0b3b4f;
+        }
+
+        label i {
+            margin-right: 0.5rem;
+            color: #1a566e;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #28a745;
+            box-shadow: 0 0 0 3px rgba(40,167,69,0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .btn-depot {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .btn-retrait {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+        }
+
+        .btn-transfer {
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .info-message {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        /* Historique */
+        .historique {
+            margin-top: 2rem;
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .historique h3 {
+            margin-bottom: 1rem;
+            color: #0b3b4f;
+        }
+
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .transaction-type {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+
+        .type-depot { color: #28a745; }
+        .type-retrait { color: #dc3545; }
+        .type-transfer { color: #17a2b8; }
+
+        .transaction-montant {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .transaction-date {
+            color: #6c757d;
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            .tabs {
+                flex-direction: column;
+            }
+            .transaction-item {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <i class="fas fa-exchange-alt"></i>
+                Opérations Bancaires
+            </h1>
+            <a href="{{ url_for('client_dashboard') }}">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+
+        <!-- Solde du compte -->
+        <div class="solde-card">
+            <h3><i class="fas fa-wallet"></i> Solde disponible</h3>
+            <div class="solde-montant">{{ "{:,.0f}".format(solde) }} HTG</div>
+        </div>
+
+        <!-- Messages flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="{{ category }}-message">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Onglets -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('depot')">
+                <i class="fas fa-arrow-down"></i> Dépôt
+            </button>
+            <button class="tab-btn" onclick="showTab('retrait')">
+                <i class="fas fa-arrow-up"></i> Retrait
+            </button>
+            <button class="tab-btn" onclick="showTab('transfert')">
+                <i class="fas fa-exchange-alt"></i> Transfert
+            </button>
+        </div>
+
+        <!-- Formulaire Dépôt -->
+        <div id="depot-form" class="form-container" style="display: block;">
+            <form method="POST" action="{{ url_for('effectuer_depot') }}">
+                <input type="hidden" name="action" value="depot">
+                <div class="form-group">
+                    <label><i class="fas fa-money-bill-wave"></i> Montant à déposer (HTG)</label>
+                    <input type="number" name="montant" step="any" min="100" required placeholder="Ex: 1000">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-credit-card"></i> Mode de paiement</label>
+                    <select name="mode_paiement" required>
+                        <option value="espece">💵 Espèces</option>
+                        <option value="mobile_money">📱 Mobile Money</option>
+                        <option value="virement">🏦 Virement bancaire</option>
+                        <option value="carte">💳 Carte bancaire</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-qrcode"></i> Référence (optionnel)</label>
+                    <input type="text" name="reference" placeholder="Numéro de transaction">
+                </div>
+                <button type="submit" class="btn btn-depot">
+                    <i class="fas fa-arrow-down"></i> Effectuer le dépôt
+                </button>
+            </form>
+        </div>
+
+        <!-- Formulaire Retrait -->
+        <div id="retrait-form" class="form-container" style="display: none;">
+            <form method="POST" action="{{ url_for('effectuer_retrait') }}">
+                <input type="hidden" name="action" value="retrait">
+                <div class="form-group">
+                    <label><i class="fas fa-money-bill-wave"></i> Montant à retirer (HTG)</label>
+                    <input type="number" name="montant" step="any" min="100" max="{{ solde }}" required placeholder="Ex: 500">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-credit-card"></i> Mode de réception</label>
+                    <select name="mode_retrait" required>
+                        <option value="espece">💵 Espèces (en agence)</option>
+                        <option value="mobile_money">📱 Mobile Money</option>
+                        <option value="virement">🏦 Virement bancaire</option>
+                    </select>
+                </div>
+                <div class="info-message">
+                    <i class="fas fa-info-circle"></i>
+                    Retrait maximum: {{ "{:,.0f}".format(solde) }} HTG
+                </div>
+                <button type="submit" class="btn btn-retrait">
+                    <i class="fas fa-arrow-up"></i> Effectuer le retrait
+                </button>
+            </form>
+        </div>
+
+        <!-- Formulaire Transfert -->
+        <div id="transfert-form" class="form-container" style="display: none;">
+            <form method="POST" action="{{ url_for('effectuer_transfert') }}">
+                <input type="hidden" name="action" value="transfert">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Destinataire</label>
+                    <input type="text" name="destinataire" required placeholder="Nom du bénéficiaire">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-phone"></i> Téléphone du destinataire</label>
+                    <input type="tel" name="telephone" placeholder="+509 34 56 7890">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-money-bill-wave"></i> Montant à transférer (HTG)</label>
+                    <input type="number" name="montant" step="any" min="100" max="{{ solde }}" required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-comment"></i> Motif (optionnel)</label>
+                    <input type="text" name="motif" placeholder="Ex: Remboursement prêt">
+                </div>
+                <div class="info-message">
+                    <i class="fas fa-info-circle"></i>
+                    Transfert maximum: {{ "{:,.0f}".format(solde) }} HTG
+                </div>
+                <button type="submit" class="btn btn-transfer">
+                    <i class="fas fa-exchange-alt"></i> Effectuer le transfert
+                </button>
+            </form>
+        </div>
+
+        <!-- Historique des transactions -->
+        {% if transactions %}
+        <div class="historique">
+            <h3><i class="fas fa-history"></i> Historique des transactions</h3>
+            {% for trans in transactions %}
+            <div class="transaction-item">
+                <div class="transaction-type type-{{ trans.type }}">
+                    <i class="fas fa-{% if trans.type == 'depot' %}arrow-down{% elif trans.type == 'retrait' %}arrow-up{% else %}exchange-alt{% endif %}"></i>
+                    {{ trans.type|upper }}
+                </div>
+                <div class="transaction-montant {% if trans.type == 'depot' %}type-depot{% elif trans.type == 'retrait' %}type-retrait{% else %}type-transfer{% endif %}">
+                    {{ "+" if trans.type == 'depot' else "-" }}{{ "{:,.0f}".format(trans.montant) }} HTG
+                </div>
+                <div class="transaction-date">
+                    <i class="far fa-calendar-alt"></i>
+                    {{ trans.date.strftime('%d/%m/%Y %H:%M') }}
+                </div>
+                {% if trans.reference %}
+                <div class="transaction-ref">
+                    <i class="fas fa-qrcode"></i> {{ trans.reference }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function showTab(tab) {
+            // Cacher tous les formulaires
+            document.getElementById('depot-form').style.display = 'none';
+            document.getElementById('retrait-form').style.display = 'none';
+            document.getElementById('transfert-form').style.display = 'none';
+
+            // Afficher le formulaire sélectionné
+            document.getElementById(tab + '-form').style.display = 'block';
+
+            // Mettre à jour les boutons actifs
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            const activeButton = Array.from(buttons).find(btn =>
+                btn.textContent.toLowerCase().includes(tab)
+            );
+            if (activeButton) activeButton.classList.add('active');
+        }
+
+        // Validation avant soumission
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const montant = parseFloat(this.querySelector('input[name="montant"]')?.value);
+                const solde = {{ solde }};
+
+                if (montant && montant <= 0) {
+                    e.preventDefault();
+                    alert('Le montant doit être supérieur à 0');
+                    return false;
+                }
+
+                const action = this.querySelector('input[name="action"]')?.value;
+                if ((action === 'retrait' || action === 'transfert') && montant > solde) {
+                    e.preventDefault();
+                    alert('Solde insuffisant pour cette opération');
+                    return false;
+                }
+
+                const confirmMsg = {
+                    'depot': `Confirmer le dépôt de ${montant} HTG ?`,
+                    'retrait': `Confirmer le retrait de ${montant} HTG ?`,
+                    'transfert': `Confirmer le transfert de ${montant} HTG ?`
+                };
+
+                if (confirm(confirmMsg[action])) {
+                    return true;
+                }
+                e.preventDefault();
+                return false;
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}Rapport d'Opérations - GMES{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-primary">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="text-white mb-2">
+                            <i class="fas fa-file-pdf me-2"></i>Rapport d'Opérations
+                        </h1>
+                        <p class="text-white opacity-8 mb-0">
+                            Période: <strong>{{ debut.strftime('%d/%m/%Y') }}</strong> au <strong>{{ fin.strftime('%d/%m/%Y') }}</strong>
+                        </p>
+                    </div>
+                    <div>
+                        <button onclick="window.print()" class="btn btn-light me-2">
+                            <i class="fas fa-print me-2"></i>Imprimer
+                        </button>
+                        <a href="{{ url_for('directeur_operations_dashboard') }}" class="btn btn-outline-light">
+                            <i class="fas fa-arrow-left me-2"></i>Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Résumé global -->
+    <div class="row mb-4">
+        <div class="col-xl-4 col-sm-6 mb-xl-0 mb-4">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="row">
+                        <div class="col-8">
+                            <div class="numbers">
+                                <p class="text-sm mb-0 text-capitalize font-weight-bold">Total transactions</p>
+                                <h5 class="font-weight-bolder mb-0">
+                                    {{ total_transactions }}
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="icon icon-shape bg-gradient-primary shadow text-center border-radius-md">
+                                <i class="fas fa-exchange-alt text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-sm-6 mb-xl-0 mb-4">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="row">
+                        <div class="col-8">
+                            <div class="numbers">
+                                <p class="text-sm mb-0 text-capitalize font-weight-bold">Total dépôts</p>
+                                <h5 class="font-weight-bolder mb-0 text-success">
+                                    {{ total_depots|int }} FG
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="icon icon-shape bg-gradient-success shadow text-center border-radius-md">
+                                <i class="fas fa-arrow-down text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-sm-6">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="row">
+                        <div class="col-8">
+                            <div class="numbers">
+                                <p class="text-sm mb-0 text-capitalize font-weight-bold">Total retraits</p>
+                                <h5 class="font-weight-bolder mb-0 text-danger">
+                                    {{ total_retraits|int }} FG
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="icon icon-shape bg-gradient-danger shadow text-center border-radius-md">
+                                <i class="fas fa-arrow-up text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau détaillé par succursale -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header pb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Détail des opérations par succursale</h6>
+                        <span class="badge bg-info">Rapport généré le {{ fin.strftime('%d/%m/%Y à %H:%M') }}</span>
+                    </div>
+                </div>
+                <div class="card-body px-0 pt-0 pb-2">
+                    <div class="table-responsive p-0">
+                        <table class="table align-items-center mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Succursale</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Transactions</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Dépôts</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Retraits</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Volume total</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Moyenne par transaction</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">% du volume total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in rapport_succursales %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex px-2 py-1">
+                                            <div class="d-flex flex-column justify-content-center">
+                                                <h6 class="mb-0 text-sm">{{ item.nom }}</h6>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">{{ item.nb_transactions }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="text-success font-weight-bold">{{ item.depots|int }} FG</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="text-danger font-weight-bold">{{ item.retraits|int }} FG</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="font-weight-bold">{{ item.volume_total|int }} FG</span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if item.nb_transactions > 0 %}
+                                            {{ (item.volume_total / item.nb_transactions)|int }} FG
+                                        {% else %}
+                                            0 HTG
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if total_depots + total_retraits > 0 %}
+                                            {{ ((item.volume_total / (total_depots + total_retraits)) * 100)|round(1) }}%
+                                        {% else %}
+                                            0%
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="bg-light">
+                                <tr>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">TOTAUX</th>
+                                    <th class="text-center">{{ total_transactions }}</th>
+                                    <th class="text-center text-success">{{ total_depots|int }} FG</th>
+                                    <th class="text-center text-danger">{{ total_retraits|int }} FG</th>
+                                    <th class="text-center">{{ (total_depots + total_retraits)|int }} FG</th>
+                                    <th class="text-center">
+                                        {% if total_transactions > 0 %}
+                                            {{ ((total_depots + total_retraits) / total_transactions)|int }} FG
+                                        {% else %}
+                                            0 HTG
+                                        {% endif %}
+                                    </th>
+                                    <th class="text-center">100%</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique de répartition -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header pb-0">
+                    <h6>Répartition du volume par succursale</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="repartitionChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section des signatures pour impression -->
+    <div class="row mt-5 d-none d-print-block">
+        <div class="col-6">
+            <div class="border-top pt-3 mt-5">
+                <p class="text-center">Signature du Directeur</p>
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="border-top pt-3 mt-5">
+                <p class="text-center">Cachet de l'établissement</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script pour le graphique -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('repartitionChart').getContext('2d');
+
+    // Préparer les données
+    const labels = [
+        {% for item in rapport_succursales %}
+            "{{ item.nom }}",
+        {% endfor %}
+    ];
+
+    const volumes = [
+        {% for item in rapport_succursales %}
+            {{ item.volume_total }},
+        {% endfor %}
+    ];
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Volume d\'opérations (FG)',
+                data: volumes,
+                backgroundColor: 'rgba(33, 82, 255, 0.7)',
+                borderColor: '#2152ff',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString() + ' FG';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.raw.toLocaleString() + ' FG';
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(310deg, #2152ff, #21d4fd);
+}
+.icon-shape {
+    width: 48px;
+    height: 48px;
+    background-position: center;
+    border-radius: 0.75rem;
+}
+.icon-shape i {
+    font-size: 1.5rem;
+    line-height: 48px;
+}
+@media print {
+    .btn, .icon-shape, .bg-gradient-primary, .card-header .btn {
+        display: none;
+    }
+    .card {
+        border: 1px solid #ddd !important;
+    }
+    .d-print-block {
+        display: block !important;
+    }
+}
+</style>
+{% endblock %}

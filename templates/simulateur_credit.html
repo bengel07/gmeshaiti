@@ -1,0 +1,551 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient bg-primary text-white">
+                <div class="card-body">
+                    <h2 class="mb-0">
+                        <i class="fas fa-calculator me-2"></i>
+                        Simulateur de Crédit
+                    </h2>
+                    <p class="mb-0 mt-2">
+                        Calculez vos mensualités et simulez votre capacité d'emprunt
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Formulaire de simulation -->
+        <div class="col-lg-5 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-sliders-h me-2"></i>
+                        Paramètres du crédit
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="simulateurForm">
+                        <!-- Type de crédit -->
+                        <div class="mb-3">
+                            <label class="form-label required">Type de crédit</label>
+                            <select class="form-select" id="typeCredit" required>
+                                <option value="">Sélectionnez un type</option>
+                                <option value="classique">Crédit Classique</option>
+                                <option value="jeune">Crédit Jeune Entrepreneur</option>
+                                <option value="agricole">Crédit Agricole</option>
+                                <option value="femme">Crédit Femme</option>
+                                <option value="urgence">Crédit Urgence</option>
+                            </select>
+                        </div>
+
+                        <!-- Montant -->
+                        <div class="mb-3">
+                            <label class="form-label required">Montant souhaité (HTG)</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="montant"
+                                       min="10000" max="10000000" step="10000" value="500000" required>
+                                <span class="input-group-text">HTG</span>
+                            </div>
+                            <div class="form-text">Min: 10 000 HTG - Max: 10 000 000 HTG</div>
+                        </div>
+
+                        <!-- Durée -->
+                        <div class="mb-3">
+                            <label class="form-label required">Durée de remboursement</label>
+                            <select class="form-select" id="duree" required>
+                                <option value="3">3 mois</option>
+                                <option value="6" selected>6 mois</option>
+                                <option value="9">9 mois</option>
+                                <option value="12">12 mois</option>
+                                <option value="18">18 mois</option>
+                                <option value="24">24 mois</option>
+                                <option value="36">36 mois</option>
+                            </select>
+                        </div>
+
+                        <!-- Taux d'intérêt (optionnel) -->
+                        <div class="mb-3">
+                            <label class="form-label">Taux d'intérêt annuel (%)</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="taux"
+                                       min="0" max="30" step="0.1" value="12">
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <div class="form-text">Laissez vide pour utiliser le taux par défaut</div>
+                        </div>
+
+                        <!-- Revenus mensuels (optionnel) -->
+                        <div class="mb-4">
+                            <label class="form-label">Revenus mensuels (HTG)</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="revenus"
+                                       min="0" step="10000" value="0">
+                                <span class="input-group-text">HTG</span>
+                            </div>
+                            <div class="form-text">Pour calculer votre capacité d'emprunt</div>
+                        </div>
+
+                        <button type="button" class="btn btn-primary w-100" onclick="calculerSimulation()">
+                            <i class="fas fa-calculator me-2"></i>
+                            Calculer
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Conseils rapides -->
+            <div class="card mt-4 shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Conseils
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>Capacité d'emprunt:</strong> Ne dépassez pas 35% de vos revenus
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>Durée:</strong> Plus la durée est longue, moins les mensualités sont élevées
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>TAEG:</strong> Le taux annuel effectif global inclut tous les frais
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Résultats de la simulation -->
+        <div class="col-lg-7 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Résultats de la simulation
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Résumé des résultats -->
+                    <div class="row mb-4">
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-light text-center">
+                                <div class="card-body">
+                                    <h6 class="text-muted">Mensualité</h6>
+                                    <h3 class="text-primary mb-0" id="resultMensualite">0 HTG</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-light text-center">
+                                <div class="card-body">
+                                    <h6 class="text-muted">Total à rembourser</h6>
+                                    <h3 class="text-success mb-0" id="resultTotal">0 HTG</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-light text-center">
+                                <div class="card-body">
+                                    <h6 class="text-muted">Intérêts totaux</h6>
+                                    <h3 class="text-warning mb-0" id="resultInterets">0 HTG</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Graphique d'amortissement -->
+                    <div class="mb-4">
+                        <h6>Évolution du capital restant dû</h6>
+                        <div style="position: relative; height: 200px; width: 100%;">
+                            <canvas id="amortissementChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Tableau d'amortissement -->
+                    <div class="mb-3">
+                        <h6>Détail des échéances</h6>
+                        <div style="max-height: 300px; overflow-y: auto; overflow-x: hidden;">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light sticky-top" style="top: 0; background: white; z-index: 10;">
+                                    <tr>
+                                        <th>Mois</th>
+                                        <th class="text-end">Capital</th>
+                                        <th class="text-end">Intérêts</th>
+                                        <th class="text-end">Mensualité</th>
+                                        <th class="text-end">Capital restant</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableauAmortissement">
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">
+                                            Effectuez une simulation pour voir les détails
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Capacité d'emprunt -->
+                    <div class="alert alert-info" id="capaciteEmprunt" style="display: none;">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span id="capaciteMessage"></span>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="d-flex justify-content-between mt-3">
+                        <button class="btn btn-outline-primary" onclick="exporterPDF()">
+                            <i class="fas fa-file-pdf me-2"></i>
+                            Exporter en PDF
+                        </button>
+                        <button class="btn btn-outline-success" onclick="demanderConseiller()">
+                            <i class="fas fa-headset me-2"></i>
+                            Parler à un conseiller
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Produits recommandés -->
+            <div class="card mt-4 shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-star me-2"></i>
+                        Produits recommandés
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row" id="produitsRecommandes">
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-seedling fa-2x text-success mb-2"></i>
+                                    <h6>Crédit Jeune</h6>
+                                    <p class="small">Taux préférentiel pour les 18-35 ans</p>
+                                    <span class="badge bg-primary">Dès 5%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-tractor fa-2x text-warning mb-2"></i>
+                                    <h6>Crédit Agricole</h6>
+                                    <p class="small">Pour les exploitants agricoles</p>
+                                    <span class="badge bg-success">Jusqu'à 5M</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-bolt fa-2x text-danger mb-2"></i>
+                                    <h6>Crédit Urgence</h6>
+                                    <p class="small">Déblocage en 24h</p>
+                                    <span class="badge bg-info">Traitement rapide</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .required::after {
+        content: " *";
+        color: #dc3545;
+    }
+
+    .table thead th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .sticky-top {
+        top: 0;
+        z-index: 10;
+    }
+    .chart-container {
+        position: relative;
+        height: 200px;
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+</style>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let amortissementChart = null;
+
+    function calculerSimulation() {
+        // Récupérer les valeurs
+        const montant = parseFloat(document.getElementById('montant').value) || 0;
+        const duree = parseInt(document.getElementById('duree').value) || 6;
+        const taux = parseFloat(document.getElementById('taux').value) || 12;
+        const revenus = parseFloat(document.getElementById('revenus').value) || 0;
+        const typeCredit = document.getElementById('typeCredit').value;
+
+        if (!typeCredit) {
+            alert('Veuillez sélectionner un type de crédit');
+            return;
+        }
+
+        if (montant < 10000) {
+            alert('Le montant minimum est de 10 000 HT');
+            return;
+        }
+
+        // Calculs
+        const tauxMensuel = (taux / 100) / 12;
+        const mensualite = calculerMensualite(montant, tauxMensuel, duree);
+        const totalRembourse = mensualite * duree;
+        const interetsTotal = totalRembourse - montant;
+
+        // Afficher les résultats
+        document.getElementById('resultMensualite').textContent = formatMontant(mensualite) + ' HTG';
+        document.getElementById('resultTotal').textContent = formatMontant(totalRembourse) + ' HTG';
+        document.getElementById('resultInterets').textContent = formatMontant(interetsTotal) + ' HTG';
+
+        // Calculer le tableau d'amortissement
+        const amortissement = calculerAmortissement(montant, tauxMensuel, duree, mensualite);
+        afficherTableauAmortissement(amortissement);
+        afficherGraphiqueAmortissement(amortissement);
+
+        // Vérifier la capacité d'emprunt
+        if (revenus > 0) {
+            const tauxEndettement = (mensualite / revenus) * 100;
+            const capaciteMessage = document.getElementById('capaciteMessage');
+            const capaciteDiv = document.getElementById('capaciteEmprunt');
+
+            if (tauxEndettement <= 35) {
+                capaciteMessage.innerHTML = `✅ Votre mensualité représente <strong>${tauxEndettement.toFixed(1)}%</strong> de vos revenus. Ce crédit est compatible avec votre capacité de remboursement.`;
+                capaciteDiv.className = 'alert alert-success';
+                capaciteDiv.style.display = 'block';
+            } else {
+                capaciteMessage.innerHTML = `⚠️ Votre mensualité représente <strong>${tauxEndettement.toFixed(1)}%</strong> de vos revenus, ce qui dépasse le seuil recommandé de 35%. Envisagez une durée plus longue ou un montant moins élevé.`;
+                capaciteDiv.className = 'alert alert-warning';
+                capaciteDiv.style.display = 'block';
+            }
+        } else {
+            document.getElementById('capaciteEmprunt').style.display = 'none';
+        }
+
+        // Recommandations de produits
+        recommanderProduits(montant, duree, typeCredit);
+    }
+
+    function calculerMensualite(montant, tauxMensuel, duree) {
+        if (tauxMensuel === 0) {
+            return montant / duree;
+        }
+        const facteur = Math.pow(1 + tauxMensuel, duree);
+        return (montant * tauxMensuel * facteur) / (facteur - 1);
+    }
+
+    function calculerAmortissement(montant, tauxMensuel, duree, mensualite) {
+        const tableau = [];
+        let capitalRestant = montant;
+
+        for (let mois = 1; mois <= duree; mois++) {
+            const interets = capitalRestant * tauxMensuel;
+            const capitalRembourse = Math.min(mensualite - interets, capitalRestant);
+            capitalRestant -= capitalRembourse;
+
+            tableau.push({
+                mois: mois,
+                capital: capitalRembourse,
+                interets: interets,
+                mensualite: mensualite,
+                capitalRestant: Math.max(0, capitalRestant)
+            });
+        }
+
+        return tableau;
+    }
+
+    function afficherTableauAmortissement(amortissement) {
+        const tbody = document.getElementById('tableauAmortissement');
+        tbody.innerHTML = '';
+
+        amortissement.forEach(ligne => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${ligne.mois}</td>
+                <td class="text-end">${formatMontant(ligne.capital)} HTG</td>
+                <td class="text-end">${formatMontant(ligne.interets)} HTG</td>
+                <td class="text-end">${formatMontant(ligne.mensualite)} HTG</td>
+                <td class="text-end">${formatMontant(ligne.capitalRestant)} HTG</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function afficherGraphiqueAmortissement(amortissement) {
+        const ctx = document.getElementById('amortissementChart').getContext('2d');
+
+        // Détruire l'ancien graphique s'il existe
+        if (amortissementChart) {
+            amortissementChart.destroy();
+        }
+
+        const mois = amortissement.map(l => l.mois);
+        const capitalRestant = amortissement.map(l => l.capitalRestant);
+        const interets = amortissement.map(l => l.interets);
+
+        amortissementChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: mois.map(m => `Mois ${m}`),
+                datasets: [
+                    {
+                        label: 'Capital restant',
+                        data: capitalRestant,
+                        borderColor: '#4e73df',
+                        backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                        tension: 0.1,
+                        fill: true
+                    },
+                    {
+                        label: 'Intérêts',
+                        data: interets,
+                        borderColor: '#f6c23e',
+                        backgroundColor: 'rgba(246, 194, 62, 0.05)',
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return formatMontant(value) + ' HTG';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function recommanderProduits(montant, duree, typeCredit) {
+        // Logique simple de recommandation
+        const produits = document.getElementById('produitsRecommandes');
+        produits.innerHTML = '';
+
+        const recommandations = [];
+
+        if (montant <= 500000 && duree <= 12) {
+            recommandations.push({
+                icone: 'fa-bolt',
+                couleur: 'danger',
+                titre: 'Crédit Urgence',
+                desc: 'Déblocage en 24h',
+            });
+        }
+
+        if (montant >= 100000 && montant <= 5000000) {
+            recommandations.push({
+                icone: 'fa-hand-holding-usd',
+                couleur: 'primary',
+                titre: 'Crédit Classique',
+                desc: 'Taux à partir de 8%',
+            });
+        }
+
+        if (typeCredit === 'jeune' || montant <= 1000000) {
+            recommandations.push({
+                icone: 'fa-seedling',
+                couleur: 'success',
+                titre: 'Crédit Jeune',
+                desc: 'Taux préférentiel 5%',
+            });
+        }
+
+        if (duree >= 18 && montant >= 1000000) {
+            recommandations.push({
+                icone: 'fa-tractor',
+                couleur: 'warning',
+                titre: 'Crédit Agricole',
+                desc: 'Jusqu\'à 5 millions',
+            });
+        }
+
+        recommandations.forEach(rec => {
+            const col = document.createElement('div');
+            col.className = 'col-md-4 mb-3';
+            col.innerHTML = `
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas ${rec.icone} fa-2x text-${rec.couleur} mb-2"></i>
+                        <h6>${rec.titre}</h6>
+                        <p class="small">${rec.desc}</p>
+                    </div>
+                </div>
+            `;
+            produits.appendChild(col);
+        });
+
+        if (recommandations.length === 0) {
+            produits.innerHTML = '<p class="text-muted text-center">Aucune recommandation spécifique</p>';
+        }
+    }
+
+    function formatMontant(montant) {
+        return new Intl.NumberFormat('fr-FR').format(Math.round(montant));
+    }
+
+    function exporterPDF() {
+        alert('Export PDF en cours de développement...');
+        // Implémenter l'export PDF avec jsPDF ou autre bibliothèque
+    }
+
+    function demanderConseiller() {
+        alert('Un conseiller vous contactera dans les plus brefs délais.');
+        // Rediriger vers formulaire de contact ou ouvrir chat
+    }
+
+    // Initialisation avec des valeurs par défaut
+    document.addEventListener('DOMContentLoaded', function() {
+        calculerSimulation();
+    });
+</script>
+{% endblock %}

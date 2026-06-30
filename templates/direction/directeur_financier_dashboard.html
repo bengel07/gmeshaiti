@@ -1,0 +1,701 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            Direction Financière
+                        </h2>
+                        <p class="mb-0 mt-2">
+                            <i class="fas fa-user-tie me-1"></i>
+                            {{ current_user.prenom }} {{ current_user.nom }}
+                            <span class="badge bg-light text-dark ms-2">Directeur Financier</span>
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <h1 class="mb-0">📊 Tableau de Bord</h1>
+                        <small>{{ now().strftime('%d %B %Y') if now else '' }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs financiers principaux -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Portefeuille de crédits
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "{:,.0f}".format(stats.portefeuille_total or 0) }}HTG
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-hand-holding-usd fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Créances saines
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "{:,.0f}".format(stats.creances_saines or 0) }} FG
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Créances douteuses
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "{:,.0f}".format(stats.creances_douteuses or 0) }} HTG
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Provisions
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "{:,.0f}".format(stats.provisions or 0) }} HTG
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-shield-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ratios financiers -->
+    <div class="row mb-4">
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">PAR > 30 jours</h6>
+                    <h3 class="mb-0 text-warning">{{ stats.par_30 }}%</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">PAR > 90 jours</h6>
+                    <h3 class="mb-0 text-danger">{{ stats.par_90 }}%</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Taux de recouvrement</h6>
+                    <h3 class="mb-0 text-success">{{ stats.taux_recouvrement }}%</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Rendement portefeuille</h6>
+                    <h3 class="mb-0 text-primary">{{ stats.rendement }}%</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Coût du risque</h6>
+                    <h3 class="mb-0 text-info">{{ stats.cout_risque }}%</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">ROA</h6>
+                    <h3 class="mb-0 text-secondary">{{ stats.roa }}%</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques principaux -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Évolution du portefeuille
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="portefeuilleChart" style="height: 350px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Qualité du portefeuille
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="qualiteChart" style="height: 300px;"></canvas>
+                    <hr>
+                    <div class="row text-center mt-3">
+                        <div class="col-6">
+                            <h6 class="text-success">{{ stats.tx_credits_sains }}%</h6>
+                            <small class="text-muted">Sains</small>
+                        </div>
+                        <div class="col-6">
+                            <h6 class="text-warning">{{ stats.tx_credits_douteux }}%</h6>
+                            <small class="text-muted">Douteux</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Répartition par produit et par échéance -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-box me-2"></i>
+                        Portefeuille par produit
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Produit</th>
+                                    <th class="text-end">Encours</th>
+                                    <th class="text-end">% Portefeuille</th>
+                                    <th class="text-end">PAR > 30j</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for produit in produits %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ produit.nom }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ produit.code }}</small>
+                                    </td>
+                                    <td class="text-end">{{ "{:,.0f}".format(produit.encours) }} HTG</td>
+                                    <td class="text-end">{{ produit.pourcentage }}%</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-{{ produit.par_couleur }}">
+                                            {{ produit.par }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Échéances à venir
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Période</th>
+                                    <th class="text-end">Montant à recevoir</th>
+                                    <th class="text-end">Nombre</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Cette semaine</strong></td>
+                                    <td class="text-end text-warning">{{ "{:,.0f}".format(echeances.semaine.montant) }} FG</td>
+                                    <td class="text-end">{{ echeances.semaine.nombre }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Ce mois</strong></td>
+                                    <td class="text-end text-primary">{{ "{:,.0f}".format(echeances.mois.montant) }} FG</td>
+                                    <td class="text-end">{{ echeances.mois.nombre }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Prochain mois</strong></td>
+                                    <td class="text-end text-info">{{ "{:,.0f}".format(echeances.prochain_mois.montant) }} FG</td>
+                                    <td class="text-end">{{ echeances.prochain_mois.nombre }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Trimestre</strong></td>
+                                    <td class="text-end text-success">{{ "{:,.0f}".format(echeances.trimestre.montant) }} FG</td>
+                                    <td class="text-end">{{ echeances.trimestre.nombre }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau de bord des impayés -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Suivi des impayés
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Succursale</th>
+                                    <th>Montant impayé</th>
+                                    <th>Jours de retard</th>
+                                    <th>Catégorie</th>
+                                    <th>Provision</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for impaye in impayes %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ impaye.client_nom }}</strong>
+                                        <br>
+                                        <small class="text-muted">Crédit #{{ impaye.credit_id }}</small>
+                                    </td>
+                                    <td>{{ impaye.succursale }}</td>
+                                    <td class="text-end text-danger">{{ "{:,.0f}".format(impaye.montant) }} FG</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-{{ impaye.retard_couleur }}">
+                                            {{ impaye.jours_retard }} jours
+                                        </span>
+                                    </td>
+                                    <td>{{ impaye.categorie }}</td>
+                                    <td class="text-end">{{ "{:,.0f}".format(impaye.provision) }} FG</td>
+                                    <td>
+                                        <a href="{{ url_for('voir_impaye', credit_id=impaye.credit_id) }}"
+                                           class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center">Aucun impayé à signaler</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicateurs de performance par succursale -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-building me-2"></i>
+                        Performance financière par succursale
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Succursale</th>
+                                    <th class="text-end">Encours</th>
+                                    <th class="text-end">PAR 30</th>
+                                    <th class="text-end">PAR 90</th>
+                                    <th class="text-end">Taux recouvrement</th>
+                                    <th class="text-end">Rendement</th>
+                                    <th class="text-end">Provision</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for succ in succursales_finance %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ succ.nom }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ succ.code }}</small>
+                                    </td>
+                                    <td class="text-end">{{ "{:,.0f}".format(succ.encours) }} FG</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-{{ succ.par_30_couleur }}">
+                                            {{ succ.par_30 }}%
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="badge bg-{{ succ.par_90_couleur }}">
+                                            {{ succ.par_90 }}%
+                                        </span>
+                                    </td>
+                                    <td class="text-end">{{ succ.taux_recouvrement }}%</td>
+                                    <td class="text-end">{{ succ.rendement }}%</td>
+                                    <td class="text-end">{{ "{:,.0f}".format(succ.provision) }} FG</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trésorerie et liquidité -->
+    <div class="row mb-4">
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-coins me-2"></i>
+                        Trésorerie
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <h3>{{ "{:,.0f}".format(tresorerie.disponible) }} FG</h3>
+                        <small class="text-muted">Disponible</small>
+                    </div>
+                    <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress-bar bg-success" style="width: {{ tresorerie.taux_liquidite }}%"></div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-6 text-center">
+                            <h6>{{ "{:,.0f}".format(tresorerie.encaissements) }} FG</h6>
+                            <small class="text-muted">Encaissements (mois)</small>
+                        </div>
+                        <div class="col-6 text-center">
+                            <h6>{{ "{:,.0f}".format(tresorerie.decaissements) }} FG</h6>
+                            <small class="text-muted">Décaissements (mois)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Prévisions de trésorerie
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="tresorerieChart" style="height: 200px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides financières -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Actions rapides
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('rapport_financier') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-file-invoice fa-2x mb-2"></i><br>
+                                Rapport financier
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('gerer_provisions') }}" class="btn btn-outline-warning w-100 py-3">
+                                <i class="fas fa-shield-alt fa-2x mb-2"></i><br>
+                                Provisions
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('analyse_par') }}" class="btn btn-outline-danger w-100 py-3">
+                                <i class="fas fa-chart-pie fa-2x mb-2"></i><br>
+                                Analyse PAR
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('previsions') }}" class="btn btn-outline-success w-100 py-3">
+                                <i class="fas fa-chart-line fa-2x mb-2"></i><br>
+                                Prévisions
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('budget') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-calculator fa-2x mb-2"></i><br>
+                                Budget
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('tresorerie') }}" class="btn btn-outline-secondary w-100 py-3">
+                                <i class="fas fa-coins fa-2x mb-2"></i><br>
+                                Trésorerie
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('analyse_risque') }}" class="btn btn-outline-dark w-100 py-3">
+                                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
+                                Analyse risque
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('audit_financier') }}" class="btn btn-outline-warning w-100 py-3">
+                                <i class="fas fa-clipboard-list fa-2x mb-2"></i><br>
+                                Audit financier
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug info -->
+    {% if config['DEBUG'] %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="fas fa-bug me-2"></i>Informations de débogage</h5>
+                </div>
+                <div class="card-body">
+                    <pre class="mb-0">
+ID: {{ current_user.id }}
+Username: {{ current_user.username }}
+Rôle: {{ current_user.role }}
+Fonction: {{ current_user.fonction }}
+Statut: {{ current_user.statut }}
+Succursale: {{ current_user.succursale.nom if current_user.succursale else 'Aucune' }}
+Email: {{ current_user.email }}
+                    </pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .border-left-primary { border-left: 4px solid #4e73df !important; }
+    .border-left-success { border-left: 4px solid #1cc88a !important; }
+    .border-left-info { border-left: 4px solid #36b9cc !important; }
+    .border-left-warning { border-left: 4px solid #f6c23e !important; }
+    .border-left-danger { border-left: 4px solid #e74a3b !important; }
+
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .btn-outline-primary:hover { background: #4e73df; color: white; }
+    .btn-outline-warning:hover { background: #f6c23e; color: white; }
+    .btn-outline-danger:hover { background: #e74a3b; color: white; }
+    .btn-outline-success:hover { background: #1cc88a; color: white; }
+    .btn-outline-info:hover { background: #36b9cc; color: white; }
+    .btn-outline-secondary:hover { background: #858796; color: white; }
+    .btn-outline-dark:hover { background: #5a5c69; color: white; }
+
+    .progress {
+        border-radius: 10px;
+    }
+
+    table th {
+        font-weight: 600;
+        color: #495057;
+    }
+</style>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Graphique d'évolution du portefeuille
+        const portefeuilleCtx = document.getElementById('portefeuilleChart').getContext('2d');
+        new Chart(portefeuilleCtx, {
+            type: 'line',
+            data: {
+                labels: {{ evolution_labels|safe }},
+                datasets: [
+                    {
+                        label: 'Encours sain',
+                        data: {{ evolution_sain|safe }},
+                        borderColor: '#1cc88a',
+                        backgroundColor: 'rgba(28, 200, 138, 0.05)',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Encours douteux',
+                        data: {{ evolution_douteux|safe }},
+                        borderColor: '#f6c23e',
+                        backgroundColor: 'rgba(246, 194, 62, 0.05)',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Encours impayé',
+                        data: {{ evolution_impaye|safe }},
+                        borderColor: '#e74a3b',
+                        backgroundColor: 'rgba(231, 74, 59, 0.05)',
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return (value / 1000000) + 'M';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Graphique de qualité du portefeuille
+        const qualiteCtx = document.getElementById('qualiteChart').getContext('2d');
+        new Chart(qualiteCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Sains', 'À risque', 'Impayés'],
+                datasets: [{
+                    data: [
+                        {{ qualite.sain }},
+                        {{ qualite.risque }},
+                        {{ qualite.impaye }}
+                    ],
+                    backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Graphique de trésorerie
+        const tresorerieCtx = document.getElementById('tresorerieChart').getContext('2d');
+        new Chart(tresorerieCtx, {
+            type: 'bar',
+            data: {
+                labels: ['S-4', 'S-3', 'S-2', 'S-1', 'S', 'S+1', 'S+2', 'S+3', 'S+4'],
+                datasets: [
+                    {
+                        label: 'Prévision encaissements',
+                        data: {{ prevision_encaissements|safe }},
+                        backgroundColor: '#1cc88a'
+                    },
+                    {
+                        label: 'Prévision décaissements',
+                        data: {{ prevision_decaissements|safe }},
+                        backgroundColor: '#e74a3b'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    });
+</script>
+{% endblock %}

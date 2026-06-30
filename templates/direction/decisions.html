@@ -1,0 +1,608 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-gavel me-2"></i>
+                            Suivi des Décisions
+                        </h2>
+                        <p class="mb-0 mt-2">
+                            <i class="fas fa-chart-line me-1"></i>
+                            {{ stats.total }} décisions |
+                            <span class="text-success">{{ stats.en_cours }} en cours</span> |
+                            <span class="text-warning">{{ stats.en_retard }} en retard</span>
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <button class="btn btn-light" onclick="nouvelleDecision()">
+                            <i class="fas fa-plus"></i> Nouvelle décision
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres et recherche -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Rechercher</label>
+                            <input type="text" class="form-control" name="search" placeholder="Titre, description..." value="{{ search }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Statut</label>
+                            <select class="form-select" name="statut">
+                                <option value="">Tous</option>
+                                <option value="a_faire">À faire</option>
+                                <option value="en_cours">En cours</option>
+                                <option value="terminee">Terminée</option>
+                                <option value="en_retard">En retard</option>
+                                <option value="annulee">Annulée</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Priorité</label>
+                            <select class="form-select" name="priorite">
+                                <option value="">Toutes</option>
+                                <option value="basse">Basse</option>
+                                <option value="moyenne">Moyenne</option>
+                                <option value="haute">Haute</option>
+                                <option value="critique">Critique</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Responsable</label>
+                            <select class="form-select" name="responsable">
+                                <option value="">Tous</option>
+                                {% for resp in responsables %}
+                                <option value="{{ resp.id }}">{{ resp.nom }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-search"></i> Filtrer
+                            </button>
+                            <a href="{{ url_for('decisions') }}" class="btn btn-secondary">
+                                <i class="fas fa-undo"></i> Réinitialiser
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs Décisions -->
+    <div class="row mb-4">
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>{{ stats.total }}</h3>
+                    <small>Total décisions</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3>{{ stats.a_faire }}</h3>
+                    <small>À faire</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h3>{{ stats.en_cours }}</h3>
+                    <small>En cours</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>{{ stats.terminees }}</h3>
+                    <small>Terminées</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h3>{{ stats.en_retard }}</h3>
+                    <small>En retard</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4 mb-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body text-center">
+                    <h3>{{ stats.taux_realisation }}%</h3>
+                    <small>Taux réalisation</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau des décisions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Liste des décisions
+                    </h5>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-light" onclick="exporter('excel')">
+                            <i class="fas fa-file-excel"></i> Excel
+                        </button>
+                        <button class="btn btn-sm btn-light" onclick="exporter('pdf')">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Titre</th>
+                                    <th>Description</th>
+                                    <th>Responsable</th>
+                                    <th>Date échéance</th>
+                                    <th>Priorité</th>
+                                    <th>Statut</th>
+                                    <th>Progression</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for decision in decisions %}
+                                <tr class="{% if decision.est_en_retard %}table-danger{% endif %}">
+                                    <td>#{{ decision.id }}</td>
+                                    <td>
+                                        <strong>{{ decision.titre }}</strong>
+                                        <br>
+                                        <small class="text-muted">Créé: {{ decision.date_creation.strftime('%d/%m/%Y') }}</small>
+                                    </td>
+                                    <td>{{ decision.description|truncate(50) }}</td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-user"></i> {{ decision.responsable }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if decision.est_en_retard %}
+                                            <span class="text-danger">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                {{ decision.date_echeance.strftime('%d/%m/%Y') }}
+                                            </span>
+                                        {% else %}
+                                            {{ decision.date_echeance.strftime('%d/%m/%Y') }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ decision.priorite_couleur }}">
+                                            {{ decision.priorite }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ decision.statut_couleur }}">
+                                            {{ decision.statut }}
+                                        </span>
+                                    </td>
+                                    <td style="width: 150px;">
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-{{ decision.statut_couleur }}"
+                                                 style="width: {{ decision.progression }}%"></div>
+                                        </div>
+                                        <small>{{ decision.progression }}%</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('voir_decision', decision_id=decision.id) }}"
+                                               class="btn btn-outline-info" title="Voir">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('editer_decision', decision_id=decision.id) }}"
+                                               class="btn btn-outline-primary" title="Éditer">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button class="btn btn-outline-success" title="Mettre à jour progression"
+                                                    onclick="updateProgression({{ decision.id }})">
+                                                <i class="fas fa-chart-line"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="9" class="text-center py-4">
+                                        <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                                        <h5>Aucune décision trouvée</h5>
+                                        <p>Commencez par créer une nouvelle décision</p>
+                                        <button class="btn btn-primary" onclick="nouvelleDecision()">
+                                            <i class="fas fa-plus"></i> Nouvelle décision
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if pages > 1 %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('decisions', page=page-1, search=search, statut=statut, priorite=priorite, responsable=responsable) }}">
+                                    Précédent
+                                </a>
+                            </li>
+                            {% for p in range(1, pages+1) %}
+                            <li class="page-item {% if p == page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('decisions', page=p, search=search, statut=statut, priorite=priorite, responsable=responsable) }}">
+                                    {{ p }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                            <li class="page-item {% if page == pages %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('decisions', page=page+1, search=search, statut=statut, priorite=priorite, responsable=responsable) }}">
+                                    Suivant
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique d'évolution -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Évolution des décisions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="evolutionDecisionsChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Répartition par priorité
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="prioriteChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Décisions en retard -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Décisions en retard ({{ stats.en_retard }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for decision in decisions_retard %}
+                        <div class="list-group-item list-group-item-danger">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ decision.titre }}</h6>
+                                <small class="text-danger">Retard: {{ decision.jours_retard }} jours</small>
+                            </div>
+                            <p class="mb-1">{{ decision.description|truncate(100) }}</p>
+                            <small class="text-muted">
+                                Responsable: {{ decision.responsable }} | Échéance: {{ decision.date_echeance.strftime('%d/%m/%Y') }}
+                            </small>
+                            <div class="mt-2">
+                                <a href="{{ url_for('voir_decision', decision_id=decision.id) }}"
+                                   class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-eye"></i> Traiter
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune décision en retard ! 🎉</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendrier des échéances -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Échéances à venir (7 jours)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for echeance in echeances %}
+                        <div class="col-md-3 mb-3">
+                            <div class="card border-{{ echeance.couleur }}">
+                                <div class="card-header bg-{{ echeance.couleur }} text-white py-2">
+                                    <small>{{ echeance.date }}</small>
+                                </div>
+                                <div class="card-body">
+                                    <h6>{{ echeance.titre }}</h6>
+                                    <small>{{ echeance.responsable }}</small>
+                                    <div class="mt-2">
+                                        <span class="badge bg-{{ echeance.priorite_couleur }}">
+                                            {{ echeance.priorite }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="col-12">
+                            <p class="text-muted text-center my-3">Aucune échéance dans les 7 prochains jours</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nouvelle Décision -->
+    <div class="modal fade" id="nouvelleDecisionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        Nouvelle décision
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ url_for('creer_decision') }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label required">Titre</label>
+                            <input type="text" class="form-control" name="titre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required">Responsable</label>
+                                <select class="form-select" name="responsable_id" required>
+                                    <option value="">Sélectionner</option>
+                                    {% for resp in responsables %}
+                                    <option value="{{ resp.id }}">{{ resp.nom }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required">Date échéance</label>
+                                <input type="date" class="form-control" name="date_echeance" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required">Priorité</label>
+                                <select class="form-select" name="priorite" required>
+                                    <option value="basse">Basse</option>
+                                    <option value="moyenne" selected>Moyenne</option>
+                                    <option value="haute">Haute</option>
+                                    <option value="critique">Critique</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Réunion associée</label>
+                                <select class="form-select" name="reunion_id">
+                                    <option value="">Aucune</option>
+                                    {% for reunion in reunions %}
+                                    <option value="{{ reunion.id }}">{{ reunion.titre }} ({{ reunion.date }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Créer la décision
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Mise à jour progression -->
+    <div class="modal fade" id="updateProgressionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Mettre à jour la progression
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ url_for('update_progression') }}" id="progressForm">
+                    <div class="modal-body">
+                        <input type="hidden" name="decision_id" id="progressDecisionId">
+                        <div class="mb-3">
+                            <label class="form-label">Progression (%)</label>
+                            <input type="range" class="form-range" name="progression" id="progressRange"
+                                   min="0" max="100" step="5" value="0">
+                            <div class="text-center mt-2">
+                                <span class="badge bg-primary" id="progressValue">0%</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Commentaire</label>
+                            <textarea class="form-control" name="commentaire" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Mettre à jour
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .required::after {
+        content: " *";
+        color: #dc3545;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .progress {
+        border-radius: 10px;
+    }
+
+    .list-group-item {
+        border: none;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .list-group-item:last-child {
+        border-bottom: none;
+    }
+</style>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Graphique d'évolution
+        const evolCtx = document.getElementById('evolutionDecisionsChart').getContext('2d');
+        new Chart(evolCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+                datasets: [
+                    {
+                        label: 'Créées',
+                        data: [12, 15, 18, 22, 25, 28],
+                        borderColor: '#4e73df',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Terminées',
+                        data: [8, 10, 14, 18, 20, 22],
+                        borderColor: '#1cc88a',
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // Graphique des priorités
+        const prioriteCtx = document.getElementById('prioriteChart').getContext('2d');
+        new Chart(prioriteCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Basse', 'Moyenne', 'Haute', 'Critique'],
+                datasets: [{
+                    data: [10, 35, 40, 15],
+                    backgroundColor: ['#6c757d', '#ffc107', '#fd7e14', '#dc3545']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    });
+
+    function nouvelleDecision() {
+        var modal = new bootstrap.Modal(document.getElementById('nouvelleDecisionModal'));
+        modal.show();
+    }
+
+    function updateProgression(decisionId) {
+        document.getElementById('progressDecisionId').value = decisionId;
+        var modal = new bootstrap.Modal(document.getElementById('updateProgressionModal'));
+        modal.show();
+    }
+
+    document.getElementById('progressRange').addEventListener('input', function() {
+        document.getElementById('progressValue').textContent = this.value + '%';
+    });
+
+    function exporter(format) {
+        alert('Export en cours au format ' + format.toUpperCase());
+        // À implémenter avec AJAX
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Employés - {{ current_user.succursale.nom if current_user.succursale else 'Banque' }}</title>
+    <style>
+        :root {
+            --primary-blue: #1a237e;
+            --secondary-blue: #283593;
+            --accent-gold: #ffb300;
+            --danger-red: #c62828;
+            --success-green: #2e7d32;
+            --warning-orange: #ef6c00;
+            --gray-light: #f5f5f5;
+            --gray-medium: #e0e0e0;
+            --gray-dark: #424242;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .bank-header {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            color: white;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .bank-logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .bank-logo h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .bank-info {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .compliance-banner {
+            background-color: #fff3cd;
+            border-left: 4px solid var(--warning-orange);
+            padding: 1rem;
+            margin-bottom: 2rem;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .compliance-banner i {
+            color: var(--warning-orange);
+            font-size: 1.5rem;
+        }
+
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stat-danger { background-color: #ffebee; color: var(--danger-red); }
+        .stat-warning { background-color: #fff3e0; color: var(--warning-orange); }
+        .stat-success { background-color: #e8f5e9; color: var(--success-green); }
+        .stat-info { background-color: #e3f2fd; color: var(--primary-blue); }
+
+        .stat-content h3 {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .stat-content p {
+            color: var(--gray-dark);
+            font-size: 0.9rem;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: white;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-blue);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-blue);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background-color: var(--success-green);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--primary-blue);
+            color: var(--primary-blue);
+        }
+
+        .btn-danger {
+            background-color: var(--danger-red);
+        }
+
+        .filters-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--gray-dark);
+        }
+
+        select, input {
+            padding: 0.75rem;
+            border: 1px solid var(--gray-medium);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .employees-table-container {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-header {
+            background-color: var(--gray-light);
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--gray-medium);
+        }
+
+        .table-header h2 {
+            color: var(--primary-blue);
+        }
+
+        .empty-state {
+            padding: 4rem 2rem;
+            text-align: center;
+            color: var(--gray-dark);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--gray-medium);
+            margin-bottom: 1rem;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .employee-row {
+            display: grid;
+
+            grid-template-columns:
+                minmax(220px, 2fr)   /* Nom */
+                minmax(120px, 1fr)   /* Matricule */
+                minmax(120px, 1fr)   /* Rôle */
+                minmax(120px, 1fr)   /* Source */
+                minmax(120px, 1fr)   /* Habilitation */
+                minmax(140px, 1fr)   /* Téléphone */
+                minmax(120px, 1fr)   /* Statut */
+                minmax(180px, 1.5fr) /* Dernière activité */
+                minmax(160px, auto); /* Actions */
+
+            gap: 12px;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--gray-light);
+            align-items: center;
+        }
+
+        .employee-row.header {
+            background-color: var(--gray-light);
+            font-weight: 600;
+            color: var(--primary-blue);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status-active { background-color: #e8f5e9; color: var(--success-green); }
+        .status-pending { background-color: #fff3e0; color: var(--warning-orange); }
+        .status-inactive { background-color: #ffebee; color: var(--danger-red); }
+        .status-training { background-color: #e3f2fd; color: var(--primary-blue); }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: nowrap;
+        }
+
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn.view { background-color: #e3f2fd; color: var(--primary-blue); }
+        .action-btn.edit { background-color: #fff3e0; color: var(--warning-orange); }
+        .action-btn.security { background-color: #f3e5f5; color: #7b1fa2; }
+        .action-btn.history { background-color: #e8f5e9; color: var(--success-green); }
+
+        .action-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .brh-compliance {
+            background-color: #e8f5e9;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            border-left: 4px solid var(--success-green);
+        }
+
+        .employees-table-container {
+            background: white;
+            border-radius: 8px;
+            overflow-x: auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .employee-row:not(.header):hover {
+            background-color: #f8faff;
+            transition: 0.2s ease;
+        }
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .brh-compliance h3 {
+            color: var(--success-green);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .compliance-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .compliance-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .compliance-item i {
+            color: var(--success-green);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 2rem;
+            color: var(--gray-dark);
+            border-top: 1px solid var(--gray-medium);
+        }
+
+        @media (max-width: 1200px) {
+            .employee-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+
+            .employee-row.header {
+                display: none;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="bank-header">
+        <div class="bank-logo">
+            <i class="fas fa-university fa-2x"></i>
+            <div>
+                <h1>Banque Commerciale d'Haïti - {{ current_user.succursale.nom if current_user.succursale else 'Gestion Employés' }}</h1>
+                <div class="bank-info">Système de Gestion des Employés | Conforme BRH v3.2</div>
+            </div>
+        </div>
+        <div class="bank-info">
+            {% if current_user.succursale %}
+            <div><strong>Agence:</strong> {{ current_user.succursale.nom }} ({{ current_user.succursale.code }})</div>
+            {% endif %}
+            <div><strong>Utilisateur:</strong> {{ current_user.username }} | {{ current_user.role }}</div>
+            {% if current_user.succursale and current_user.succursale.code_brh %}
+            <div><strong>Code BRH:</strong> {{ current_user.succursale.code_brh }}</div>
+            {% endif %}
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Bannière de conformité -->
+        <div class="compliance-banner">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+                <strong>Exigences BRH:</strong> Tous les nouveaux employés doivent compléter la vérification d'antécédents et la formation AML/CFT dans les 7 jours suivant l'embauche.
+            </div>
+        </div>
+
+        <!-- Statistiques -->
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <div class="stat-icon stat-danger">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ employees|length }}</h3>
+                    <p>Employés actifs</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon stat-warning">
+                    <i class="fas fa-user-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ employees|selectattr('statut', 'equalto', 'formation')|list|length }}</h3>
+                    <p>En attente de formation</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon stat-success">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ postes_autorises }}</h3>
+                    <p>Postes autorisés</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon stat-info">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ (employees|selectattr('verifications_completes', 'equalto', true)|list|length / employees|length * 100 if employees|length > 0 else 0)|round|int }}%</h3>
+                    <p>Taux de conformité</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions rapides -->
+        <div class="quick-actions">
+          <a href="{{ url_for('liste_employes', succursale_code=current_user.succursale.code, statut='attente') }}" class="btn btn-warning">
+                <i class="fas fa-clock"></i> Voir les en attente
+            </a>
+
+
+            <!-- Bouton Import -->
+            {% if current_user.role in ['admin', 'directeur', 'rh'] %}
+            <a href="{{ url_for('import_employes', succursale=current_user.succursale.code if current_user.succursale else '') }}" class="btn btn-success">
+                <i class="fas fa-file-import"></i> Importer liste
+            </a>
+            {% endif %}
+
+            <!-- Bouton Vérifications BRH -->
+            {% if current_user.role in ['admin', 'directeur', 'compliance', 'gestionnaire'] %}
+            <a href="{{ url_for('verifications_brh', succursale=current_user.succursale.code if current_user.succursale else '') }}" class="btn btn-outline">
+                <i class="fas fa-user-check"></i> Vérifications BRH
+            </a>
+            {% endif %}
+
+            <!-- Bouton Audit -->
+            {% if current_user.role in ['admin', 'directeur', 'compliance'] %}
+            <a href="{{ url_for('audit_acces', succursale=current_user.succursale.code if current_user.succursale else '') }}" class="btn btn-danger">
+                <i class="fas fa-history"></i> Audit des accès
+            </a>
+            {% endif %}
+        </div>
+        <!-- Dans list.html, dans la boucle des employés -->
+       {% if current_user.fonction %}
+        <a href="{{ url_for('interface_fonction', fonction=current_user.fonction) }}"
+           class="btn btn-primary">
+            <i class="fas fa-toolbox"></i> Mon interface
+        </a>
+        {% endif %}
+
+
+        <!-- Filtres -->
+        <section class="filters-section">
+            <h3 style="margin-bottom: 1rem; color: var(--primary-blue);">Filtres et Recherche</h3>
+            <form method="GET" action="{{ url_for('liste_employes') }}">
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label>Statut employé</label>
+                        <select name="statut">
+                            <option value="">Tous les statuts</option>
+                            <option value="actif" {% if request.args.get('statut') == 'actif' %}selected{% endif %}>Actif</option>
+                            <option value="formation" {% if request.args.get('statut') == 'formation' %}selected{% endif %}>En formation</option>
+                            <option value="attente" {% if request.args.get('statut') == 'attente' %}selected{% endif %}>En attente</option>
+                            <option value="inactif" {% if request.args.get('statut') == 'inactif' %}selected{% endif %}>Inactif</option>
+                        </select>
+                    </div>
+
+
+
+
+                    <div class="filter-group">
+                        <label>Niveau d'habilitation</label>
+                        <select name="habilitation">
+                            <option value="">Tous niveaux</option>
+                            <option value="1" {% if request.args.get('habilitation') == '1' %}selected{% endif %}>Niveau 1 - Basique</option>
+                            <option value="2" {% if request.args.get('habilitation') == '2' %}selected{% endif %}>Niveau 2 - Intermédiaire</option>
+                            <option value="3" {% if request.args.get('habilitation') == '3' %}selected{% endif %}>Niveau 3 - Élevé</option>
+                            <option value="4" {% if request.args.get('habilitation') == '4' %}selected{% endif %}>Niveau 4 - Direction</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Recherche</label>
+                        <input type="text" name="search" placeholder="Nom, matricule, téléphone..." value="{{ request.args.get('search', '') }}">
+                    </div>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter"></i> Appliquer filtres
+                    </button>
+                    <a href="{{ url_for('liste_employes') }}" class="btn btn-outline" style="margin-left: 10px;">
+                        <i class="fas fa-redo"></i> Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </section>
+
+        <!-- Tableau des employés -->
+        <section class="employees-table-container">
+            <div class="table-header">
+                <h2><i class="fas fa-users"></i> Employés de {{ current_user.succursale.nom if current_user.succursale else 'l\'agence' }}</h2>
+                <div style="color: var(--gray-dark);">
+                    <span id="employee-count">{{ employees|length }} employé(s)</span> |
+                    <span id="compliance-percentage">{{ (employees|selectattr('verifications_completes', 'equalto', true)|list|length / employees|length * 100 if employees|length > 0 else 0)|round|int }}% conforme</span>
+                </div>
+            </div>
+
+            <!-- En-têtes du tableau -->
+            <div class="employee-row header">
+                <div>Nom complet</div>
+                <div>Matricule</div>
+                <div>Rôle</div>
+                <div>Source</div>  <!-- Nouvelle colonne -->
+                <div>Habilitation</div>
+                <div>Téléphone</div>
+                <div>Statut</div>
+                <div>Dernière activité</div>
+                <div>Actions</div>
+            </div>
+
+            <div>
+
+            {% if employees %}
+                {% for employe in employees %}
+                <div class="employee-row">
+                    <div>
+                        <strong>{{ employe.nom }} {{ employe.prenom }}</strong><br>
+                        <small>{{ employe.email }}</small>
+                    </div>
+                    <div>{{ employe.matricule }}</div>
+                    <div>{{ employe.role }}</div>
+
+                   <div>
+
+                        {% if employe.__class__.__name__ == 'User' %}
+
+                        <span class="status-badge status-active"
+                              style="background-color:#e8f5e9;">
+                            <i class="fas fa-database"></i> User
+                        </span>
+
+                        {% else %}
+
+                        <span class="status-badge status-pending"
+                              style="background-color:#fff3e0;">
+                            <i class="fas fa-user"></i> Employe
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+                    <div>
+                        <span class="status-badge status-active">Niveau {{ employe.niveau_habilitation }}</span>
+                    </div>
+                    <div>{{ employe.telephone }}</div>
+                    <div>
+                        {% if employe.statut == 'actif' %}
+                        <span class="status-badge status-active">Actif</span>
+                        {% elif employe.statut == 'formation' %}
+                        <span class="status-badge status-training">Formation</span>
+                        {% elif employe.statut == 'attente' %}
+                        <span class="status-badge status-pending">En attente</span>
+                        {% else %}
+                        <span class="status-badge status-inactive">Inactif</span>
+                        {% endif %}
+                    </div>
+                    <div>{{ employe.derniere_activite.strftime('%d/%m/%Y %H:%M') if employe.derniere_activite else 'Jamais' }}</div>
+                    <div class="action-buttons">
+                        <a href="{{ url_for('voir_employe', employe_id=employe.id) }}" class="action-btn view" title="Voir profil">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{{ url_for('modifier_employe', employe_id=employe.id) }}" class="action-btn edit" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{{ url_for('gerer_permissions', employe_id=employe.id) }}" class="action-btn security" title="Permissions">
+                            <i class="fas fa-key"></i>
+                        </a>
+                        <a href="{{ url_for('historique_employe', employe_id=employe.id) }}" class="action-btn history" title="Historique">
+                            <i class="fas fa-history"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <!-- État vide -->
+                <div class="empty-state">
+                    <i class="fas fa-user-friends"></i>
+                    <h3>Aucun employé enregistré</h3>
+                    <p style="margin-bottom: 2rem; max-width: 500px; margin-left: auto; margin-right: auto;">
+                        Cette agence bancaire ne compte encore aucun employé. Pour être conforme avec les exigences de la BRH,
+                        vous devez ajouter au moins un directeur d'agence et un agent de compliance.
+                    </p>
+                    <a href="{{ url_for('ajouter_employe', succursale_code=current_user.succursale.code if current_user.succursale else '') }}" class="btn btn-primary" style="font-size: 1.1rem; display: inline-block; width: auto; padding: 12px 30px;">
+                        <i class="fas fa-user-plus"></i> Ajouter le premier employé
+                    </a>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Ajouter ce champ pour la succursale -->
+        <div class="form-group">
+            <label for="succursale_id">Succursale</label>
+            <select name="succursale_id" id="succursale_id" class="form-control" required>
+                {% if current_user.role == 'admin' %}
+                    <option value="">Sélectionner une succursale</option>
+                    {% for succ in succursales %}
+                        <option value="{{ succ.id }}"
+                                {% if succ.id == current_user.succursale_id %}selected{% endif %}>
+                            {{ succ.nom }} ({{ succ.code }})
+                        </option>
+                    {% endfor %}
+                {% else %}
+                    <!-- Pour les non-admins, afficher seulement leur succursale -->
+                    <option value="{{ current_user.succursale.id }}" selected>
+                        {{ current_user.succursale.nom }} ({{ current_user.succursale.code }})
+                    </option>
+                {% endif %}
+            </select>
+        </div>
+
+        <!-- Section conformité BRH -->
+        <section class="brh-compliance">
+            <h3><i class="fas fa-shield-alt"></i> Checklist de conformité BRH</h3>
+            <div class="compliance-list">
+                <div class="compliance-item">
+                    {% if current_user.succursale and current_user.succursale.code_brh %}
+                    <i class="fas fa-check-circle"></i>
+                    <span>Agence enregistrée auprès de la BRH</span>
+                    {% else %}
+                    <i class="fas fa-times-circle" style="color: var(--danger-red);"></i>
+                    <span>Agence enregistrée auprès de la BRH</span>
+                    {% endif %}
+                </div>
+                <div class="compliance-item">
+                    {% if employees|selectattr('role', 'equalto', 'directeur')|list|length > 0 %}
+                    <i class="fas fa-check-circle"></i>
+                    <span>Directeur d'agence désigné</span>
+                    {% else %}
+                    <i class="fas fa-times-circle" style="color: var(--danger-red);"></i>
+                    <span>Directeur d'agence désigné</span>
+                    {% endif %}
+                </div>
+                <div class="compliance-item">
+                    {% if employees|selectattr('role', 'equalto', 'compliance')|list|length > 0 %}
+                    <i class="fas fa-check-circle"></i>
+                    <span>Agent de compliance désigné</span>
+                    {% else %}
+                    <i class="fas fa-times-circle" style="color: var(--danger-red);"></i>
+                    <span>Agent de compliance désigné</span>
+                    {% endif %}
+                </div>
+                <div class="compliance-item">
+                    {% if employees|selectattr('verifications_completes', 'equalto', true)|list|length == employees|length and employees|length > 0 %}
+                    <i class="fas fa-check-circle"></i>
+                    <span>Vérifications d'antécédents complètes</span>
+                    {% else %}
+                    <i class="fas fa-times-circle" style="color: var(--danger-red);"></i>
+                    <span>Vérifications d'antécédents complètes</span>
+                    {% endif %}
+                </div>
+                <div class="compliance-item">
+                    {% if employees|selectattr('formation_aml_cft', 'equalto', true)|list|length == employees|length and employees|length > 0 %}
+                    <i class="fas fa-check-circle"></i>
+                    <span>Formations AML/CFT à jour</span>
+                    {% else %}
+                    <i class="fas fa-times-circle" style="color: var(--danger-red);"></i>
+                    <span>Formations AML/CFT à jour</span>
+                    {% endif %}
+                </div>
+                <div class="compliance-item">
+                    {% if employees|selectattr('role', 'equalto', 'agent_securite')|list|length >= 2 %}
+                    <i class="fas fa-check-circle"></i>
+                    <span>Contingent de sécurité adéquat</span>
+                    {% else %}
+                    <i class="fas fa-times-circle" style="color: var(--danger-red);"></i>
+                    <span>Contingent de sécurité adéquat</span>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>© 2024 Banque Commerciale d'Haïti - Tous droits réservés</p>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--gray-dark);">
+            Système conforme aux exigences de la Banque de la République d'Haïti (BRH) |
+            Version 3.2.1 | Dernière mise à jour: 05/11/2024
+        </p>
+    </footer>
+</body>
+</html>

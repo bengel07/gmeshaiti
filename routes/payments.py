@@ -1,10 +1,24 @@
-from flask import jsonify, request
+# routes/payments.py
+from flask import Blueprint, jsonify, request, abort
 from datetime import datetime
+from database import db
+from models import Transaction, Client, Remboursement
+from routes.mobile_api import token_required
+from utils.notifications import notification_manager
 
+# Créer le Blueprint
+payments_bp = Blueprint('payments', __name__, url_prefix='/api/payments')
+
+# Importer token_required depuis auth (ou le définir ici)
+# from routes.auth import token_required  # Assurez-vous que token_required
 
 @app.route('/api/payments/initier', methods=['POST'])
 @token_required
 def initier_paiement(current_user):
+
+    if not client.terms_accepted:
+        abort(403)
+
     """Initie un paiement digital"""
     data = request.json
 
@@ -18,7 +32,7 @@ def initier_paiement(current_user):
 
     # Enregistrer la transaction
     transaction = Transaction(
-        user_id=current_user.id,
+        employe_id=current_user.id,
         pret_id=pret_id,
         montant=montant,
         gateway=gateway,
@@ -55,7 +69,7 @@ def confirmer_paiement():
         # Mettre à jour le remboursement
         remboursement = Remboursement(
             pret_id=transaction.pret_id,
-            client_id=transaction.user_id,
+            client_id=transaction.employe_id,
             montant=transaction.montant,
             statut='paye',
             type_paiement=transaction.gateway,
@@ -67,7 +81,7 @@ def confirmer_paiement():
 
         # Notifier l'utilisateur
         notification_manager.notifier_remboursement_reussi(
-            Client.query.get(transaction.user_id),
+            Client.query.get(transaction.employe_id),
             remboursement
         )
 

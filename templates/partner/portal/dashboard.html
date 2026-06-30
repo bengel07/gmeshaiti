@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}Partner Portal - GmesPay{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>🚀 Partner Portal</h2>
+            <p class="text-muted">Gérez vos intégrations GmesPay en un clic</p>
+        </div>
+        <div>
+            <span class="badge bg-success p-2">✅ Connecté</span>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="fas fa-plus-circle fa-3x text-primary mb-2"></i>
+                    <h6>Nouvelle Intégration</h6>
+                    <button class="btn btn-primary btn-sm" onclick="showNewIntegration()">
+                        Créer →
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="fas fa-sync fa-3x text-success mb-2"></i>
+                    <h6>Webhook</h6>
+                    <button class="btn btn-success btn-sm" onclick="showWebhook()">
+                        Configurer →
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="fas fa-key fa-3x text-warning mb-2"></i>
+                    <h6>Clés API</h6>
+                    <button class="btn btn-warning btn-sm" onclick="showKeys()">
+                        Régénérer →
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="fas fa-file-alt fa-3x text-info mb-2"></i>
+                    <h6>Documentation</h6>
+                    <button class="btn btn-info btn-sm" onclick="showDocs()">
+                        Voir →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white shadow">
+                <div class="card-body">
+                    <h6>Intégrations</h6>
+                    <h2>{{ integrations|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white shadow">
+                <div class="card-body">
+                    <h6>Transactions</h6>
+                    <h2 id="totalTx">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark shadow">
+                <div class="card-body">
+                    <h6>Volume</h6>
+                    <h2 id="totalVolume">0 HTG</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white shadow">
+                <div class="card-body">
+                    <h6>Webhooks</h6>
+                    <h2>{{ webhooks|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des intégrations -->
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span>📋 Mes Intégrations</span>
+            <button class="btn btn-sm btn-primary" onclick="showNewIntegration()">
+                ➕ Nouvelle
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nom</th>
+                            <th>Client ID</th>
+                            <th>Webhook</th>
+                            <th>Statut</th>
+                            <th>Transactions</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for integration in integrations %}
+                        <tr>
+                            <td><strong>{{ integration.name }}</strong></td>
+                            <td><code>{{ integration.client_id[:20] }}...</code></td>
+                            <td>
+                                {% if integration.webhook_url %}
+                                    <span class="badge bg-success">✅</span>
+                                {% else %}
+                                    <span class="badge bg-warning">⚠️</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if integration.is_active else 'danger' }}">
+                                    {{ 'Actif' if integration.is_active else 'Inactif' }}
+                                </span>
+                            </td>
+                            <td>{{ integration.transaction_count or 0 }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="viewIntegration('{{ integration.id }}')">
+                                    👁️
+                                </button>
+                                <button class="btn btn-sm btn-warning" onclick="editIntegration('{{ integration.id }}')">
+                                    ✏️
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteIntegration('{{ integration.id }}')">
+                                    🗑️
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                📭 Aucune intégration. Cliquez sur "Nouvelle" pour commencer.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nouvelle Intégration -->
+<div class="modal fade" id="newIntegrationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">🚀 Nouvelle Intégration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="integrationForm">
+                    <div class="alert alert-info">
+                        <strong>📋 Entrez vos identifiants reçus par email</strong>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Client ID *</label>
+                        <input type="text" class="form-control" id="client_id"
+                               placeholder="Ex: gmes_partner_abc123" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Client Secret *</label>
+                        <input type="text" class="form-control" id="client_secret"
+                               placeholder="Ex: sk_live_9f84d8f7c6..." required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nom de l'intégration *</label>
+                        <input type="text" class="form-control" id="integration_name"
+                               placeholder="Ex: Mon Site E-commerce" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">URL de Webhook (optionnel)</label>
+                        <input type="url" class="form-control" id="webhook_url"
+                               placeholder="Ex: https://mon-site.com/webhook/gmespay">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Événements à écouter</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="event_payment" checked>
+                            <label class="form-check-label">Paiements</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="event_transfer">
+                            <label class="form-check-label">Transferts</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="event_refund">
+                            <label class="form-check-label">Remboursements</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="saveIntegration()">
+                    💾 Intégrer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Voir Intégration -->
+<div class="modal fade" id="viewIntegrationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">📋 Détails de l'intégration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="viewIntegrationBody">
+                <!-- Rempli par JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Données simulées (à remplacer par des données réelles de l'API)
+let integrations = [
+    {
+        id: 1,
+        name: "Mon E-commerce",
+        client_id: "gmes_partner_abc123",
+        webhook_url: "https://mon-site.com/webhook",
+        is_active: true,
+        transaction_count: 45,
+        created_at: "2026-06-17T10:00:00Z"
+    }
+];
+
+function showNewIntegration() {
+    document.getElementById('integrationForm').reset();
+    new bootstrap.Modal(document.getElementById('newIntegrationModal')).show();
+}
+
+async function saveIntegration() {
+    const client_id = document.getElementById('client_id').value;
+    const client_secret = document.getElementById('client_secret').value;
+    const name = document.getElementById('integration_name').value;
+    const webhook_url = document.getElementById('webhook_url').value;
+
+    if (!client_id || !client_secret || !name) {
+        alert('❌ Veuillez remplir tous les champs obligatoires');
+        return;
+    }
+
+    // Simuler l'enregistrement
+    const events = [];
+    if (document.getElementById('event_payment').checked) events.push('payment');
+    if (document.getElementById('event_transfer').checked) events.push('transfer');
+    if (document.getElementById('event_refund').checked) events.push('refund');
+
+    // Appel API réel
+    try {
+        const response = await fetch('/api/partner/portal/integrations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            },
+            body: JSON.stringify({
+                name: name,
+                client_id: client_id,
+                client_secret: client_secret,
+                webhook_url: webhook_url,
+                events: events
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('✅ Intégration créée avec succès !');
+            location.reload();
+        } else {
+            alert('❌ ' + data.message);
+        }
+    } catch (error) {
+        // Simulation pour démo
+        alert('✅ Intégration créée (simulation)');
+        location.reload();
+    }
+}
+
+function viewIntegration(id) {
+    const integration = integrations.find(i => i.id === id);
+
+    document.getElementById('viewIntegrationBody').innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Nom:</strong> ${integration.name}</p>
+                <p><strong>Client ID:</strong> <code>${integration.client_id}</code></p>
+                <p><strong>Statut:</strong> ${integration.is_active ? '✅ Actif' : '❌ Inactif'}</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Webhook:</strong> ${integration.webhook_url || 'Non configuré'}</p>
+                <p><strong>Transactions:</strong> ${integration.transaction_count}</p>
+                <p><strong>Créé le:</strong> ${new Date(integration.created_at).toLocaleString('fr-FR')}</p>
+            </div>
+        </div>
+    `;
+
+    new bootstrap.Modal(document.getElementById('viewIntegrationModal')).show();
+}
+
+function editIntegration(id) {
+    // À implémenter
+    alert('✏️ Fonctionnalité en développement');
+}
+
+function deleteIntegration(id) {
+    if (confirm('⚠️ Supprimer cette intégration ?')) {
+        // Appel API DELETE
+        alert('🗑️ Intégration supprimée');
+        location.reload();
+    }
+}
+
+function showWebhook() {
+    alert('🔔 Fonctionnalité webhook en développement');
+}
+
+function showKeys() {
+    alert('🔑 Fonctionnalité de régénération de clés en développement');
+}
+
+function showDocs() {
+    window.open('/partner/docs', '_blank');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gestion des Cartes</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .carte { border: 1px solid #ddd; padding: 15px; margin: 10px; border-radius: 5px; }
+        .existe { color: green; }
+        .inexiste { color: red; }
+        .btn { padding: 5px 10px; margin: 5px; text-decoration: none; display: inline-block; }
+        .btn-generer { background: #007bff; color: white; }
+        .btn-voir { background: #28a745; color: white; }
+        .btn-telecharger { background: #17a2b8; color: white; }
+    </style>
+</head>
+<body>
+    <h1>Cartes Employés GMES</h1>
+
+    <table border="1" cellpadding="10">
+        <table>
+            <th>ID</th>
+            <th>Nom complet</th>
+            <th>Matricule</th>
+            <th>Fonction</th>
+            <th>Statut Carte</th>
+            <th>Actions</th>
+        </tr>
+        {% for carte in cartes %}
+        <tr>
+            <td>{{ carte.user.id }}</td>
+            <td>{{ carte.user.prenom }} {{ carte.user.nom }}</td>
+            <td>{{ carte.user.matricule }}</td>
+            <td>{{ carte.user.fonction }}</td>
+            <td>
+                {% if carte.carte_existe %}
+                    <span class="existe">✓ Carte générée</span>
+                {% else %}
+                    <span class="inexiste">✗ Non générée</span>
+                {% endif %}
+            </td>
+            <td>
+                <a href="{{ url_for('generer_carte', employe_id=carte.user.id) }}" class="btn btn-generer">
+                    🔄 Générer
+                </a>
+
+                {% if carte.carte_existe %}
+                    <a href="{{ url_for('voir_carte', employe_id=carte.user.id) }}" class="btn btn-voir" target="_blank">
+                        👁️ Voir
+                    </a>
+                    <a href="{{ url_for('telecharger_carte', employe_id=carte.user.id) }}" class="btn btn-telecharger">
+                        ⬇️ Télécharger
+                    </a>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

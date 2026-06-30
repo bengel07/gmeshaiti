@@ -10,7 +10,7 @@
             <div class="alert alert-danger">{{ error }}</div>
             {% endif %}
 
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
@@ -56,6 +56,73 @@
                     </div>
                 </div>
 
+                <!-- ✅ BOUTON POUR AFFICHER/MASQUER LES QUESTIONS SECRÈTES -->
+                <div class="mt-3 mb-3">
+                    <button type="button" id="toggleQuestionsBtn" class="btn btn-outline-info" onclick="toggleQuestions()">
+                        🔒 Ajouter des questions secrètes (optionnel)
+                    </button>
+                </div>
+
+                <!-- ✅ SECTION QUESTIONS SECRÈTES (MASQUÉE PAR DÉFAUT) -->
+                <div id="questionsSecretes" style="display: none;">
+                    <div class="card mt-3 mb-3" style="background-color: #f8f9fa;">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Questions secrètes</h5>
+                            <small>Ces questions permettront de réinitialiser le mot de passe en cas d'oubli</small>
+                        </div>
+                        <div class="card-body">
+                            <!-- Question 1 -->
+                            <div class="mb-3">
+                                <label class="form-label">Question 1</label>
+                                <select name="question_1" class="form-control" required>
+                                    <option value="">-- Choisissez une question --</option>
+                                    <option value="Quel est le nom de jeune fille de votre mère ?">Quel est le nom de jeune fille de votre mère ?</option>
+                                    <option value="Quel est le nom de votre premier animal de compagnie ?">Quel est le nom de votre premier animal de compagnie ?</option>
+                                    <option value="Quelle est votre ville de naissance ?">Quelle est votre ville de naissance ?</option>
+                                    <option value="Quel est le nom de votre école primaire ?">Quel est le nom de votre école primaire ?</option>
+                                    <option value="Quel est le métier de votre père ?">Quel est le métier de votre père ?</option>
+                                    <option value="Quelle est votre chanson préférée ?">Quelle est votre chanson préférée ?</option>
+                                </select>
+                                <input type="text" name="reponse_1" class="form-control mt-2" placeholder="Votre réponse" required>
+                            </div>
+
+                            <!-- Question 2 -->
+                            <div class="mb-3">
+                                <label class="form-label">Question 2</label>
+                                <select name="question_2" class="form-control" required>
+                                    <option value="">-- Choisissez une question --</option>
+                                    <option value="Quel est le nom de jeune fille de votre mère ?">Quel est le nom de jeune fille de votre mère ?</option>
+                                    <option value="Quel est le nom de votre premier animal de compagnie ?">Quel est le nom de votre premier animal de compagnie ?</option>
+                                    <option value="Quelle est votre ville de naissance ?">Quelle est votre ville de naissance ?</option>
+                                    <option value="Quel est le nom de votre école primaire ?">Quel est le nom de votre école primaire ?</option>
+                                    <option value="Quel est le métier de votre père ?">Quel est le métier de votre père ?</option>
+                                    <option value="Quelle est votre chanson préférée ?">Quelle est votre chanson préférée ?</option>
+                                </select>
+                                <input type="text" name="reponse_2" class="form-control mt-2" placeholder="Votre réponse" required>
+                            </div>
+
+                            <!-- Question 3 -->
+                            <div class="mb-3">
+                                <label class="form-label">Question 3</label>
+                                <select name="question_3" class="form-control" required>
+                                    <option value="">-- Choisissez une question --</option>
+                                    <option value="Quel est le nom de jeune fille de votre mère ?">Quel est le nom de jeune fille de votre mère ?</option>
+                                    <option value="Quel est le nom de votre premier animal de compagnie ?">Quel est le nom de votre premier animal de compagnie ?</option>
+                                    <option value="Quelle est votre ville de naissance ?">Quelle est votre ville de naissance ?</option>
+                                    <option value="Quel est le nom de votre école primaire ?">Quel est le nom de votre école primaire ?</option>
+                                    <option value="Quel est le métier de votre père ?">Quel est le métier de votre père ?</option>
+                                    <option value="Quelle est votre chanson préférée ?">Quelle est votre chanson préférée ?</option>
+                                </select>
+                                <input type="text" name="reponse_3" class="form-control mt-2" placeholder="Votre réponse" required>
+                            </div>
+
+                            <div class="alert alert-info small">
+                                <i class="fas fa-info-circle"></i> Ces questions seront utilisées pour réinitialiser votre mot de passe en cas d'oubli. Gardez vos réponses en sécurité.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-success">Créer l'employé</button>
                     <a href="{{ url_for('gerer_employes') }}" class="btn btn-secondary">Annuler</a>
@@ -64,4 +131,23 @@
         </div>
     </div>
 </div>
+
+<script>
+function toggleQuestions() {
+    const div = document.getElementById('questionsSecretes');
+    const btn = document.getElementById('toggleQuestionsBtn');
+
+    if (div.style.display === 'none') {
+        div.style.display = 'block';
+        btn.innerHTML = '🔒 Masquer les questions secrètes';
+        btn.classList.remove('btn-outline-info');
+        btn.classList.add('btn-info');
+    } else {
+        div.style.display = 'none';
+        btn.innerHTML = '🔒 Ajouter des questions secrètes (optionnel)';
+        btn.classList.remove('btn-info');
+        btn.classList.add('btn-outline-info');
+    }
+}
+</script>
 {% endblock %}

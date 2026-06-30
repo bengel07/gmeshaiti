@@ -53,7 +53,7 @@
             <ul>
                 <li>Demandes de prêt en ligne</li>
                 <li>Suivi des remboursements</li>
-                <li>Notifications SMS</li>
+                <li>Notifications SMS et email</li>
             </ul>
         </div>
     </div>
@@ -62,19 +62,19 @@
 <div class="stats-section">
     <div class="stats-container">
         <div class="stat-item">
-            <div class="stat-number">1,250+</div>
+            <div class="stat-number">{{ stats.clients_actifs }}</div>
             <div class="stat-label">Clients Actifs</div>
         </div>
         <div class="stat-item">
-            <div class="stat-number">₲ 5.2M</div>
+            <div class="stat-number"> {{ stats.total_prets }} HTG</div>
             <div class="stat-label">Prêts Accordés</div>
         </div>
         <div class="stat-item">
-            <div class="stat-number">98%</div>
+            <div class="stat-number">{{ stats.taux_remboursement }}%</div>
             <div class="stat-label">Taux de Remboursement</div>
         </div>
         <div class="stat-item">
-            <div class="stat-number">25+</div>
+            <div class="stat-number">{{ stats.communautes }}</div>
             <div class="stat-label">Communautés Desservies</div>
         </div>
     </div>

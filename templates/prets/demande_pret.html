@@ -1,95 +1,1072 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Demande de Prêt - GMES</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 2rem; background: #f5f5f5; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 2rem; border-radius: 10px; }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
-        input, select { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 5px; }
-        button { background: #27ae60; color: white; padding: 1rem 2rem; border: none; border-radius: 5px; cursor: pointer; }
-        .calcul-resultat { background: #e8f5e8; padding: 1rem; border-radius: 5px; margin: 1rem 0; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>💰 Demande de Prêt</h1>
+{% extends "base.html" %}
 
-        <div class="calcul-resultat" id="resultatCalcul" style="display: none;">
-            <h4>Résultat du calcul:</h4>
-            <p>Mensualité: <strong id="mensualite">0</strong> HTG</p>
-            <p>Total à rembourser: <strong id="total">0</strong> HTG</p>
-            <p>Coût du crédit: <strong id="cout">0</strong> HTG</p>
+<!-- Dans votre template de demande de prêt, ajoutez cette logique en haut de la page -->
+{% if show_for_director %}
+<div class="alert alert-info mb-4">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Mode directeur :</strong> Vous visualisez une demande soumise. Veuillez prendre votre décision ci-dessous.
+</div>
+{% endif %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête avec progression -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-0">
+                                <i class="fas fa-file-signature me-2"></i>
+                                {% if show_for_director %}Détails de la demande de prêt{% else %}Nouvelle Demande de Prêt{% endif %}
+                            </h2>
+                            <p class="mb-0 mt-2">
+                                <i class="fas fa-user-tie me-1"></i>
+                                Agent: {{ current_user.prenom }} {{ current_user.nom }}
+                            </p>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-light text-dark p-3">
+                                <i class="fas fa-calendar me-2"></i>
+                                {{ now.strftime('%d/%m/%Y') }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Barre de progression -->
+                    <div class="progress mt-3" style="height: 5px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                             style="width: 0%" id="progressBar"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <form method="POST" onsubmit="return validerFormulaire()">
-            <div class="form-group">
-                <label>Montant demandé (HTG):</label>
-                <input type="number" name="montant" id="montant" min="5000" max="100000" required
-                       onchange="calculerPret()">
-            </div>
-
-            <div class="form-group">
-                <label>Durée (mois):</label>
-                <select name="duree" id="duree" onchange="calculerPret()" required>
-                    <option value="3">3 mois</option>
-                    <option value="6">6 mois</option>
-                    <option value="12" selected>12 mois</option>
-                    <option value="18">18 mois</option>
-                    <option value="24">24 mois</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Motif du prêt:</label>
-                <select name="motif" required>
-                    <option value="commerce">Commerce</option>
-                    <option value="agriculture">Agriculture</option>
-                    <option value="artisanat">Artisanat</option>
-                    <option value="education">Éducation</option>
-                    <option value="sante">Santé</option>
-                    <option value="autre">Autre</option>
-                </select>
-            </div>
-
-            <button type="submit">Soumettre la demande</button>
-        </form>
-
-        <a href="{{ url_for('tableau_de_bord') }}" style="display: inline-block; margin-top: 1rem;">← Retour</a>
     </div>
 
-    <script>
-        function calculerPret() {
-            const montant = document.getElementById('montant').value;
-            const duree = document.getElementById('duree').value;
+    <form method="POST" id="formPret" class="needs-validation" novalidate enctype="multipart/form-data">
+        <!-- 1️⃣ Informations personnelles -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <span class="badge bg-white text-primary me-2">1</span>
+                    <i class="fas fa-user-circle me-2"></i>
+                    Informations personnelles
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required">Nom</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" name="nom" required
+                                   value="{{ form_data.nom if form_data else '' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required">Prénom</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" name="prenom" required
+                                   value="{{ form_data.prenom if form_data else '' }}">
+                        </div>
+                    </div>
+                </div>
 
-            if (montant && duree) {
-                fetch('/api/calcul-pret', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ montant: parseFloat(montant), duree: parseInt(duree) })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('mensualite').textContent = data.mensualite;
-                    document.getElementById('total').textContent = data.total_rembourser;
-                    document.getElementById('cout').textContent = data.cout_credit;
-                    document.getElementById('resultatCalcul').style.display = 'block';
+                {% if client and not show_for_director %}
+                <div class="eligibility-card">
+                    <h3>Vérification d'éligibilité</h3>
+                    {% set eligibilite = verifier_eligibilite_pret(client) %}
+                    {% if eligibilite.eligible %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> {{ eligibilite.message }}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> {{ eligibilite.message }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required">Sexe</label><br>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="sexe" id="sexeM" value="M"
+                                   {% if form_data and form_data.sexe == 'M' %}checked{% endif %}
+                                   {% if not show_for_director %}required{% endif %}>
+                            <label class="btn btn-outline-primary" for="sexeM">
+                                <i class="fas fa-mars me-2"></i>Masculin
+                            </label>
+                            <input type="radio" class="btn-check" name="sexe" id="sexeF" value="F"
+                                   {% if form_data and form_data.sexe == 'F' %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="sexeF">
+                                <i class="fas fa-venus me-2"></i>Féminin
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required">Date de naissance</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                            <input type="date" class="form-control" name="date_naissance"
+                                   value="{{ form_data.date_naissance if form_data else '' }}"
+                                   {% if not show_for_director %}required{% endif %}>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required">Lieu de naissance</label>
+                        <input type="text" class="form-control" name="lieu_naissance"
+                               value="{{ form_data.lieu_naissance if form_data else '' }}"
+                               {% if not show_for_director %}required{% endif %}>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required">Nationalité</label>
+                        <div class="input-group">
+                            <select class="form-select" name="nationalite" {% if not show_for_director %}required{% endif %}>
+                                <option value="Haïtienne" {% if form_data and form_data.nationalite == 'Haïtienne' %}selected{% endif %}>Haïtienne</option>
+                                <option value="Autre" {% if form_data and form_data.nationalite == 'Autre' %}selected{% endif %}>Autre</option>
+                            </select>
+                            <input type="text" class="form-control" name="autre_nationalite"
+                                   placeholder="Précisez" style="display: {% if form_data and form_data.nationalite == 'Autre' %}block{% else %}none{% endif %};"
+                                   value="{{ form_data.autre_nationalite if form_data else '' }}" id="autreNationalite">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required">Numéro CIN/NIF</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                            <input type="text" class="form-control" name="cin_nif"
+                                   value="{{ form_data.cin_nif if form_data else '' }}"
+                                   {% if not show_for_director %}required{% endif %}>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required">Téléphone</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                            <input type="tel" class="form-control" name="telephone"
+                                   value="{{ form_data.telephone if form_data else '' }}"
+                                   placeholder="+509 XX XX XXXX" {% if not show_for_director %}required{% endif %}>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required">Email</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <input type="email" class="form-control" name="email"
+                                   value="{{ form_data.email if form_data else '' }}"
+                                   {% if not show_for_director %}required{% endif %}>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2️⃣ Adresse -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <span class="badge bg-white text-success me-2">2</span>
+                    <i class="fas fa-map-marker-alt me-2"></i>
+                    Adresse
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label required">Adresse complète</label>
+                    <textarea class="form-control" name="adresse" rows="2"
+                              {% if not show_for_director %}required{% endif %}>{{ form_data.adresse if form_data else '' }}</textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required">Commune</label>
+                        <input type="text" class="form-control" name="commune"
+                               value="{{ form_data.commune if form_data else '' }}"
+                               {% if not show_for_director %}required{% endif %}>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required">Département</label>
+                        <select class="form-select" name="departement" {% if not show_for_director %}required{% endif %}>
+                            <option value="">Sélectionnez</option>
+                            <option value="Artibonite" {% if form_data and form_data.departement == 'Artibonite' %}selected{% endif %}>Artibonite</option>
+                            <option value="Centre" {% if form_data and form_data.departement == 'Centre' %}selected{% endif %}>Centre</option>
+                            <option value="Grand'Anse" {% if form_data and form_data.departement == "Grand'Anse" %}selected{% endif %}>Grand'Anse</option>
+                            <option value="Nippes" {% if form_data and form_data.departement == 'Nippes' %}selected{% endif %}>Nippes</option>
+                            <option value="Nord" {% if form_data and form_data.departement == 'Nord' %}selected{% endif %}>Nord</option>
+                            <option value="Nord-Est" {% if form_data and form_data.departement == 'Nord-Est' %}selected{% endif %}>Nord-Est</option>
+                            <option value="Nord-Ouest" {% if form_data and form_data.departement == 'Nord-Ouest' %}selected{% endif %}>Nord-Ouest</option>
+                            <option value="Ouest" {% if form_data and form_data.departement == 'Ouest' %}selected{% endif %}>Ouest</option>
+                            <option value="Sud" {% if form_data and form_data.departement == 'Sud' %}selected{% endif %}>Sud</option>
+                            <option value="Sud-Est" {% if form_data and form_data.departement == 'Sud-Est' %}selected{% endif %}>Sud-Est</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required">Depuis combien de temps ?</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" name="duree_adresse" min="0"
+                                   value="{{ form_data.duree_adresse if form_data else 0 }}"
+                                   {% if not show_for_director %}required{% endif %}>
+                            <span class="input-group-text">ans</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3️⃣ Situation familiale -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <span class="badge bg-white text-info me-2">3</span>
+                    <i class="fas fa-users me-2"></i>
+                    Situation familiale
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required">État civil</label>
+                        <select class="form-select" name="etat_civil" {% if not show_for_director %}required{% endif %}>
+                            <option value="">Sélectionnez</option>
+                            <option value="celibataire" {% if form_data and form_data.etat_civil == 'celibataire' %}selected{% endif %}>Célibataire</option>
+                            <option value="marie" {% if form_data and form_data.etat_civil == 'marie' %}selected{% endif %}>Marié(e)</option>
+                            <option value="union_libre" {% if form_data and form_data.etat_civil == 'union_libre' %}selected{% endif %}>Union libre</option>
+                            <option value="divorce" {% if form_data and form_data.etat_civil == 'divorce' %}selected{% endif %}>Divorcé(e)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nom du conjoint(e)</label>
+                        <input type="text" class="form-control" name="nom_conjoint"
+                               value="{{ form_data.nom_conjoint if form_data else '' }}">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required">Nombre d'enfants à charge</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" name="nb_enfants" min="0"
+                                   value="{{ form_data.nb_enfants if form_data else 0 }}"
+                                   {% if not show_for_director %}required{% endif %}>
+                            <span class="input-group-text">enfant(s)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4️⃣ Informations professionnelles -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-warning text-white">
+                <h5 class="mb-0">
+                    <span class="badge bg-white text-warning me-2">4</span>
+                    <i class="fas fa-briefcase me-2"></i>
+                    Informations professionnelles
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required">Profession / Activité</label>
+                        <input type="text" class="form-control" name="profession"
+                               value="{{ form_data.profession if form_data else '' }}"
+                               {% if not show_for_director %}required{% endif %}>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required">Nom de l'entreprise</label>
+                        <input type="text" class="form-control" name="entreprise"
+                               value="{{ form_data.entreprise if form_data else '' }}"
+                               {% if not show_for_director %}required{% endif %}>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label required">Adresse du lieu de travail</label>
+                    <input type="text" class="form-control" name="adresse_travail"
+                           value="{{ form_data.adresse_travail if form_data else '' }}"
+                           {% if not show_for_director %}required{% endif %}>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Téléphone travail</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-phone-alt"></i></span>
+                            <input type="tel" class="form-control" name="tel_travail"
+                                   value="{{ form_data.tel_travail if form_data else '' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required">Revenus mensuels</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" name="revenu_mensuel" min="0" step="any"
+                                   value="{{ form_data.revenu_mensuel if form_data else 0 }}"
+                                   {% if not show_for_director %}required{% endif %}>
+                            <span class="input-group-text">Gdes</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Autres sources de revenus</label>
+                    <textarea class="form-control" name="autres_revenus" rows="2">{{ form_data.autres_revenus if form_data else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📸 Photos d'identité -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <span class="badge bg-white text-info me-2">📸</span>
+                    <i class="fas fa-camera me-2"></i>
+                    Photos d'identité
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label {% if not show_for_director %}required{% endif %}">Photo face (Recto)</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                            <input type="file" class="form-control" name="photo_face" accept="image/*"
+                                   {% if not show_for_director %}required{% endif %}>
+                        </div>
+                        {% if form_data and form_data.photo_face %}
+                        <small class="text-muted">Photo actuelle: {{ form_data.photo_face }}</small>
+                        {% endif %}
+                        <small class="text-muted">Format accepté : JPG, PNG. Max 5 Mo</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label {% if not show_for_director %}required{% endif %}">Photo dos (Verso)</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                            <input type="file" class="form-control" name="photo_dos" accept="image/*"
+                                   {% if not show_for_director %}required{% endif %}>
+                        </div>
+                        {% if form_data and form_data.photo_dos %}
+                        <small class="text-muted">Photo actuelle: {{ form_data.photo_dos }}</small>
+                        {% endif %}
+                        <small class="text-muted">Format accepté : JPG, PNG. Max 5 Mo</small>
+                    </div>
+                </div>
+                <div class="alert alert-info mt-2">
+                    <i class="fas fa-info-circle"></i> Les photos doivent être nettes et lisibles.
+                </div>
+            </div>
+        </div>
+
+        <!-- 5️⃣ Informations sur le prêt -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <span class="badge bg-white text-danger me-2">5</span>
+                    <i class="fas fa-hand-holding-usd me-2"></i>
+                    Informations sur le prêt
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required">Montant demandé</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" name="montant_demande"
+                                   min="10000" max="10000000000" step="any" id="montant"
+                                   value="{{ form_data.montant_demande if form_data else '' }}"
+                                   {% if show_for_director %}readonly{% else %}required{% endif %}>
+                            <span class="input-group-text">Gdes</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required">Durée de remboursement</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" name="duree" min="3" max="60" id="duree"
+                                   value="{{ form_data.duree if form_data else '' }}"
+                                   {% if show_for_director %}readonly{% else %}required{% endif %}>
+                            <span class="input-group-text">mois</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label required">Objet du prêt</label>
+                    <textarea class="form-control" name="objet" rows="3"
+                              {% if show_for_director %}readonly{% else %}required{% endif %}>{{ form_data.objet if form_data else '' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label required">Type de prêt</label>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="type_pret" value="commerce"
+                                       {% if form_data and form_data.type_pret == 'commerce' %}checked{% endif %}
+                                       {% if not show_for_director %}required{% endif %}>
+                                <label class="form-check-label">Commerce</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="type_pret" value="personnel"
+                                       {% if form_data and form_data.type_pret == 'personnel' %}checked{% endif %}>
+                                <label class="form-check-label">Personnel</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="type_pret" value="scolaire"
+                                       {% if form_data and form_data.type_pret == 'scolaire' %}checked{% endif %}>
+                                <label class="form-check-label">Scolaire</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="type_pret" value="construction"
+                                       {% if form_data and form_data.type_pret == 'construction' %}checked{% endif %}>
+                                <label class="form-check-label">Construction</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="type_pret" value="autre" id="typePretAutre"
+                                   {% if form_data and form_data.type_pret == 'autre' %}checked{% endif %}>
+                            <label class="form-check-label">Autre :</label>
+                            <input type="text" class="form-control mt-2" name="autre_type_pret"
+                                   placeholder="Précisez" style="display: {% if form_data and form_data.type_pret == 'autre' %}block{% else %}none{% endif %};"
+                                   value="{{ form_data.autre_type_pret if form_data else '' }}" id="autreTypePret">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation en temps réel -->
+                <div class="alert alert-info mt-3">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <small>Mensualité estimée</small>
+                            <h4 class="mb-0" id="simMensualite">0 Gdes</h4>
+                        </div>
+                        <div class="col-md-4">
+                            <small>Total à rembourser</small>
+                            <h4 class="mb-0" id="simTotal">0 Gdes</h4>
+                        </div>
+                        <div class="col-md-4">
+                            <small>Taux d'intérêt</small>
+                            <h4 class="mb-0" id="simTaux">12%</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6️⃣ Garanties / Caution -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <span class="badge bg-white text-secondary me-2">6</span>
+                    <i class="fas fa-shield-alt me-2"></i>
+                    Garanties / Caution
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Avez-vous un garant ?</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="a_garant" value="oui" id="garantOui"
+                               {% if form_data and form_data.a_garant == 'oui' %}checked{% endif %}>
+                        <label class="form-check-label" for="garantOui">Oui</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="a_garant" value="non" id="garantNon"
+                               {% if not form_data or form_data.a_garant == 'non' %}checked{% endif %}>
+                        <label class="form-check-label" for="garantNon">Non</label>
+                    </div>
+                </div>
+
+                <div id="infosGarant" style="display: {% if form_data and form_data.a_garant == 'oui' %}block{% else %}none{% endif %};">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nom du garant</label>
+                            <input type="text" class="form-control" name="nom_garant"
+                                   value="{{ form_data.nom_garant if form_data else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Téléphone</label>
+                            <input type="tel" class="form-control" name="tel_garant"
+                                   value="{{ form_data.tel_garant if form_data else '' }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Adresse du garant</label>
+                        <input type="text" class="form-control" name="adresse_garant"
+                               value="{{ form_data.adresse_garant if form_data else '' }}">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Relation avec le demandeur</label>
+                            <input type="text" class="form-control" name="relation_garant"
+                                   value="{{ form_data.relation_garant if form_data else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Profession du garant</label>
+                            <input type="text" class="form-control" name="profession_garant"
+                                   value="{{ form_data.profession_garant if form_data else '' }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7️⃣ Références personnelles -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <span class="badge bg-white text-dark me-2">7</span>
+                    <i class="fas fa-address-book me-2"></i>
+                    Références personnelles
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Référence 1</label>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" name="ref1_nom"
+                                   value="{{ form_data.ref1_nom if form_data else '' }}">
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                            <input type="tel" class="form-control" name="ref1_tel"
+                                   value="{{ form_data.ref1_tel if form_data else '' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Référence 2</label>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" name="ref2_nom"
+                                   value="{{ form_data.ref2_nom if form_data else '' }}">
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                            <input type="tel" class="form-control" name="ref2_tel"
+                                   value="{{ form_data.ref2_tel if form_data else '' }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8️⃣ Déclaration -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-purple text-white">
+                <h5 class="mb-0">
+                    <span class="badge bg-white text-purple me-2">8</span>
+                    <i class="fas fa-gavel me-2"></i>
+                    Déclaration
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-center mb-4">
+                    Je soussigné(e) <strong><span id="displayNom"></span> <span id="displayPrenom"></span></strong><br>
+                    déclare que les informations fournies sont exactes et complètes.
+                </p>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Signature du demandeur</label>
+                        <div class="signature-pad">
+                            <canvas id="signatureCanvas" width="400" height="150"
+                                    style="border: 2px dashed #ccc; border-radius: 5px;"></canvas>
+                            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="clearSignature">
+                                <i class="fas fa-eraser"></i> Effacer
+                            </button>
+                            <input type="hidden" name="signature" id="signatureInput"
+                                   value="{{ form_data.signature if form_data else '' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required">Date</label>
+                        <input type="date" class="form-control" name="date_demande" required
+                               value="{{ form_data.date_demande if form_data else now.strftime('%Y-%m-%d') }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Partie réservée à l'institution -->
+        <div class="card shadow mb-4 border-primary" id="institutionPart">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-building me-2"></i>
+                    Partie réservée à l'institution
+                    <span class="badge bg-light text-dark ms-2" id="institutionBadge">
+                        {% if show_for_director %}
+                        En attente de décision
+                        {% else %}
+                        En attente de soumission
+                        {% endif %}
+                    </span>
+                </h5>
+            </div>
+            <div class="card-body {% if not show_for_director %}bg-light institution-disabled{% else %}bg-light institution-enabled{% endif %}"
+                 id="institutionBody"
+                 {% if not show_for_director %}style="opacity: 0.6; pointer-events: none;"{% endif %}>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Numéro dossier</label>
+                        <input type="text" class="form-control" name="numero_dossier"
+                               value="{{ form_data.num_dossier if form_data else ('PRET-' + now.strftime('%Y%m%d%H%M%S')) }}"
+                               {% if not show_for_director %}readonly{% endif %}>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Date de réception</label>
+                        <input type="date" class="form-control" name="date_reception"
+                               value="{{ form_data.date_reception if form_data else now.strftime('%Y-%m-%d') }}"
+                               {% if not show_for_director %}readonly{% endif %}>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Décision</label>
+                        <select class="form-select" name="decision" id="decisionSelect"
+                                {% if not show_for_director %}disabled{% endif %}>
+                            <option value="en_attente" {% if form_data and form_data.decision == 'en_attente' %}selected{% endif %}>En attente</option>
+                            <option value="approuve" {% if form_data and form_data.decision == 'approuve' %}selected{% endif %}>Approuvé</option>
+                            <option value="refuse" {% if form_data and form_data.decision == 'refuse' %}selected{% endif %}>Refusé</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Agent responsable</label>
+                        <input type="text" class="form-control"
+                               value="{{ form_data.signature_responsable or (current_user.prenom + ' ' + current_user.nom) }}" readonly>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Montant accordé</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" name="montant_accorde" id="montantAccorde"
+                                   value="{{ form_data.montant_accorde if form_data else form_data.montant_demande }}"
+                                   {% if not show_for_director %}disabled{% endif %}>
+                            <span class="input-group-text">Gdes</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Taux d'intérêt (%)</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" name="taux_interet" step="0.1" id="tauxInteret"
+                                   value="{{ form_data.taux_interet if form_data else 12 }}"
+                                   {% if not show_for_director %}disabled{% endif %}>
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Signature responsable</label>
+                        <input type="text" class="form-control" name="signature_responsable"
+                               value="{{ form_data.signature_responsable or (current_user.prenom + ' ' + current_user.nom) }}"
+                               {% if not show_for_director %}readonly{% endif %}>
+                    </div>
+                </div>
+
+                {% if show_for_director %}
+                <div class="row mt-4" id="approbationActions">
+                    <div class="col-12 text-center">
+                        <button type="button" class="btn btn-success btn-lg me-2" onclick="approuverPret()">
+                            <i class="fas fa-check me-2"></i>Approuver
+                        </button>
+
+                        <button type="button" class="btn btn-warning btn-lg me-2" onclick="demanderPlusInformations()">
+                            <i class="fas fa-question-circle me-2"></i>Plus d'infos
+                        </button>
+
+                        <button type="button" class="btn btn-danger btn-lg" onclick="refuserPret()">
+                            <i class="fas fa-times me-2"></i>Refuser
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-body d-flex justify-content-between">
+                        <!-- REMPLACER PAR (pour le mode directeur) -->
+                        {% if show_for_director %}
+                        <a href="{{ url_for('direction_succursale_dashboard') }}"
+                           class="btn btn-secondary btn-lg">
+                            <i class="fas fa-arrow-left me-2"></i>Retour au tableau de bord
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('agent_credit_dashboard', succursale_code=succursale.code) }}"
+                           class="btn btn-secondary btn-lg">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        <!-- ✅ AJOUTEZ CE BOUTON -->
+                        <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
+                            <i class="fas fa-save me-2"></i>Soumettre la demande
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .bg-purple {
+        background-color: #6f42c1;
+    }
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    .card-header {
+        border-radius: 15px 15px 0 0 !important;
+        padding: 1rem 1.5rem;
+    }
+    .required::after {
+        content: " *";
+        color: #dc3545;
+        font-weight: bold;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+    .btn-group .btn-outline-primary {
+        border-color: #4e73df;
+    }
+    .btn-group .btn-outline-primary:hover {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: transparent;
+    }
+    .signature-pad {
+        background: white;
+        border-radius: 8px;
+    }
+    canvas {
+        width: 100%;
+        height: auto;
+        background: white;
+        cursor: crosshair;
+    }
+    .badge {
+        font-size: 1rem;
+        padding: 0.5rem 0.8rem;
+    }
+    .alert-info {
+        background: linear-gradient(135deg, #e0e7ff 0%, #dbeafe 100%);
+        border: none;
+        color: #1e40af;
+    }
+    .institution-disabled {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+    .institution-enabled {
+        opacity: 1;
+        pointer-events: all;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gestion de la nationalité
+        const nationaliteSelect = document.querySelector('select[name="nationalite"]');
+        const autreNationalite = document.getElementById('autreNationalite');
+        if (nationaliteSelect) {
+            nationaliteSelect.addEventListener('change', function() {
+                autreNationalite.style.display = this.value === 'Autre' ? 'block' : 'none';
+            });
+        }
+
+        // Gestion du type de prêt "Autre"
+        const typePretRadios = document.querySelectorAll('input[name="type_pret"]');
+        const autreTypePret = document.getElementById('autreTypePret');
+        typePretRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                autreTypePret.style.display = this.value === 'autre' ? 'block' : 'none';
+            });
+        });
+
+        // Gestion du garant
+        const garantRadios = document.querySelectorAll('input[name="a_garant"]');
+        const infosGarant = document.getElementById('infosGarant');
+        garantRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                infosGarant.style.display = this.value === 'oui' ? 'block' : 'none';
+            });
+        });
+
+        // Mise à jour du nom dans la déclaration
+        const nomInput = document.querySelector('input[name="nom"]');
+        const prenomInput = document.querySelector('input[name="prenom"]');
+        const displayNom = document.getElementById('displayNom');
+        const displayPrenom = document.getElementById('displayPrenom');
+
+        function updateDisplay() {
+            displayNom.textContent = nomInput ? (nomInput.value || '[Nom]') : '[Nom]';
+            displayPrenom.textContent = prenomInput ? (prenomInput.value || '[Prénom]') : '[Prénom]';
+        }
+        if (nomInput && prenomInput) {
+            nomInput.addEventListener('input', updateDisplay);
+            prenomInput.addEventListener('input', updateDisplay);
+            updateDisplay();
+        }
+
+        // Simulation de prêt
+        const montant = document.getElementById('montant');
+        const duree = document.getElementById('duree');
+
+        function calculerMensualite() {
+            const m = parseFloat(montant ? montant.value : 0) || 0;
+            const d = parseFloat(duree ? duree.value : 0) || 1;
+            const taux = 0.12;
+
+            if (m > 0 && d > 0) {
+                const tauxMensuel = taux / 12;
+                const facteur = Math.pow(1 + tauxMensuel, d);
+                const mensualite = (m * tauxMensuel * facteur) / (facteur - 1);
+                const total = mensualite * d;
+
+                const simMensualite = document.getElementById('simMensualite');
+                const simTotal = document.getElementById('simTotal');
+                if (simMensualite) simMensualite.textContent = Math.round(mensualite).toLocaleString() + ' Gdes';
+                if (simTotal) simTotal.textContent = Math.round(total).toLocaleString() + ' Gdes';
+            }
+        }
+
+        if (montant && duree) {
+            montant.addEventListener('input', calculerMensualite);
+            duree.addEventListener('input', calculerMensualite);
+            calculerMensualite();
+        }
+
+        // Signature canvas
+        const canvas = document.getElementById('signatureCanvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            let drawing = false;
+
+            canvas.addEventListener('mousedown', () => drawing = true);
+            canvas.addEventListener('mouseup', () => {
+                drawing = false;
+                ctx.beginPath();
+                document.getElementById('signatureInput').value = canvas.toDataURL();
+            });
+            canvas.addEventListener('mousemove', draw);
+
+            function draw(e) {
+                if (!drawing) return;
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#000';
+                ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+            }
+
+            const clearBtn = document.getElementById('clearSignature');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    document.getElementById('signatureInput').value = '';
                 });
             }
         }
 
-        function validerFormulaire() {
-            const montant = document.getElementById('montant').value;
-            if (montant < 5000 || montant > 100000) {
-                alert('Le montant doit être entre 5,000 et 100,000 HTG');
-                return false;
+        // Barre de progression
+        const form = document.getElementById('formPret');
+        const progressBar = document.getElementById('progressBar');
+        if (form && progressBar) {
+            const totalFields = form.querySelectorAll('input[required], select[required], textarea[required]').length;
+            form.addEventListener('input', updateProgress);
+            form.addEventListener('change', updateProgress);
+
+            function updateProgress() {
+                const filled = Array.from(form.querySelectorAll('input[required], select[required], textarea[required]'))
+                    .filter(field => field.value && field.value.trim() !== '').length;
+                const percent = (filled / totalFields) * 100;
+                progressBar.style.width = percent + '%';
             }
-            return true;
         }
-    </script>
-</body>
-</html>
+
+        // Validation du formulaire
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                if (!form.checkValidity()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const firstInvalid = form.querySelector(':invalid');
+                    if (firstInvalid) {
+                        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstInvalid.focus();
+                    }
+                }
+                form.classList.add('was-validated');
+            });
+        }
+    });
+
+    // ========== FONCTIONS POUR LES BOUTONS ==========
+
+    // Fonction pour approuver le prêt
+    function approuverPret() {
+        const montantAccorde = document.getElementById('montantAccorde');
+        const tauxInteret = document.getElementById('tauxInteret');
+        const pretId = {{ pret.id if pret else 0 }};
+
+        if (pretId === 0) {
+            alert('Erreur: ID du prêt non trouvé');
+            return;
+        }
+
+        if (confirm('Approuver cette demande de prêt ?')) {
+            // Désactiver le bouton
+            const btn = document.querySelector('#approbationActions .btn-success');
+            if (!btn) return;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Traitement...';
+            btn.disabled = true;
+
+            const body = {
+                montant_accorde: montantAccorde ? parseFloat(montantAccorde.value) : null,
+                taux_interet: tauxInteret ? parseFloat(tauxInteret.value) : null
+            };
+
+            fetch(`/pret/${pretId}/approuver`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      alert('✅ Prêt approuvé avec succès !');
+                      window.location.href = "{{ url_for('direction_succursale_dashboard') }}";
+                  } else {
+                      alert('Erreur: ' + data.message);
+                      btn.innerHTML = originalText;
+                      btn.disabled = false;
+                  }
+              }).catch(error => {
+                  alert('Erreur réseau: ' + error);
+                  btn.innerHTML = originalText;
+                  btn.disabled = false;
+              });
+        }
+    }
+
+    // Fonction pour refuser le prêt
+    function refuserPret() {
+        const pretId = {{ pret.id if pret else 0 }};
+
+        if (pretId === 0) {
+            alert('Erreur: ID du prêt non trouvé');
+            return;
+        }
+
+        const motif = prompt('Motif du refus :');
+        if (motif !== null && motif.trim() !== '') {
+            // Désactiver le bouton
+            const btn = document.querySelector('#approbationActions .btn-danger');
+            if (!btn) return;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Traitement...';
+            btn.disabled = true;
+
+            fetch(`/pret/${pretId}/refuser`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    motif_refus: motif.trim()
+                })
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      alert('❌ Prêt refusé');
+                      window.location.href = "{{ url_for('direction_succursale_dashboard') }}";
+                  } else {
+                      alert('Erreur: ' + data.message);
+                      btn.innerHTML = originalText;
+                      btn.disabled = false;
+                  }
+              }).catch(error => {
+                  alert('Erreur réseau: ' + error);
+                  btn.innerHTML = originalText;
+                  btn.disabled = false;
+              });
+        } else if (motif !== null) {
+            alert('Veuillez fournir un motif de refus');
+        }
+    }
+
+    // Fonction : Demander plus d'informations
+    function demanderPlusInformations() {
+        const pretId = {{ pret.id if pret else 0 }};
+
+        if (pretId === 0) {
+            alert('Erreur: ID du prêt non trouvé');
+            return;
+        }
+
+        const demandeDetails = prompt(
+            'Informations supplémentaires requises :\n\n' +
+            'Veuillez décrire précisément les documents ou informations manquants :'
+        );
+
+        if (demandeDetails === null) return;
+
+        if (demandeDetails.trim() === '') {
+            alert('Veuillez décrire les informations demandées');
+            return;
+        }
+
+        if (confirm(`Envoyer cette demande au client et à l'agent ?\n\n${demandeDetails}`)) {
+            const btn = document.querySelector('#approbationActions .btn-warning');
+            if (!btn) return;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Envoi...';
+            btn.disabled = true;
+
+            fetch(`/pret/${pretId}/demander_infos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    demande_details: demandeDetails.trim()
+                })
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      alert('✅ Demande d\'informations envoyée au client et à l\'agent');
+                      window.location.reload();
+                  } else {
+                      alert('Erreur: ' + data.message);
+                      btn.innerHTML = originalText;
+                      btn.disabled = false;
+                  }
+              }).catch(error => {
+                  alert('Erreur réseau: ' + error);
+                  btn.innerHTML = originalText;
+                  btn.disabled = false;
+              });
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ data.titre }} - GMES</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a237e, #283593);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 5px;
+        }
+        .btn-back {
+            background: #6c757d;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ data.titre }}</h1>
+        <p>Bienvenue {{ current_user.prenom }} {{ current_user.nom }}</p>
+        <p>Succursale: {{ current_user.succursale.nom if current_user.succursale else 'Non assigné' }}</p>
+    </div>
+
+    <a href="{{ url_for('dashboard') }}" class="btn btn-back">← Retour au Dashboard</a>
+
+    <div class="card">
+        {% if data.message %}
+            <h3>{{ data.message }}</h3>
+        {% endif %}
+
+        {% if data.erreur %}
+            <div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px;">
+                <strong>Erreur:</strong> {{ data.erreur }}
+            </div>
+        {% endif %}
+
+        <!-- Afficher les données spécifiques -->
+        {% if data.prets_en_attente %}
+            <h3>📋 Prêts en attente ({{ data.prets_en_attente|length }})</h3>
+            <table>
+                <tr><th>ID</th><th>Client</th><th>Montant</th><th>Action</th></tr>
+                {% for pret in data.prets_en_attente %}
+                <tr>
+                    <td>{{ pret.id }}</td>
+                    <td>{{ pret.client.nom if pret.client else 'N/A' }}</td>
+                    <td>{{ pret.montant|format_currency }}</td>
+                    <td><a href="#" class="btn">Analyser</a></td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
+
+        {% if data.clients %}
+            <h3>👥 Clients assignés ({{ data.clients|length }})</h3>
+            <table>
+                <tr><th>Nom</th><th>Téléphone</th><th>Dernière visite</th></tr>
+                {% for client in data.clients %}
+                <tr>
+                    <td>{{ client.nom }} {{ client.prenom }}</td>
+                    <td>{{ client.telephone }}</td>
+                    <td>{{ client.date_inscription.strftime('%d/%m/%Y') if client.date_inscription else '-' }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
+
+        {% if data.echeances %}
+            <h3>💵 Échéances à traiter ({{ data.echeances|length }})</h3>
+            <table>
+                <tr><th>Prêt ID</th><th>Montant</th><th>Date échéance</th></tr>
+                {% for ech in data.echeances %}
+                <tr>
+                    <td>{{ ech.pret_id }}</td>
+                    <td>{{ ech.montant|format_currency }}</td>
+                    <td>{{ ech.date_echeance.strftime('%d/%m/%Y') if ech.date_echeance else '-' }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
+
+        <!-- Pour les fonctions sans données spécifiques -->
+        {% if not data.prets_en_attente and not data.clients and not data.echeances %}
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>📊 Mes statistiques</h3>
+                    <p>Fonction: {{ fonction|replace('_', ' ')|title }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>📅 Aujourd'hui</h3>
+                    <p>{{ now().strftime('%d/%m/%Y') }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>🔧 Outils</h3>
+                    <p>Interface en développement</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>🛠️ Actions rapides</h3>
+        <a href="#" class="btn">Nouvelle transaction</a>
+        <a href="#" class="btn">Voir rapports</a>
+        <a href="#" class="btn">Mes clients</a>
+        <a href="#" class="btn">Paramètres</a>
+    </div>
+</body>
+</html>

@@ -1,14 +1,90 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
-    <h2>⚙️ Paramètres</h2>
+<div class="container mt-4">
 
-    <div class="card">
-        <div class="card-body">
-            <h4>Préférences générales</h4>
-            <p>Page en développement...</p>
-        </div>
+    <h2 class="mb-4">🏦 Paramètres Bancaires GMES</h2>
+
+    <!-- MESSAGE -->
+    <div class="alert alert-warning">
+        ⚠️ Ces paramètres affectent directement les opérations financières du système
     </div>
+
+    <form method="POST" action="{{ url_for('parametres') }}">
+
+        <div class="row">
+
+            <!-- 💰 PARAMÈTRES FINANCIERS -->
+            <div class="col-md-6">
+
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        💰 Paramètres Financiers
+                    </div>
+
+                    <div class="card-body">
+
+                        <label>Taux d’intérêt (%)</label>
+                        <input type="number" step="0.1" class="form-control"
+                               name="taux_interet" value="{{ config.taux_interet }}">
+
+                        <label class="mt-2">Frais de dossier (%)</label>
+                        <input type="number" step="0.1" class="form-control"
+                               name="frais_dossier" value="{{ config.frais_dossier }}">
+
+                        <label class="mt-2">Pénalité retard (%)</label>
+                        <input type="number" step="0.1" class="form-control"
+                               name="penalite_retard" value="{{ config.penalite_retard }}">
+
+                        <label class="mt-2">Commission transfert (%)</label>
+                        <input type="number" step="0.1" class="form-control"
+                               name="commission_transfert" value="{{ config.commission_transfert }}">
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🏦 LIMITES BANCAIRES -->
+            <div class="col-md-6">
+
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        🏦 Limites Bancaires
+                    </div>
+
+                    <div class="card-body">
+
+                        <label>Montant max prêt (HTG)</label>
+                        <input type="number" class="form-control"
+                               name="max_pret" value="{{ config.max_pret }}">
+
+                        <label class="mt-2">Durée max prêt (mois)</label>
+                        <input type="number" class="form-control"
+                               name="duree_max" value="{{ config.duree_max }}">
+
+                        <label class="mt-2">Solde minimum obligatoire</label>
+                        <input type="number" class="form-control"
+                               name="solde_min" value="{{ config.solde_min }}">
+
+                        <label class="mt-2">Devise</label>
+                        <select class="form-control" name="devise">
+                            <option value="HTG">HTG</option>
+                            <option value="USD">USD</option>
+                        </select>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🔘 BOUTON -->
+        <div class="mt-4 text-end">
+            <button class="btn btn-success">
+                💾 Enregistrer les paramètres bancaires
+            </button>
+        </div>
+
+    </form>
+
 </div>
 {% endblock %}

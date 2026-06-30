@@ -19,7 +19,7 @@
     <div class="header">
         <div>
             <h1>👨‍💼 Administration GMES</h1>
-            <p>Connecté en tant que: {{ current_user.prenom }} {{ current_user.nom }} (Admin)</p>
+            <p>Connecté en tant que: {{ current_user.prenom }} {{ current_user.nom }} (<strong>{{ current_user.username }}</strong>)</p>
         </div>
         <div>
             <a href="{{ url_for('deconnexion') }}" style="color: white; text-decoration: none;">🚪 Déconnexion</a>
@@ -30,12 +30,12 @@
         <h2>Tableau de Bord Administrateur</h2>
 
         <!-- Debug: Afficher les stats brutes pour vérification -->
-        <div style="background: #f8f9fa; padding: 1rem; margin: 1rem 0; border-radius: 5px;">
-            <small>DEBUG: Stats reçues -
-                Clients: {{ stats.clients.total if stats else 'N/A' }},
-                Prêts actifs: {{ stats.prets.actifs if stats else 'N/A' }}
-            </small>
-        </div>
+<!--        <div style="background: #f8f9fa; padding: 1rem; margin: 1rem 0; border-radius: 5px;">-->
+<!--            <small>DEBUG: Stats reçues - -->
+<!--                Clients: {{ stats.clients.total if stats else 'N/A' }},-->
+<!--                Prêts actifs: {{ stats.prets.actifs if stats else 'N/A' }}-->
+<!--            </small>-->
+<!--        </div>-->
 
         <!-- Statistiques Dynamiques -->
         <div class="stats">
@@ -86,6 +86,7 @@
         <div style="background: white; padding: 2rem; border-radius: 10px; margin: 2rem 0;">
             <h3>🚀 Actions Rapides</h3>
             <a href="{{ url_for('prets_en_attente') }}" class="btn">📋 Gérer les prêts ({{ stats.prets.en_attente if stats else '0' }})</a>
+            <a href="{{ url_for('create_partner_integration') }}" class="btn">👥 partner_intergrer</a>
             <a href="{{ url_for('gerer_employes') }}" class="btn">👥 Gérer les employés</a>
             <a href="{{ url_for('admin_rapports') }}" class="btn">📊 Rapports détaillés</a>
             <a href="{{ url_for('admin_remboursements') }}" class="btn">💳 Voir remboursements</a>

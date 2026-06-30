@@ -1,0 +1,20 @@
+<!-- Dans votre template admin/gerer_employes.html -->
+<td>
+    {% if employe.statut_conformite == 'conforme' %}
+        <span class="badge bg-success">✅ Conforme BRH</span>
+    {% elif employe.statut_conformite == 'non_conforme' %}
+        <span class="badge bg-danger">❌ Non-conforme BRH</span>
+    {% else %}
+        <span class="badge bg-warning">⏳ En attente</span>
+    {% endif %}
+
+    {% if employe.date_embauche %}
+        <small class="d-block text-muted">
+            Embauche: {{ employe.date_embauche.strftime('%d/%m/%Y') }}
+            {% set jours = (now().date() - employe.date_embauche).days %}
+            {% if jours > 7 and employe.statut_conformite != 'conforme' %}
+                <span class="text-danger">(Délai dépassé: {{ jours }} jours)</span>
+            {% endif %}
+        </small>
+    {% endif %}
+</td>

@@ -1,0 +1,475 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-hand-holding-usd me-2"></i>
+                            Espace Agent de Crédit
+                        </h2>
+                        <p class="mb-0 mt-2">
+                            <i class="fas fa-user-tie me-1"></i>
+                            {{ current_user.prenom }} {{ current_user.nom }}
+                            <span class="badge bg-light text-dark ms-2">Agent de Crédit</span>
+                        </p>
+                        <p class="mb-0 mt-1">
+                            <i class="fas fa-building me-1"></i>
+                            Succursale: <strong>{{ succursale.nom }}</strong> ({{ succursale.code }})
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <h1 class="mb-0">📊 Tableau de Bord</h1>
+                        <small>{{ now().strftime('%d %B %Y') if now else '' }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs principaux -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Demandes en cours
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.demandes_en_cours or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Crédits approuvés
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.credits_approuves or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Montant total octroyé
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ "{:,.0f}".format(stats.montant_total or 0) }} HTG
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-coins fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Taux d'approbation
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.taux_approbation }}%</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-percent fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demandes de crédit en attente -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-hourglass-half me-2"></i>
+                        Demandes de crédit à traiter
+                    </h5>
+                    <span class="badge bg-light text-dark">{{ demandes_attente|length }} en attente</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Client</th>
+                                    <th>Téléphone</th>
+                                    <th>Montant demandé</th>
+                                    <th>Durée</th>
+                                    <th>Date demande</th>
+                                    <th>Score</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for demande in demandes_attente %}
+                                <tr>
+                                    <td>#{{ demande.id }}</td>
+                                    <td>
+                                        <strong>{{ demande.client.nom }} {{ demande.client.prenom }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ demande.client.profession }}</small>
+                                    </td>
+                                    <td>{{ demande.client.telephone }}</td>
+                                    <td class="text-end">{{ "{:,.0f}".format(demande.montant) }} HTG</td>
+                                    <td class="text-center">{{ demande.duree_mois }} mois</td>
+                                    <td>{{ demande.date_demande.strftime('%d/%m/%Y') }}</td>
+                                    <td class="text-center">
+                                        {% if demande.score %}
+                                            <span class="badge bg-{{ demande.score_couleur }}">
+                                                {{ demande.score }}/100
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Non calculé</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('voir_demande', demande_id=demande.id) }}"
+                                               class="btn btn-outline-info" title="Voir détails">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('analyser_demande', demande_id=demande.id) }}"
+                                               class="btn btn-outline-primary" title="Analyser">
+                                                <i class="fas fa-chart-line"></i>
+                                            </a>
+                                            <a href="{{ url_for('soumettre_demande', demande_id=demande.id) }}"
+                                               class="btn btn-outline-success" title="Soumettre pour approbation">
+                                                <i class="fas fa-check-circle"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-4">
+                                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                        <h5>Aucune demande en attente</h5>
+                                        <p>Vous n'avez pas de demandes de crédit à traiter pour le moment</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clients récents et actions rapides -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Nouveaux clients à contacter
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for client in nouveaux_clients %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ client.nom }} {{ client.prenom }}</h6>
+                                <small class="text-muted">{{ client.date_inscription.strftime('%d/%m') }}</small>
+                            </div>
+                            <p class="mb-1">
+                                <i class="fas fa-phone me-1"></i> {{ client.telephone }}<br>
+                                <i class="fas fa-briefcase me-1"></i> {{ client.profession }}
+                            </p>
+                            <div class="mt-2">
+                                <a href="{{ url_for('voir_client', client_id=client.id) }}"
+                                   class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-eye"></i> Voir
+                                </a>
+                                <a href="{{ url_for('nouvelle_demande', client_id=client.id) }}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-plus"></i> Nouveau crédit
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucun nouveau client</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-check me-2"></i>
+                        Prochaines échéances
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for echeance in prochaines_echeances %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ echeance.client.nom }} {{ echeance.client.prenom }}</h6>
+                                <span class="badge bg-{{ echeance.couleur }}">
+                                    J-{{ echeance.jours_restants }}
+                                </span>
+                            </div>
+                            <p class="mb-1">
+                                Montant: {{ "{:,.0f}".format(echeance.montant) }} HTG<br>
+                                Échéance: {{ echeance.date_echeance.strftime('%d/%m/%Y') }}
+                            </p>
+                            <small class="text-muted">Crédit #{{ echeance.credit_id }}</small>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune échéance à venir</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Portefeuille clients -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        Mon portefeuille clients
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Crédits en cours</th>
+                                    <th>Montant total</th>
+                                    <th>Prochain paiement</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for client in portefeuille %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ client.nom }} {{ client.prenom }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ client.id_client }}</small>
+                                    </td>
+                                    <td class="text-center">{{ client.credits_en_cours }}</td>
+                                    <td class="text-end">{{ "{:,.0f}".format(client.montant_total) }} HTG</td>
+                                    <td>
+                                        {% if client.prochain_paiement %}
+                                            {{ client.prochain_paiement.date.strftime('%d/%m/%Y') }}<br>
+                                            <small>{{ "{:,.0f}".format(client.prochain_paiement.montant) }} HTG</small>
+                                        {% else %}
+                                            <span class="text-muted">Aucun</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ client.statut_couleur }}">
+                                            {{ client.statut }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('voir_client', client_id=client.id) }}"
+                                               class="btn btn-outline-info">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('historique_client', client_id=client.id) }}"
+                                               class="btn btn-outline-secondary">
+                                                <i class="fas fa-history"></i>
+                                            </a>
+                                            <a href="{{ url_for('nouveau_credit', client_id=client.id) }}"
+                                               class="btn btn-outline-success">
+                                                <i class="fas fa-plus"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">
+                                        <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+                                        <h5>Aucun client dans votre portefeuille</h5>
+                                        <p>Commencez par créer votre premier dossier client</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Objectifs mensuels -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bullseye me-2"></i>
+                        Objectifs du mois ({{ now().strftime('%B %Y') }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <h6>Nombre de crédits</h6>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar bg-success"
+                                     style="width: {{ objectifs.credits_pct }}%">
+                                    {{ objectifs.credits_atteint }} / {{ objectifs.credits_objectif }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <h6>Montant octroyé</h6>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar bg-info"
+                                     style="width: {{ objectifs.montant_pct }}%">
+                                    {{ "{:,.0f}".format(objectifs.montant_atteint) }} /
+                                    {{ "{:,.0f}".format(objectifs.montant_objectif) }} HTG
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <h6>Nouveaux clients</h6>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar bg-warning"
+                                     style="width: {{ objectifs.clients_pct }}%">
+                                    {{ objectifs.clients_atteint }} / {{ objectifs.clients_objectif }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Actions rapides
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('agent_nouvelle_demande', succursale_code=succursale.code) }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-plus-circle fa-2x mb-2"></i><br>
+                                Nouvelle demande
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('liste_clients') }}" class="btn btn-outline-success w-100 py-3">
+                                <i class="fas fa-users fa-2x mb-2"></i><br>
+                                Mes clients
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('simulateur_credit') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-calculator fa-2x mb-2"></i><br>
+                                Simulateur
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('rapport_activite', succursale_code=succursale.code) }}" class="btn btn-outline-warning w-100 py-3">
+                                <i class="fas fa-chart-bar fa-2x mb-2"></i><br>
+                                Mon rapport
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-left-primary { border-left: 4px solid #4e73df !important; }
+    .border-left-success { border-left: 4px solid #1cc88a !important; }
+    .border-left-info { border-left: 4px solid #36b9cc !important; }
+    .border-left-warning { border-left: 4px solid #f6c23e !important; }
+
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .btn-outline-primary:hover { background: #4e73df; color: white; }
+    .btn-outline-success:hover { background: #1cc88a; color: white; }
+    .btn-outline-info:hover { background: #36b9cc; color: white; }
+    .btn-outline-warning:hover { background: #f6c23e; color: white; }
+
+    .progress {
+        border-radius: 10px;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}

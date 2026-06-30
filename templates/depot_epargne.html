@@ -10,6 +10,7 @@
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0">Formulaire de dépôt</h4>
                 </div>
+
                 <div class="card-body">
                     <!-- Informations du client -->
                     <div class="alert alert-info">
@@ -22,14 +23,27 @@
                         {% endif %}
                     </div>
 
+
+
                     <!-- Formulaire de dépôt -->
                     <form method="POST" action="{{ url_for('traiter_depot', client_id=client.id) }}">
                         {{ form.hidden_tag() if form else '' }}
 
                         <div class="mb-3">
+                            <label for="numero_compte" class="form-label">Numéro de compte *</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="numero_compte"
+                                   name="numero_compte"
+                                   required
+                                   placeholder="12345-12345">
+                            <div class="form-text">Format: 5 chiffres - 5 chiffres (ex: 12345-12345)</div>
+                        </div>
+
+                        <div class="mb-3">
                             <label for="montant" class="form-label">Montant du dépôt *</label>
                             <div class="input-group">
-                                <span class="input-group-text">€</span>
+                                <span class="input-group-text">HTG</span>
                                 <input type="number"
                                        class="form-control"
                                        id="montant"
@@ -113,7 +127,7 @@
                                 {% for depot in client.depots|sort(attribute='date_depot', reverse=true)|slice(5) %}
                                 <tr>
                                     <td>{{ depot.date_depot.strftime('%d/%m/%Y') if depot.date_depot else 'N/A' }}</td>
-                                    <td>{{ "%.2f"|format(depot.montant) }} €</td>
+                                    <td>{{ "%.2f"|format(depot.montant) }} HTG</td>
                                     <td>{{ depot.mode_paiement|capitalize }}</td>
                                     <td>
                                         {% if depot.statut == 'valide' %}

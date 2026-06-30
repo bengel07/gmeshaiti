@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reçu du prêt</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        <div class="box">
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+
+                <div>
+                    <img src="{{ url_for('static', filename='logo.png') }}"
+                         alt="Logo GMES"
+                         style="height:80px;">
+                </div>
+
+                <div style="text-align:right;">
+                    <h3 style="margin:0;">GMES MICROFINANCE</h3>
+                    <p style="margin:4px 0;">Reçu de prêt</p>
+                    <p style="margin:4px 0;">
+                        N° Reçu: <strong>REC-{{ pret.id }}-{{ pret.date_debut.strftime('%Y%m%d') }}</strong>
+                    </p>
+                    <p style="margin:4px 0;">
+                        Généré le :
+                        <strong>{{ current_date.strftime('%d/%m/%Y %H:%M') }}</strong>
+                    </p>
+                </div>
+
+            </div>
+
+            <hr>
+        h2 { color: #0b3b4f; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        td, th { border: 1px solid #ddd; padding: 8px; }
+        th { background: #f4f4f4; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+
+<h2>📄 Reçu du prêt</h2>
+
+<p><strong>Client:</strong> {{ client.nom }} {{ client.prenom }}</p>
+<p><strong>Téléphone:</strong> {{ client.telephone }}</p>
+
+<p><strong>Montant:</strong> {{ "{:,.0f}".format(pret.montant) }} HTG</p>
+<p><strong>Taux:</strong> {{ pret.taux_interet }}%</p>
+<p><strong>Durée:</strong> {{ pret.duree_mois }} mois</p>
+<p><strong>Mensualité:</strong> {{ "{:,.0f}".format(pret.mensualite) }} HTG</p>
+<p><strong>Date début:</strong> {{ pret.date_debut.strftime('%d/%m/%Y') if pret.date_debut else 'N/A' }}</p>
+<p><strong>Statut:</strong> {{ pret.statut }}</p>
+
+<h3>📅 Calendrier des remboursements</h3>
+
+<table>
+<tr>
+    <th>#</th>
+    <th>Date</th>
+    <th>Montant</th>
+</tr>
+
+{% for e in echeances %}
+<tr>
+    <td>{{ e.numero }}</td>
+    <td>{{ e.date.strftime('%d/%m/%Y') }}</td>
+    <td>{{ "{:,.0f}".format(e.montant) }} HTG</td>
+</tr>
+{% endfor %}
+</table>
+
+<hr>
+
+<h3>⚠️ Conditions importantes</h3>
+
+<p>✔ Le client doit effectuer un paiement chaque mois selon le calendrier ci-dessus.</p>
+
+<p>⏰ <strong>Retard :</strong> Tout retard de paiement entraîne une pénalité.</p>
+
+<p>
+💸 <strong>Pénalité :</strong> 5% de la mensualité par mois de retard.
+</p>
+
+<p>
+📌 Exemple :
+→ Pénalité = {{ "{:,.0f}".format(pret.mensualite * 0.05) }} HTG / mois
+</p>
+
+<hr>
+
+<h3>✍️ Signature</h3>
+
+<p>Client : ________________________</p>
+<p>Agent : ________________________</p>
+<hr>
+
+<div style="text-align:center; margin-top:20px;">
+    <p><strong>Vérification du reçu</strong></p>
+    <img src="{{ qr_code }}" alt="QR Code" style="width:120px;">
+</div>
+</div>
+
+<br>
+
+<button onclick="window.print()">🖨️ Imprimer</button>
+
+</body>
+</html>

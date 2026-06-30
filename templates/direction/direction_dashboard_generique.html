@@ -1,0 +1,374 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête de bienvenue -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-crown me-2"></i>
+                            Espace Direction
+                        </h2>
+                        <p class="mb-0 mt-2">
+                            <i class="fas fa-user-tie me-1"></i>
+                            {{ current_user.prenom }} {{ current_user.nom }}
+                            {% if current_user.fonction %}
+                                | <span class="badge bg-light text-dark">{{ current_user.fonction }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <h1 class="mb-0">📊 Dashboard</h1>
+                        <small>{{ now().strftime('%d %B %Y') if now else '' }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message d'information sur la configuration -->
+    {% if not current_user.fonction %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                <div>
+                    <h5 class="alert-heading mb-1">⚠️ Configuration de votre compte</h5>
+                    <p class="mb-0">
+                        Votre compte direction est actif mais aucune fonction spécifique ne vous a été assignée.
+                        Veuillez contacter le super administrateur pour obtenir vos accès complets.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Cartes KPI principales -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Succursales
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.succursales or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-building fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Employés
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.employes or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Clients
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.clients or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-friends fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Crédits en cours
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.credits_actifs or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-credit-card fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques et indicateurs -->
+    <div class="row mb-4">
+        <!-- Performance financière -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-chart-line me-2"></i>Performance Financière
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6 text-center mb-3">
+                            <div class="h4 mb-1">{{ "{:,.0f}".format(stats.montant_total_credits or 0) }} FG</div>
+                            <small class="text-muted">Total crédits octroyés</small>
+                        </div>
+                        <div class="col-6 text-center mb-3">
+                            <div class="h4 mb-1">{{ "{:,.0f}".format(stats.montant_total_remboursements or 0) }} FG</div>
+                            <small class="text-muted">Total remboursements</small>
+                        </div>
+                    </div>
+                    <div class="progress mb-3" style="height: 25px;">
+                        <div class="progress-bar bg-success"
+                             role="progressbar"
+                             style="width: {{ stats.taux_remboursement or 0 }}%;"
+                             aria-valuenow="{{ stats.taux_remboursement or 0 }}"
+                             aria-valuemin="0"
+                             aria-valuemax="100">
+                            {{ "%.1f"|format(stats.taux_remboursement or 0) }}%
+                        </div>
+                    </div>
+                    <p class="text-center mb-0">
+                        <span class="badge bg-success">Taux de remboursement global</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Répartition par statut -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-chart-pie me-2"></i>Répartition des Utilisateurs
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="h5 mb-1">{{ stats.super_admins or 0 }}</div>
+                            <small class="text-muted">Super Admins</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="h5 mb-1">{{ stats.admins or 0 }}</div>
+                            <small class="text-muted">Admins</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="h5 mb-1">{{ stats.employes or 0 }}</div>
+                            <small class="text-muted">Employés</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="h5 mb-1">{{ stats.clients or 0 }}</div>
+                            <small class="text-muted">Clients</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h5 mb-1">{{ stats.superviseurs or 0 }}</div>
+                            <small class="text-muted">Superviseurs</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dernières activités -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-history me-2"></i>Dernières activités
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for log in logs %}
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ log.action }}</h6>
+                                <small class="text-muted">{{ log.timestamp.strftime('%d/%m/%Y %H:%M') }}</small>
+                            </div>
+                            <p class="mb-1">{{ log.details }}</p>
+                            <small class="text-muted">Par: {{ log.user_name }}</small>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center my-3">Aucune activité récente</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu d'administration -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-cog me-2"></i>Panneau d'administration
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('liste_users') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-users-cog fa-2x mb-2"></i><br>
+                                Gérer utilisateurs
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('liste_succursales') }}" class="btn btn-outline-success w-100 py-3">
+                                <i class="fas fa-building fa-2x mb-2"></i><br>
+                                Gérer succursales
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('rapport_global') }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-chart-bar fa-2x mb-2"></i><br>
+                                Rapports
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('logs_audit') }}" class="btn btn-outline-warning w-100 py-3">
+                                <i class="fas fa-history fa-2x mb-2"></i><br>
+                                Logs d'audit
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informations de contact -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="mb-2">
+                                <i class="fas fa-headset me-2"></i>
+                                Support technique
+                            </h5>
+                            <p class="mb-0">
+                                Pour toute assistance, contactez le support technique :
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <a href="mailto:support@gmes.com" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-envelope"></i> Email
+                            </a>
+                            <a href="tel:+50912345678" class="btn btn-outline-primary">
+                                <i class="fas fa-phone"></i> Appeler
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug info (optionnel) -->
+    {% if config['DEBUG'] %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="fas fa-bug me-2"></i>Informations de débogage</h5>
+                </div>
+                <div class="card-body">
+                    <pre class="mb-0">
+ID: {{ current_user.id }}
+Username: {{ current_user.username }}
+Rôle: {{ current_user.role }}
+Fonction: {{ current_user.fonction or 'Non définie' }}
+Statut: {{ current_user.statut }}
+Succursale: {{ current_user.succursale.nom if current_user.succursale else 'Aucune' }}
+Email: {{ current_user.email }}
+                    </pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .border-left-primary {
+        border-left: 4px solid #4e73df !important;
+    }
+    .border-left-success {
+        border-left: 4px solid #1cc88a !important;
+    }
+    .border-left-info {
+        border-left: 4px solid #36b9cc !important;
+    }
+    .border-left-warning {
+        border-left: 4px solid #f6c23e !important;
+    }
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .text-xs {
+        font-size: .7rem;
+    }
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+    .card:hover {
+        transform: translateY(-2px);
+    }
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+    .btn-outline-primary, .btn-outline-success, .btn-outline-info, .btn-outline-warning {
+        transition: all 0.3s;
+    }
+    .btn-outline-primary:hover { background: #4e73df; color: white; }
+    .btn-outline-success:hover { background: #1cc88a; color: white; }
+    .btn-outline-info:hover { background: #36b9cc; color: white; }
+    .btn-outline-warning:hover { background: #f6c23e; color: white; }
+    pre {
+        background: #f8f9fc;
+        padding: 1rem;
+        border-radius: 0.5rem;
+    }
+</style>
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+{% endblock %}

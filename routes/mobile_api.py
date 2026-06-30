@@ -107,8 +107,8 @@ def sync_operation(current_user):
                 motif=operation_data['motif'],
                 statut='en_attente'
             )
-            db.session.add(nouveau_pret)
-            db.session.commit()
+            session.add(nouveau_pret)
+            session.commit()
 
         elif operation_type == 'payment':
             # Traiter un paiement
@@ -118,8 +118,8 @@ def sync_operation(current_user):
                 montant=operation_data['montant'],
                 statut='paye'
             )
-            db.session.add(remboursement)
-            db.session.commit()
+            session.add(remboursement)
+            session.commit()
 
         return jsonify({'status': 'success'}), 200
 
@@ -143,7 +143,7 @@ def token_required(f):
         try:
             token = token.replace('Bearer ', '')
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-            current_user = User.query.get(data['user_id'])
+            current_user = User.query.get(data['employe_id'])
         except:
             return jsonify({'error': 'Token invalide'}), 401
 
@@ -159,7 +159,7 @@ def mobile_login():
 
     if user and user.check_password(data.get('password')):
         token = jwt.encode({
-            'user_id': user.id,
+            'employe_id': user.id,
             'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
         }, app.config['SECRET_KEY'])
 
@@ -206,8 +206,8 @@ def mobile_demande_pret(current_user):
         # ... autres champs
     )
 
-    db.session.add(nouveau_pret)
-    db.session.commit()
+    session.add(nouveau_pret)
+    session.commit()
 
     return jsonify({'message': 'Demande envoyée'}), 201
 

@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>✅ Conditions Générales - GMES Microcrédit</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0b3b4f;
+            --primary-dark: #072a38;
+            --primary-light: #1d638b;
+            --success: #28a745;
+            --success-dark: #218838;
+            --gray-light: #f5f7fa;
+            --gray: #6c757d;
+            --shadow: 0 10px 40px rgba(0,0,0,0.1);
+            --radius: 1rem;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, var(--gray-light) 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            line-height: 1.5;
+        }
+
+        /* Conteneur principal responsive */
+        .container {
+            max-width: 950px;
+            width: 100%;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: clamp(1.3rem, 5vw, 2rem);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .header h1 i {
+            margin-right: 0.5rem;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: clamp(0.85rem, 4vw, 1rem);
+        }
+
+        /* Messages flash */
+        .flash-messages {
+            padding: 1rem 1.5rem 0;
+        }
+
+        .alert {
+            padding: 0.9rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.8rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .alert i {
+            font-size: 1.2rem;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        /* Info client */
+        .client-info {
+            background: #e3f2fd;
+            padding: 1rem 1.5rem;
+            margin: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            border-left: 4px solid var(--primary);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: space-between;
+        }
+
+        .client-info p {
+            margin: 0;
+            font-size: clamp(0.85rem, 4vw, 1rem);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .client-info i {
+            color: var(--primary);
+            width: 1.2rem;
+        }
+
+        /* Contenu des CGU - Scrollable */
+        .content {
+            padding: 0 1.5rem 1rem;
+            max-height: 60vh;
+            overflow-y: auto;
+            background: #f9f9f9;
+        }
+
+        .content h2 {
+            color: var(--primary);
+            margin: 1.2rem 0 0.8rem;
+            font-size: clamp(1.2rem, 5vw, 1.5rem);
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: 0.3rem;
+            display: inline-block;
+        }
+
+        .content h2:first-of-type {
+            margin-top: 0;
+            padding-top: 1rem;
+        }
+
+        .content h3 {
+            color: var(--primary-light);
+            margin: 1rem 0 0.5rem;
+            font-size: clamp(1rem, 4vw, 1.2rem);
+        }
+
+        .content p {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 0.8rem;
+            font-size: clamp(0.85rem, 4vw, 0.95rem);
+        }
+
+        .content ul {
+            margin: 0.3rem 0 0.8rem 1.5rem;
+            color: #555;
+        }
+
+        .content li {
+            margin: 0.3rem 0;
+            font-size: clamp(0.85rem, 4vw, 0.95rem);
+        }
+
+        /* Personnalisation du scroll */
+        .content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .content::-webkit-scrollbar-track {
+            background: #e0e0e0;
+            border-radius: 3px;
+        }
+
+        .content::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 3px;
+        }
+
+        /* Zone d'acceptation */
+        .acceptance-box {
+            padding: 1.5rem;
+            text-align: center;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .btn-accept {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 0.9rem 2rem;
+            border-radius: 3rem;
+            font-size: clamp(1rem, 5vw, 1.2rem);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            width: auto;
+            min-width: 220px;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+
+        .btn-accept:hover:not(:disabled) {
+            background: var(--success-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-accept:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-accept:disabled {
+            background: var(--gray);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            opacity: 0.7;
+        }
+
+        .btn-accept i {
+            font-size: 1.2rem;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 1rem;
+            background: #f1f1f1;
+            color: var(--gray);
+            font-size: clamp(0.7rem, 3vw, 0.85rem);
+        }
+
+        .footer p {
+            margin: 0.2rem 0;
+        }
+
+        /* Animation pour le spinner */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .btn-accept:disabled i.fa-spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Responsive - Mobile */
+        @media (max-width: 640px) {
+            body {
+                padding: 0.5rem;
+            }
+
+            .client-info {
+                flex-direction: column;
+                gap: 0.5rem;
+                margin: 0.8rem;
+                padding: 0.8rem 1rem;
+            }
+
+            .content {
+                padding: 0 1rem 0.5rem;
+            }
+
+            .acceptance-box {
+                padding: 1rem;
+            }
+
+            .btn-accept {
+                width: 100%;
+                min-width: unset;
+                padding: 0.8rem 1rem;
+            }
+
+            .flash-messages {
+                padding: 0.5rem 1rem 0;
+            }
+        }
+
+        /* Responsive - Tablette */
+        @media (min-width: 641px) and (max-width: 1024px) {
+            .container {
+                max-width: 90%;
+            }
+
+            .btn-accept {
+                padding: 0.8rem 1.8rem;
+            }
+        }
+
+        /* Impression */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+                margin: 0;
+            }
+
+            .header, .acceptance-box, .footer, .flash-messages {
+                display: none;
+            }
+
+            .content {
+                max-height: none;
+                overflow: visible;
+            }
+
+            .container {
+                box-shadow: none;
+                border-radius: 0;
+            }
+        }
+
+        /* Support pour les écrans très larges */
+        @media (min-width: 1400px) {
+            .container {
+                max-width: 1100px;
+            }
+
+            .content {
+                max-height: 50vh;
+            }
+
+            .btn-accept {
+                padding: 1rem 3rem;
+                font-size: 1.3rem;
+            }
+        }
+
+        /* Support pour les appareils avec encoche (iPhone etc) */
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: max(1rem, env(safe-area-inset-left));
+                padding-right: max(1rem, env(safe-area-inset-right));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- En-tête -->
+        <div class="header">
+            <h1><i class="fas fa-file-contract"></i> Conditions Générales</h1>
+            <p>GMES – Gestion de Microcrédit et Services Financiers</p>
+        </div>
+
+        <!-- Messages flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Info client -->
+        <div class="client-info">
+            <p><i class="fas fa-user-circle"></i> <strong>{{ client.prenom }} {{ client.nom }}</strong></p>
+            <p><i class="fas fa-id-card"></i> Code: {{ client.id_client }}</p>
+            <p><i class="fas fa-clock"></i> Valable jusqu'au: {{ client.date_expiration_token.strftime('%d/%m/%Y') if client.date_expiration_token else '7 jours' }}</p>
+        </div>
+
+        <!-- Contenu des CGU -->
+        <div class="content">
+            <h2>Conditions Générales d'Utilisation</h2>
+
+            <p>
+                Les présentes Conditions Générales d'Utilisation (CGU) ont pour objet de définir
+                les modalités et conditions d'accès et d'utilisation des services proposés par
+                <strong>GMES – Gestion de Microcrédit et Services Financiers</strong>.
+            </p>
+
+            <h3>📋 1. Objet</h3>
+            <p>
+                Les présentes CGU définissent les modalités d'utilisation des services GMES,
+                notamment la gestion des clients, des prêts, des remboursements et des notifications associées.
+            </p>
+
+            <h3>🔑 2. Accès aux services</h3>
+            <p>
+                Les services GMES sont réservés aux utilisateurs dûment enregistrés.
+                L'accès peut être suspendu ou refusé en cas :
+            </p>
+            <ul>
+                <li>Informations inexactes ou frauduleuses</li>
+                <li>Non-respect des présentes CGU</li>
+                <li>Non-respect des obligations financières</li>
+            </ul>
+
+            <h3>📝 3. Création de compte et exactitude des informations</h3>
+            <p>
+                L'utilisateur s'engage à fournir des informations exactes, complètes et à jour.
+                GMES ne saurait être tenue responsable des conséquences liées à des informations erronées.
+            </p>
+
+            <h3>💰 4. Prêts et engagements financiers</h3>
+            <ul>
+                <li>Analyse préalable obligatoire</li>
+                <li>Conditions spécifiques (montant, durée, taux, échéances)</li>
+                <li>Respect du calendrier de remboursement</li>
+            </ul>
+            <p>
+                Tout retard ou défaut de paiement peut entraîner des pénalités ou la suspension des services.
+            </p>
+
+            <h3>📧 5. Notifications et communications</h3>
+            <p>
+                L'utilisateur accepte de recevoir des communications par :
+            </p>
+            <ul>
+                <li>Email</li>
+                <li>SMS</li>
+                <li>Notifications push</li>
+            </ul>
+
+            <h3>🔒 6. Protection des données personnelles</h3>
+            <p>
+                GMES s'engage à protéger les données personnelles des utilisateurs conformément aux lois applicables.
+                Les données sont utilisées uniquement à des fins de gestion et ne sont jamais vendues.
+            </p>
+
+            <h3>🛡️ 7. Sécurité</h3>
+            <p>
+                L'utilisateur est responsable de la confidentialité de ses accès.
+                Toute utilisation frauduleuse doit être signalée immédiatement.
+            </p>
+
+            <h3>⚖️ 8. Responsabilités</h3>
+            <ul>
+                <li>Interruptions temporaires du service</li>
+                <li>Pertes indirectes ou immatérielles</li>
+                <li>Usage non conforme des services</li>
+            </ul>
+
+            <h3>🚫 9. Résiliation</h3>
+            <p>
+                GMES se réserve le droit de suspendre ou résilier un compte en cas de non-respect des CGU
+                ou de non-remboursement répété.
+            </p>
+
+            <h3>📅 10. Modification des CGU</h3>
+            <p>
+                GMES peut modifier les présentes CGU à tout moment.
+                L'utilisateur devra accepter les nouvelles conditions pour continuer à utiliser les services.
+            </p>
+
+            <h3>🌍 11. Droit applicable et juridiction</h3>
+            <p>
+                Les présentes CGU sont régies par le droit applicable dans le pays d'exploitation de GMES.
+            </p>
+
+            <h3>✅ 12. Acceptation</h3>
+            <p>
+                En cliquant sur <strong>« Accepter les Conditions »</strong>, l'utilisateur reconnaît avoir lu,
+                compris et accepté sans réserve les présentes Conditions Générales d'Utilisation.
+            </p>
+        </div>
+
+        <!-- Zone d'acceptation -->
+        <div class="acceptance-box">
+            <form method="POST" id="acceptanceForm">
+                <input type="hidden" name="already_submitted" id="already_submitted" value="false">
+                <button type="submit" class="btn-accept" id="acceptBtn">
+                    <i class="fas fa-check-circle"></i> Accepter les Conditions
+                </button>
+            </form>
+            <p style="margin-top: 0.8rem; color: var(--gray); font-size: clamp(0.7rem, 3vw, 0.85rem);">
+                <i class="fas fa-lock"></i> En cliquant, vous confirmez avoir lu et accepté les conditions.
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>© 2025 GMES Microcrédit. Tous droits réservés.</p>
+            <p>Document juridiquement contraignant</p>
+        </div>
+    </div>
+
+    <!-- JavaScript anti-double-clic -->
+    <script>
+        (function() {
+            const form = document.getElementById('acceptanceForm');
+            const acceptBtn = document.getElementById('acceptBtn');
+            let formSubmitted = false;
+
+            if (form && acceptBtn) {
+                form.addEventListener('submit', function(e) {
+                    if (formSubmitted) {
+                        console.log('🚫 Double soumission bloquée');
+                        e.preventDefault();
+                        return false;
+                    }
+
+                    formSubmitted = true;
+                    acceptBtn.disabled = true;
+                    acceptBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traitement en cours...';
+
+                    const hiddenField = document.getElementById('already_submitted');
+                    if (hiddenField) {
+                        hiddenField.value = 'true';
+                    }
+
+                    const timestampInput = document.createElement('input');
+                    timestampInput.type = 'hidden';
+                    timestampInput.name = 'submission_time';
+                    timestampInput.value = Date.now();
+                    form.appendChild(timestampInput);
+
+                    console.log('✅ Formulaire soumis - bouton désactivé');
+                    return true;
+                });
+
+                window.addEventListener('pageshow', function() {
+                    formSubmitted = false;
+                    acceptBtn.disabled = false;
+                    acceptBtn.innerHTML = '<i class="fas fa-check-circle"></i> Accepter les Conditions';
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

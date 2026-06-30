@@ -1,0 +1,641 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            Analyse Stratégique
+                        </h2>
+                        <p class="mb-0 mt-2">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            Période: {{ periode.debut }} - {{ periode.fin }}
+                        </p>
+                    </div>
+                    <div class="text-end">
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-light" onclick="changerPeriode('trimestre')">Trimestre</button>
+                            <button class="btn btn-sm btn-light" onclick="changerPeriode('semestre')">Semestre</button>
+                            <button class="btn btn-sm btn-light" onclick="changerPeriode('annee')">Année</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres d'analyse -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Période</label>
+                            <select class="form-select" name="periode">
+                                <option value="mois">Ce mois</option>
+                                <option value="trimestre">Ce trimestre</option>
+                                <option value="semestre">Ce semestre</option>
+                                <option value="annee">Cette année</option>
+                                <option value="personnalise">Personnalisée</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Date début</label>
+                            <input type="date" class="form-control" name="date_debut">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Date fin</label>
+                            <input type="date" class="form-control" name="date_fin">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Comparaison</label>
+                            <select class="form-select" name="comparaison">
+                                <option value="n-1">Période précédente</option>
+                                <option value="n-2">Il y a 2 périodes</option>
+                                <option value="n-3">Il y a 3 périodes</option>
+                                <option value="objectif">Vs Objectif</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i> Analyser
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs Stratégiques -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Croissance Portefeuille
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats.croissance_portefeuille|default('+12.5%') }}
+                            </div>
+                            <div class="small text-muted">
+                                vs période précédente: {{ stats.vs_precedent|default('+3.2%') }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Part de Marché
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats.part_marche|default('18.3%') }}
+                            </div>
+                            <div class="small text-muted">
+                                vs concurrents: {{ stats.vs_concurrents|default('+2.1%') }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-pie fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Rentabilité
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats.rentabilite|default('15.2%') }}
+                            </div>
+                            <div class="small text-muted">
+                                ROE: {{ stats.roe|default('12.8%') }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-coins fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Satisfaction Client
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats.satisfaction|default('87%') }}
+                            </div>
+                            <div class="small text-muted">
+                                NPS: {{ stats.nps|default('42') }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-smile fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques d'analyse stratégique -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Évolution stratégique
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="evolutionStrategiqueChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Répartition stratégique
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="repartitionStrategiqueChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analyse SWOT -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-simple me-2"></i>
+                        Analyse SWOT
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <div class="card border-success h-100">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Forces (Strengths)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item">✓ Réseau de 15 succursales couvrant 80% du territoire</li>
+                                        <li class="list-group-item">✓ Taux de satisfaction client à 87%</li>
+                                        <li class="list-group-item">✓ Équipe de direction expérimentée (moyenne 12 ans)</li>
+                                        <li class="list-group-item">✓ Système d'information robuste et sécurisé</li>
+                                        <li class="list-group-item">✓ Partenariats avec 3 institutions financières internationales</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card border-danger h-100">
+                                <div class="card-header bg-danger text-white">
+                                    <h6 class="mb-0"><i class="fas fa-minus-circle me-2"></i>Faiblesses (Weaknesses)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item">✗ PAR > 30 jours à 4.2% (au-dessus de la moyenne sectorielle)</li>
+                                        <li class="list-group-item">✗ Dépendance excessive à 3 produits principaux (75% du portefeuille)</li>
+                                        <li class="list-group-item">✗ Turnover du personnel commercial à 18% par an</li>
+                                        <li class="list-group-item">✗ Présence limitée dans les zones rurales</li>
+                                        <li class="list-group-item">✗ Processus d'approbation des crédits trop long (moyenne 5 jours)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card border-info h-100">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0"><i class="fas fa-arrow-up me-2"></i>Opportunités (Opportunities)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item">→ Croissance du secteur des microcrédits de 15% par an</li>
+                                        <li class="list-group-item">→ Digitalisation des services (mobile banking, agents)</li>
+                                        <li class="list-group-item">→ Nouveaux segments de marché (jeunes, femmes entrepreneurs)</li>
+                                        <li class="list-group-item">→ Partenariats avec des fintechs pour l'octroi de crédits</li>
+                                        <li class="list-group-item">→ Programmes gouvernementaux de soutien aux PME</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card border-warning h-100">
+                                <div class="card-header bg-warning text-white">
+                                    <h6 class="mb-0"><i class="fas fa-arrow-down me-2"></i>Menaces (Threats)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item">← Concurrence accrue (3 nouveaux entrants en 2024)</li>
+                                        <li class="list-group-item">← Instabilité économique et inflation</li>
+                                        <li class="list-group-item">← Nouvelles réglementations BRH plus strictes</li>
+                                        <li class="list-group-item">← Risques de change et de liquidité</li>
+                                        <li class="list-group-item">← Évolution des taux d'intérêt directeurs</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Matrice BCG -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-th me-2"></i>
+                        Matrice BCG - Portefeuille de produits
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-success text-white text-center">
+                                <div class="card-header">🌟 Vedettes</div>
+                                <div class="card-body">
+                                    <h6>Crédit Jeune Entrepreneur</h6>
+                                    <small>Croissance: +25% | Part: 35%</small>
+                                    <div class="mt-2">
+                                        <span class="badge bg-light text-dark">Priorité: Investir</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-info text-white text-center">
+                                <div class="card-header">💰 Vaches à lait</div>
+                                <div class="card-body">
+                                    <h6>Crédit Classique</h6>
+                                    <small>Croissance: +5% | Part: 45%</small>
+                                    <div class="mt-2">
+                                        <span class="badge bg-light text-dark">Priorité: Maintenir</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-warning text-white text-center">
+                                <div class="card-header">❓ Dilemmes</div>
+                                <div class="card-body">
+                                    <h6>Crédit Agricole</h6>
+                                    <small>Croissance: +18% | Part: 8%</small>
+                                    <div class="mt-2">
+                                        <span class="badge bg-light text-dark">Priorité: Analyser</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-secondary text-white text-center">
+                                <div class="card-header">🐕 Poids morts</div>
+                                <div class="card-body">
+                                    <h6>Crédit Étudiant</h6>
+                                    <small>Croissance: -2% | Part: 3%</small>
+                                    <div class="mt-2">
+                                        <span class="badge bg-light text-dark">Priorité: Réévaluer</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analyse des tendances -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trend-up me-2"></i>
+                        Tendances du marché
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span>Demande de microcrédits</span>
+                                <span class="badge bg-success">+15%</span>
+                            </div>
+                            <div class="progress mt-1" style="height: 5px;">
+                                <div class="progress-bar bg-success" style="width: 75%"></div>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span>Adoption mobile banking</span>
+                                <span class="badge bg-success">+28%</span>
+                            </div>
+                            <div class="progress mt-1" style="height: 5px;">
+                                <div class="progress-bar bg-success" style="width: 90%"></div>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span>Concurrence</span>
+                                <span class="badge bg-warning">+12%</span>
+                            </div>
+                            <div class="progress mt-1" style="height: 5px;">
+                                <div class="progress-bar bg-warning" style="width: 60%"></div>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span>Taux d'intérêt moyens</span>
+                                <span class="badge bg-danger">+2%</span>
+                            </div>
+                            <div class="progress mt-1" style="height: 5px;">
+                                <div class="progress-bar bg-danger" style="width: 30%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bullseye me-2"></i>
+                        Objectifs stratégiques 2025
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Croissance du portefeuille: +15%</span>
+                            <span>75%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" style="width: 75%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Réduction PAR à 3%</span>
+                            <span>60%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-warning" style="width: 60%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Nouveaux clients: 5000</span>
+                            <span>45%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-info" style="width: 45%"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Digitalisation: 100% des processus</span>
+                            <span>35%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-primary" style="width: 35%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommandations stratégiques -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Recommandations stratégiques
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="text-primary">📈 Court terme (0-6 mois)</h6>
+                                    <ul class="mb-0">
+                                        <li>Lancer le programme de digitalisation des agences pilotes</li>
+                                        <li>Renforcer la formation des agents de crédit sur l'analyse risque</li>
+                                        <li>Optimiser le processus d'approbation des crédits</li>
+                                        <li>Lancer une campagne d'acquisition de nouveaux clients</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="text-warning">📊 Moyen terme (6-18 mois)</h6>
+                                    <ul class="mb-0">
+                                        <li>Déployer l'application mobile pour tous les clients</li>
+                                        <li>Ouvrir 5 nouvelles succursales dans les zones à fort potentiel</li>
+                                        <li>Développer 3 nouveaux produits de crédit ciblés</li>
+                                        <li>Mettre en place un système de scoring automatisé</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="text-success">🚀 Long terme (18-36 mois)</h6>
+                                    <ul class="mb-0">
+                                        <li>Devenir leader sur le marché des microcrédits (30% part de marché)</li>
+                                        <li>Certification ISO 27001 pour la sécurité informatique</li>
+                                        <li>Développement de partenariats internationaux</li>
+                                        <li>Introduction en bourse (IPO) à terme</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="text-danger">⚠️ Risques à surveiller</h6>
+                                    <ul class="mb-0">
+                                        <li>Évolution de la réglementation BRH</li>
+                                        <li>Concurrence des fintechs</li>
+                                        <li>Stabilité macroéconomique</li>
+                                        <li>Cyber-sécurité et protection des données</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Boutons d'action -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <a href="{{ url_for('rapport_strategique') }}" class="btn btn-primary btn-lg me-2">
+                <i class="fas fa-file-pdf"></i> Exporter rapport PDF
+            </a>
+            <a href="{{ url_for('presentation_strategique') }}" class="btn btn-success btn-lg">
+                <i class="fas fa-chart-line"></i> Générer présentation
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-left-primary { border-left: 4px solid #4e73df !important; }
+    .border-left-success { border-left: 4px solid #1cc88a !important; }
+    .border-left-info { border-left: 4px solid #36b9cc !important; }
+    .border-left-warning { border-left: 4px solid #f6c23e !important; }
+
+    .bg-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .list-group-item {
+        border: none;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .list-group-item:last-child {
+        border-bottom: none;
+    }
+</style>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Graphique d'évolution stratégique
+        const evolCtx = document.getElementById('evolutionStrategiqueChart').getContext('2d');
+        new Chart(evolCtx, {
+            type: 'line',
+            data: {
+                labels: ['T1 2024', 'T2 2024', 'T3 2024', 'T4 2024', 'T1 2025', 'T2 2025'],
+                datasets: [
+                    {
+                        label: 'Portefeuille (Milliards)',
+                        data: [85, 92, 98, 105, 112, 118],
+                        borderColor: '#4e73df',
+                        tension: 0.3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Clients (Milliers)',
+                        data: [12, 14, 16, 18, 21, 24],
+                        borderColor: '#1cc88a',
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { display: true, text: 'Portefeuille (Milliards FG)' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'Clients (Milliers)' }
+                    }
+                }
+            }
+        });
+
+        // Graphique de répartition stratégique
+        const repartCtx = document.getElementById('repartitionStrategiqueChart').getContext('2d');
+        new Chart(repartCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Crédit Classique', 'Microcrédit', 'Crédit Agricole', 'Crédit Jeune', 'Autres'],
+                datasets: [{
+                    data: [45, 25, 15, 10, 5],
+                    backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#858796']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    });
+
+    function changerPeriode(periode) {
+        alert('Changement de période: ' + periode);
+        // À implémenter avec AJAX
+    }
+</script>
+{% endblock %}

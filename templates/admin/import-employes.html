@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Import Employés</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .upload-box {
+            border: 2px dashed #ccc;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        .btn {
+            background: #2e7d32;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📁 Import des Employés</h1>
+        <p>Importez un fichier CSV ou Excel avec la liste des employés.</p>
+
+        <div class="upload-box">
+            <i class="fas fa-file-upload" style="font-size: 48px; color: #2e7d32;"></i>
+            <h3>Glissez-déposez votre fichier ici</h3>
+            <p>ou</p>
+            <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
+        </div>
+
+        <h3>Format requis :</h3>
+        <pre>
+Nom,Prénom,Email,Téléphone,Rôle,Succursale
+Jean,Delmas,jean@mail.com,50912345678,Caissier,GMES-00002
+Marie,Claude,marie@mail.com,50987654321,Conseiller,GMES-00002
+        </pre>
+
+        <button class="btn" onclick="simulerImport()">
+            <i class="fas fa-upload"></i> Simuler l'import
+        </button>
+        <button onclick="window.history.back()" style="margin-left: 10px;">Retour</button>
+    </div>
+
+    <script>
+    function simulerImport() {
+        alert('✅ Import simulé avec succès!\n\nDans la version finale, les employés seront ajoutés à la base de données.');
+        window.history.back();
+    }
+
+    // Ajouter FontAwesome dynamiquement
+    const fa = document.createElement('link');
+    fa.rel = 'stylesheet';
+    fa.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+    document.head.appendChild(fa);
+    </script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">
+                <i class="fas fa-hand-holding-usd me-2"></i>
+                Nouveau crédit pour {{ client.prenom }} {{ client.nom }}
+            </h4>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('demande_pret', client_id=client.id) }}">
+                <input type="hidden" name="client_id" value="{{ client.id }}">
+                <input type="hidden" name="email" value="{{ client.email }}">
+                <input type="hidden" name="telephone" value="{{ client.telephone }}">
+                <input type="hidden" name="nom" value="{{ client.nom }}">
+                <input type="hidden" name="prenom" value="{{ client.prenom }}">
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="montant_demande" class="form-label">Montant demandé (Gdes) *</label>
+                        <input type="number" class="form-control" id="montant_demande" name="montant_demande"
+                               min="10000" max="10000000" required>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="duree" class="form-label">Durée (mois) *</label>
+                        <input type="number" class="form-control" id="duree" name="duree"
+                               min="3" max="60" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="taux_interet" class="form-label">Taux d'intérêt (%)</label>
+                        <input type="number" class="form-control" id="taux_interet" name="taux_interet"
+                               value="12" step="0.5">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="objet" class="form-label">Objet du prêt *</label>
+                        <input type="text" class="form-control" id="objet" name="objet" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="type_pret" class="form-label">Type de prêt *</label>
+                        <select class="form-control" id="type_pret" name="type_pret" required>
+                            <option value="standard">Standard</option>
+                            <option value="express">Express</option>
+                            <option value="agricole">Agricole</option>
+                            <option value="autre">Autre</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6 mb-3" id="autre_type_div" style="display:none;">
+                        <label for="autre_type_pret" class="form-label">Précisez le type</label>
+                        <input type="text" class="form-control" id="autre_type_pret" name="autre_type_pret">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Garant</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="a_garant" name="a_garant" value="oui">
+                            <label class="form-check-label" for="a_garant">
+                                Le client a un garant
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="garant_info" style="display:none;">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nom_garant" class="form-label">Nom du garant</label>
+                            <input type="text" class="form-control" id="nom_garant" name="nom_garant">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="tel_garant" class="form-label">Téléphone du garant</label>
+                            <input type="text" class="form-control" id="tel_garant" name="tel_garant">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="adresse_garant" class="form-label">Adresse du garant</label>
+                            <input type="text" class="form-control" id="adresse_garant" name="adresse_garant">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="relation_garant" class="form-label">Relation avec le client</label>
+                            <input type="text" class="form-control" id="relation_garant" name="relation_garant">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 text-end">
+                        <a href="{{ url_for('liste_clients') }}" class="btn btn-secondary">Annuler</a>
+                        <button type="submit" class="btn btn-primary">Soumettre la demande</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Afficher/cacher le champ "autre type"
+    document.getElementById('type_pret').addEventListener('change', function() {
+        var autreDiv = document.getElementById('autre_type_div');
+        if (this.value === 'autre') {
+            autreDiv.style.display = 'block';
+        } else {
+            autreDiv.style.display = 'none';
+        }
+    });
+
+    // Afficher/cacher les infos garant
+    document.getElementById('a_garant').addEventListener('change', function() {
+        var garantDiv = document.getElementById('garant_info');
+        if (this.checked) {
+            garantDiv.style.display = 'block';
+        } else {
+            garantDiv.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

@@ -1,47 +1,360 @@
-```html
-<h2>📊 Statistiques des Groupes</h2>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Statistiques des Groupes</title>
 
-<table id="table-groupes" border="1" width="100%">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Nom Groupe</th>
-            <th>Membres</th>
-            <th>Prêts Actifs</th>
-            <th>Montant Total</th>
-            <th>Zone</th>
-        </tr>
-    </thead>
-    <tbody>
-    </tbody>
-</table>
+<style>
+
+body{
+    font-family:Arial,sans-serif;
+    background:#f4f6f9;
+    margin:0;
+    padding:20px;
+}
+
+.dashboard-container{
+    max-width:1400px;
+    margin:auto;
+}
+
+.page-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:25px;
+}
+
+.page-header h1{
+    color:#003366;
+}
+
+.btn-refresh{
+    background:#28a745;
+    color:white;
+    border:none;
+    padding:12px 20px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.stats-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:20px;
+    margin-bottom:25px;
+}
+
+.stat-card{
+    background:white;
+    border-radius:12px;
+    padding:25px;
+    text-align:center;
+    box-shadow:0 3px 10px rgba(0,0,0,.1);
+}
+
+.stat-card h3{
+    font-size:30px;
+    margin:0;
+    color:#003366;
+}
+
+.success{
+    border-left:5px solid #28a745;
+}
+
+.warning{
+    border-left:5px solid #ffc107;
+}
+
+.danger{
+    border-left:5px solid #dc3545;
+}
+
+.info{
+    border-left:5px solid #17a2b8;
+}
+
+.search-box{
+    margin-bottom:20px;
+}
+
+.search-box input{
+    width:100%;
+    padding:12px;
+    border:1px solid #ddd;
+    border-radius:8px;
+}
+
+.table-container{
+    background:white;
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:0 3px 10px rgba(0,0,0,.1);
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+thead{
+    background:#003366;
+    color:white;
+}
+
+th,td{
+    padding:12px;
+    text-align:left;
+}
+
+tbody tr:nth-child(even){
+    background:#f8f9fa;
+}
+
+tbody tr:hover{
+    background:#eaf2ff;
+}
+
+.badge-good{
+    background:#28a745;
+    color:white;
+    padding:6px 12px;
+    border-radius:20px;
+}
+
+.badge-medium{
+    background:#ffc107;
+    color:black;
+    padding:6px 12px;
+    border-radius:20px;
+}
+
+.badge-low{
+    background:#dc3545;
+    color:white;
+    padding:6px 12px;
+    border-radius:20px;
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="dashboard-container">
+
+    <div class="page-header">
+        <h1>👥 Statistiques des Groupes Solidaires</h1>
+
+        <button onclick="chargerGroupes()" class="btn-refresh">
+            🔄 Actualiser
+        </button>
+    </div>
+
+    <div class="stats-grid">
+
+        <div class="stat-card">
+            <h3 id="totalGroupes">0</h3>
+            <p>Groupes</p>
+        </div>
+
+        <div class="stat-card success">
+            <h3 id="totalMembres">0</h3>
+            <p>Membres</p>
+        </div>
+
+        <div class="stat-card warning">
+            <h3 id="totalPretsActifs">0</h3>
+            <p>Prêts Actifs</p>
+        </div>
+
+        <div class="stat-card danger">
+            <h3 id="montantTotal">0 HTG</h3>
+            <p>Portefeuille Global</p>
+        </div>
+
+        <div class="stat-card info">
+            <h3 id="creditMoyen">0 HTG</h3>
+            <p>Crédit Moyen</p>
+        </div>
+
+        <div class="stat-card success">
+            <h3 id="performanceGlobale">0%</h3>
+            <p>Performance</p>
+        </div>
+
+    </div>
+
+    <div class="search-box">
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="🔍 Rechercher un groupe..."
+            onkeyup="filtrerGroupes()">
+    </div>
+
+    <!-- ✅ AJOUT SANS CHANGER TON DESIGN -->
+    <div id="emptyState" style="display:none; text-align:center; padding:40px; color:#666;">
+        <h2>📭 Aucun groupe trouvé</h2>
+        <p>Il n’y a actuellement aucun groupe enregistré dans le système.</p>
+    </div>
+
+    <div class="table-container">
+
+        <table id="table-groupes">
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nom Groupe</th>
+                    <th>Zone</th>
+                    <th>Membres</th>
+                    <th>Prêts Total</th>
+                    <th>Prêts Actifs</th>
+                    <th>Montant Total</th>
+                    <th>Montant Actif</th>
+                    <th>Crédit Moyen</th>
+                    <th>Performance</th>
+                </tr>
+            </thead>
+
+            <tbody></tbody>
+
+        </table>
+
+    </div>
+
+</div>
 
 <script>
-fetch("/api/statistiques-groupes")
-.then(response => response.json())
-.then(data => {
 
-    let tbody = document.querySelector("#table-groupes tbody");
-    tbody.innerHTML = "";
+let groupesData = [];
 
-    data.forEach(groupe => {
+function chargerGroupes(){
 
-        tbody.innerHTML += `
+    fetch("/api/statistiques-groupes")
+    .then(response => response.json())
+    .then(data => {
+
+        groupesData = data;
+
+        let tbody =
+            document.querySelector("#table-groupes tbody");
+
+        tbody.innerHTML = "";
+
+        let totalMembres = 0;
+        let totalActifs = 0;
+        let montantTotal = 0;
+        let totalPrets = 0;
+
+        // ✅ AJOUT IMPORTANT (EMPTY STATE)
+        if (data.length === 0) {
+
+            document.getElementById("emptyState").style.display = "block";
+
+            document.getElementById("totalGroupes").innerText = "0";
+            document.getElementById("totalMembres").innerText = "0";
+            document.getElementById("totalPretsActifs").innerText = "0";
+            document.getElementById("montantTotal").innerText = "0 HTG";
+            document.getElementById("creditMoyen").innerText = "0 HTG";
+            document.getElementById("performanceGlobale").innerText = "0%";
+
+            return;
+        }
+        else {
+            document.getElementById("emptyState").style.display = "none";
+        }
+
+        data.forEach(groupe => {
+
+            totalMembres += groupe.nombre_membres;
+            totalActifs += groupe.prets_actifs;
+            montantTotal += groupe.montant_total_prets;
+            totalPrets += groupe.prets_total || 0;
+
+            let badge = "badge-low";
+            let texte = "Faible";
+
+            if(groupe.performance >= 75){
+                badge = "badge-good";
+                texte = "Excellent";
+            }
+            else if(groupe.performance >= 40){
+                badge = "badge-medium";
+                texte = "Moyen";
+            }
+
+            tbody.innerHTML += `
             <tr>
                 <td>${groupe.groupe_id}</td>
                 <td>${groupe.nom_groupe}</td>
+                <td>${groupe.zone || "-"}</td>
                 <td>${groupe.nombre_membres}</td>
+                <td>${groupe.prets_total || 0}</td>
                 <td>${groupe.prets_actifs}</td>
-                <td>${groupe.montant_total_prets.toLocaleString()}</td>
-                <td>${groupe.zone || '-'}</td>
-            </tr>
-        `;
+                <td>${groupe.montant_total_prets.toLocaleString()} HTG</td>
+                <td>${(groupe.montant_actif || 0).toLocaleString()} HTG</td>
+                <td>${(groupe.moyenne_credit || 0).toLocaleString()} HTG</td>
+                <td>
+                    <span class="${badge}">
+                        ${texte} (${groupe.performance || 0}%)
+                    </span>
+                </td>
+            </tr>`;
+        });
 
+        document.getElementById("totalGroupes").innerText = data.length;
+
+        document.getElementById("totalMembres").innerText =
+            totalMembres.toLocaleString();
+
+        document.getElementById("totalPretsActifs").innerText =
+            totalActifs.toLocaleString();
+
+        document.getElementById("montantTotal").innerText =
+            montantTotal.toLocaleString() + " HTG";
+
+        document.getElementById("creditMoyen").innerText =
+            totalPrets > 0
+            ? Math.round(montantTotal / totalPrets).toLocaleString() + " HTG"
+            : "0 HTG";
+
+        document.getElementById("performanceGlobale").innerText =
+            totalPrets > 0
+            ? Math.round((totalActifs / totalPrets) * 100) + "%"
+            : "0%";
+
+    })
+    .catch(error => {
+        console.error(error);
     });
+}
 
-})
-.catch(error => {
-    console.error(error);
-});
+function filtrerGroupes(){
+
+    let filtre =
+        document.getElementById("searchInput")
+        .value.toLowerCase();
+
+    let lignes =
+        document.querySelectorAll("#table-groupes tbody tr");
+
+    lignes.forEach(ligne => {
+
+        ligne.style.display =
+            ligne.innerText.toLowerCase().includes(filtre)
+            ? ""
+            : "none";
+    });
+}
+
+chargerGroupes();
+
+setInterval(chargerGroupes, 30000);
+
 </script>
-```
+
+</body>
+</html>

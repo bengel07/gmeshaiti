@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historique global des actions</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* En-tête */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .header h1 i {
+            font-size: 2rem;
+        }
+        .header-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .btn-header {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .btn-header:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Filtres */
+        .filters {
+            padding: 25px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .filter-group label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .filter-group label i {
+            color: #667eea;
+        }
+        .filter-group input, .filter-group select {
+            padding: 10px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+        .filter-group input:focus, .filter-group select:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .filter-actions {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .btn-filter {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            height: 42px;
+        }
+        .btn-filter:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        .btn-reset {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            text-decoration: none;
+            height: 42px;
+        }
+        .btn-reset:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        /* Statistiques */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .stat-icon {
+            font-size: 2rem;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #333;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Tableau */
+        .table-container {
+            padding: 0 30px 30px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            white-space: nowrap;
+        }
+        th i {
+            margin-right: 5px;
+            color: #667eea;
+        }
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: middle;
+        }
+        tr:hover td {
+            background: #f8f9fa;
+        }
+
+        .user-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .user-name {
+            font-weight: 600;
+            color: #333;
+        }
+        .user-email {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .action-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .badge-primary {
+            background: #cce5ff;
+            color: #004085;
+        }
+        .badge-secondary {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .details-cell {
+            max-width: 300px;
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .ip-cell {
+            font-family: monospace;
+            color: #666;
+        }
+
+        .date-cell {
+            white-space: nowrap;
+            color: #666;
+        }
+        .date-cell i {
+            margin-right: 3px;
+            color: #667eea;
+        }
+
+        /* Pagination */
+        .pagination {
+            padding: 0 30px 30px;
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+        }
+        .page-item {
+            list-style: none;
+        }
+        .page-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            color: #495057;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .page-link:hover {
+            background: #e9ecef;
+        }
+        .page-item.active .page-link {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .page-item.disabled .page-link {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* Export */
+        .export-section {
+            padding: 0 30px 30px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .btn-export {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #495057;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+        }
+        .btn-export:hover {
+            background: #e9ecef;
+        }
+
+        /* État vide */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+
+        @media (max-width: 768px) {
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+            .filter-actions {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- En-tête -->
+            <div class="header">
+                <h1>
+                    <i class="fas fa-history"></i>
+                    Historique global des actions
+                </h1>
+                <div class="header-actions">
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn-header">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="{{ url_for('liste_users') }}" class="btn-header">
+                        <i class="fas fa-users"></i> Utilisateurs
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filtres -->
+            <div class="filters">
+                <form method="GET" class="filters-grid">
+                    <div class="filter-group">
+                        <label><i class="fas fa-calendar"></i> Date début</label>
+                        <input type="date" name="date_debut" value="{{ request.args.get('date_debut', '') }}">
+                    </div>
+                    <div class="filter-group">
+                        <label><i class="fas fa-calendar"></i> Date fin</label>
+                        <input type="date" name="date_fin" value="{{ request.args.get('date_fin', '') }}">
+                    </div>
+                    <div class="filter-group">
+                        <label><i class="fas fa-user"></i> Utilisateur</label>
+                        <input type="text" name="utilisateur" placeholder="Nom ou email" value="{{ request.args.get('utilisateur', '') }}">
+                    </div>
+                    <div class="filter-group">
+                        <label><i class="fas fa-tag"></i> Type d'action</label>
+                        <select name="action">
+                            <option value="">Toutes les actions</option>
+                            <option value="connexion" {% if request.args.get('action') == 'connexion' %}selected{% endif %}>Connexion</option>
+                            <option value="deconnexion" {% if request.args.get('action') == 'deconnexion' %}selected{% endif %}>Déconnexion</option>
+                            <option value="creation" {% if request.args.get('action') == 'creation' %}selected{% endif %}>Création</option>
+                            <option value="modification" {% if request.args.get('action') == 'modification' %}selected{% endif %}>Modification</option>
+                            <option value="suppression" {% if request.args.get('action') == 'suppression' %}selected{% endif %}>Suppression</option>
+                            <option value="approbation" {% if request.args.get('action') == 'approbation' %}selected{% endif %}>Approbation</option>
+                            <option value="rejet" {% if request.args.get('action') == 'rejet' %}selected{% endif %}>Rejet</option>
+                            <option value="blocage" {% if request.args.get('action') == 'blocage' %}selected{% endif %}>Blocage</option>
+                            <option value="transfert" {% if request.args.get('action') == 'transfert' %}selected{% endif %}>Transfert</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button type="submit" class="btn-filter">
+                            <i class="fas fa-filter"></i> Filtrer
+                        </button>
+                        <a href="{{ url_for('historique_global') }}" class="btn-reset">
+                            <i class="fas fa-undo"></i> Réinitialiser
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Statistiques -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-history"></i></div>
+                    <div class="stat-value">{{ historique.total }}</div>
+                    <div class="stat-label">Actions totales</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-value">{{ stats.utilisateres_actifs or 0 }}</div>
+                    <div class="stat-label">Utilisateurs actifs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-calendar-week"></i></div>
+                    <div class="stat-value">{{ stats.actions_7_jours or 0 }}</div>
+                    <div class="stat-label">7 derniers jours</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                    <div class="stat-value">{{ stats.actions_24h or 0 }}</div>
+                    <div class="stat-label">Dernières 24h</div>
+                </div>
+            </div>
+
+            <!-- Export -->
+            <div class="export-section">
+                <a href="{{ url_for('exporter_historique', **request.args) }}" class="btn-export">
+                    <i class="fas fa-file-csv"></i> Exporter CSV
+                </a>
+                <a href="{{ url_for('exporter_historique_pdf', **request.args) }}" class="btn-export">
+                    <i class="fas fa-file-pdf"></i> Exporter PDF
+                </a>
+            </div>
+
+            <!-- Tableau -->
+            <div class="table-container">
+                {% if historique.items %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-clock"></i> Date</th>
+                            <th><i class="fas fa-user"></i> Utilisateur</th>
+                            <th><i class="fas fa-tag"></i> Action</th>
+                            <th><i class="fas fa-align-left"></i> Détails</th>
+                            <th><i class="fas fa-network-wired"></i> IP</th>
+                            <th><i class="fas fa-laptop"></i> Appareil</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for action in historique.items %}
+                        <tr>
+                            <td class="date-cell">
+                                <i class="far fa-calendar"></i> {{ action.date.strftime('%d/%m/%Y') }}<br>
+                                <i class="far fa-clock"></i> {{ action.date.strftime('%H:%M:%S') }}
+                            </td>
+                            <td>
+                                <div class="user-cell">
+                                    <div class="user-avatar">
+                                        {{ action.user.prenom[0] }}{{ action.user.nom[0] }}
+                                    </div>
+                                    <div class="user-info">
+                                        <span class="user-name">{{ action.user.prenom }} {{ action.user.nom }}</span>
+                                        <span class="user-email">{{ action.user.email }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="action-badge badge-{{ action.action_classe }}">
+                                    <i class="fas {{ action.action_icone }}"></i>
+                                    {{ action.action|capitalize }}
+                                </span>
+                            </td>
+                            <td class="details-cell">
+                                {{ action.details or '-' }}
+                            </td>
+                            <td class="ip-cell">
+                                {{ action.ip or '-' }}
+                            </td>
+                            <td style="max-width: 200px;">
+                                <span title="{{ action.user_agent }}">
+                                    {{ action.user_agent|truncate(30) or '-' }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-history"></i>
+                    <h3>Aucune action trouvée</h3>
+                    <p>Aucune action ne correspond aux filtres sélectionnés.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Pagination -->
+            {% if historique.pages > 1 %}
+            <ul class="pagination">
+                {% if historique.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('historique_global', page=historique.prev_num, **request.args) }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                </li>
+                {% endif %}
+
+                {% for page_num in historique.iter_pages() %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == historique.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('historique_global', page=page_num, **request.args) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if historique.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('historique_global', page=historique.next_num, **request.args) }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                </li>
+                {% endif %}
+            </ul>
+            {% endif %}
+
+            <!-- Ligne de statut -->
+            <div style="padding: 0 30px 30px; color: #666; font-size: 0.9rem;">
+                <i class="fas fa-info-circle"></i>
+                Affichage de {{ historique.items|length }} résultats sur {{ historique.total }} au total
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Raccourci clavier pour la recherche
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+F pour focus recherche
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                document.querySelector('input[name="utilisateur"]').focus();
+            }
+
+            // Ctrl+R pour reset
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                window.location.href = "{{ url_for('historique_global') }}";
+            }
+        });
+    </script>
+</body>
+</html>

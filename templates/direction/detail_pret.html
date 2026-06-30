@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-hand-holding-usd me-2"></i>
+                        Détails de la demande de prêt #{{ pret.id }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Mode directeur -->
+                    {% if show_for_director %}
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Mode directeur :</strong> Vous visualisez une demande soumise. Veuillez prendre votre décision ci-dessous.
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Informations client</h5>
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th>Nom complet</th>
+                                    <td>{{ client.prenom if client else form_data.prenom }} {{ client.nom if client else form_data.nom }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Email</th>
+                                    <td>{{ client.email if client else form_data.email }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Téléphone</th>
+                                    <td>{{ client.telephone if client else form_data.telephone }}</td>
+                                </tr>
+                                <tr>
+                                    <th>CIN/NIF</th>
+                                    <td>{{ client.cin_nif if client else form_data.cin_nif }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Profession</th>
+                                    <td>{{ client.profession if client else form_data.profession }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Revenu mensuel</th>
+                                    <td>{{ "{:,.0f}".format(client.revenu_mensuel if client else form_data.revenu_mensuel) }} Gdes</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Informations prêt</h5>
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th>Montant demandé</th>
+                                    <td class="fw-bold text-success">{{ "{:,.0f}".format(pret.montant) }} Gdes</td>
+                                </tr>
+                                <tr>
+                                    <th>Durée</th>
+                                    <td>{{ pret.duree_mois }} mois</td>
+                                </tr>
+                                <tr>
+                                    <th>Taux d'intérêt</th>
+                                    <td>{{ pret.taux_interet }}%</td>
+                                </tr>
+                                <tr>
+                                    <th>Mensualité</th>
+                                    <td>{{ "{:,.0f}".format(pret.mensualite) }} Gdes</td>
+                                </tr>
+                                </tr>
+                                    <th>Date demande</th>
+                                    <td>{{ pret.date_demande.strftime('%d/%m/%Y %H:%M') if pret.date_demande else 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Statut</th>
+                                    <td>
+                                        {% if pret.statut == 'en_attente' %}
+                                        <span class="badge bg-warning">En attente</span>
+                                        {% elif pret.statut == 'approuve' %}
+                                        <span class="badge bg-success">Approuvé</span>
+                                        {% elif pret.statut == 'refuse' %}
+                                        <span class="badge bg-danger">Refusé</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ pret.statut }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Garant -->
+                    {% if form_data.nom_garant %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h5>Informations du garant</h5>
+                            <table class="table table-bordered">
+                                <tr><th>Nom</th><td>{{ form_data.nom_garant }}</td></tr>
+                                <tr><th>Téléphone</th><td>{{ form_data.tel_garant }}</td></tr>
+                                <tr><th>Adresse</th><td>{{ form_data.adresse_garant }}</td></tr>
+                                <tr><th>Relation</th><td>{{ form_data.relation_garant }}</td></tr>
+                                <tr><th>Profession</th><td>{{ form_data.profession_garant }}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Références -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h5>Références personnelles</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Référence 1:</strong><br>
+                                    {{ form_data.ref1_nom or 'Non spécifié' }}<br>
+                                    {{ form_data.ref1_tel or '' }}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Référence 2:</strong><br>
+                                    {{ form_data.ref2_nom or 'Non spécifié' }}<br>
+                                    {{ form_data.ref2_tel or '' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h5>Motif du prêt</h5>
+                            <p class="border p-3 rounded bg-light">{{ pret.motif or 'Non spécifié' }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Échéancier -->
+                    {% if echeancier %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h5>Échéancier de remboursement</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>N°</th>
+                                            <th>Date échéance</th>
+                                            <th>Montant</th>
+                                            <th>Statut</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for e in echeancier %}
+                                        <tr class="{{ 'table-success' if e.statut == 'paye' else 'table-warning' if e.statut == 'en_attente' else 'table-danger' }}">
+                                            <td>{{ e.numero_echeance }}</td>
+                                            <td>{{ e.date_echeance.strftime('%d/%m/%Y') if e.date_echeance else 'N/A' }}</td>
+                                            <td>{{ "{:,.0f}".format(e.montant) }} Gdes</td>
+                                            <td>
+                                                {% if e.statut == 'paye' %}
+                                                <span class="badge bg-success">Payé</span>
+                                                {% elif e.statut == 'en_attente' %}
+                                                <span class="badge bg-warning">À payer</span>
+                                                {% else %}
+                                                <span class="badge bg-danger">Impayé</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Documents -->
+                    {% if documents %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h5>Documents joints</h5>
+                            <div class="list-group">
+                                {% for doc in documents %}
+                                <a href="{{ url_for('download_document', doc_id=doc.id) }}" class="list-group-item list-group-item-action">
+                                    <i class="fas fa-file-pdf me-2"></i> {{ doc.filename or doc.titre }}
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Boutons d'action -->
+                    <div class="row mt-4">
+                        <div class="col-12 text-center">
+                            <a href="{{ url_for('direction_succursale_dashboard') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Retour
+                            </a>
+                            {% if pret.statut == 'en_attente' %}
+                            <button class="btn btn-success" onclick="approuverPret({{ pret.id }})">
+                                <i class="fas fa-check-circle"></i> Approuver
+                            </button>
+                            <button class="btn btn-danger" onclick="refuserPret({{ pret.id }})">
+                                <i class="fas fa-times-circle"></i> Refuser
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function approuverPret(pretId) {
+    if(confirm('Êtes-vous sûr de vouloir approuver ce prêt ?')) {
+        fetch(`/pret/${pretId}/approuver`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        }).then(response => response.json())
+          .then(data => {
+              if(data.success) {
+                  window.location.href = "{{ url_for('direction_succursale_dashboard') }}";
+              } else {
+                  alert('Erreur: ' + data.message);
+              }
+          }).catch(error => {
+              alert('Erreur réseau: ' + error);
+          });
+    }
+}
+
+function refuserPret() {
+    const pretId = {{ pret.id if pret else 0 }};
+
+    if (pretId === 0) {
+        alert('Erreur: ID du prêt non trouvé');
+        return;
+    }
+
+    const motif = prompt('Motif du refus :');
+
+    // Vérifier si l'utilisateur a annulé
+    if (motif === null) {
+        return;
+    }
+
+    // Vérifier si le motif est vide
+    if (motif.trim() === '') {
+        alert('❌ Le motif de refus est obligatoire');
+        return;
+    }
+
+    // Confirmer l'action
+    if (confirm(`Êtes-vous sûr de vouloir refuser ce prêt ?\n\nMotif : ${motif}`)) {
+        // Désactiver le bouton pendant l'envoi
+        const btn = event.target.closest('button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Traitement...';
+        btn.disabled = true;
+
+        // Envoyer la requête avec le bon nom de champ
+        fetch(`/pret/${pretId}/refuser`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                motif_refus: motif.trim()  // ← LE BON NOM (avec underscore)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('❌ ' + data.message);
+                window.location.href = "{{ url_for('direction_succursale_dashboard') }}";
+            } else {
+                alert('Erreur: ' + data.message);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur réseau: ' + error);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- 🏦 HEADER avec photo de profil et NOTIFICATIONS -->
+    <div class="profile-header mb-4"
+         style="background: linear-gradient(135deg, {{ succursale.couleur|default('#0b3b4f') }}, #1a566e);
+                padding: 2rem;
+                border-radius: 20px;
+                color: white;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                display: flex;
+                align-items: center;
+                gap: 2rem;
+                flex-wrap: wrap;">
+
+        <div class="profile-photo" style="width: 100px; height: 100px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: {{ succursale.couleur|default('#0b3b4f') }};">
+            {% if current_user.photo_profil %}
+                <img src="{{ url_for('static', filename='uploads/profils/' + current_user.photo_profil) }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+            {% else %}
+                <i class="fas fa-user-tie"></i>
+            {% endif %}
+        </div>
+
+        <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 style="font-size: 2.2rem; margin-bottom: 0.5rem;">
+                        <i class="fas fa-store-alt"></i> {{ succursale.nom }} ({{ succursale.code }})
+                    </h1>
+                    <p style="margin: 0; opacity: 0.9; display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                        <span><i class="fas fa-map-marker-alt"></i> {{ succursale.ville }} | {{ succursale.adresse }}</span>
+                        <span><i class="fas fa-user"></i> {{ current_user.prenom }} {{ current_user.nom }} - {{ current_user.role }}</span>
+                    </p>
+                </div>
+
+                <!-- 🔔 NOTIFICATIONS BADGE -->
+                <div class="notification-icon" id="notificationBell"
+                     style="position: relative; cursor: pointer; background: rgba(255,255,255,0.2); padding: 12px 20px; border-radius: 50px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-bell" style="font-size: 1.5rem;"></i>
+                    <span class="notification-badge" id="notificationBadge"
+                          style="position: absolute; top: -5px; right: -5px;
+                                 background: #dc3545; color: white; border-radius: 50%;
+                                 padding: 3px 8px; font-size: 12px; min-width: 20px; text-align: center;
+                                 display: none;">
+                        0
+                    </span>
+                    <span>Notifications</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📊 STATISTIQUES -->
+    <div class="stats-grid mb-4">
+        <div class="stat-card blue">
+            <div class="stat-icon"><i class="fas fa-users fa-2x"></i></div>
+            <div>
+                <h3>{{ stats.clients }}</h3>
+                <p>Clients</p>
+            </div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-icon"><i class="fas fa-user-tie fa-2x"></i></div>
+            <div>
+                <h3>{{ stats.employees }}</h3>
+                <p>Employés</p>
+            </div>
+        </div>
+        <div class="stat-card orange">
+            <div class="stat-icon"><i class="fas fa-hand-holding-usd fa-2x"></i></div>
+            <div>
+                <h3>{{ stats.prets }}</h3>
+                <p>Prêts actifs</p>
+            </div>
+        </div>
+        <div class="stat-card purple">
+            <div class="stat-icon"><i class="fas fa-coins fa-2x"></i></div>
+            <div>
+                <h3>{{ stats.remboursements }} GDES</h3>
+                <p>Remboursements</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🎛️ GRILLE D'ACTIONS -->
+    <h3 style="color: #0b3b4f; margin: 30px 0 20px; display: flex; align-items: center; gap: 10px;">
+        <i class="fas fa-cog"></i> Gestion de la succursale
+    </h3>
+
+    <div class="actions-grid">
+
+        <a href="{{ url_for('employees.list', succursale_code=succursale.code) }}" class="btn-action primary">
+            <i class="fas fa-user-tie"></i> Gérer employés
+        </a>
+
+        <a href="{{ url_for('liste_clients'}}" class="btn-action success">
+            <i class="fas fa-users"></i> Gérer clients
+        </a>
+
+        <a href="{{ url_for('prets.list_prets', succursale_code=succursale.code) }}" class="btn-action info">
+            <i class="fas fa-hand-holding-usd"></i> Gérer prêts
+        </a>
+
+        <a href="{{ url_for('mes_remboursements', succursale_code=succursale.code) }}" class="btn-action warning">
+            <i class="fas fa-coins"></i> Remboursements
+        </a>
+
+        <a href="{{ url_for('directeur_tous_les_dossiers', succursale_code=succursale.code) }}" class="btn-action dark">
+            <i class="fas fa-folder-open"></i> Tous les dossiers
+        </a>
+
+        {% if current_user.role == 'super_admin' %}
+        <a href="{{ url_for('edit_succursale', succ_id=succursale.id) }}" class="btn-action danger">
+            <i class="fas fa-edit"></i> Modifier succursale
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- 📂 DERNIERS DOSSIERS -->
+    <h3 style="color: #0b3b4f; margin: 40px 0 20px;">
+        <i class="fas fa-clock"></i> Derniers dossiers
+    </h3>
+
+    <div class="dossiers-list">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dossier in dossiers %}
+                <tr>
+                    <td>#{{ dossier.id }}</td>
+                    <td>{{ dossier.nom }}</td>
+                    <td>{{ dossier.type }}</td>
+                    <td>{{ dossier.date_inscription.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                        <span class="badge bg-{{ dossier.statut_couleur }}">
+                            {{ dossier.statut }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('voir_dossier', dossier_id=dossier.id) }}"
+                           class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i> Voir
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<style>
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    transition: transform 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-card.blue .stat-icon { background: #e3f2fd; color: #1976d2; }
+.stat-card.green .stat-icon { background: #e8f5e9; color: #388e3c; }
+.stat-card.orange .stat-icon { background: #fff3e0; color: #f57c00; }
+.stat-card.purple .stat-icon { background: #f3e5f5; color: #7b1fa2; }
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-card h3 {
+    font-size: 2rem;
+    margin-bottom: 0.2rem;
+    color: #0b3b4f;
+}
+
+.stat-card p {
+    color: #666;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.btn-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s;
+    color: white;
+    border: none;
+}
+
+.btn-action:hover {
+    transform: scale(1.02);
+    opacity: 0.9;
+}
+
+.btn-action.primary { background: #0b3b4f; }
+.btn-action.success { background: #28a745; }
+.btn-action.info { background: #17a2b8; }
+.btn-action.warning { background: #ffc107; color: #0b3b4f; }
+.btn-action.dark { background: #343a40; }
+.btn-action.danger { background: #dc3545; }
+
+.dossiers-list {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.table {
+    margin: 0;
+}
+
+.table th {
+    border-top: none;
+    color: #0b3b4f;
+    font-weight: 600;
+}
+
+.badge {
+    padding: 5px 10px;
+    border-radius: 20px;
+}
+
+@media (max-width: 768px) {
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .stats-grid {
+        gap: 1rem;
+    }
+
+    .stat-card {
+        padding: 1rem;
+    }
+}
+</style>
+
+<!-- 🔔 AJOUTEZ LE SCRIPT DES NOTIFICATIONS ICI SI NÉCESSAIRE -->
+
+{% endblock %}  <!-- ← C'EST CETTE LIGNE QUI MANQUAIT -->

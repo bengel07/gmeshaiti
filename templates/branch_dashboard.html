@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Tableau de Bord - Succursale {{ branch_code }}</h1>
+    <p>Bienvenue, {{ user.username }} ({{ user.role }})</p>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Clients</h5>
+                    <p class="card-text">{{ total_clients }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Prêts en attente</h5>
+                    <p class="card-text">{{ pending_loans }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Transactions en attente</h5>
+                    <p class="card-text">{{ pending_transactions }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

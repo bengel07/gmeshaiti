@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ succursale.nom }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-store"></i> {{ succursale.nom }}</h2>
+                    <p class="text-muted">Bienvenue {{ current_user.prenom }} {{ current_user.nom }}</p>
+                </div>
+                <div>
+                    <span class="badge bg-primary p-2">{{ now.strftime('%d/%m/%Y %H:%M') }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cartes Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Clients</h5>
+                    <h2 class="mb-0">{{ stats.total_clients }}</h2>
+                    <small>dont {{ stats.clients_actifs }} actifs</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5 class="card-title">En attente</h5>
+                    <h2 class="mb-0">{{ stats.prets_attente }}</h2>
+                    <small>demandes à traiter</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Prêts actifs</h5>
+                    <h2 class="mb-0">{{ stats.prets_actifs }}</h2>
+                    <small>en cours</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Montant total</h5>
+                    <h2 class="mb-0">{{ "{:,.0f}".format(stats.montant_total) }}</h2>
+                    <small>Gdes accordés</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deuxième ligne -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">📊 Taux de remboursement</h5>
+                    <div class="progress mb-2" style="height: 20px;">
+                        <div class="progress-bar bg-success"
+                             style="width: {{ stats.taux_remboursement }}%">
+                            {{ "%.1f"|format(stats.taux_remboursement) }}%
+                        </div>
+                    </div>
+                    <p class="mb-0">Remboursé: {{ "{:,.0f}".format(stats.total_rembourse) }} Gdes</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">📈 Taux d'approbation</h5>
+                    <div class="progress mb-2" style="height: 20px;">
+                        <div class="progress-bar bg-info"
+                             style="width: {{ stats.taux_approbation }}%">
+                            {{ "%.1f"|format(stats.taux_approbation) }}%
+                        </div>
+                    </div>
+                    <p class="mb-0">{{ stats.prets_approuves }} approuvés / {{ stats.total_prets }} total</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">⚠️ Paiements en retard</h5>
+                    <h2 class="text-danger mb-0">{{ stats.paiements_retard }}</h2>
+                    <small>échéances impayées</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demandes en attente -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">⏳ Demandes en attente</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr><th>Dossier</th><th>Client</th><th>Montant</th><th>Date</th><th>Action</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for pret in demandes_attente %}
+                                <tr>
+                                    <td>{{ pret.numero_dossier or pret.id }}</td>
+                                    <td>{{ pret.client.prenom }} {{ pret.client.nom }}</td>
+                                    <td>{{ "{:,.0f}".format(pret.montant) }} Gdes</td>
+                                    <td>{{ pret.date_demande.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('direction_detail_pret', pret_id=pret.id) }}"
+                                           class="btn btn-sm btn-primary">Traiter</a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="5" class="text-center">Aucune demande en attente</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prêts actifs récents -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">🟢 Prêts actifs récents</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr><th>Client</th><th>Montant</th><th>Mensualité</th><th>Progression</th><th>Action</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for pret in prets_actifs %}
+                                <tr>
+                                    <td>{{ pret.client.prenom }} {{ pret.client.nom }}</td>
+                                    <td>{{ "{:,.0f}".format(pret.montant) }} Gdes</td>
+                                    <td>{{ "{:,.0f}".format(pret.mensualite) }} Gdes</td>
+                                    <td>
+                                        {% set progress = (pret.get_payment_status().progress if pret.get_payment_status else 0) %}
+                                        <div class="progress" style="width: 80px;">
+                                            <div class="progress-bar" style="width: {{ progress }}%">{{ progress }}%</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('voir_pret', pret_id=pret.id) }}"
+                                           class="btn btn-sm btn-info">Détails</a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="5" class="text-center">Aucun prêt actif</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prochaines échéances et Top agents -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">📅 Prochaines échéances</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr><th>Client</th><th>Date</th><th>Montant</th><th>Statut</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for echeance in prochaines_echeances %}
+                                <tr>
+                                    <td>{{ echeance.pret.client.prenom }} {{ echeance.pret.client.nom }}</td>
+                                    <td>{{ echeance.date_echeance.strftime('%d/%m/%Y') }}</td>
+                                    <td>{{ "{:,.0f}".format(echeance.montant) }} Gdes</td>
+                                    <td><span class="badge bg-warning">À venir</span></td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="text-center">Aucune échéance à venir</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">🏆 Top Agents</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr><th>Agent</th><th>Prêts traités</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for agent in top_agents %}
+                                <tr>
+                                    <td>{{ agent.prenom }} {{ agent.nom }}</td>
+                                    <td>{{ agent.total_prets }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="2" class="text-center">Aucun agent</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dernières activités -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">📋 Dernières activités</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr><th>Dossier</th><th>Client</th><th>Montant</th><th>Statut</th><th>Date</th><th>Agent</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for pret in dernieres_activites %}
+                                <tr>
+                                    <td>{{ pret.numero_dossier or pret.id }}</td>
+                                    <td>{{ pret.client.prenom }} {{ pret.client.nom }}</td>
+                                    <td>{{ "{:,.0f}".format(pret.montant) }} Gdes</td>
+                                    <td>
+                                        {% if pret.statut == 'en_attente' %}
+                                        <span class="badge bg-warning">En attente</span>
+                                        {% elif pret.statut == 'approuve' %}
+                                        <span class="badge bg-success">Approuvé</span>
+                                        {% elif pret.statut == 'actif' %}
+                                        <span class="badge bg-info">Actif</span>
+                                        {% elif pret.statut == 'termine' %}
+                                        <span class="badge bg-secondary">Terminé</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">{{ pret.statut }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ pret.date_demande.strftime('%d/%m/%Y') }}</td>
+                                    <td>{{ pret.agent.prenom if pret.agent else '-' }} {{ pret.agent.nom if pret.agent else '' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

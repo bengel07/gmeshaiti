@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">
+                <i class="fas fa-exchange-alt"></i> Transfert entre comptes d'épargne
+            </h4>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-2">Client</h6>
+                            <h5 class="mb-0">
+                                <i class="fas fa-user"></i> {{ client.nom }} {{ client.prenom }}
+                            </h5>
+                            <small class="text-muted">ID: {{ client.id }}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-2">Date</h6>
+                            <h5 class="mb-0">
+                                <i class="far fa-calendar-alt"></i> {{ now.strftime('%d/%m/%Y %H:%M') }}
+                            </h5>
+                            <small class="text-muted">Heure locale</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" id="transfertForm" class="mt-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="compte_source" class="form-label">
+                                <i class="fas fa-arrow-up text-danger"></i> Compte source *
+                            </label>
+                            <select name="compte_source" id="compte_source" class="form-select" required>
+                                <option value="">Sélectionner un compte</option>
+                                {% for compte in comptes %}
+                                <option value="{{ compte.id }}"
+                                        data-solde="{{ compte.solde_disponible }}"
+                                        data-numero="{{ compte.numero_compte }}"
+                                        data-type="{{ compte.type_compte }}">
+                                    {{ compte.numero_compte }} - {{ compte.type_compte|capitalize }}
+                                    (Solde: {{ compte.solde_disponible|round(0)|int }} HTG)
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">Veuillez sélectionner un compte source</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="compte_destination" class="form-label">
+                                <i class="fas fa-arrow-down text-success"></i> Numéro de compte destination *
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-university"></i></span>
+                                <input type="text"
+                                       name="compte_destination_numero"
+                                       id="compte_destination_numero"
+                                       class="form-control"
+                                       required
+                                       placeholder="Exemple: GMES-001234"
+                                       pattern="[A-Za-z0-9\-]+"
+                                       title="Format: alphanumérique et tirets">
+                            </div>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle"></i> Entrez le numéro de compte du bénéficiaire
+                            </small>
+                            <div id="destinataireInfo" class="mt-2" style="display: none;">
+                                <div class="alert alert-success" style="padding: 8px;">
+                                    <i class="fas fa-check-circle"></i> Bénéficiaire: <strong id="destinataireNom"></strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="montant" class="form-label">
+                        <i class="fas fa-money-bill-wave"></i> Montant (HTG) *
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">HTG</span>
+                        <input type="number" name="montant" id="montant" class="form-control"
+                               step="any" min="1000" required
+                               placeholder="Exemple: 50000">
+                    </div>
+                    <small class="form-text text-muted">
+                        <i class="fas fa-info-circle"></i> Montant minimum: 1 000 HTG
+                    </small>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="description" class="form-label">
+                        <i class="fas fa-pen"></i> Description (optionnel)
+                    </label>
+                    <textarea name="description" id="description" class="form-control" rows="2"
+                              placeholder="Motif du transfert..."></textarea>
+                    <small class="form-text text-muted">
+                        Maximum 200 caractères
+                    </small>
+                </div>
+
+                <!-- Récapitulatif dynamique -->
+                <div class="alert alert-info" id="recapitulatif" style="display: none;">
+                    <h6 class="mb-2"><i class="fas fa-chart-line"></i> Récapitulatif du transfert</h6>
+                    <div id="recapContent"></div>
+                </div>
+
+                <!-- Alertes -->
+                <div class="alert alert-warning" id="alerte" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i> <span id="alerteMessage"></span>
+                </div>
+
+                <div class="alert alert-danger" id="erreur" style="display: none;">
+                    <i class="fas fa-times-circle"></i> <span id="erreurMessage"></span>
+                </div>
+
+                <div class="alert alert-success" id="succes" style="display: none;">
+                    <i class="fas fa-check-circle"></i> <span id="succesMessage"></span>
+                </div>
+
+                <!-- Boutons -->
+                <div class="mt-4">
+                    <button type="submit" id="btnSubmit" class="btn btn-success btn-lg px-5" disabled>
+                        <i class="fas fa-exchange-alt"></i> Confirmer le transfert
+                    </button>
+                    <a href="{{ url_for('voir_client', client_id=client.id) }}" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-times"></i> Annuler
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-select:focus, .form-control:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .btn-success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border: none;
+    }
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(40,167,69,0.3);
+        transition: all 0.3s ease;
+    }
+</style>
+
+<script>
+// Données des comptes
+const comptesData = {
+    {% for compte in comptes %}
+    "{{ compte.id }}": {
+        id: {{ compte.id }},
+        numero: "{{ compte.numero_compte }}",
+        solde: {{ compte.solde_disponible }},
+        type: "{{ compte.type_compte }}"
+    },
+    {% endfor %}
+};
+
+// Éléments DOM
+const sourceSelect = document.getElementById('compte_source');
+const destinationNumeroInput = document.getElementById('compte_destination_numero');
+const montantInput = document.getElementById('montant');
+const btnSubmit = document.getElementById('btnSubmit');
+const recapDiv = document.getElementById('recapitulatif');
+const recapContent = document.getElementById('recapContent');
+const alerteDiv = document.getElementById('alerte');
+const alerteMessage = document.getElementById('alerteMessage');
+const erreurDiv = document.getElementById('erreur');
+const erreurMessage = document.getElementById('erreurMessage');
+
+let destinationData = null;
+
+// Vérifier le compte destination via API
+async function verifierCompteDestination() {
+    const numeroCompte = destinationNumeroInput.value.trim();
+    const infoDiv = document.getElementById('destinataireInfo');
+    const destinataireNomSpan = document.getElementById('destinataireNom');
+
+    erreurDiv.style.display = 'none';
+
+    if(numeroCompte.length < 5) {
+        if(infoDiv) infoDiv.style.display = 'none';
+        destinationData = null;
+        checkTransfert();
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/verifier-compte', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ numero_compte: numeroCompte })
+        });
+
+        const data = await response.json();
+
+        if(data.success) {
+            destinationData = data.compte;
+            if(destinataireNomSpan) {
+                destinataireNomSpan.textContent = `${data.compte.client_nom}`;
+            }
+            if(infoDiv) infoDiv.style.display = 'block';
+            erreurDiv.style.display = 'none';
+        } else {
+            destinationData = null;
+            if(infoDiv) infoDiv.style.display = 'none';
+            erreurMessage.innerHTML = '❌ Compte destination introuvable';
+            erreurDiv.style.display = 'block';
+        }
+    } catch(error) {
+        console.error('Erreur:', error);
+        destinationData = null;
+        if(infoDiv) infoDiv.style.display = 'none';
+        erreurMessage.innerHTML = '❌ Erreur lors de la vérification';
+        erreurDiv.style.display = 'block';
+    }
+
+    checkTransfert();
+}
+
+// Vérifier le transfert
+function checkTransfert() {
+    const sourceId = sourceSelect.value;
+    const montant = parseFloat(montantInput.value);
+
+    recapDiv.style.display = 'none';
+    alerteDiv.style.display = 'none';
+    erreurDiv.style.display = 'none';
+    btnSubmit.disabled = true;
+
+    if(!sourceId || !destinationData || !montant || isNaN(montant)) {
+        return;
+    }
+
+    const sourceData = comptesData[sourceId];
+
+    // Vérifier même compte
+    if(sourceData.numero === destinationData.numero) {
+        erreurMessage.innerHTML = '❌ Impossible de transférer vers le même compte';
+        erreurDiv.style.display = 'block';
+        return;
+    }
+
+    // Validation montant
+    if(montant < 1000) {
+        alerteMessage.innerHTML = 'Le montant minimum est de 1 000 HTG';
+        alerteDiv.style.display = 'block';
+        return;
+    }
+
+    if(montant > sourceData.solde) {
+        erreurMessage.innerHTML = `Solde insuffisant. Solde disponible: ${sourceData.solde.toLocaleString()} HTG`;
+        erreurDiv.style.display = 'block';
+        return;
+    }
+
+    if(montant > 500000) {
+        alerteMessage.innerHTML = '⚠️ Montant élevé (>500 000 HTG). Vérifiez bien avant de confirmer.';
+        alerteDiv.style.display = 'block';
+    }
+
+    // Récapitulatif
+    recapContent.innerHTML = `
+        <table class="table table-sm">
+            <tr>
+                <td><strong>De:</strong></td>
+                <td>${sourceData.numero} (${sourceData.type})</td>
+            </tr>
+            <tr>
+                <td><strong>Vers:</strong></td>
+                <td>${destinationData.numero}<br>
+                <small>Bénéficiaire: ${destinationData.client_nom}</small></td>
+            </tr>
+            <tr class="table-info">
+                <td><strong>Montant:</strong></td>
+                <td><strong class="text-success">${montant.toLocaleString()} HTG</strong></td>
+            </tr>
+        </table>
+        <small>⚠️ Le transfert est immédiat et irréversible</small>
+    `;
+    recapDiv.style.display = 'block';
+    btnSubmit.disabled = false;
+}
+
+// Confirmation
+function confirmSubmit(e) {
+    if(!destinationData) {
+        e.preventDefault();
+        erreurMessage.innerHTML = '❌ Vérifiez le compte destination';
+        erreurDiv.style.display = 'block';
+        return false;
+    }
+
+    const montant = parseFloat(montantInput.value);
+    const sourceData = comptesData[sourceSelect.value];
+
+    const message = `⚠️ CONFIRMATION ⚠️\n\n` +
+                   `Transférer ${montant.toLocaleString()} HTG\n` +
+                   `Du: ${sourceData.numero}\n` +
+                   `Vers: ${destinationData.numero}\n` +
+                   `Bénéficiaire: ${destinationData.client_nom}\n\n` +
+                   `Action IRRÉVERSIBLE. Confirmer ?`;
+
+    if(!confirm(message)) {
+        e.preventDefault();
+        return false;
+    }
+
+    btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traitement...';
+    btnSubmit.disabled = true;
+    return true;
+}
+
+// Événements
+sourceSelect.addEventListener('change', checkTransfert);
+destinationNumeroInput.addEventListener('input', verifierCompteDestination);
+montantInput.addEventListener('input', checkTransfert);
+document.getElementById('transfertForm').addEventListener('submit', confirmSubmit);
+
+
+</script>
+
+{% endblock %}

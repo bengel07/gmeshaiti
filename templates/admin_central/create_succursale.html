@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">🏢 Nouvelle Succursale</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm btn-outline-secondary">
+                        ← Retour au tableau de bord
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages flash -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Formulaire de création -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('create_succursale') }}">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="code" class="form-label">Code de la succursale *</label>
+                                <input type="text" class="form-control" id="code" name="code"
+                                       placeholder="ex: CAS001" required>
+                                <div class="form-text">Code unique pour identifier la succursale</div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="nom" class="form-label">Nom de la succursale *</label>
+                                <input type="text" class="form-control" id="nom" name="nom"
+                                       placeholder="ex: Casablanca Centre" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="ville" class="form-label">Ville *</label>
+                                <input type="text" class="form-control" id="ville" name="ville"
+                                       placeholder="ex: Casablanca" required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="telephone" class="form-label">Téléphone *</label>
+                                <input type="tel" class="form-control" id="telephone" name="telephone"
+                                       placeholder="ex: 0522-123456" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="adresse" class="form-label">Adresse complète *</label>
+                            <textarea class="form-control" id="adresse" name="adresse"
+                                      rows="2" required></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email de contact *</label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                   placeholder="ex: contact@gmes.ma" required>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="reset" class="btn btn-outline-secondary me-md-2">
+                                ↺ Réinitialiser
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                ✅ Créer la succursale
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Succursales existantes -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">📋 Succursales existantes</h5>
+                </div>
+                <div class="card-body">
+                    {% if succursales %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Nom</th>
+                                        <th>Ville</th>
+                                        <th>Téléphone</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for succ in succursales %}
+                                    <tr>
+                                        <td><strong>{{ succ.code }}</strong></td>
+                                        <td>{{ succ.nom }}</td>
+                                        <td>{{ succ.ville }}</td>
+                                        <td>{{ succ.telephone }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if succ.statut == 'active' else 'secondary' }}">
+                                                {{ succ.statut }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Aucune succursale créée pour le moment.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

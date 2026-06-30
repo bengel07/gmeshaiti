@@ -41,6 +41,11 @@
         </div>
 
         <div class="form-group">
+            <label>Adresse</label>
+            <input type="text" name="adresse" value="{{ employe.adresse }}">
+        </div>
+
+        <div class="form-group">
             <label>Fonction *</label>
             <select name="fonction" required>
                 {% for key, value in fonctions.items() %}

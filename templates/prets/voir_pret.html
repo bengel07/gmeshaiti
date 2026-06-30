@@ -1,0 +1,613 @@
+{% extends "base.html" %}
+
+{% block title %}Détails du Prêt #{{ pret.numero_dossier or pret.id }}{% endblock %}
+
+{% block styles %}
+<style>
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        padding: 20px;
+        color: white;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .stat-card.primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .stat-card.success {
+        background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+    }
+
+    .stat-card.warning {
+        background: linear-gradient(135deg, #fad0c4 0%, #ffd1ff 100%);
+    }
+
+    .stat-card.danger {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .info-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .badge-status {
+        font-size: 14px;
+        padding: 6px 12px;
+        border-radius: 20px;
+    }
+
+    .payment-table {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .progress {
+        height: 8px;
+        border-radius: 4px;
+    }
+
+    .progress-bar {
+        transition: width 0.6s ease;
+    }
+
+    .file-upload-area {
+        border: 2px dashed #ddd;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .file-upload-area:hover {
+        border-color: #667eea;
+        background: #f7f7ff;
+    }
+
+    .document-item {
+        border-left: 3px solid #667eea;
+        padding: 10px;
+        margin-bottom: 10px;
+        background: #f8f9fa;
+        border-radius: 5px;
+    }
+
+    .currency-switch {
+        cursor: pointer;
+        padding: 5px 10px;
+        border-radius: 5px;
+        background: #f0f0f0;
+        display: inline-block;
+        margin-left: 10px;
+    }
+
+    .amount {
+        font-weight: bold;
+        color: #2c3e50;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Header with status -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>Prêt #{{ pret.numero_dossier or pret.id }}</h2>
+                    <p class="text-muted">Demande du {{ pret.date_demande.strftime('%d/%m/%Y') if pret.date_demande else 'N/A' }}</p>
+                </div>
+                <div>
+                    {% set status_class = 'success' if pret.statut == 'approuve' else 'warning' if pret.statut == 'en_attente' else 'danger' if pret.statut == 'refuse' else 'info' %}
+                    <span class="badge badge-status badge-{{ status_class }}">
+                        {% if pret.statut == 'en_attente' %}⏳ En attente
+                        {% elif pret.statut == 'approuve' %}✅ Approuvé
+                        {% elif pret.statut == 'actif' %}🟢 Actif
+                        {% elif pret.statut == 'termine' %}🏁 Terminé
+                        {% elif pret.statut == 'refuse' %}❌ Refusé
+                        {% else %}{{ pret.statut }}{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card primary">
+                        <h6>Montant Total</h6>
+                        <h3 class="amount" id="total-amount" data-htg="{{ pret.montant_total }}" data-usd="{{ (pret.montant_total / exchange_rate_usd)|round(2) }}" data-eur="{{ (pret.montant_total / exchange_rate_eur)|round(2) }}">
+                            {{ "{:,.0f}".format(pret.montant_total) }} Gdes
+                        </h3>
+                        <small>À rembourser</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card success">
+                        <h6>Déjà remboursé</h6>
+                        <h3 class="amount" id="paid-amount" data-htg="{{ stats.total_paid }}" data-usd="{{ (stats.total_paid / exchange_rate_usd)|round(2) }}" data-eur="{{ (stats.total_paid / exchange_rate_eur)|round(2) }}">
+                            {{ "{:,.0f}".format(stats.total_paid) }} Gdes
+                        </h3>
+                        <small>{{ stats.payments_made }}/{{ stats.total_payments }} échéances</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card warning">
+                        <h6>Reste à payer</h6>
+                        <h3 class="amount" id="remaining-amount" data-htg="{{ stats.remaining_balance }}" data-usd="{{ (stats.remaining_balance / exchange_rate_usd)|round(2) }}" data-eur="{{ (stats.remaining_balance / exchange_rate_eur)|round(2) }}">
+                            {{ "{:,.0f}".format(stats.remaining_balance) }} Gdes
+                        </h3>
+                        <small>{{ stats.payments_pending }} échéances restantes</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <h6>Mensualité</h6>
+                        <h3 class="amount" id="monthly-amount" data-htg="{{ pret.mensualite }}" data-usd="{{ (pret.mensualite / exchange_rate_usd)|round(2) }}" data-eur="{{ (pret.mensualite / exchange_rate_eur)|round(2) }}">
+                            {{ "{:,.0f}".format(pret.mensualite) }} Gdes
+                        </h3>
+                        <small>{{ pret.duree_mois }} mois</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="info-card">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Progression du remboursement</span>
+                    <span>{{ "{:.1f}".format(stats.progress_percentage) }}%</span>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ stats.progress_percentage }}%" aria-valuenow="{{ stats.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="row">
+                <!-- Left Column: Client Info & Loan Details -->
+                <div class="col-md-6">
+                    <div class="info-card">
+                        <h4>👤 Informations Client</h4>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Nom complet:</strong><br>{{ client.nom }} {{ client.prenom }}</p>
+                                <p><strong>Téléphone:</strong><br>{{ client.telephone }}</p>
+                                <p><strong>Email:</strong><br>{{ client.email }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Profession:</strong><br>{{ client.profession }}</p>
+                                <p><strong>Revenu mensuel:</strong><br>{{ "{:,.0f}".format(client.revenu_mensuel) }} Gdes</p>
+                                <p><strong>Entreprise:</strong><br>{{ client.entreprise }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h4>💰 Détails du Prêt</h4>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Montant demandé:</strong><br>{{ "{:,.0f}".format(pret.montant) }} Gdes</p>
+                                <p><strong>Intérêts:</strong><br>{{ "{:,.0f}".format(pret.montant_interet) }} Gdes</p>
+                                <p><strong>Taux d'intérêt:</strong><br>{{ pret.taux_interet }}%</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Type de prêt:</strong><br>{{ pret.type_pret }}</p>
+                                <p><strong>Motif:</strong><br>{{ pret.motif }}</p>
+                                <p><strong>Durée:</strong><br>{{ pret.duree_mois }} mois</p>
+                            </div>
+                        </div>
+
+                        <!-- DLTR Currency Converter -->
+                        <div class="mt-3">
+                            <label>Convertir en: </label>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-primary currency-btn active" data-currency="HTG">🇭🇹 HTG</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary currency-btn" data-currency="USD">🇺🇸 USD</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary currency-btn" data-currency="EUR">🇪🇺 EUR</button>
+                            </div>
+                            <small class="text-muted d-block mt-2">Taux: 1 USD = {{ exchange_rate_usd }} HTG | 1 EUR = {{ exchange_rate_eur }} HTG</small>
+                        </div>
+                    </div>
+
+                    <!-- Guarantor Information -->
+                    {% if info_garant %}
+                    <div class="info-card">
+                        <h4>🤝 Garant</h4>
+                        <hr>
+                        <p><strong>Nom:</strong> {{ info_garant.get('nom', 'N/A') }}</p>
+                        <p><strong>Téléphone:</strong> {{ info_garant.get('telephone', 'N/A') }}</p>
+                        <p><strong>Adresse:</strong> {{ info_garant.get('adresse', 'N/A') }}</p>
+                        <p><strong>Relation:</strong> {{ info_garant.get('relation', 'N/A') }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- References -->
+                    <div class="info-card">
+                        <h4>📞 Références</h4>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Référence 1:</strong><br>{{ reference1.get('nom', 'N/A') }}<br>{{ reference1.get('telephone', 'N/A') }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Référence 2:</strong><br>{{ reference2.get('nom', 'N/A') }}<br>{{ reference2.get('telephone', 'N/A') }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Payment History & Documents -->
+                <div class="col-md-6">
+                    <!-- Payment History with AJAX -->
+                    <div class="info-card">
+                        <h4>📅 Historique des Paiements</h4>
+                        <hr>
+                        <div id="payment-loading" class="text-center" style="display: none;">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                        <div id="payment-table-container">
+                            <div class="payment-table">
+                                <table class="table table-hover" id="payment-table">
+                                    <thead>
+                                        <tr>
+                                            <th>N°</th>
+                                            <th>Date échéance</th>
+                                            <th>Montant</th>
+                                            <th>Payé</th>
+                                            <th>Statut</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="payment-tbody">
+                                        {% for e in echeancier %}
+                                        <tr class="{{ 'table-success' if e.statut == 'paye' else 'table-danger' if e.statut == 'impaye' }}">
+                                            <td>{{ e.numero_echeance }}</td>
+                                            <td>{{ e.date_echeance.strftime('%d/%m/%Y') }}</td>
+                                            <td class="payment-amount" data-htg="{{ e.montant }}" data-usd="{{ (e.montant / exchange_rate_usd)|round(2) }}" data-eur="{{ (e.montant / exchange_rate_eur)|round(2) }}">
+                                                {{ "{:,.0f}".format(e.montant) }} Gdes
+                                            </td>
+                                            <td>{{ "{:,.0f}".format(e.montant_paye or 0) }} Gdes</td>
+                                            <td>
+                                                {% if e.statut == 'paye' %}
+                                                <span class="badge badge-success">Payé</span>
+                                                {% elif e.statut == 'impaye' %}
+                                                <span class="badge badge-danger">Impayé</span>
+                                                {% else %}
+                                                <span class="badge badge-warning">En attente</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <button id="refresh-payments" class="btn btn-sm btn-info mt-2">
+                            <i class="fas fa-sync-alt"></i> Rafraîchir
+                        </button>
+                    </div>
+
+                    <!-- Documents & Attachments -->
+                    <div class="info-card">
+                        <h4>📎 Documents</h4>
+                        <hr>
+
+                        <!-- Upload Area -->
+                        {% if est_agent or current_user.id == client.user_id %}
+                        <div class="file-upload-area mb-3" id="upload-area">
+                            <i class="fas fa-cloud-upload-alt fa-2x"></i>
+                            <p>Glissez-déposez des fichiers ici ou cliquez pour sélectionner</p>
+                            <input type="file" id="file-input" multiple style="display: none;" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                            <button class="btn btn-sm btn-primary" onclick="document.getElementById('file-input').click()">
+                                Sélectionner des fichiers
+                            </button>
+                        </div>
+                        {% endif %}
+
+                        <!-- Document List -->
+                        <div id="document-list">
+                            {% if documents %}
+                                {% for doc in documents %}
+                                <div class="document-item" id="doc-{{ doc.id }}">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="fas fa-file-{{ 'pdf' if doc.filename.endswith('.pdf') else 'image' if doc.filename.endswith(('.jpg','.png')) else 'alt' }}"></i>
+                                            <strong>{{ doc.filename }}</strong>
+                                            <br>
+                                            <small class="text-muted">Ajouté le {{ doc.date_upload.strftime('%d/%m/%Y %H:%M') }} par {{ doc.uploaded_by }}</small>
+                                        </div>
+                                        <div>
+                                            <a href="{{ url_for('download_document', doc_id=doc.id) }}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                            {% if est_agent %}
+                                            <button onclick="deleteDocument({{ doc.id }})" class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted text-center">Aucun document uploadé</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <div class="info-card text-center">
+                        {% if pret.statut == 'en_attente' and est_agent %}
+                        <button onclick="approveLoan({{ pret.id }})" class="btn btn-success">
+                            <i class="fas fa-check-circle"></i> Approuver le prêt
+                        </button>
+                        <button onclick="rejectLoan({{ pret.id }})" class="btn btn-danger">
+                            <i class="fas fa-times-circle"></i> Refuser le prêt
+                        </button>
+                        {% elif pret.statut == 'actif' %}
+                        <button onclick="makePayment({{ pret.id }})" class="btn btn-primary">
+                            <i class="fas fa-money-bill-wave"></i> Effectuer un paiement
+                        </button>
+                        {% endif %}
+
+                        <button onclick="window.print()" class="btn btn-secondary">
+                            <i class="fas fa-print"></i> Imprimer
+                        </button>
+
+                        <a href="{{ url_for('mes_prets') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Currency conversion
+    let currentCurrency = 'HTG';
+    const exchangeRates = {
+        HTG: 1,
+        USD: {{ exchange_rate_usd }},
+        EUR: {{ exchange_rate_eur }}
+    };
+
+    function convertAmount(amountHTG, toCurrency) {
+        if (toCurrency === 'HTG') return amountHTG;
+        return amountHTG / exchangeRates[toCurrency];
+    }
+
+    function formatAmount(amount, currency) {
+        if (currency === 'HTG') return amount.toLocaleString() + ' Gdes';
+        if (currency === 'USD') return '$ ' + amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        if (currency === 'EUR') return '€ ' + amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        return amount;
+    }
+
+    function updateCurrency(currency) {
+        currentCurrency = currency;
+
+        // Update all amount elements
+        document.querySelectorAll('.amount, .payment-amount, [data-htg]').forEach(el => {
+            const htgValue = parseFloat(el.getAttribute('data-htg'));
+            if (!isNaN(htgValue)) {
+                const converted = convertAmount(htgValue, currency);
+                el.textContent = formatAmount(converted, currency);
+            }
+        });
+
+        // Update active button style
+        document.querySelectorAll('.currency-btn').forEach(btn => {
+            if (btn.getAttribute('data-currency') === currency) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+
+    document.querySelectorAll('.currency-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            updateCurrency(btn.getAttribute('data-currency'));
+        });
+    });
+
+    // AJAX Payment History
+    async function refreshPaymentHistory() {
+        const loading = document.getElementById('payment-loading');
+        const container = document.getElementById('payment-table-container');
+
+        loading.style.display = 'block';
+        container.style.opacity = '0.5';
+
+        try {
+            const response = await fetch(`/prets/voir-pret/{{ pret.id }}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Update table
+                const tbody = document.getElementById('payment-tbody');
+                tbody.innerHTML = '';
+
+                data.payments.forEach(payment => {
+                    const row = tbody.insertRow();
+                    row.className = payment.statut === 'paye' ? 'table-success' : (payment.statut === 'impaye' ? 'table-danger' : '');
+
+                    row.insertCell(0).textContent = payment.numero;
+                    row.insertCell(1).textContent = payment.date_echeance;
+
+                    const amountCell = row.insertCell(2);
+                    amountCell.textContent = formatAmount(payment.montant, currentCurrency);
+                    amountCell.setAttribute('data-htg', payment.montant);
+
+                    row.insertCell(3).textContent = formatAmount(payment.montant_paye, currentCurrency);
+
+                    const statusCell = row.insertCell(4);
+                    const badge = document.createElement('span');
+                    badge.className = `badge badge-${payment.statut === 'paye' ? 'success' : (payment.statut === 'impaye' ? 'danger' : 'warning')}`;
+                    badge.textContent = payment.statut === 'paye' ? 'Payé' : (payment.statut === 'impaye' ? 'Impayé' : 'En attente');
+                    statusCell.appendChild(badge);
+                });
+
+                // Update stats
+                document.querySelector('#paid-amount').setAttribute('data-htg', data.summary.total_paid);
+                document.querySelector('#remaining-amount').setAttribute('data-htg', data.summary.remaining_balance);
+                document.querySelector('#paid-amount h3').textContent = formatAmount(data.summary.total_paid, currentCurrency);
+                document.querySelector('#remaining-amount h3').textContent = formatAmount(data.summary.remaining_balance, currentCurrency);
+
+                const progressPercent = (data.summary.total_paid / (data.summary.total_paid + data.summary.remaining_balance)) * 100;
+                document.querySelector('.progress-bar').style.width = progressPercent + '%';
+                document.querySelector('.progress-bar').textContent = progressPercent.toFixed(1) + '%';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Erreur lors du chargement des paiements');
+        } finally {
+            loading.style.display = 'none';
+            container.style.opacity = '1';
+        }
+    }
+
+    document.getElementById('refresh-payments')?.addEventListener('click', refreshPaymentHistory);
+
+    // File upload
+    const uploadArea = document.getElementById('upload-area');
+    const fileInput = document.getElementById('file-input');
+
+    if (uploadArea) {
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#667eea';
+            uploadArea.style.background = '#f7f7ff';
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '#ddd';
+            uploadArea.style.background = '';
+        });
+        uploadArea.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#ddd';
+            uploadArea.style.background = '';
+
+            const files = Array.from(e.dataTransfer.files);
+            await uploadFiles(files);
+        });
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', async (e) => {
+            await uploadFiles(Array.from(e.target.files));
+        });
+    }
+
+    async function uploadFiles(files) {
+        const formData = new FormData();
+        files.forEach(file => formData.append('documents', file));
+
+        try {
+            const response = await fetch(`/prets/{{ pret.id }}/upload-document`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Erreur lors de l\'upload');
+        }
+    }
+
+    async function deleteDocument(docId) {
+        if (!confirm('Supprimer ce document ?')) return;
+
+        try {
+            const response = await fetch(`/prets/document/${docId}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                document.getElementById(`doc-${docId}`)?.remove();
+            } else {
+                alert('Erreur: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Erreur lors de la suppression');
+        }
+    }
+
+    async function approveLoan(pretId) {
+        if (!confirm('Approuver ce prêt ?')) return;
+
+        try {
+            const response = await fetch(`/prets/${pretId}/approuver`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Erreur lors de l\'approbation');
+        }
+    }
+
+    async function rejectLoan(pretId) {
+        if (!confirm('Refuser ce prêt ?')) return;
+
+        try {
+            const response = await fetch(`/prets/${pretId}/refuser`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Erreur lors du refus');
+        }
+    }
+
+    function makePayment(pretId) {
+        window.location.href = `/prets/${pretId}/paiement`;
+    }
+
+    // Auto-refresh every 30 seconds
+    setInterval(refreshPaymentHistory, 30000);
+</script>
+{% endblock %}

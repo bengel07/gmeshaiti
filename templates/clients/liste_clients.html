@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📋 Liste des clients</h2>
+        <a href="{{ url_for('creer_dossier', succursale_code=current_user.succursale.code) }}"
+           class="btn btn-success">
+            <i class="fas fa-user-plus"></i> Nouveau client
+        </a>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-2 col-sm-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5>Total clients</h5>
+                    <h3>{{ stats.total }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5>Clients actifs</h5>
+                    <h3>{{ stats.actifs }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5>Avec crédits</h5>
+                    <h3>{{ stats.avec_credits }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5>Clients inactifs</h5>
+                    <h3>{{ stats.inactifs }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5>Clients suspendu</h5>
+                    <h3>{{ stats.suspendu }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres et recherche -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-5">
+                    <input type="text" name="search" class="form-control"
+                           placeholder="🔍 Rechercher par nom, téléphone, email..."
+                           value="{{ search }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="statut" class="form-control">
+                        <option value="">Tous les statuts</option>
+                        <option value="actif" {% if statut == 'actif' %}selected{% endif %}>Actif</option>
+                        <option value="inactif" {% if statut == 'inactif' %}selected{% endif %}>Inactif</option>
+                        <option value="suspendu" {% if statut == 'suspendu' %}selected{% endif %}>Suspendu</option>  <!-- ← AJOUTER -->
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Filtrer</button>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ url_for('liste_clients') }}" class="btn btn-secondary w-100">Réinitialiser</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Liste des clients -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Nom & Prénom</th>
+                            <th>Contact</th>
+                            <th>Cin/nif</th>
+                            <th>Crédits</th>
+                            <th>Total emprunté</th>
+                            <th>Statut</th>
+                            <th>Numero compte</th>
+                            <th>Dernier crédit</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in clients_stats %}
+                        <tr>
+                            <td>{{ item.client.id }}</td>
+                            <td>
+                                <strong>{{ item.client.nom }} {{ item.client.prenom }}</strong>
+                            </td>
+                            <td>
+                                <i class="fas fa-phone"></i> {{ item.client.telephone or 'N/A' }}<br>
+                                <small>{{ item.client.email or '' }}</small>
+                            </td>
+                            <td>{{ item.client.cin or item.client.cin_nif or 'N/A' }}</td>  <!-- ← AJOUTER CIN/NIF -->
+                            <td>
+                                <span class="badge bg-info">{{ item.nb_credits }} total</span>
+                                {% if item.pret_actifs > 0 %}
+                                    <span class="badge bg-success">{{ item.pret_actifs }} actifs</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ "{:,.0f}".format(item.total_emprunte) }} HTG</td>
+                            <td>
+                                <!-- Par -->
+                                {% if item.client.statut == 'actif' %}
+                                    <span class="badge bg-success">Actif</span>
+                                {% elif item.client.statut == 'suspendu' %}
+                                    <span class="badge bg-warning">Suspendu</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactif</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.client.numero_compte or 'N/A' }}</td>  <!-- ← AJOUTER NUMERO COMPTE -->
+                            <td>
+                                {% if item.dernier_credit_date %}  <!-- ← Changez dernier_pret_date en dernier_credit_date -->
+                                    <small>{{ item.dernier_credit_date.strftime('%d/%m/%Y') }}</small><br>
+                                    <small>{{ "{:,.0f}".format(item.dernier_credit_montant) }} HTG</small>
+                                {% else %}
+                                    <span class="text-muted">Aucun</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('voir_client', client_id=item.client.id) }}"
+                                       class="btn btn-outline-info" title="Voir détails">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('modifier_client', client_id=item.client.id) }}"
+                                       class="btn btn-outline-primary" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('nouveau_credit', client_id=item.client.id) }}"
+                                       class="btn btn-outline-success" title="Nouveau crédit">
+                                        <i class="fas fa-plus-circle"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                <p>Aucun client trouvé</p>
+                                <a href="{{ url_for('creer_dossier', succursale_code=current_user.succursale.code) }}"
+                                   class="btn btn-primary">
+                                    Ajouter votre premier client
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if clients.pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if clients.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('liste_clients', page=clients.prev_num, search=search, statut=statut) }}">
+                            &laquo; Précédent
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in clients.iter_pages() %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == clients.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('liste_clients', page=page_num, search=search, statut=statut) }}">
+                                    {{ page_num }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if clients.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('liste_clients', page=clients.next_num, search=search, statut=statut) }}">
+                            Suivant &raquo;
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<style>
+    .table td { vertical-align: middle; }
+    .btn-group .btn { padding: 0.25rem 0.5rem; }
+    .badge { font-size: 0.85em; padding: 0.4em 0.6em; }
+</style>
+{% endblock %}

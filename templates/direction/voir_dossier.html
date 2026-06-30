@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3><i class="fas fa-folder-open me-2"></i> Détails du dossier</h3>
+                        <p class="mb-0">Client: <strong>{{ dossier.prenom }} {{ dossier.nom }}</strong></p>
+                    </div>
+                    <a href="{{ url_for('directeur_tous_les_dossiers') }}" class="btn btn-light">
+                        <i class="fas fa-arrow-left me-1"></i> Retour à la liste
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informations personnelles -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i> Informations personnelles</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th>Nom complet:</th>
+                            <td>{{ dossier.prenom }} {{ dossier.nom }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date de naissance:</th>
+                            <td>{{ dossier.date_naissance.strftime('%d/%m/%Y') if dossier.date_naissance else 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Sexe:</th>
+                            <td>{% if dossier.sexe == 'M' %}Masculin{% else %}Féminin{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <th>Profession:</th>
+                            <td>{{ dossier.profession or 'N/A' }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coordonnées -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-address-card me-2"></i> Coordonnées</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th>Email:</th>
+                            <td>{{ dossier.email }}</td>
+                        </tr>
+                        <tr>
+                            <th>Téléphone:</th>
+                            <td>{{ dossier.telephone }}</td>
+                        </tr>
+                        <tr>
+                            <th>Adresse:</th>
+                            <td>{{ dossier.adresse }}</td>
+                        </tr>
+                        <tr>
+                            <th>Code postal:</th>
+                            <td>{{ dossier.code_postal }}</td>
+                        </tr>
+                        <tr>
+                            <th>Ville:</th>
+                            <td>{{ dossier.ville }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations du dossier -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-folder me-2"></i> Informations du dossier</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th>Code client:</th>
+                            <td><span class="badge bg-dark">{{ dossier.id_client }}</span></td>
+                        </tr>
+                        <tr>
+                            <th>N° CIN:</th>
+                            <td>{{ dossier.cin }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date création:</th>
+                            <td>{{ dossier.date_inscription.strftime('%d/%m/%Y %H:%M') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Statut:</th>
+                            <td>
+                                {% if dossier.statut == 'en_attente_approbation' %}
+                                    <span class="badge bg-warning">En attente d'approbation</span>
+                                {% elif dossier.statut == 'actif' %}
+                                    <span class="badge bg-success">Approuvé</span>
+                                {% elif dossier.statut == 'rejete' %}
+                                    <span class="badge bg-danger">Rejeté</span>
+                                {% elif dossier.statut == 'en_attente_terms' %}
+                                    <span class="badge bg-info">En attente signature</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ dossier.statut }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations financières -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i> Informations financières</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th>Revenu mensuel:</th>
+                            <td>{{ "{:,.0f}".format(dossier.revenu_mensuel or 0) }} HTG</td>
+                        </tr>
+                        <tr>
+                            <th>Dépenses mensuelles:</th>
+                            <td>{{ "{:,.0f}".format(dossier.depenses_mensuelles or 0) }} HTG</td>
+                        </tr>
+                        <tr>
+                            <th>Capacité remboursement:</th>
+                            <td>{{ "{:,.0f}".format(dossier.capacite_remboursement or 0) }} HTG</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Photos et documents -->
+        <div class="col-12 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-camera me-2"></i> Photos et documents</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Recto CIN (Photo d'identité) -->
+                        <div class="col-md-4 text-center">
+                            <h6><i class="fas fa-id-card"></i> Recto CIN</h6>
+                            {% if dossier.photo_face %}
+                                <img src="{{ url_for('static', filename='uploads/clients/' + dossier.photo_face) }}"
+                                     class="img-fluid rounded border"
+                                     style="max-height: 200px; cursor: pointer;"
+                                     onclick="window.open(this.src)"
+                                     alt="Recto CIN">
+                                <p class="mt-2 text-success small">
+                                    <i class="fas fa-check-circle"></i> Photo disponible
+                                </p>
+                            {% else %}
+                                <div class="bg-light p-5 rounded">
+                                    <i class="fas fa-id-card fa-4x text-muted"></i>
+                                    <p class="mt-2">Aucune photo recto</p>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Verso CIN -->
+                        <div class="col-md-4 text-center">
+                            <h6><i class="fas fa-id-card"></i> Verso CIN</h6>
+                            {% if dossier.photo_dos %}
+                                <img src="{{ url_for('static', filename='uploads/clients/' + dossier.photo_dos) }}"
+                                     class="img-fluid rounded border"
+                                     style="max-height: 200px; cursor: pointer;"
+                                     onclick="window.open(this.src)"
+                                     alt="Verso CIN">
+                                <p class="mt-2 text-success small">
+                                    <i class="fas fa-check-circle"></i> Photo disponible
+                                </p>
+                            {% else %}
+                                <div class="bg-light p-5 rounded">
+                                    <i class="fas fa-id-card fa-4x text-muted"></i>
+                                    <p class="mt-2">Aucune photo verso</p>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Selfie -->
+                        <div class="col-md-4 text-center">
+                            <h6><i class="fas fa-user"></i> Selfie</h6>
+                            {% if dossier.selfie_reference %}
+                                <img src="{{ url_for('static', filename='uploads/clients/' + dossier.selfie_reference) }}"
+                                     class="img-fluid rounded border"
+                                     style="max-height: 200px; cursor: pointer;"
+                                     onclick="window.open(this.src)"
+                                     alt="Selfie">
+                                <p class="mt-2 text-success small">
+                                    <i class="fas fa-check-circle"></i> Selfie disponible
+                                </p>
+                            {% else %}
+                                <div class="bg-light p-5 rounded">
+                                    <i class="fas fa-user fa-4x text-muted"></i>
+                                    <p class="mt-2">Aucun selfie</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Vérification faciale -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="bg-light p-3 rounded">
+                                <h6><i class="fas fa-face-smile"></i> Vérification faciale</h6>
+                                {% if dossier.verification_faciale %}
+                                    <p class="text-success mb-0">
+                                        <i class="fas fa-check-circle"></i>
+                                        Correspondance: {{ dossier.score_verification or 0 }}%
+                                    </p>
+                                {% else %}
+                                    <p class="text-warning mb-0">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        Non vérifiée
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-center gap-3">
+                        {% if dossier.statut == 'en_attente_approbation' %}
+                        <a href="{{ url_for('directeur_approuver_dossier', client_id=dossier.id) }}"
+                           class="btn btn-success btn-lg px-5"
+                           onclick="return confirm('Approuver ce dossier ?')">
+                            <i class="fas fa-check me-2"></i> Approuver
+                        </a>
+                        <button class="btn btn-danger btn-lg px-5" onclick="rejeter()">
+                            <i class="fas fa-times me-2"></i> Rejeter
+                        </button>
+                        {% endif %}
+                        <a href="{{ url_for('directeur_tous_les_dossiers') }}" class="btn btn-secondary btn-lg px-5">
+                            <i class="fas fa-arrow-left me-2"></i> Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function rejeter() {
+    const motif = prompt("Motif du rejet :");
+    if (motif) {
+        window.location.href = `/directeur/rejeter-dossier/{{ dossier.id }}?motif=${encodeURIComponent(motif)}`;
+    }
+}
+</script>
+
+<style>
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+.card:hover {
+    transform: translateY(-2px);
+}
+.table th {
+    width: 40%;
+    color: #666;
+    font-weight: 500;
+}
+.table td {
+    font-weight: 600;
+    color: #0b3b4f;
+}
+.badge {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+}
+.btn {
+    border-radius: 10px;
+    font-weight: 600;
+}
+</style>
+{% endblock %}

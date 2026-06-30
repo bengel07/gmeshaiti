@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
-from models import Employe, User, Loan, Transaction
+from models import Employe, User, Loan, Transaction, Account, Client
 from database import db
 
 employees_bp = Blueprint('employees', __name__, url_prefix='/employees')
@@ -8,20 +8,35 @@ employees_bp = Blueprint('employees', __name__, url_prefix='/employees')
 
 @employees_bp.route('/dashboard')
 @login_required
-def dashboard():
-    if not isinstance(current_user, Employe):
-        return redirect(url_for('auth.login'))
+def employe_dashboard():
+    # Vérifier que c'est bien un employé/admin
+    if not hasattr(current_user, 'role'):
+        abort(403, "Accès réservé au personnel")
 
-    # Statistiques pour le tableau de bord employé
-    total_clients = User.query.count()
+    # Si c'est un client, rediriger vers le dashboard client
+    if current_user.role == 'client':
+        return redirect(url_for('clients.dashboard'))
+
+    # Vérifier l'acceptation des termes (pour tous les utilisateurs)
+    if not current_user.terms_accepted:
+        return redirect(url_for("terms.accept_terms_notice"))
+
+    # Statistiques pour le tableau de bord employé/admin
+    total_clients = Client.query.count()
     pending_loans = Loan.query.filter_by(status='pending').count()
     pending_transactions = Transaction.query.filter_by(status='pending').count()
 
-    return render_template('employe_dashboard.html',
+    # Selon le rôle, utiliser un template différent
+    if current_user.role in ['admin_succursale', 'admin_principal']:
+        template = 'admin_dashboard.html'
+    else:
+        template = 'employe_dashboard.html'
+
+    return render_template(template,
                            total_clients=total_clients,
                            pending_loans=pending_loans,
-                           pending_transactions=pending_transactions)
-
+                           pending_transactions=pending_transactions,
+                           user=current_user)
 
 @employees_bp.route('/clients')
 @login_required
@@ -72,7 +87,7 @@ def process_transaction(transaction_id):
         transaction.processed_by = current_user.id
 
         # Mettre à jour le solde du compte
-        account = Account.query.filter_by(user_id=transaction.user_id).first()
+        account = Account.query.filter_by(employe_id=transaction.employe_id).first()
         if transaction.type == 'deposit':
             account.balance += transaction.amount
         elif transaction.type == 'withdrawal':

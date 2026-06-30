@@ -1,3 +1,6 @@
+# AJOUTEZ CE BLOC AU TRÈS DÉBUT du fichier ai_scoring.py
+import warnings
+
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
@@ -5,6 +8,97 @@ import joblib
 import os
 from datetime import datetime
 
+import random
+import json
+
+warnings.filterwarnings("ignore")
+
+import sys
+
+# Vérifier si scikit-learn est disponible
+try:
+    # Essayer d'importer scipy d'abord pour vérifier
+    import scipy
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.preprocessing import StandardScaler
+
+    SCIKIT_AVAILABLE = True
+    print("✅ scikit-learn disponible")
+except ImportError as e:
+    print(f"⚠️ scikit-learn/scipy non disponible: {e}")
+    print("⚠️ Utilisation du mode mock pour l'IA")
+    SCIKIT_AVAILABLE = False
+
+
+    # Créer des classes mock
+    class RandomForestClassifier:
+        def __init__(self, n_estimators=100, random_state=42):
+            self.n_estimators = n_estimators
+            self.random_state = random_state
+            self.is_fitted = False
+
+        def fit(self, X, y):
+            print("⚠️ Mock RandomForest - simulation d'entraînement")
+            self.is_fitted = True
+            return self
+
+        def predict_proba(self, X):
+            # Retourne des probabilités mock
+            import numpy as np
+            if not hasattr(self, 'is_fitted') or not self.is_fitted:
+                # Si non entraîné, retourne des valeurs par défaut
+                if hasattr(X, '__len__'):
+                    return np.array([[0.3, 0.7]] * len(X))
+                return np.array([[0.3, 0.7]])
+
+            # Simulation basée sur les features
+            probs = []
+            for features in X:
+                if len(features) > 0 and features[0] > 20:  # Revenu élevé
+                    probs.append([0.8, 0.2])  # 80% bon payeur
+                else:
+                    probs.append([0.4, 0.6])  # 40% bon payeur
+            return np.array(probs)
+
+
+class SimpleAIScorer:
+    def calculate_user_score(self, user):
+        score = 60
+        if hasattr(user, 'date_creation'):
+            days_old = (datetime.now() - user.date_creation).days
+            if days_old > 365:
+                score += 20
+            elif days_old > 180:
+                score += 10
+            elif days_old > 30:
+                score += 5
+        if hasattr(user, 'role'):
+            if user.role == 'admin':
+                score += 30
+            elif user.role == 'superviseur':
+                score += 20
+            elif user.role == 'employe':
+                score += 10
+        score += random.randint(-5, 10)
+        return max(0, min(100, round(score, 1)))
+
+    def calculate_loan_risk(self, client_data):
+        risk_score = 50
+        revenu = client_data.get('revenu_mensuel', 0)
+        depenses = client_data.get('depenses_mensuelles', 0)
+        if revenu > 0:
+            ratio = depenses / revenu
+            if ratio < 0.3:
+                risk_score -= 20
+            elif ratio < 0.6:
+                risk_score -= 10
+            elif ratio > 0.9:
+                risk_score += 20
+        risk_score += random.randint(-10, 10)
+        return max(0, min(100, round(risk_score, 1)))
+
+
+ai_scorer = SimpleAIScorer()
 
 class AIScoringSystem:
     def __init__(self):

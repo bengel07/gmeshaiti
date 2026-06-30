@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapports Globaux - GMES</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f6f9;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #003366, #00509e);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #003366;
+        }
+
+        .label {
+            margin-top: 5px;
+            color: #666;
+        }
+
+        .btn-back {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 15px;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>📊 RAPPORTS GLOBAUX - GMES</h1>
+        <p>Super Admin - Vue complète du système</p>
+    </div>
+
+    <!-- CLIENTS -->
+    <div class="grid">
+
+        <div class="card">
+            <div class="number">{{ stats.clients.total }}</div>
+            <div class="label">👥 Clients</div>
+        </div>
+
+        <div class="card">
+            <div class="number">{{ stats.clients.avec_prets }}</div>
+            <div class="label">👥 Clients avec prêts</div>
+        </div>
+
+        <div class="card">
+            <div class="number">{{ stats.clients.nouveaux_ce_mois }}</div>
+            <div class="label">🆕 Nouveaux clients</div>
+        </div>
+
+    </div>
+
+    <!-- PRÊTS -->
+    <div class="grid">
+
+        <div class="card">
+            <div class="number">{{ stats.prets.total }}</div>
+            <div class="label">💰 Total Prêts</div>
+        </div>
+
+        <div class="card">
+            <div class="number">{{ stats.prets.actifs }}</div>
+            <div class="label">📌 Prêts actifs</div>
+        </div>
+
+        <div class="card">
+            <div class="stat-value">{{ stats.prets.en_attente }}</div>
+            <div class="label">⏳ En attente</div>
+        </div>
+
+        <div class="card">
+            <div class="number">{{ stats.prets.montant_total }}</div>
+            <div class="label">💵 Montant total</div>
+        </div>
+
+    </div>
+
+    <!-- REMBOURSEMENTS -->
+    <div class="grid">
+
+        <div class="card">
+            <div class="number">{{ stats.remboursements.total }}</div>
+            <div class="label">📤 Remboursements</div>
+        </div>
+
+        <div class="card">
+            <div class="number">{{ stats.remboursements.montant_total }}</div>
+            <div class="label">💵 Montant remboursé</div>
+        </div>
+
+        <div class="card">
+            <div class="number">{{ stats.remboursements.taux_remboursement }}%</div>
+            <div class="label">📊 Taux remboursement</div>
+        </div>
+
+    </div>
+
+    <!-- GROUPES -->
+    <div class="grid">
+
+        <div class="card">
+            <div class="number">{{ stats.groupes.total }}</div>
+            <div class="label">👥 Groupes</div>
+        </div>
+
+        <div class="card">
+            <div class="number">{{ stats.groupes.membres_moyen }}</div>
+            <div class="label">👤 Membres / groupe</div>
+        </div>
+
+    </div>
+
+    <!-- PERFORMANCE -->
+    <div class="grid">
+
+        <div class="card">
+            <div class="number">{{ stats.performance.taux_approbation|round(1) }}%</div>
+            <div class="label">📈 Taux approbation</div>
+        </div>
+
+        <div class="card">
+            <div class="number">{{ stats.performance.rotation_fonds }}</div>
+            <div class="label">🔄 Rotation fonds</div>
+        </div>
+
+    </div>
+
+    <!-- ACTIONS -->
+    <a href="{{ url_for('admin_dashboard') }}" class="btn-back">
+        ⬅ Retour Dashboard
+    </a>
+
+    <a href="{{ url_for('admin_rapports') }}" class="btn-back" style="background:#28a745;">
+        🔄 Actualiser
+    </a>
+
+</div>
+
+</body>
+</html>

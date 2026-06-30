@@ -1,0 +1,329 @@
+<!-- templates/direction/approuver_dossier.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3><i class="fas fa-check-circle me-2"></i> Approbation du dossier</h3>
+                        <p class="mb-0">Client: <strong>{{ client.prenom }} {{ client.nom }}</strong> (ID: {{ client.id }})</p>
+                    </div>
+                    <a href="{{ url_for('directeur_tous_les_dossiers') }}" class="btn btn-light">
+                        <i class="fas fa-arrow-left me-1"></i> Retour à la liste
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informations client -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i> Informations client</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th>Nom complet:</th>
+                            <td><strong>{{ client.prenom }} {{ client.nom }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Email:</th>
+                            <td>{{ client.email }}</td>
+                        </tr>
+                        <tr>
+                            <th>Téléphone:</th>
+                            <td>{{ client.telephone }}</td>
+                        </tr>
+                        <tr>
+                            <th>CIN:</th>
+                            <td>{{ client.cin }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date naissance:</th>
+                            <td>{{ client.date_naissance.strftime('%d/%m/%Y') if client.date_naissance }}</td>
+                        </tr>
+                        <tr>
+                            <th>Profession:</th>
+                            <td>{{ client.profession }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations dossier -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-folder me-2"></i> Informations dossier</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th>Code client:</th>
+                            <td><span class="badge bg-dark">{{ client.id_client }}</span></td>
+                        </tr>
+                        <tr>
+                            <th>Date création:</th>
+                            <td>{{ client.date_creation.strftime('%d/%m/%Y %H:%M') if client.date_creation }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date signature:</th>
+                            <td>{{ client.date_signature_terms.strftime('%d/%m/%Y %H:%M') if client.date_signature_terms }}</td>
+                        </tr>
+                        <tr>
+                            <th>Statut actuel:</th>
+                            <td>
+                                <span class="badge bg-warning">En attente d'approbation</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Conseiller:</th>
+                            <td>
+                                {% if conseiller %}
+                                    {{ conseiller.prenom }} {{ conseiller.nom }}
+                                {% else %}
+                                    <span class="text-muted">Non assigné</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations financières -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i> Informations financières</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th>Revenu mensuel:</th>
+                            <td>{{ "{:,.0f}".format(client.revenu_mensuel or 0) }} HTG</td>
+                        </tr>
+                        <tr>
+                            <th>Dépenses mensuelles:</th>
+                            <td>{{ "{:,.0f}".format(client.depenses_mensuelles or 0) }} HTG</td>
+                        </tr>
+                        <tr>
+                            <th>Capacité remboursement:</th>
+                            <td class="{% if client.capacite_remboursement > 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ "{:,.0f}".format(client.capacite_remboursement or 0) }} HTG
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vérification faciale -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-camera me-2"></i> Vérification faciale</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6 text-center">
+                            <h6>Photo ID</h6>
+                            {% if client.photo_id %}
+                                <img src="{{ url_for('static', filename='uploads/clients/' + client.photo_id) }}"
+                                     class="img-fluid rounded" style="max-height: 150px;">
+                            {% else %}
+                                <div class="bg-light p-3 rounded">
+                                    <i class="fas fa-id-card fa-3x text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-6 text-center">
+                            <h6>Selfie</h6>
+                            {% if client.photo_selfie %}
+                                <img src="{{ url_for('static', filename='uploads/clients/' + client.photo_selfie) }}"
+                                     class="img-fluid rounded" style="max-height: 150px;">
+                            {% else %}
+                                <div class="bg-light p-3 rounded">
+                                    <i class="fas fa-user fa-3x text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mt-3 text-center">
+                        {% if client.verification_faciale %}
+                            <span class="badge bg-success p-2">
+                                <i class="fas fa-check-circle me-1"></i>
+                                Correspondance: {{ client.score_verification }}%
+                            </span>
+                        {% else %}
+                            <span class="badge bg-warning p-2">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Non vérifiée
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documents -->
+        <div class="col-12 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i> Documents fournis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <i class="fas fa-id-card fa-3x text-primary mb-2"></i>
+                            <p>Face CIN</p>
+                            {% if client.photo_face %}
+                                <a href="{{ url_for('static', filename='uploads/clients/' + client.photo_face) }}"
+                                   target="_blank" class="btn btn-sm btn-outline-primary">Voir</a>
+                            {% else %}
+                                <span class="text-muted">Non fourni</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <i class="fas fa-id-card fa-3x text-info mb-2"></i>
+                            <p>Dos CIN</p>
+                            {% if client.photo_dos %}
+                                <a href="{{ url_for('static', filename='uploads/clients/' + client.photo_dos) }}"
+                                   target="_blank" class="btn btn-sm btn-outline-info">Voir</a>
+                            {% else %}
+                                <span class="text-muted">Non fourni</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <i class="fas fa-camera fa-3x text-success mb-2"></i>
+                            <p>Selfie</p>
+                            {% if client.selfie_reference %}
+                                <a href="{{ url_for('static', filename='uploads/clients/' + client.selfie_reference) }}"
+                                   target="_blank" class="btn btn-sm btn-outline-success">Voir</a>
+                            {% else %}
+                                <span class="text-muted">Non fourni</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulaire d'approbation -->
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-gavel me-2"></i> Décision</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('directeur_approuver_dossier', client_id=client.id) }}">
+                        <input type="hidden" name="client_id" value="{{ client.id }}">
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="action" id="approve" value="approuver" checked>
+                                    <label class="form-check-label" for="approve">
+                                        <span class="text-success fw-bold">
+                                            <i class="fas fa-check-circle"></i> Approuver le dossier
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="action" id="reject" value="rejeter">
+                                    <label class="form-check-label" for="reject">
+                                        <span class="text-danger fw-bold">
+                                            <i class="fas fa-times-circle"></i> Rejeter le dossier
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3" id="motifGroup" style="display: none;">
+                            <label for="commentaire" class="form-label">Motif du rejet <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="commentaire" name="commentaire" rows="3" placeholder="Veuillez expliquer le motif du rejet..."></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-center gap-3 mt-4">
+                            <button type="submit" class="btn btn-success btn-lg px-5">
+                                <i class="fas fa-check me-2"></i> Confirmer la décision
+                            </button>
+                            <a href="{{ url_for('directeur_tous_les_dossiers') }}" class="btn btn-secondary btn-lg px-5">
+                                <i class="fas fa-times me-2"></i> Annuler
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const approveRadio = document.getElementById('approve');
+    const rejectRadio = document.getElementById('reject');
+    const motifGroup = document.getElementById('motifGroup');
+    const motifTextarea = document.getElementById('commentaire');
+
+    function toggleMotif() {
+        if (rejectRadio.checked) {
+            motifGroup.style.display = 'block';
+            motifTextarea.required = true;
+        } else {
+            motifGroup.style.display = 'none';
+            motifTextarea.required = false;
+        }
+    }
+
+    approveRadio.addEventListener('change', toggleMotif);
+    rejectRadio.addEventListener('change', toggleMotif);
+
+    // Initialisation
+    toggleMotif();
+});
+</script>
+
+<style>
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.table th {
+    width: 40%;
+    color: #666;
+    font-weight: 500;
+}
+.table td {
+    font-weight: 600;
+    color: #0b3b4f;
+}
+.badge {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+}
+.form-check-input:checked[value="approuver"] {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+.form-check-input:checked[value="rejeter"] {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+.btn {
+    border-radius: 10px;
+    font-weight: 600;
+}
+</style>
+{% endblock %}

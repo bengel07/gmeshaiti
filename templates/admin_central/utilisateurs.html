@@ -1,0 +1,280 @@
+```html
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestion des Utilisateurs - GMES</title>
+
+    <style>
+        body{
+            font-family: Arial, sans-serif;
+            background:#f5f6fa;
+            margin:0;
+            padding:20px;
+        }
+
+        .container{
+            max-width:1400px;
+            margin:auto;
+        }
+
+        .header{
+            background:linear-gradient(135deg,#003366,#00509e);
+            color:white;
+            padding:20px;
+            border-radius:10px;
+            margin-bottom:20px;
+        }
+
+        .header h1{
+            margin:0;
+        }
+
+        .filters{
+            background:white;
+            padding:20px;
+            border-radius:10px;
+            margin-bottom:20px;
+            box-shadow:0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .filters form{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        .filters input,
+        .filters select{
+            padding:10px;
+            border:1px solid #ddd;
+            border-radius:5px;
+        }
+
+        .btn{
+            padding:10px 15px;
+            border:none;
+            border-radius:5px;
+            text-decoration:none;
+            cursor:pointer;
+            color:white;
+        }
+
+        .btn-primary{
+            background:#007bff;
+        }
+
+        .btn-success{
+            background:#28a745;
+        }
+
+        .btn-warning{
+            background:#ffc107;
+            color:black;
+        }
+
+        .btn-danger{
+            background:#dc3545;
+        }
+
+        .table-container{
+            background:white;
+            padding:20px;
+            border-radius:10px;
+            box-shadow:0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        table{
+            width:100%;
+            border-collapse:collapse;
+        }
+
+        th{
+            background:#003366;
+            color:white;
+            padding:12px;
+            text-align:left;
+        }
+
+        td{
+            padding:10px;
+            border-bottom:1px solid #ddd;
+        }
+
+        tr:hover{
+            background:#f8f9fa;
+        }
+
+        .badge{
+            padding:5px 10px;
+            border-radius:20px;
+            color:white;
+            font-size:12px;
+        }
+
+        .actif{
+            background:#28a745;
+        }
+
+        .suspendu{
+            background:#dc3545;
+        }
+
+        .en_attente{
+            background:#ffc107;
+            color:black;
+        }
+
+        .actions{
+            display:flex;
+            gap:5px;
+            flex-wrap:wrap;
+        }
+
+        .top-actions{
+            margin-bottom:15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>👥 Gestion des Utilisateurs</h1>
+        <p>Administration centrale GMES</p>
+    </div>
+
+    <div class="filters">
+        <form method="GET">
+
+            <input type="text"
+                   name="search"
+                   placeholder="Nom, matricule ou téléphone"
+                   value="{{ request.args.get('search','') }}">
+
+            <select name="statut">
+                <option>Tous les statuts</option>
+                <option value="actif">Actif</option>
+                <option value="suspendu">Suspendu</option>
+                <option value="en_attente">En attente</option>
+            </select>
+
+            <select name="niveau">
+                <option>Tous niveaux</option>
+                <option value="1">Niveau 1</option>
+                <option value="2">Niveau 2</option>
+                <option value="3">Niveau 3</option>
+                <option value="4">Niveau 4</option>
+                <option value="5">Niveau 5</option>
+            </select>
+
+            <button type="submit" class="btn btn-primary">
+                🔍 Rechercher
+            </button>
+
+        </form>
+    </div>
+
+    <div class="table-container">
+
+        <div class="top-actions">
+            <a href="{{ url_for('creer_utilisateur') }}" class="btn btn-success">
+                ➕ Nouvel Utilisateur
+            </a>
+        </div>
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>Prénom</th>
+                    <th>Username</th>
+                    <th>Matricule</th>
+                    <th>Téléphone</th>
+                    <th>Rôle</th>
+                    <th>Niveau</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+            {% for user in users %}
+                <tr>
+
+                    <td>{{ user.id }}</td>
+
+                    <td>{{ user.nom }}</td>
+
+                    <td>{{ user.prenom }}</td>
+
+                    <td>{{ user.username }}</td>
+
+                    <td>{{ user.matricule or '-' }}</td>
+
+                    <td>{{ user.telephone or '-' }}</td>
+
+                    <td>{{ user.role }}</td>
+
+                    <td>{{ user.niveau_habilitation or '-' }}</td>
+
+                    <td>
+                        <span class="badge {{ user.statut }}">
+                            {{ user.statut }}
+                        </span>
+                    </td>
+
+                    <td>
+                        <div class="actions">
+
+                            <a href="{{ url_for('voir_employe', employe_id=user.id) }}"
+                               class="btn btn-primary">
+                               👁 Voir
+                            </a>
+
+                            <a href="{{ url_for('modifier_employe', employe_id=user.id) }}"
+                               class="btn btn-warning">
+                               ✏ Modifier
+                            </a>
+
+                            {% if user.statut == 'actif' %}
+                            <a href="{{ url_for('suspendre_utilisateur', employe_id=user.id) }}"
+                               class="btn btn-danger">
+                               ⛔ Suspendre
+                            </a>
+                            {% endif %}
+
+                            {% if user.statut != 'actif' %}
+                            <a href="{{ url_for('toggle_user', employe_id=user.id) }}"
+                               class="btn btn-success">
+                               ✅ Activer
+                            </a>
+                            {% endif %}
+
+                        </div>
+                    </td>
+
+                </tr>
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <br>
+
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">
+        ⬅ Retour Dashboard
+    </a>
+
+</div>
+
+</body>
+</html>
+```

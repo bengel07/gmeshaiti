@@ -1,0 +1,145 @@
+
+<!-- SECTION: COMPTES EN ATTENTE D'APPROBATION -->
+<div id="approbations" style="margin-top: 40px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">
+            <i class="fas fa-clock" style="color: #856404; margin-right: 10px;"></i>
+            Comptes en attente d'approbation
+        </h2>
+        <span class="badge" style="background: #856404; color: white; padding: 5px 15px; border-radius: 20px;">
+            {{ comptes_en_attente|length }} en attente
+        </span>
+    </div>
+
+    {% if comptes_en_attente %}
+    <div style="background: #fff3cd; border: 1px solid #ffeeba; border-radius: 8px; overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #856404; color: white;">
+                    <th style="padding: 15px; text-align: left;">ID</th>
+                    <th style="padding: 15px; text-align: left;">Utilisateur</th>
+                    <th style="padding: 15px; text-align: left;">Rôle</th>
+                     <th style="padding: 12px; text-align: left;">Fonction</th>
+                    <th style="padding: 15px; text-align: left;">Succursale</th>
+                    <th style="padding: 15px; text-align: left;">Date demande</th>
+                    <th style="padding: 15px; text-align: left;">Dossier</th>
+                    <th style="padding: 15px; text-align: left;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for compte in comptes_en_attente %}
+                <tr style="border-bottom: 1px solid #dee2e6; background: {% if loop.index is odd %}white{% else %}#f8f9fa{% endif %};">
+                    <td style="padding: 15px; font-weight: bold;">#{{ compte.id }}</td>
+                    <td style="padding: 15px;">
+                        <div style="font-weight: 600;">{{ compte.prenom }} {{ compte.nom }}</div>
+                        <div style="font-size: 0.85rem; color: #666;">{{ compte.email }}</div>
+                        <div style="font-size: 0.8rem; color: #999;">@{{ compte.username }}</div>
+                    </td>
+                    <td style="padding: 15px;">
+                        {% if compte.role == 'admin_succursale' %}
+                            <span style="background: #0d6efd; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem;">
+                                <i class="fas fa-crown"></i> Admin
+                            </span>
+                        {% elif compte.role == 'agent' %}
+                            <span style="background: #0dcaf0; color: black; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem;">
+                                <i class="fas fa-user-tie"></i> Agent
+                            </span>
+                        {% else %}
+                            <span style="background: #6c757d; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem;">
+                                {{ compte.role }}
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px;">
+                        {% if compte.succursale %}
+                            <strong>{{ compte.succursale.nom }}</strong>
+                            <div style="font-size: 0.8rem; color: #666;">{{ compte.succursale.code }}</div>
+                        {% else %}
+                            <span style="color: #999;">Non assigné</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 15px;">
+                        <div>{{ compte.date_creation.strftime('%d/%m/%Y') }}</div>
+                        <div style="font-size: 0.8rem; color: #666;">{{ compte.date_creation.strftime('%H:%M') }}</div>
+                    </td>
+                    <td style="padding: 15px;">
+                        <!-- 🔴 LIEN DIRECT VERS LE DOSSIER COMPLET -->
+                        <a href="{{ url_for('voir_dossier', employe_id=compte.id) }}"
+                           style="display: inline-flex; align-items: center; gap: 5px; background: #6c757d; color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-size: 0.9rem;">
+                            <i class="fas fa-folder-open"></i> Voir dossier
+                        </a>
+                    </td>
+                    <td style="padding: 15px;">
+                        <div style="display: flex; gap: 8px;">
+                            <!-- Bouton Approuver -->
+                            <a href="{{ url_for('approuver_compte', employe_id=compte.id) }}"
+                               onclick="return confirm('✅ Approuver la demande de {{ compte.prenom }} {{ compte.nom }} ?')"
+                               style="background: #28a745; color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-size: 0.9rem;">
+                               <i class="fas fa-check-circle"></i> Approuver
+                            </a>
+
+                            <!-- Bouton Rejeter -->
+                            <a href="{{ url_for('rejeter_compte', employe_id=compte.id) }}"
+                               onclick="return confirm('❌ Êtes-vous sûr de vouloir rejeter la demande de {{ compte.prenom }} {{ compte.nom }} ?')"
+                               style="background: #dc3545; color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-size: 0.9rem;">
+                               <i class="fas fa-times-circle"></i> Rejeter
+                            </a>
+                        </div>
+
+                        <!-- Actions secondaires -->
+                        <div style="margin-top: 8px; display: flex; gap: 5px;">
+                            <a href="{{ url_for('contacter_utilisateur', employe_id=compte.id) }}"
+                               style="color: #6c757d; text-decoration: none; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 3px;">
+                               <i class="fas fa-envelope"></i> Contacter
+                            </a>
+                            <span style="color: #ddd;">|</span>
+                            <a href="{{ url_for('notes_demande', employe_id=compte.id) }}"
+                               style="color: #6c757d; text-decoration: none; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 3px;">
+                               <i class="fas fa-sticky-note"></i> Notes
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination si nécessaire -->
+    {% if comptes_en_attente|length > 10 %}
+    <div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
+        <a href="#" style="padding: 8px 15px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; text-decoration: none; color: #495057;">← Précédent</a>
+        <span style="padding: 8px 15px; background: #856404; color: white; border-radius: 5px;">1</span>
+        <a href="#" style="padding: 8px 15px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; text-decoration: none; color: #495057;">2</a>
+        <a href="#" style="padding: 8px 15px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; text-decoration: none; color: #495057;">3</a>
+        <a href="#" style="padding: 8px 15px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; text-decoration: none; color: #495057;">Suivant →</a>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div style="background: linear-gradient(135deg, #e2e3e5 0%, #d6d8d9 100%); padding: 40px; border-radius: 8px; text-align: center;">
+        <i class="fas fa-check-circle" style="font-size: 48px; color: #28a745; margin-bottom: 15px;"></i>
+        <h3 style="color: #383d41; margin: 0 0 10px 0;">✅ Aucun compte en attente</h3>
+        <p style="color: #6c757d; margin: 0;">Toutes les demandes ont été traitées</p>
+    </div>
+    {% endif %}
+
+    <!-- Pied de page avec actions globales -->
+    <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center;">
+        <a href="{{ url_for('admin_dashboard') }}"
+           style="background: #6c757d; color: white; padding: 12px 25px; border-radius: 5px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+        </a>
+
+        <div>
+            <a href="{{ url_for('admin_approbations') }}"
+               style="color: #6c757d; text-decoration: none; margin-right: 15px;">
+                <i class="fas fa-history"></i> Historique
+            </a>
+            <a href="{{ url_for('exporter_attentes') }}"
+               style="color: #6c757d; text-decoration: none;">
+                <i class="fas fa-download"></i> Exporter
+            </a>
+        </div>
+    </div>
+</div>

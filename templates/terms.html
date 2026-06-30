@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Conditions d’utilisation – GMES</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 15px;
+            background: linear-gradient(145deg, #e0edf5 0%, #c8dceb 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #0b3b4f;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+        .welcome {
+            color: #666;
+            margin-bottom: 1.5rem;
+        }
+        .terms-box {
+            max-height: 60vh;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 1.5rem;
+            font-size: 14px;
+            line-height: 1.6;
+            background: #f9f9f9;
+        }
+        button {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            background: linear-gradient(135deg, #0b3b4f, #1a566e);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s;
+            font-weight: 600;
+        }
+        button:hover {
+            transform: scale(1.02);
+            background: linear-gradient(135deg, #1a566e, #0b3b4f);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Conditions Générales d’Utilisation</h1>
+        <p class="welcome">Bonjour <strong>{{ client.prenom }} {{ client.nom }}</strong>, merci de lire attentivement les conditions ci-dessous :</p>
+
+        <div class="terms-box">
+            {% include "terms_content.html" %}
+        </div>
+
+        <form method="POST">
+            <button type="submit" name="action" value="accepter">
+                ✅ J’accepte les Conditions
+            </button>
+        </form>
+    </div>
+</body>
+</html>

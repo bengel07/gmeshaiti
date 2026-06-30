@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reçu de retrait - Employé</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .recu {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #4e73df;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        .success-icon {
+            font-size: 60px;
+            color: #28a745;
+        }
+        .montant {
+            font-size: 32px;
+            font-weight: bold;
+            color: #28a745;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .label {
+            font-weight: bold;
+            color: #555;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #888;
+            font-size: 12px;
+        }
+        .btn-retour {
+            display: inline-block;
+            margin: 20px 10px;
+            padding: 10px 20px;
+            background: #4e73df;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .btn-imprimer {
+            background: #28a745;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+            body {
+                background: white;
+                padding: 0;
+            }
+            .recu {
+                box-shadow: none;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="recu">
+    <div class="header">
+        <div class="success-icon">✅</div>
+        <h1>Retrait confirmé !</h1>
+        <p>Transaction effectuée avec succès</p>
+    </div>
+
+    <div class="montant">
+        {{ "{:,.0f}".format(transaction.montant) }} HTG
+    </div>
+
+    <div class="info-grid">
+        <div class="label">Transaction ID:</div>
+        <div>{{ transaction.id }}</div>
+
+        <div class="label">Référence:</div>
+        <div>{{ transaction.reference }}</div>
+
+        <div class="label">Date:</div>
+        <div>{{ transaction.date_transaction.strftime('%d/%m/%Y %H:%M:%S') }}</div>
+
+        <div class="label">Client:</div>
+        <div>{{ client.nom }} {{ client.prenom }}</div>
+
+        <div class="label">Téléphone client:</div>
+        <div>{{ client.telephone }}</div>
+
+        <div class="label">Employé:</div>
+        <div>{{ employe.nom }} {{ employe.prenom }}</div>
+
+        <div class="label">Description:</div>
+        <div>{{ transaction.description }}</div>
+
+        <div class="label">Statut:</div>
+        <div style="color:green; font-weight:bold;">{{ transaction.status }}</div>
+    </div>
+
+    <div class="footer">
+        <p>Signature électronique validée</p>
+        <p>Reçu généré automatiquement</p>
+    </div>
+
+    <div class="no-print" style="text-align:center;">
+        <button onclick="window.print()" class="btn-retour btn-imprimer">🖨️ Imprimer</button>
+        <a href="/" class="btn-retour">🏠 Retour accueil</a>
+    </div>
+</div>
+
+<script>
+    // Rafraîchir la page toutes les 30 secondes pour mettre à jour le statut
+    setTimeout(() => {
+        window.location.reload();
+    }, 30000);
+</script>
+</body>
+</html>

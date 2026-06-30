@@ -1,0 +1,52 @@
+<!-- templates/admin/demandes_username.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>📝 Demandes de changement d'username</h2>
+
+    {% if demandes %}
+    <div class="card">
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Utilisateur</th>
+                        <th>Username actuel</th>
+                        <th>Username demandé</th>
+                        <th>Date demande</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for demande in demandes %}
+                    <tr>
+                        <td>{{ demande.prenom }} {{ demande.nom }}</td>
+                        <td>{{ demande.username }}</td>
+                        <td><strong>{{ demande.nouveau_username_demande }}</strong></td>
+                        <td>{{ demande.demande_username_date.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            <a href="{{ url_for('admin_approuver_username', employe_id=demande.id) }}"
+                               class="btn btn-sm btn-success"
+                               onclick="return confirm('Approuver ce changement ?')">
+                                ✅ Approuver
+                            </a>
+                            <a href="{{ url_for('admin_rejeter_username', employe_id=demande.id) }}"
+                               class="btn btn-sm btn-danger"
+                               onclick="return confirm('Rejeter cette demande ?')">
+                                ❌ Rejeter
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        Aucune demande en attente.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

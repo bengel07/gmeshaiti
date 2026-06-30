@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documents - {{ user.prenom }} {{ user.nom }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* En-tête */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .header h1 i {
+            font-size: 2rem;
+        }
+        .user-info {
+            margin-top: 15px;
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            opacity: 0.9;
+        }
+        .user-info span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Barre d'actions */
+        .actions-bar {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .btn-upload {
+            background: #28a745;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 10px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .btn-upload:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+        .btn-back {
+            background: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .btn-back:hover {
+            background: #5a6268;
+            transform: translateX(-5px);
+        }
+
+        /* Filtres */
+        .filters {
+            padding: 20px 30px;
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .filter-group label {
+            display: block;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        .filter-group select, .filter-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+        .filter-group select:focus, .filter-group input:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        .btn-filter {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            height: 40px;
+            margin-top: 24px;
+        }
+
+        /* Statistiques */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 0 30px 20px;
+        }
+        .stat-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        /* Grille de documents */
+        .documents-grid {
+            padding: 20px 30px 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .document-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s;
+            border: 1px solid #e9ecef;
+        }
+        .document-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .document-preview {
+            height: 140px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+            position: relative;
+        }
+        .document-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .document-type-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        .document-body {
+            padding: 15px;
+        }
+        .document-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            word-break: break-word;
+        }
+        .document-meta {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .document-meta i {
+            margin-right: 3px;
+            width: 16px;
+        }
+
+        .document-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+        .status-verified {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-expired {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .document-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-doc {
+            padding: 6px 12px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-view {
+            background: #667eea;
+            color: white;
+            flex: 1;
+            justify-content: center;
+        }
+        .btn-verify {
+            background: #28a745;
+            color: white;
+        }
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-download {
+            background: #6c757d;
+            color: white;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-content h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        /* Vue liste (alternative) */
+        .list-view {
+            padding: 20px 30px 30px;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+        }
+        .table td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .table tr:hover td {
+            background: #f8f9fa;
+        }
+
+        .view-toggle {
+            padding: 0 30px;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .btn-view-toggle {
+            padding: 8px 15px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-view-toggle.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            grid-column: 1 / -1;
+        }
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- En-tête -->
+            <div class="header">
+                <h1>
+                    <i class="fas fa-file-alt"></i>
+                    Documents de {{ user.prenom }} {{ user.nom }}
+                </h1>
+                <div class="user-info">
+                    <span><i class="fas fa-id-card"></i> ID: #{{ employe.id }}</span>
+                    <span><i class="fas fa-envelope"></i> {{ user.email }}</span>
+                    <span><i class="fas fa-tag"></i> {{ user.role }}</span>
+                </div>
+            </div>
+
+            <!-- Barre d'actions -->
+            <div class="actions-bar">
+                <a href="{{ url_for('voir_dossier', employe_id=user.id) }}" class="btn-back">
+                    <i class="fas fa-arrow-left"></i> Retour au dossier
+                </a>
+                <a href="{{ url_for('upload_document', employe_id=user.id) }}" class="btn-upload">
+                    <i class="fas fa-upload"></i> Uploader un document
+                </a>
+            </div>
+
+            <!-- Filtres -->
+            <div class="filters">
+                <div class="filter-group">
+                    <label><i class="fas fa-filter"></i> Type de document</label>
+                    <select id="typeFilter" onchange="filterDocuments()">
+                        <option value="all">Tous les types</option>
+                        <option value="cin">Carte d'identité</option>
+                        <option value="passport">Passeport</option>
+                        <option value="diplome">Diplôme</option>
+                        <option value="contrat">Contrat</option>
+                        <option value="rib">RIB</option>
+                        <option value="photo">Photo</option>
+                        <option value="autre">Autre</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-check-circle"></i> Statut</label>
+                    <select id="statusFilter" onchange="filterDocuments()">
+                        <option value="all">Tous les statuts</option>
+                        <option value="verified">Vérifiés</option>
+                        <option value="pending">En attente</option>
+                        <option value="expired">Expirés</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <button class="btn-filter" onclick="resetFilters()">
+                        <i class="fas fa-undo"></i> Réinitialiser
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistiques -->
+            <div class="stats-row">
+                <div class="stat-item">
+                    <div class="stat-number">{{ documents|length }}</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ documents|selectattr('verified', 'equalto', true)|list|length }}</div>
+                    <div class="stat-label">Vérifiés</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ documents|selectattr('verified', 'equalto', false)|list|length }}</div>
+                    <div class="stat-label">En attente</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ documents|selectattr('date_expiration', 'le', now())|list|length }}</div>
+                    <div class="stat-label">Expirés</div>
+                </div>
+            </div>
+
+            <!-- Vue grille/tableau -->
+            <div class="view-toggle">
+                <button class="btn-view-toggle active" onclick="toggleView('grid')">
+                    <i class="fas fa-th-large"></i> Grille
+                </button>
+                <button class="btn-view-toggle" onclick="toggleView('list')">
+                    <i class="fas fa-list"></i> Liste
+                </button>
+            </div>
+
+            <!-- Grille des documents -->
+            <div id="gridView" class="documents-grid">
+                {% if documents %}
+                    {% for doc in documents %}
+                    <div class="document-card" data-type="{{ doc.type }}" data-status="{% if doc.verified %}verified{% else %}pending{% endif %}" data-expired="{% if doc.date_expiration and doc.date_expiration < now() %}true{% else %}false{% endif %}">
+                        <div class="document-preview">
+                            {% if doc.est_image %}
+                                <img src="{{ url_for('static', filename=doc.chemin) }}" alt="{{ doc.nom }}">
+                            {% else %}
+                                <i class="fas {{ doc.icone }}"></i>
+                            {% endif %}
+                            <span class="document-type-badge">{{ doc.type }}</span>
+                        </div>
+
+                        <div class="document-body">
+                            <div class="document-name">{{ doc.nom }}</div>
+                            <div class="document-meta">
+                                <span><i class="fas fa-weight"></i> {{ doc.taille_formattee }}</span>
+                                <span><i class="fas fa-calendar"></i> {{ doc.date_upload.strftime('%d/%m/%Y') }}</span>
+                            </div>
+
+                            {% if doc.date_expiration %}
+                            <div class="document-meta">
+                                <span><i class="fas fa-hourglass-end"></i> Expire: {{ doc.date_expiration.strftime('%d/%m/%Y') }}</span>
+                            </div>
+                            {% endif %}
+
+                            <span class="document-status
+                                {% if doc.date_expiration and doc.date_expiration < now() %}status-expired
+                                {% elif doc.verified %}status-verified
+                                {% else %}status-pending{% endif %}">
+                                {% if doc.date_expiration and doc.date_expiration < now() %}
+                                    <i class="fas fa-exclamation-triangle"></i> Expiré
+                                {% elif doc.verified %}
+                                    <i class="fas fa-check-circle"></i> Vérifié
+                                {% else %}
+                                    <i class="fas fa-clock"></i> En attente
+                                {% endif %}
+                            </span>
+
+                            <div class="document-actions">
+                                <a href="{{ url_for('static', filename=doc.chemin) }}" target="_blank" class="btn-doc btn-view" title="Voir">
+                                    <i class="fas fa-eye"></i> Voir
+                                </a>
+                                <a href="{{ url_for('static', filename=doc.chemin) }}" download class="btn-doc btn-download" title="Télécharger">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                                {% if not doc.verified and current_user.role in ['super_admin', 'admin'] %}
+                                <button class="btn-doc btn-verify" onclick="openVerifyModal({{ doc.id }})" title="Vérifier">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                {% endif %}
+                                <a href="{{ url_for('delete_document', doc_id=doc.id) }}" class="btn-doc btn-delete" title="Supprimer" onclick="return confirm('Supprimer ce document ?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+
+                            {% if doc.verified and doc.verified_by %}
+                            <div style="font-size: 0.75rem; color: #999; margin-top: 10px;">
+                                <i class="fas fa-user-check"></i> Vérifié par {{ doc.verificateur.prenom }} {{ doc.verificateur.nom }} le {{ doc.verified_at.strftime('%d/%m/%Y') }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-file-upload"></i>
+                        <h3>Aucun document</h3>
+                        <p>Cet utilisateur n'a pas encore de documents.</p>
+                        <a href="{{ url_for('upload_document', employe_id=user.id) }}" class="btn-upload" style="display: inline-flex;">
+                            <i class="fas fa-upload"></i> Uploader un document
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Vue liste -->
+            <div id="listView" class="list-view" style="display: none;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Type</th>
+                            <th>Taille</th>
+                            <th>Date</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in documents %}
+                        <tr>
+                            <td>{{ doc.nom }}</td>
+                            <td>{{ doc.type }}</td>
+                            <td>{{ doc.taille_formattee }}</td>
+                            <td>{{ doc.date_upload.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                <span class="document-status
+                                    {% if doc.date_expiration and doc.date_expiration < now() %}status-expired
+                                    {% elif doc.verified %}status-verified
+                                    {% else %}status-pending{% endif %}">
+                                    {% if doc.date_expiration and doc.date_expiration < now() %}Expiré
+                                    {% elif doc.verified %}Vérifié
+                                    {% else %}En attente{% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="document-actions">
+                                    <a href="{{ url_for('static', filename=doc.chemin) }}" target="_blank" class="btn-doc btn-view" title="Voir">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('static', filename=doc.chemin) }}" download class="btn-doc btn-download" title="Télécharger">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    {% if not doc.verified %}
+                                    <button class="btn-doc btn-verify" onclick="openVerifyModal({{ doc.id }})" title="Vérifier">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    {% endif %}
+                                    <a href="{{ url_for('delete_document', doc_id=doc.id) }}" class="btn-doc btn-delete" title="Supprimer" onclick="return confirm('Supprimer ce document ?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de vérification -->
+    <div id="verifyModal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-check-circle"></i> Vérifier le document</h3>
+            <form method="POST" action="" id="verifyForm">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">Action</label>
+                    <select name="action" style="width: 100%; padding: 8px; border: 2px solid #e9ecef; border-radius: 5px;">
+                        <option value="approve">✅ Approuver</option>
+                        <option value="reject">❌ Rejeter</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px;">Notes (optionnel)</label>
+                    <textarea name="notes" rows="3" style="width: 100%; padding: 8px; border: 2px solid #e9ecef; border-radius: 5px;"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-doc btn-delete" onclick="closeVerifyModal()">Annuler</button>
+                    <button type="submit" class="btn-doc btn-verify">Confirmer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentView = 'grid';
+
+        function toggleView(view) {
+            currentView = view;
+
+            // Mettre à jour les boutons
+            document.querySelectorAll('.btn-view-toggle').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Afficher/masquer les vues
+            if (view === 'grid') {
+                document.getElementById('gridView').style.display = 'grid';
+                document.getElementById('listView').style.display = 'none';
+            } else {
+                document.getElementById('gridView').style.display = 'none';
+                document.getElementById('listView').style.display = 'block';
+            }
+        }
+
+        function filterDocuments() {
+            const typeFilter = document.getElementById('typeFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            document.querySelectorAll('.document-card').forEach(card => {
+                let show = true;
+
+                if (typeFilter !== 'all' && card.dataset.type !== typeFilter) {
+                    show = false;
+                }
+
+                if (statusFilter !== 'all') {
+                    if (statusFilter === 'verified' && card.dataset.status !== 'verified') {
+                        show = false;
+                    } else if (statusFilter === 'pending' && card.dataset.status !== 'pending') {
+                        show = false;
+                    } else if (statusFilter === 'expired' && card.dataset.expired !== 'true') {
+                        show = false;
+                    }
+                }
+
+                card.style.display = show ? 'block' : 'none';
+            });
+        }
+
+        function resetFilters() {
+            document.getElementById('typeFilter').value = 'all';
+            document.getElementById('statusFilter').value = 'all';
+
+            document.querySelectorAll('.document-card').forEach(card => {
+                card.style.display = 'block';
+            });
+        }
+
+        function openVerifyModal(docId) {
+            document.getElementById('verifyModal').classList.add('active');
+            document.getElementById('verifyForm').action = `/admin/document/verify/${docId}`;
+        }
+
+        function closeVerifyModal() {
+            document.getElementById('verifyModal').classList.remove('active');
+        }
+
+        // Fermer le modal en cliquant en dehors
+        window.onclick = function(event) {
+            const modal = document.getElementById('verifyModal');
+            if (event.target == modal) {
+                closeVerifyModal();
+            }
+        }
+    </script>
+</body>
+</html>

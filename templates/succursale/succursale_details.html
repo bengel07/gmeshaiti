@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détails Succursale - {{ succursale.nom }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { background: #1a237e; color: white; padding: 20px; border-radius: 10px; }
+        .btn { padding: 10px 20px; background: #2e7d32; color: white; border: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Succursale {{ succursale.nom }}</h1>
+            <p>Code: {{ succursale.code }}</p>
+        </div>
+
+        <div style="margin: 30px 0;">
+            <h2>Informations</h2>
+            <p><strong>Adresse:</strong> {{ succursale.adresse or 'Non spécifiée' }}</p>
+            <p><strong>Code BRH:</strong> {{ succursale.code_brh or 'Non spécifié' }}</p>
+            <p><strong>Téléphone:</strong> {{ succursale.telephone or 'Non spécifié' }}</p>
+            <p><strong>Date création:</strong> {{ succursale.date_creation.strftime('%d/%m/%Y') if succursale.date_creation else 'N/A' }}</p>
+        </div>
+
+        <button onclick="window.history.back()" class="btn">Retour</button>
+        <a href="{{ url_for('liste_employes') }}" class="btn" style="background: #1a237e; margin-left: 10px;">
+            Voir les employés
+        </a>
+    </div>
+</body>
+</html>

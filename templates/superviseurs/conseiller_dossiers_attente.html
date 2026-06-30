@@ -1,0 +1,599 @@
+{% extends "base.html" %}
+
+{% block title %}Dossiers en attente - Conseiller{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête avec photo de profil du conseiller -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-primary border-0 shadow-lg">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <div class="avatar avatar-xl position-relative">
+                                {% if current_user.photo_profil %}
+                                <img src="{{ url_for('static', filename='uploads/profils/' + current_user.photo_profil) }}"
+                                     class="rounded-circle border border-4 border-white"
+                                     style="width: 80px; height: 80px; object-fit: cover;">
+                                {% else %}
+                                <div class="bg-white rounded-circle d-flex align-items-center justify-content-center"
+                                     style="width: 80px; height: 80px;">
+                                    <i class="fas fa-user-tie fa-3x text-primary"></i>
+                                </div>
+                                {% endif %}
+                                <span class="position-absolute bottom-0 end-0 bg-success rounded-circle p-2 border border-2 border-white"></span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <h2 class="text-white mb-1">{{ current_user.prenom }} {{ current_user.nom }}</h2>
+                            <p class="text-white-50 mb-0">
+                                <i class="fas fa-briefcase me-2"></i>Conseiller •
+                                <i class="fas fa-code-branch ms-2 me-1"></i>Succursale {{ current_user.succursale.code }}
+                            </p>
+                        </div>
+                        <div class="col-auto ms-auto">
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-white text-primary px-3 py-2">
+                                    <i class="fas fa-clock me-1"></i> {{ dossiers|length }} en attente
+                                </span>
+                                <span class="badge bg-success px-3 py-2">
+                                    <i class="fas fa-check-circle me-1"></i> {{ dossiers|selectattr('statut', 'equalto', 'actif')|list|length }} actifs
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques rapides -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar bg-warning bg-opacity-10 rounded-3 p-3 me-3">
+                            <i class="fas fa-hourglass-half fa-2x text-warning"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1">En attente signature</h6>
+                            <h3 class="mb-0">{{ dossiers|selectattr('statut', 'equalto', 'en_attente_terms')|list|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar bg-info bg-opacity-10 rounded-3 p-3 me-3">
+                            <i class="fas fa-file-signature fa-2x text-info"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1">Signés (attente direction)</h6>
+                            <h3 class="mb-0">{{ dossiers|selectattr('statut', 'equalto', 'en_attente_approbation')|list|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar bg-success bg-opacity-10 rounded-3 p-3 me-3">
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1">Approuvés</h6>
+                            <h3 class="mb-0">{{ dossiers|selectattr('statut', 'equalto', 'actif')|list|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar bg-danger bg-opacity-10 rounded-3 p-3 me-3">
+                            <i class="fas fa-times-circle fa-2x text-danger"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1">Refusés</h6>
+                            <h3 class="mb-0">{{ dossiers|selectattr('statut', 'in', ['refus_terms', 'rejete'])|list|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres et recherche -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-lg-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-0 bg-light" id="searchInput"
+                               placeholder="Rechercher par nom, email, CIN...">
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <select class="form-select bg-light border-0" id="statutFilter">
+                        <option value="all">Tous les statuts</option>
+                        <option value="en_attente_terms">En attente signature</option>
+                        <option value="en_attente_approbation">En attente approbation</option>
+                        <option value="actif">Approuvé</option>
+                        <option value="refus_terms">Refusé (client)</option>
+                        <option value="rejete">Rejeté (directeur)</option>
+                    </select>
+                </div>
+                <div class="col-lg-3">
+                    <select class="form-select bg-light border-0" id="dateFilter">
+                        <option value="all">Toutes les dates</option>
+                        <option value="today">Aujourd'hui</option>
+                        <option value="week">Cette semaine</option>
+                        <option value="month">Ce mois</option>
+                    </select>
+                </div>
+                <div class="col-lg-2">
+                    <button class="btn btn-primary w-100" onclick="window.location.reload()">
+                        <i class="fas fa-sync-alt me-2"></i>Actualiser
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des dossiers -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 pt-4 px-4">
+            <h5 class="mb-0"><i class="fas fa-folder-open me-2 text-primary"></i>Dossiers clients</h5>
+        </div>
+        <div class="card-body p-4">
+            {% if dossiers %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="dossiersTable">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Client</th>
+                            <th>Contact</th>
+                            <th>Code client</th>
+                            <th>Date création</th>
+                            <th>Statut</th>
+                            <th>Signature parent</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dossier in dossiers %}
+                        <tr class="dossier-row"
+                            data-statut="{{ dossier.statut }}"
+                            data-date="{{ dossier.date_inscription.strftime('%Y-%m-%d') if dossier.date_inscription }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar me-3">
+                                        {% if dossier.photo_selfie %}
+                                        <img src="{{ url_for('static', filename='uploads/clients/' + dossier.photo_selfie) }}"
+                                             class="rounded-circle" width="45" height="45" style="object-fit: cover;">
+                                        {% else %}
+                                        <div class="bg-secondary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                                             style="width: 45px; height: 45px;">
+                                            <i class="fas fa-user-circle fa-2x text-secondary"></i>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">{{ dossier.prenom }} {{ dossier.nom }}</h6>
+                                        <small class="text-muted">
+                                            {% if dossier.sexe == 'M' %}
+                                            <i class="fas fa-mars text-primary me-1"></i>Homme
+                                            {% else %}
+                                            <i class="fas fa-venus text-danger me-1"></i>Femme
+                                            {% endif %}
+                                            • {{ dossier.date_naissance|age }} ans
+                                        </small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div>
+                                    <div><i class="fas fa-envelope fa-xs text-muted me-1"></i> {{ dossier.email }}</div>
+                                    <div><i class="fas fa-phone fa-xs text-muted me-1"></i> {{ dossier.telephone }}</div>
+                                    <div><i class="fas fa-id-card fa-xs text-muted me-1"></i> CIN: {{ dossier.cin }}</div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-dark">{{ dossier.id_client }}</span>
+                            </td>
+                            <td>
+                                <div>{{ dossier.date_creation.strftime('%d/%m/%Y') }}</div>
+                                <small class="text-muted">{{ dossier.date_creation.strftime('%H:%M') }}</small>
+                            </td>
+                            <td>
+                                {% if dossier.statut == 'en_attente_terms' %}
+                                <span class="badge bg-warning text-dark px-3 py-2">
+                                    <i class="fas fa-hourglass-half me-1"></i> Attente signature
+                                </span>
+                                {% elif dossier.statut == 'en_attente_approbation' %}
+                                <span class="badge bg-info px-3 py-2">
+                                    <i class="fas fa-clock me-1"></i> Attente approbation
+                                </span>
+                                {% elif dossier.statut == 'actif' %}
+                                <span class="badge bg-success px-3 py-2">
+                                    <i class="fas fa-check-circle me-1"></i> Approuvé
+                                </span>
+                                {% elif dossier.statut == 'refus_terms' %}
+                                <span class="badge bg-danger px-3 py-2">
+                                    <i class="fas fa-times-circle me-1"></i> Refusé (client)
+                                </span>
+                                {% elif dossier.statut == 'rejete' %}
+                                <span class="badge bg-danger px-3 py-2">
+                                    <i class="fas fa-ban me-1"></i> Rejeté
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if dossier.parent_signature %}
+                                <span class="badge bg-success" title="Signature parentale reçue">
+                                    <i class="fas fa-check me-1"></i> OK
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary" title="Pas de parent requis (majeur)">
+                                    <i class="fas fa-minus me-1"></i> N/A
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('conseiller_voir_dossier', client_id=dossier.id) }}"
+                                       class="btn btn-sm btn-outline-primary" title="Voir détails">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if dossier.statut == 'en_attente_terms' %}
+                                    <button type="button" class="btn btn-sm btn-outline-warning"
+                                            onclick="renvoyerLien({{ dossier.id }})" title="Renvoyer lien de signature">
+                                        <i class="fas fa-envelope"></i>
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-sm btn-outline-info"
+                                            onclick="voirCompetences({{ dossier.id }})" title="Voir compétences">
+                                        <i class="fas fa-briefcase"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                            onclick="voirDocuments({{ dossier.id }})" title="Voir documents">
+                                        <i class="fas fa-file-alt"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="fas fa-folder-open fa-4x text-muted opacity-25"></i>
+                </div>
+                <h5 class="text-muted">Aucun dossier en attente</h5>
+                <p class="text-muted mb-4">Les nouveaux dossiers apparaîtront ici après création</p>
+                <a href="{{ url_for('creer_dossier') }}" class="btn btn-primary">
+                    <i class="fas fa-plus-circle me-2"></i>Créer un nouveau dossier
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour les compétences -->
+<div class="modal fade" id="competencesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title"><i class="fas fa-briefcase me-2 text-primary"></i>Compétences du client</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="competencesModalBody">
+                <!-- Chargement via AJAX -->
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour les documents -->
+<div class="modal fade" id="documentsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title"><i class="fas fa-file-alt me-2 text-primary"></i>Documents du dossier</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="documentsModalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Filtrage en temps réel
+document.getElementById('searchInput').addEventListener('keyup', filterTable);
+document.getElementById('statutFilter').addEventListener('change', filterTable);
+document.getElementById('dateFilter').addEventListener('change', filterTable);
+
+function filterTable() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const statutFilter = document.getElementById('statutFilter').value;
+    const dateFilter = document.getElementById('dateFilter').value;
+
+    const rows = document.querySelectorAll('.dossier-row');
+    const today = new Date().toISOString().split('T')[0];
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const statut = row.dataset.statut;
+        const rowDate = row.dataset.date;
+
+        let matchesSearch = text.includes(searchTerm);
+        let matchesStatut = statutFilter === 'all' || statut === statutFilter;
+        let matchesDate = true;
+
+        if (dateFilter === 'today') {
+            matchesDate = rowDate === today;
+        } else if (dateFilter === 'week') {
+            matchesDate = rowDate >= weekAgo;
+        } else if (dateFilter === 'month') {
+            matchesDate = rowDate >= monthAgo;
+        }
+
+        if (matchesSearch && matchesStatut && matchesDate) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Fonction pour renvoyer le lien de signature
+function renvoyerLien(clientId) {
+    if (confirm('Renvoyer le lien de signature au client ?')) {
+        fetch(`/conseiller/renvoyer-lien/${clientId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Lien renvoyé avec succès');
+            } else {
+                alert('❌ Erreur: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('❌ Erreur lors de l\'envoi');
+        });
+    }
+}
+
+// Fonction pour voir les compétences
+function voirCompetences(clientId) {
+    const modal = new bootstrap.Modal(document.getElementById('competencesModal'));
+    const modalBody = document.getElementById('competencesModalBody');
+
+    modalBody.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Chargement...</span></div></div>';
+    modal.show();
+
+    fetch(`/api/client/${clientId}/competences`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.competences && data.competences.length > 0) {
+                let html = '<div class="list-group">';
+                data.competences.forEach(comp => {
+                    let niveauClass = 'secondary';
+                    if (comp.niveau === 'expert') niveauClass = 'success';
+                    else if (comp.niveau === 'intermédiaire') niveauClass = 'warning';
+
+                    html += `
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">${comp.nom}</h6>
+                                    <small class="text-muted">${comp.description || ''}</small>
+                                </div>
+                                <span class="badge bg-${niveauClass}">${comp.niveau}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                modalBody.innerHTML = html;
+            } else {
+                modalBody.innerHTML = '<p class="text-center text-muted py-4">Aucune compétence enregistrée</p>';
+            }
+        })
+        .catch(error => {
+            modalBody.innerHTML = '<p class="text-center text-danger py-4">Erreur lors du chargement</p>';
+        });
+}
+
+// Fonction pour voir les documents
+function voirDocuments(clientId) {
+    const modal = new bootstrap.Modal(document.getElementById('documentsModal'));
+    const modalBody = document.getElementById('documentsModalBody');
+
+    modalBody.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Chargement...</span></div></div>';
+    modal.show();
+
+    fetch(`/api/client/${clientId}/documents`)
+        .then(response => response.json())
+        .then(data => {
+            let html = '<div class="row g-3">';
+
+            if (data.photo_id) {
+                html += `
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <i class="fas fa-id-card me-2"></i>Recto CIN
+                            </div>
+                            <div class="card-body text-center">
+                                <img src="${data.photo_id}" class="img-fluid rounded" style="max-height: 200px;">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (data.photo_verso) {
+                html += `
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <i class="fas fa-id-card me-2"></i>Verso CIN
+                            </div>
+                            <div class="card-body text-center">
+                                <img src="${data.photo_verso}" class="img-fluid rounded" style="max-height: 200px;">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (data.selfie) {
+                html += `
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <i class="fas fa-camera me-2"></i>Selfie
+                            </div>
+                            <div class="card-body text-center">
+                                <img src="${data.selfie}" class="img-fluid rounded" style="max-height: 200px;">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (!data.photo_id && !data.photo_verso && !data.selfie) {
+                html = '<p class="text-center text-muted py-4">Aucun document disponible</p>';
+            } else {
+                html += '</div>';
+            }
+
+            modalBody.innerHTML = html;
+        })
+        .catch(error => {
+            modalBody.innerHTML = '<p class="text-center text-danger py-4">Erreur lors du chargement</p>';
+        });
+}
+
+// Rafraîchissement automatique toutes les 30 secondes
+let autoRefresh = setInterval(() => {
+    if (!document.hidden) {
+        window.location.reload();
+    }
+}, 30000);
+
+// Arrêter le rafraîchissement quand la page est cachée
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        clearInterval(autoRefresh);
+    } else {
+        autoRefresh = setInterval(() => {
+            window.location.reload();
+        }, 30000);
+    }
+});
+</script>
+
+<!-- Template filter pour l'âge -->
+{% macro age(date_naissance) %}
+    {% if date_naissance %}
+        {% set today = now() %}
+        {% set age = today.year - date_naissance.year - (1 if (today.month, today.day) < (date_naissance.month, date_naissance.day) else 0) %}
+        {{ age }}
+    {% endif %}
+{% endmacro %}
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.avatar {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.table > :not(caption) > * > * {
+    padding: 1rem 0.5rem;
+}
+
+.btn-group .btn {
+    padding: 0.4rem 0.8rem;
+}
+
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+.card {
+    border-radius: 15px;
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(102, 126, 234, 0.05);
+    cursor: pointer;
+}
+
+/* Animation pour les notifications */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.badge-warning {
+    animation: pulse 2s infinite;
+}
+</style>
+{% endblock %}

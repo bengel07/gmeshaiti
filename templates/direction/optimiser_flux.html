@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Optimisation des Flux - GMES{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-warning">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="text-white mb-2">
+                            <i class="fas fa-chart-pie me-2"></i>Optimisation des Flux
+                        </h1>
+                        <p class="text-white opacity-8 mb-0">
+                            Analyse des performances et recommandations d'amélioration
+                        </p>
+                    </div>
+                    <a href="{{ url_for('directeur_operations_dashboard') }}" class="btn btn-light">
+                        <i class="fas fa-arrow-left me-2"></i>Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau des performances -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header pb-0">
+                    <h6>Performance des succursales (mois en cours)</h6>
+                </div>
+                <div class="card-body px-0 pt-0 pb-2">
+                    <div class="table-responsive p-0">
+                        <table class="table align-items-center mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Succursale</th>
+                                    <th class="text-center">Transactions</th>
+                                    <th class="text-center">Volume</th>
+                                    <th class="text-center">Évolution</th>
+                                    <th class="text-center">Conseillers</th>
+                                    <th class="text-center">Productivité</th>
+                                    <th class="text-center">Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in performances %}
+                                <tr>
+                                    <td>{{ p.succursale }}</td>
+                                    <td class="text-center">{{ p.transactions_mois }}</td>
+                                    <td class="text-center">{{ p.volume_mois|int }} HTG</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-{{ p.couleur }}">
+                                            {% if p.evolution > 0 %}+{% endif %}{{ p.evolution }}%
+                                        </span>
+                                    </td>
+                                    <td class="text-center">{{ p.nb_conseillers }}</td>
+                                    <td class="text-center">{{ p.productivite }}/conseiller</td>
+                                    <td class="text-center">
+                                        {% if p.transactions_mois >= 100 %}
+                                        <span class="badge bg-success">Excellent</span>
+                                        {% elif p.transactions_mois >= 50 %}
+                                        <span class="badge bg-info">Bon</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">À améliorer</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommandations -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header pb-0">
+                    <h6>Recommandations d'optimisation</h6>
+                </div>
+                <div class="card-body">
+                    {% if recommandations %}
+                        {% for r in recommandations %}
+                        <div class="alert alert-{{ r.type }} mb-2">
+                            {{ r.message }}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert alert-success">
+                            ✅ Toutes les succursales ont d'excellentes performances !
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides -->
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                    <h5>Former les équipes</h5>
+                    <p>Programme de formation pour les succursales sous-performantes</p>
+                    <button class="btn btn-outline-primary btn-sm">Planifier</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-3x text-success mb-3"></i>
+                    <h5>Optimiser horaires</h5>
+                    <p>Ajuster les plages horaires selon l'affluence</p>
+                    <button class="btn btn-outline-success btn-sm">Analyser</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-3x text-info mb-3"></i>
+                    <h5>Rapport détaillé</h5>
+                    <p>Générer un rapport complet d'optimisation</p>
+                    <a href="{{ url_for('rapport_optimisation') }}" class="btn btn-outline-info btn-sm">Générer</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-gradient-warning {
+    background: linear-gradient(310deg, #f53939, #fbcf33);
+}
+.alert {
+    border-left: 4px solid;
+}
+.alert-success { border-left-color: #28a745; }
+.alert-warning { border-left-color: #ffc107; }
+.alert-danger { border-left-color: #dc3545; }
+.alert-info { border-left-color: #17a2b8; }
+</style>
+{% endblock %}

@@ -1,93 +1,273 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employé - GMES</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
-        .header { background: #28a745; color: white; padding: 1rem 2rem; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2rem 0; }
-        .stat-card { background: white; padding: 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .btn { display: inline-block; padding: 0.5rem 1rem; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 0.5rem; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>👨‍💻 Employé GMES</h1>
-        <p>Connecté en tant que: {{ current_user.nom }} {{ current_user.prenom }} (Employé)</p>
-        <a href="{{ url_for('deconnexion') }}" style="color: white;">Déconnexion</a>
-    </div>
+{% extends "base.html" %}
 
-    <div class="container">
-        <h2>Tableau de Bord Employé</h2>
-
-        <div class="stats">
-            <div class="stat-card">
-                <h3>📋 Prêts à Traiter</h3>
-                <p>12</p>
-            </div>
-            <div class="stat-card">
-                <h3>👥 Mes Clients</h3>
-                <p>45</p>
-            </div>
-            <div class="stat-card">
-                <h3>✅ Traités Aujourd'hui</h3>
-                <p>8</p>
-            </div>
-
-            <!-- Dans le dashboard de l'employé -->
-            <div class="fonction-links">
-                {% if current_user.fonction == 'caissier' %}
-                    <a href="{{ url_for('functions.fonction_dashboard', fonction='caissier') }}"
-                       class="btn btn-primary">
-                       🏦 Interface Caissier
-                    </a>
-                {% elif current_user.fonction == 'agent_credit' %}
-                    <a href="{{ url_for('functions.fonction_dashboard', fonction='agent_credit') }}"
-                       class="btn btn-primary">
-                       💰 Interface Agent Crédit
-                    </a>
-                {% elif current_user.fonction == 'analyste_credit' %}
-                    <a href="{{ url_for('functions.fonction_dashboard', fonction='analyste_credit') }}"
-                       class="btn btn-primary">
-                       📊 Interface Analyste Crédit
-                    </a>
-                {% endif %}
-                <!-- ... autres fonctions ... -->
-            </div>
-
-        <div style="background: white; padding: 2rem; border-radius: 10px;">
-            <h3>Actions Employé</h3>
-            <a href="{{ url_for('prets_en_attente') }}" class="btn">📋 Traiter les prêts</a>
-            <a href="{{ url_for('employe_gestion_clients') }}" class="btn">👥 Gérer les clients</a>
-            <a href="{{ url_for('employe_remboursements') }}" class="btn">💳 Enregistrer remboursement</a>
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>👥 Gestion des employés</h2>
+            <p class="text-muted">
+                Succursale: <strong>{{ current_user.succursale.nom if current_user.succursale else 'Succursale non assignée' }}</strong> -
+                {{ current_user.succursale.ville }}
+            </p>
+        </div>
+        <div>
+            <a href="{{ url_for('ajouter_employe') }}" class="btn btn-success">
+                <i class="fas fa-user-plus"></i> Nouvel employé
+            </a>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
         </div>
     </div>
-</body>
-</html>
 
-<div class="dashboard-grid">
-    {% if current_user|has_permission('caissier') %}
-    <div class="card">
-        <h3>💳 Gestion des Remboursements</h3>
-        <a href="{{ url_for('employe_remboursements') }}" class="btn">Accéder</a>
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total employés</h5>
+                    <h2>{{ stats.total }}</h2>
+                    <small>{{ stats.employes }} employés | {{ stats.superviseurs }} superviseurs</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Actifs</h5>
+                    <h2>{{ stats.actifs }}</h2>
+                    <small>En service</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">En attente</h5>
+                    <h2>{{ stats.en_attente }}</h2>
+                    <small>En cours d'activation</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Suspendus</h5>
+                    <h2>{{ stats.suspendus }}</h2>
+                    <small>Comptes désactivés</small>
+                </div>
+            </div>
+        </div>
     </div>
-    {% endif %}
 
-    {% if current_user|has_permission('analyste_credit') %}
-    <div class="card">
-        <h3>📊 Analyse des Prêts</h3>
-        <a href="{{ url_for('employe_analyse_prets') }}" class="btn">Accéder</a>
+    <!-- Filtres et recherche -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <input type="text" id="searchInput" class="form-control" 
+                           placeholder="🔍 Rechercher par nom, prénom, email...">
+                </div>
+                <div class="col-md-3">
+                    <select id="roleFilter" class="form-control">
+                        <option value="all">Tous les rôles</option>
+                        <option value="employe">Employés</option>
+                        <option value="superviseur">Superviseurs</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select id="statutFilter" class="form-control">
+                        <option value="all">Tous les statuts</option>
+                        <option value="actif">Actifs</option>
+                        <option value="en_attente">En attente</option>
+                        <option value="suspendu">Suspendus</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" onclick="resetFilters()">
+                        <i class="fas fa-redo"></i> Réinitialiser
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-    {% endif %}
 
-    {% if current_user|has_permission('conseiller') %}
+    <!-- Liste des employés -->
     <div class="card">
-        <h3>👥 Gestion des Clients</h3>
-        <a href="{{ url_for('employe_gestion_clients') }}" class="btn">Accéder</a>
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Liste des employés ({{ stats.total }})</h5>
+            <span class="badge bg-info">{{ current_user.succursale.code }}</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="employesTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Photo</th>
+                            <th>Nom & Prénom</th>
+                            <th>Contact</th>
+                            <th>Rôle</th>
+                            <th>Statut</th>
+                            <th>Date d'embauche</th>
+                            <th>Dernière connexion</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in utilisateurs %}
+                        <tr data-role="{{ user.role }}" data-statut="{{ user.statut }}">
+                            <td>{{ employe.id }}</td>
+                            <td>
+                                {% if user.photo_profil %}
+                                    <img src="{{ url_for('static', filename='uploads/profils/' + user.photo_profil) }}" 
+                                         class="rounded-circle" width="40" height="40" style="object-fit: cover;">
+                                {% else %}
+                                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" 
+                                         style="width:40px; height:40px;">
+                                        {{ user.prenom[0] }}{{ user.nom[0] }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ user.prenom }} {{ user.nom }}</strong><br>
+                                <small class="text-muted">@{{ user.username }}</small>
+                            </td>
+                            <td>
+                                <i class="fas fa-envelope"></i> {{ user.email }}<br>
+                                <i class="fas fa-phone"></i> {{ user.telephone or 'N/A' }}
+                            </td>
+                            <td>
+                                {% if user.role == 'superviseur' %}
+                                    <span class="badge bg-info">Superviseur</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Employé</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.statut == 'actif' %}
+                                    <span class="badge bg-success">Actif</span>
+                                {% elif user.statut == 'en_attente' %}
+                                    <span class="badge bg-warning">En attente</span>
+                                {% elif user.statut == 'suspendu' %}
+                                    <span class="badge bg-danger">Suspendu</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.date_embauche.strftime('%d/%m/%Y') if user.date_embauche else 'N/A' }}</td>
+                            <td>
+                                {% if user.derniere_connexion %}
+                                    <small>{{ user.derniere_connexion.strftime('%d/%m/%Y %H:%M') }}</small>
+                                {% else %}
+                                    <small class="text-muted">Jamais</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('voir_employe', employe_id=user.id) }}" 
+                                       class="btn btn-outline-info" title="Voir détails">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('modifier_employe', employe_id=user.id) }}" 
+                                       class="btn btn-outline-primary" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if user.statut == 'actif' %}
+                                        <a href="{{ url_for('suspendre_employe', employe_id=user.id) }}" 
+                                           class="btn btn-outline-warning" title="Suspendre"
+                                           onclick="return confirm('Suspendre cet employé ?')">
+                                            <i class="fas fa-pause"></i>
+                                        </a>
+                                    {% elif user.statut == 'suspendu' %}
+                                        <a href="{{ url_for('reactiver_employe', employe_id=user.id) }}" 
+                                           class="btn btn-outline-success" title="Réactiver"
+                                           onclick="return confirm('Réactiver cet employé ?')">
+                                            <i class="fas fa-play"></i>
+                                        </a>
+                                    {% endif %}
+                                    {% if user.statut == 'en_attente' %}
+                                        <a href="{{ url_for('approuver_employe', employe_id=user.id) }}" 
+                                           class="btn btn-outline-success" title="Approuver"
+                                           onclick="return confirm('Approuver cet employé ?')">
+                                            <i class="fas fa-check"></i>
+                                        </a>
+                                    {% endif %}
+                                    <a href="{{ url_for('reinitialiser_mdp', employe_id=user.id) }}" 
+                                       class="btn btn-outline-secondary" title="Réinitialiser mot de passe"
+                                       onclick="return confirm('Envoyer un lien de réinitialisation ?')">
+                                        <i class="fas fa-key"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5">
+                                <i class="fas fa-users fa-4x text-muted mb-3"></i>
+                                <h5>Aucun employé trouvé</h5>
+                                <p>Commencez par ajouter votre premier employé</p>
+                                <a href="{{ url_for('ajouter_employe') }}" class="btn btn-primary">
+                                    <i class="fas fa-user-plus"></i> Ajouter un employé
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    {% endif %}
 </div>
 
+<!-- Scripts pour les filtres -->
+<script>
+function filterTable() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const roleFilter = document.getElementById('roleFilter').value;
+    const statutFilter = document.getElementById('statutFilter').value;
+    
+    const rows = document.querySelectorAll('#employesTable tbody tr');
+    
+    rows.forEach(row => {
+        if (row.cells.length > 1) { // Ignorer la ligne "Aucun employé"
+            const nomPrenom = row.cells[2].textContent.toLowerCase();
+            const email = row.cells[3].textContent.toLowerCase();
+            const role = row.dataset.role;
+            const statut = row.dataset.statut;
+            
+            const matchesSearch = nomPrenom.includes(searchTerm) || email.includes(searchTerm);
+            const matchesRole = roleFilter === 'all' || role === roleFilter;
+            const matchesStatut = statutFilter === 'all' || statut === statutFilter;
+            
+            if (matchesSearch && matchesRole && matchesStatut) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        }
+    });
+}
+
+function resetFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('roleFilter').value = 'all';
+    document.getElementById('statutFilter').value = 'all';
+    filterTable();
+}
+
+document.getElementById('searchInput').addEventListener('keyup', filterTable);
+document.getElementById('roleFilter').addEventListener('change', filterTable);
+document.getElementById('statutFilter').addEventListener('change', filterTable);
+</script>
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<style>
+    .table td { vertical-align: middle; }
+    .btn-group .btn { padding: 0.25rem 0.5rem; }
+    .badge { font-size: 0.85em; padding: 0.5em 0.7em; }
+    .card { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .bg-info { background-color: #17a2b8 !important; }
+</style>
+{% endblock %}

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accepter les conditions - GMES</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #333;
+            margin: 0 0 10px 0;
+        }
+        .header p {
+            color: #666;
+            margin: 0;
+        }
+        .terms-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+        }
+        .terms-box h3 {
+            color: #333;
+            margin-top: 0;
+        }
+        .terms-box ul {
+            padding-left: 20px;
+            color: #555;
+        }
+        .terms-box li {
+            margin-bottom: 10px;
+        }
+
+        /* ✅ NOUVELLE SECTION SIGNATURE */
+        .signature-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .signature-section label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .signature-pad {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 10px;
+            background: white;
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            background: white;
+            cursor: crosshair;
+            border-radius: 5px;
+        }
+        .btn-clear {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-clear:hover {
+            background: #5a6268;
+        }
+
+        .checkbox-container {
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checkbox-container input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .checkbox-container label {
+            color: #333;
+            cursor: pointer;
+        }
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #dee2e6;
+            margin-top: 10px;
+        }
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #999;
+            font-size: 0.9rem;
+        }
+        .token-expired {
+            text-align: center;
+        }
+        .token-expired i {
+            font-size: 4rem;
+            color: #dc3545;
+            margin-bottom: 20px;
+        }
+        .user-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1><i class="fas fa-file-contract"></i> Conditions d'utilisation</h1>
+                <p>GMES Microcrédit</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% if token_valide and user %}
+                <form method="POST" id="acceptForm">
+                    <div class="user-info">
+                        <strong><i class="fas fa-user"></i> {{ user.prenom }} {{ user.nom }}</strong><br>
+                        <small>Email: {{ user.email }}</small>
+                    </div>
+
+                    <div class="terms-box">
+                        <h3>CONDITIONS GÉNÉRALES D'UTILISATION</h3>
+                        <p>En acceptant ces conditions, vous reconnaissez avoir pris connaissance et accepter :</p>
+                        <ul>
+                            <li>La collecte et le traitement de vos données personnelles conformément à notre politique de confidentialité</li>
+                            <li>L'utilisation de vos informations pour l'évaluation de votre dossier de crédit</li>
+                            <li>La communication de vos informations aux autorités compétentes si requis par la loi</li>
+                            <li>L'engagement à fournir des informations exactes et complètes</li>
+                            <li>L'acceptation des taux d'intérêt et conditions de remboursement applicables à vos prêts</li>
+                            <li>La possibilité de vérification de vos informations par nos services</li>
+                        </ul>
+                        <p style="margin-top: 15px; font-style: italic; color: #666;">
+                            Pour plus de détails, veuillez consulter notre politique de confidentialité et nos conditions générales complètes disponibles en agence.
+                        </p>
+                    </div>
+
+                    <!-- ✅ SECTION SIGNATURE AJOUTÉE -->
+                    <div class="signature-section">
+                        <label><i class="fas fa-pen"></i> Signature du client :</label>
+                        <div class="signature-pad">
+                            <canvas id="signatureCanvas" width="500" height="200" style="width: 100%; height: auto; border: 1px solid #ccc; background: white; touch-action: none;"></canvas>
+                            <button type="button" class="btn-clear" id="clearSignature">
+                                <i class="fas fa-eraser"></i> Effacer la signature
+                            </button>
+                            <input type="hidden" name="signature" id="signatureInput" required>
+                        </div>
+                    </div>
+
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="acceptTerms" required>
+                        <label for="acceptTerms">J'ai lu et j'accepte les conditions générales d'utilisation</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                        <i class="fas fa-check-circle"></i> Accepter et signer
+                    </button>
+                </form>
+
+                <button class="btn btn-secondary" onclick="window.location.href='/'">
+                    <i class="fas fa-home"></i> Retour à l'accueil
+                </button>
+
+            {% elif token_expire %}
+                <div class="token-expired">
+                    <i class="fas fa-hourglass-end"></i>
+                    <h2>Lien expiré</h2>
+                    <p>Ce lien d'acceptation a expiré. Veuillez contacter votre conseiller pour obtenir un nouveau lien.</p>
+                    <button class="btn btn-primary" onclick="window.location.href='/'">
+                        <i class="fas fa-home"></i> Retour à l'accueil
+                    </button>
+                </div>
+
+            {% elif token_invalide %}
+                <div class="token-expired">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h2>Lien invalide</h2>
+                    <p>Ce lien n'est pas valide. Veuillez vérifier l'URL ou contacter votre conseiller.</p>
+                    <button class="btn btn-primary" onclick="window.location.href='/'">
+                        <i class="fas fa-home"></i> Retour à l'accueil
+                    </button>
+                </div>
+            {% endif %}
+
+            <div class="footer">
+                <p>© 2024 GMES Microcrédit - Tous droits réservés</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const canvas = document.getElementById('signatureCanvas');
+        if (!canvas) {
+            console.error("Canvas non trouvé!");
+            return;
+        }
+
+        console.log("Canvas trouvé, initialisation...");
+
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+
+        // Configuration du stylo
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#000';
+
+        // Remplir le fond en blanc
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Gestion de la souris
+        canvas.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            drawing = true;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!drawing) return;
+            e.preventDefault();
+
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            drawing = false;
+            // Sauvegarder la signature
+            document.getElementById('signatureInput').value = canvas.toDataURL('image/png');
+            console.log("Signature sauvegardée");
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            drawing = false;
+        });
+
+        // Support tactile pour mobile
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            drawing = true;
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!drawing) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            drawing = false;
+            document.getElementById('signatureInput').value = canvas.toDataURL('image/png');
+            console.log("Signature tactile sauvegardée");
+        });
+
+        // Bouton effacer
+        document.getElementById('clearSignature').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            document.getElementById('signatureInput').value = '';
+            console.log("Canvas effacé");
+        });
+
+        // Gestion de la checkbox
+        const acceptCheckbox = document.getElementById('acceptTerms');
+        const submitBtn = document.getElementById('submitBtn');
+
+        acceptCheckbox.addEventListener('change', function() {
+            submitBtn.disabled = !this.checked;
+        });
+
+        // Validation avant soumission
+        document.getElementById('acceptForm').addEventListener('submit', function(e) {
+            const signature = document.getElementById('signatureInput').value;
+            if (!signature) {
+                e.preventDefault();
+                alert('Veuillez apposer votre signature avant de continuer.');
+                return;
+            }
+
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traitement...';
+            submitBtn.disabled = true;
+        });
+    });
+    </script>
+</body>
+</html>

@@ -57,21 +57,21 @@ def create_user_account(user_data):
         )
         user.set_password(user_data['password'])
 
-        db.session.add(user)
-        db.session.commit()
+        session.add(user)
+        session.commit()
 
         # Créer le compte bancaire
         account = Account(
             account_number=account_number,
-            user_id=user.id,
+            employe_id=user.id,
             balance=user_data['opening_amount']
         )
 
-        db.session.add(account)
-        db.session.commit()
+        session.add(account)
+        session.commit()
 
         return True, account_number
 
     except Exception as e:
-        db.session.rollback()
+        session.rollback()
         return False, f"Erreur lors de la création: {str(e)}"

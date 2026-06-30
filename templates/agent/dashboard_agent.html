@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête avec bienvenue -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0">👋 Bonjour, {{ current_user.prenom }} {{ current_user.nom }}</h2>
+                        <p class="mb-0 mt-2">Agent de crédit - {{ current_user.succursale.nom if current_user.succursale else 'Succursale non assignée' }}</p>
+                    </div>
+                    <div class="text-end">
+                        <h1 class="mb-0">📊 Tableau de Bord</h1>
+                        <small>{{ now().strftime('%d %B %Y') if now else '' }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cartes de statistiques rapides -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Clients actifs</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.clients_actifs or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Crédits en cours</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.credits_actifs or 0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-credit-card fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Montant total décaissé</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ "{:,.0f}".format(stats.montant_total_decaissement or 0) }} FG</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Remboursements du mois</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ "{:,.0f}".format(stats.remboursements_mois or 0) }} HTG</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-hand-holding-usd fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deuxième ligne de stats -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h3 class="text-primary">{{ stats.demandes_en_attente or 0 }}</h3>
+                    <p class="mb-0">Demandes de crédit en attente</p>
+                    <small class="text-muted">À traiter</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h3 class="text-success">{{ stats.credits_rembourses or 0 }}</h3>
+                    <p class="mb-0">Crédits remboursés</p>
+                    <small class="text-muted">Ce mois-ci</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h3 class="text-warning">{{ stats.taux_remboursement or 0 }}%</h3>
+                    <p class="mb-0">Taux de remboursement</p>
+                    <div class="progress mt-2" style="height: 5px;">
+                        <div class="progress-bar bg-success" style="width: {{ stats.taux_remboursement or 0 }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">⚡ Actions rapides</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('creer_dossier', succursale_code=current_user.succursale.code) }}"
+                               class="btn btn-outline-primary w-100 py-3">
+                                <i class="fas fa-user-plus"></i><br>
+                                Nouveau client
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('demande_pret', succursale_code=current_user.succursale.code) }}" class="btn btn-outline-success w-100 py-3">
+                                <i class="fas fa-file-invoice"></i><br>
+                                Nouveau crédit
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{  url_for('mes_remboursements', succursale_code=current_user.succursale.code) }}" class="btn btn-outline-info w-100 py-3">
+                                <i class="fas fa-cash-register"></i><br>
+                                Enregistrer paiement
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('liste_clients',succursale_code=current_user.succursale.code) }}" class="btn btn-outline-secondary w-100 py-3">
+                                <i class="fas fa-list"></i><br>
+                                Voir tous les clients
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demandes de crédit en attente -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-white d-flex justify-content-between">
+                    <h5 class="mb-0">⏳ Demandes de crédit en attente</h5>
+                    <span class="badge bg-light text-dark">{{ demandes_attente|length }}</span>
+                </div>
+                <div class="card-body">
+                    {% if demandes_attente %}
+                    <div class="list-group">
+                        {% for demande in demandes_attente %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>{{ demande.client.nom }} {{ demande.client.prenom }}</strong><br>
+                                    <small>Montant: {{ "{:,.0f}".format(demande.montant) }} HTG</small>
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('traiter_demande', credit_id=demande.id) }}" class="btn btn-sm btn-primary">Traiter</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center mb-0">Aucune demande en attente</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Paiements récents -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">💰 Paiements récents</h5>
+                </div>
+                <div class="card-body">
+                    {% if paiements_recents %}
+                    <div class="list-group">
+                        {% for paiement in paiements_recents %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>{{ paiement.credit.client.nom }} {{ paiement.credit.client.prenom }}</strong><br>
+                                    <small>{{ paiement.date_paiement.strftime('%d/%m/%Y') }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="text-success">{{ "{:,.0f}".format(paiement.montant) }} HTG</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center mb-0">Aucun paiement récent</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clients à risque / Crédits impayés -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">⚠️ Crédits en retard / Impayés</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Montant</th>
+                                    <th>Échéance</th>
+                                    <th>Jours de retard</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for credit in credits_impayes %}
+                                <tr>
+                                    <td>{{ credit.client.nom }} {{ credit.client.prenom }}</td>
+                                    <td>{{ "{:,.0f}".format(credit.montant_restant) }} HTG</td>
+                                    <td>{{ credit.date_echeance.strftime('%d/%m/%Y') if credit.date_echeance else 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge bg-danger">{{ credit.jours_retard }} jours</span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('voir_credit', credit_id=credit.id) }}" class="btn btn-sm btn-outline-primary">Voir</a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">Aucun crédit en retard</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Style additionnel -->
+<style>
+    .border-left-primary { border-left: 4px solid #4e73df; }
+    .border-left-success { border-left: 4px solid #1cc88a; }
+    .border-left-info { border-left: 4px solid #36b9cc; }
+    .border-left-warning { border-left: 4px solid #f6c23e; }
+    .text-xs { font-size: .7rem; }
+    .btn-outline-primary, .btn-outline-success, .btn-outline-info, .btn-outline-secondary {
+        transition: all 0.3s;
+    }
+    .btn-outline-primary:hover { background: #4e73df; color: white; }
+    .btn-outline-success:hover { background: #1cc88a; color: white; }
+    .btn-outline-info:hover { background: #36b9cc; color: white; }
+    .btn-outline-secondary:hover { background: #858796; color: white; }
+</style>
+
+<!-- Font Awesome pour les icônes -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+{% endblock %}

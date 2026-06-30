@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 50px auto; padding: 30px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); background-color: #fff;">
+    <h2 style="text-align: center; margin-bottom: 20px; color: #2c3e50;">➕ Ajouter une nouvelle succursale</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div style="padding: 10px; margin-bottom: 15px; border-radius: 5px; color: #fff; background-color: {{ 'red' if category=='danger' else 'green' }};">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" style="display: flex; flex-direction: column; gap: 15px;">
+        <!-- Code généré automatiquement -->
+        <div>
+            <label for="code" style="font-weight: bold;">Code (automatique)</label>
+            <input type="text" name="code" id="code" value="{{ code_auto }}" readonly
+                   style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; background-color: #f0f0f0;">
+        </div>
+
+        <div>
+            <label for="nom" style="font-weight: bold;">Nom</label>
+            <input type="text" name="nom" id="nom" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+        </div>
+        <div>
+            <label for="ville" style="font-weight: bold;">Ville</label>
+            <input type="text" name="ville" id="ville" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+        </div>
+        <div>
+            <label for="adresse" style="font-weight: bold;">Adresse</label>
+            <textarea name="adresse" id="adresse" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;"></textarea>
+        </div>
+        <div>
+            <label for="telephone" style="font-weight: bold;">Téléphone</label>
+            <input type="text" name="telephone" id="telephone" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+        </div>
+        <div>
+            <label for="email" style="font-weight: bold;">Email</label>
+            <input type="email" name="email" id="email" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+        </div>
+
+        <button type="submit" style="background-color: #3498db; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+            Ajouter la succursale
+        </button>
+    </form>
+
+    <div style="margin-top: 20px; text-align: center;">
+        <a href="{{ url_for('admin_dashboard') }}" style="color: #3498db; text-decoration: none;">⬅ Retour au tableau de bord</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,4 +1,4 @@
-from models import Loan, User, Account, db
+from models import Pret, User, db
 from datetime import datetime
 
 
@@ -15,10 +15,10 @@ def calculate_loan_details(amount, duration, interest_rate):
     }
 
 
-def can_request_loan(user_id, amount):
+def can_request_loan(employe_id, amount):
     """Vérifie si l'utilisateur peut demander un prêt"""
-    user = User.query.get(user_id)
-    account = Account.query.filter_by(user_id=user_id).first()
+    user = User.query.get(employe_id)
+    account = Pret.query.filter_by(employe_id=employe_id).first()
 
     if not user or not account:
         return False, "Utilisateur ou compte non trouvé"
@@ -28,18 +28,18 @@ def can_request_loan(user_id, amount):
         return False, f"Solde insuffisant. Votre solde doit être d'au moins {amount / 3:.2f}"
 
     # Vérifier s'il y a des prêts en cours
-    active_loans = Loan.query.filter_by(user_id=user_id, status='approved').count()
+    active_loans = Pret.query.filter_by(employe_id=employe_id, status='approved').count()
     if active_loans >= 1:
         return False, "Vous avez déjà un prêt en cours"
 
     return True, "Éligible au prêt"
 
 
-def create_loan_request(user_id, loan_data):
+def create_loan_request(employe_id, loan_data):
     """Crée une demande de prêt"""
     try:
         # Vérifier l'éligibilité
-        eligible, message = can_request_loan(user_id, loan_data['amount'])
+        eligible, message = can_request_loan(employe_id, loan_data['amount'])
         if not eligible:
             return False, message
 
@@ -51,8 +51,8 @@ def create_loan_request(user_id, loan_data):
         )
 
         # Créer la demande de prêt
-        loan = Loan(
-            user_id=user_id,
+        loan = Pret(
+            employe_id=employe_id,
             amount=loan_data['amount'],
             duration=loan_data['duration'],
             interest_rate=loan_data['interest_rate'],

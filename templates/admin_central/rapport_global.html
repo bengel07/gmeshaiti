@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- En-tête du rapport -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📊 Rapport Global - GMES Microcrédit</h2>
+        <div>
+            <button class="btn btn-success me-2" onclick="window.print()">
+                🖨️ Imprimer
+            </button>
+            <button class="btn btn-primary" onclick="exporterPDF()">
+                📥 Exporter PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Date de génération -->
+    <div class="alert alert-info">
+        <i class="bi bi-calendar"></i> Rapport généré le {{ rapport.date_generation }}
+    </div>
+
+    <!-- Cartes de statistiques principales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Crédits</h5>
+                    <p class="card-text display-6">{{ rapport.total_credits }}</p>
+                    <small>Nombre total de crédits</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Total Clients</h5>
+                    <p class="card-text display-6">{{ rapport.total_clients }}</p>
+                    <small>Clients actifs</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h5 class="card-title">Montant Décaissé</h5>
+                    <p class="card-text display-6">{{ "{:,.0f}".format(rapport.montant_total_decaissement) }} HTG</p>
+                    <small>Total des prêts accordés</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Taux de remboursement</h5>
+                    <p class="card-text display-6">{{ "%.1f"|format(rapport.taux_remboursement) }}%</p>
+                    <small>Performance globale</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deuxième ligne de statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">💰 Remboursements</h5>
+                    <h3>{{ "{:,.0f}".format(rapport.montant_total_rembourse) }} HTG</h3>
+                    <p class="text-muted">Montant total remboursé</p>
+                    <small>{{ rapport.nombre_paiements }} paiements effectués</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h5 class="card-title text-success">📈 En cours</h5>
+                    <h3>{{ "{:,.0f}".format(rapport.montant_total_decaissement - rapport.montant_total_rembourse) }} HTG</h3>
+                    <p class="text-muted">Solde restant à rembourser</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h5 class="card-title text-info">📊 Performance</h5>
+                    <div class="progress mb-2" style="height: 30px;">
+                        <div class="progress-bar bg-success"
+                             role="progressbar"
+                             style="width: {{ rapport.taux_remboursement }}%;"
+                             aria-valuenow="{{ rapport.taux_remboursement }}"
+                             aria-valuemin="0"
+                             aria-valuemax="100">
+                            {{ "%.1f"|format(rapport.taux_remboursement) }}%
+                        </div>
+                    </div>
+                    <p class="text-muted">Taux de recouvrement</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques (optionnel) -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">📊 Répartition des crédits</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="creditsChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">📈 Évolution des remboursements</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="paiementsChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau récapitulatif -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">📋 Détail des indicateurs</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Indicateur</th>
+                        <th>Valeur</th>
+                        <th>Unité</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Nombre total de crédits</td>
+                        <td><strong>{{ rapport.total_credits }}</strong></td>
+                        <td>crédits</td>
+                    </tr>
+                    <tr>
+                        <td>Nombre total de clients</td>
+                        <td><strong>{{ rapport.total_clients }}</strong></td>
+                        <td>clients</td>
+                    </tr>
+                    <tr>
+                        <td>Montant total décaissé</td>
+                        <td><strong>{{ "{:,.0f}".format(rapport.montant_total_decaissement) }}</strong></td>
+                        <td>Gourdes Haitiens</td>
+                    </tr>
+                    <tr>
+                        <td>Montant total remboursé</td>
+                        <td><strong>{{ "{:,.0f}".format(rapport.montant_total_rembourse) }}</strong></td>
+                        <td>Gourdes Haitiens</td>
+                    </tr>
+                    <tr>
+                        <td>Solde restant dû</td>
+                        <td><strong>{{ "{:,.0f}".format(rapport.montant_total_decaissement - rapport.montant_total_rembourse) }}</strong></td>
+                        <td>Gourdes Haitiens</td>
+                    </tr>
+                    <tr>
+                        <td>Nombre de paiements effectués</td>
+                        <td><strong>{{ rapport.nombre_paiements }}</strong></td>
+                        <td>paiements</td>
+                    </tr>
+                    <tr>
+                        <td>Taux de remboursement global</td>
+                        <td>
+                            <strong>{{ "%.1f"|format(rapport.taux_remboursement) }}%</strong>
+                            <div class="progress mt-1" style="height: 5px;">
+                                <div class="progress-bar bg-success"
+                                     style="width: {{ rapport.taux_remboursement }}%;"></div>
+                            </div>
+                        </td>
+                        <td>pourcentage</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Section d'analyse -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">📝 Analyse et recommandations</h5>
+        </div>
+        <div class="card-body">
+            {% if rapport.taux_remboursement >= 95 %}
+                <div class="alert alert-success">
+                    <h6>✅ Excellente performance !</h6>
+                    <p>Le taux de remboursement est excellent ({{ "%.1f"|format(rapport.taux_remboursement) }}%).
+                    La gestion des crédits est optimale.</p>
+                </div>
+            {% elif rapport.taux_remboursement >= 80 %}
+                <div class="alert alert-info">
+                    <h6>⚠️ Performance satisfaisante</h6>
+                    <p>Le taux de remboursement est satisfaisant ({{ "%.1f"|format(rapport.taux_remboursement) }}%).
+                    Des efforts peuvent être faits pour atteindre 95%.</p>
+                </div>
+            {% else %}
+                <div class="alert alert-warning">
+                    <h6>🔴 Attention - Performance à améliorer</h6>
+                    <p>Le taux de remboursement est faible ({{ "%.1f"|format(rapport.taux_remboursement) }}%).
+                    Il est recommandé de :</p>
+                    <ul>
+                        <li>Renforcer le suivi des recouvrements</li>
+                        <li>Analyser les causes des impayés</li>
+                        <li>Contacter les clients en retard</li>
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Scripts pour les graphiques (optionnel) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function exporterPDF() {
+    window.print(); // Solution simple pour l'export
+    // Idéalement, vous implémenteriez une vraie génération PDF côté serveur
+}
+
+// Graphiques (optionnel - à décommenter si vous voulez les utiliser)
+/*
+document.addEventListener('DOMContentLoaded', function() {
+    // Graphique des crédits
+    const ctx1 = document.getElementById('creditsChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'pie',
+        data: {
+            labels: ['Remboursés', 'En cours', 'Impayés'],
+            datasets: [{
+                data: [
+                    {{ rapport.montant_total_rembourse }},
+                    {{ rapport.montant_total_decaissement - rapport.montant_total_rembourse }},
+                    0
+                ],
+                backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+            }]
+        }
+    });
+
+    // Graphique des paiements (à adapter selon vos données)
+    const ctx2 = document.getElementById('paiementsChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun'],
+            datasets: [{
+                label: 'Remboursements',
+                data: [0, 0, 0, 0, 0, {{ rapport.montant_total_rembourse }}],
+                borderColor: '#28a745',
+                tension: 0.1
+            }]
+        }
+    });
+});
+*/
+</script>
+
+<style>
+@media print {
+    .btn, .no-print {
+        display: none !important;
+    }
+    .card {
+        break-inside: avoid;
+    }
+}
+</style>
+{% endblock %}

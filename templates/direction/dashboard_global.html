@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Global - GMES</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(145deg, #e0edf5 0%, #c8dceb 100%);
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #0b3b4f, #1a566e);
+            color: white;
+            padding: 1.5rem 2rem;
+            border-radius: 20px;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        /* Filtres */
+        .filters {
+            background: white;
+            border-radius: 15px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #0b3b4f;
+            font-size: 0.85rem;
+        }
+
+        .filter-group select, .filter-group input {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .filter-group select:focus, .filter-group input:focus {
+            outline: none;
+            border-color: #28a745;
+        }
+
+        .btn-filter {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn-filter:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Cartes KPI */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            border-left: 4px solid;
+        }
+
+        .kpi-card:hover { transform: translateY(-5px); }
+        .kpi-card.blue { border-left-color: #0b3b4f; }
+        .kpi-card.green { border-left-color: #28a745; }
+        .kpi-card.red { border-left-color: #dc3545; }
+        .kpi-card.orange { border-left-color: #fd7e14; }
+        .kpi-card.purple { border-left-color: #6f42c1; }
+        .kpi-card.teal { border-left-color: #20c997; }
+        .kpi-card.warning { border-left-color: #ffc107; }
+
+        .kpi-title {
+            font-size: 0.85rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .kpi-value { font-size: 1.8rem; font-weight: bold; margin: 0.5rem 0; }
+        .kpi-sub { font-size: 0.75rem; color: #999; }
+        .kpi-trend-up { color: #28a745; }
+        .kpi-trend-down { color: #dc3545; }
+
+        /* Grille principale */
+        .main-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+        @media (max-width: 1000px) { .main-grid { grid-template-columns: 1fr; } }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .card h3 {
+            color: #0b3b4f;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th { background: #f8f9fa; font-weight: 600; color: #0b3b4f; }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-info { background: #d1ecf1; color: #0c5460; }
+
+        .progress-bar {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .progress-fill {
+            background: #28a745;
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s;
+        }
+
+        /* Graphique simplifié */
+        .chart-container {
+            margin-top: 1rem;
+        }
+        .chart-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.8rem;
+        }
+        .chart-label {
+            width: 100px;
+            font-size: 0.85rem;
+        }
+        .chart-line {
+            flex: 1;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .chart-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0b3b4f, #1a566e);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            color: white;
+            font-size: 0.75rem;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding: 1rem;
+            color: #666;
+            font-size: 0.8rem;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-chart-line"></i> GMES - Tableau de Bord Global</h1>
+            <div class="date-info" id="currentDate"></div>
+        </div>
+
+        <!-- Filtres -->
+        <div class="filters">
+            <div class="filter-group">
+                <label><i class="fas fa-calendar"></i> Période</label>
+                <select id="periodeSelect">
+                    <option value="mois">📅 Ce mois</option>
+                    <option value="mois-passe">📆 Mois passé</option>
+                    <option value="trimestre">📊 Ce trimestre</option>
+                    <option value="annee">📈 Cette année</option>
+                    <option value="annee-passe">📉 Année passée</option>
+                    <option value="prevision">🔮 Prévisions</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label><i class="fas fa-chart-line"></i> Type de vue</label>
+                <select id="vueSelect">
+                    <option value="global">🌍 Global</option>
+                    <option value="par-succursale">🏢 Par succursale</option>
+                    <option value="par-produit">📦 Par produit</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label><i class="fas fa-filter"></i> Succursale</label>
+                <select id="succursaleSelect">
+                    <option value="all">Toutes les succursales</option>
+                    {% for s in succursales %}
+                    <option value="{{ s.id }}">{{ s.code }} - {{ s.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="btn-filter" onclick="chargerDonnees()">
+                <i class="fas fa-sync-alt"></i> Appliquer
+            </button>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid" id="kpiGrid"></div>
+
+        <!-- Grille principale -->
+        <div class="main-grid">
+            <div class="card">
+                <h3><i class="fas fa-chart-pie"></i> Évolution mensuelle</h3>
+                <div id="evolutionChart" class="chart-container"></div>
+            </div>
+            <div class="card">
+                <h3><i class="fas fa-chart-line"></i> Prévisions</h3>
+                <div id="previsionChart" class="chart-container"></div>
+            </div>
+            <div class="card">
+                <h3><i class="fas fa-trophy"></i> Top 5 clients</h3>
+                <table id="topClientsTable"><tbody><tr><td colspan="3">Chargement...</td></tr></tbody></table>
+            </div>
+            <div class="card">
+                <h3><i class="fas fa-history"></i> Dernières transactions</h3>
+                <table id="transactionsTable"><tbody><tr><td colspan="5">Chargement...</td></tr></tbody></table>
+            </div>
+        </div>
+
+        <div class="footer"><i class="fas fa-chart-line"></i> GMES - Données en temps réel | Mise à jour automatique</div>
+    </div>
+
+    <script>
+        let donneesActuelles = {};
+
+        function formatMoney(value) {
+            return new Intl.NumberFormat('fr-FR').format(value || 0);
+        }
+
+        function updateDate() {
+            const now = new Date();
+
+            document.getElementById('currentDate').innerHTML =
+                now.toLocaleDateString('fr-FR', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+        }
+
+        function chargerDonnees() {
+
+            const periode = document.getElementById('periodeSelect').value;
+            const vue = document.getElementById('vueSelect').value;
+            const succursaleId = document.getElementById('succursaleSelect').value;
+
+            const succursaleCode = "{{ succursale.code }}";
+
+            if (!succursaleCode) {
+                console.error("Succursale code manquant !");
+            }
+
+            console.log("URL API :", `/${succursaleCode}/api/dashboard-data`);
+
+            fetch(`/${encodeURIComponent(succursaleCode)}/api/dashboard-data?periode=${periode}&vue=${vue}&succursale_id=${succursaleId}`)
+
+                .then(response => {
+
+                    if (!response.ok) {
+                        throw new Error("Erreur API");
+                    }
+
+                    return response.json();
+                })
+
+                .then(donnees => {
+
+                    donneesActuelles = donnees;
+
+                    mettreAJourKPI(donnees, periode);
+                    mettreAJourGraphiques(donnees);
+                    mettreAJourTopClients(donnees.topClients);
+                    mettreAJourTransactions(donnees.transactions);
+
+                })
+
+                .catch(error => {
+
+                    console.error(error);
+
+                    document.getElementById('kpiGrid').innerHTML = `
+                        <div class="kpi-card red">
+                            Erreur chargement dashboard
+                        </div>
+                    `;
+                });
+
+        }
+
+        // ==================== FONCTIONS DE MISE À JOUR ====================
+
+        function mettreAJourKPI(donnees, periode) {
+            let kpis = [];
+
+            if (periode === 'prevision') {
+                kpis = [
+                    { class: "blue", icon: "fa-chart-line", title: "Prévision encaissements", value: formatMoney(donnees.prevision_encaissements || 0) + " HTG", sub: "Mois prochain" },
+                    { class: "green", icon: "fa-arrow-up", title: "Croissance prévue", value: "+" + (donnees.croissance_prevue || 0) + "%", sub: "vs mois en cours" },
+                    { class: "orange", icon: "fa-bullseye", title: "Objectif mensuel", value: formatMoney(donnees.objectif_mensuel || 0) + " HTG", sub: "+10% challenge" },
+                    { class: "purple", icon: "fa-clock", title: "Prêts à venir", value: (donnees.prets_en_attente || 0) + " demandes", sub: "En attente de validation" }
+                ];
+            } else {
+                kpis = [
+                    { class: "blue", icon: "fa-hand-holding-usd", title: "Remboursements", value: formatMoney(donnees.total_remboursements || 0) + " HTG", sub: "Ce mois: " + formatMoney(donnees.remboursements_mois || 0) },
+                    { class: "green", icon: "fa-download", title: "Dépôts", value: formatMoney(donnees.total_depots || 0) + " HTG", sub: donnees.evolution_depots || "+0%" },
+                    { class: "red", icon: "fa-upload", title: "Retraits", value: formatMoney(donnees.total_retraits || 0) + " HTG", sub: donnees.evolution_retraits || "+0%" },
+                    { class: "orange", icon: "fa-check-circle", title: "Prêts approuvés", value: donnees.prets_approuves || 0, sub: formatMoney(donnees.montant_approuve || 0) + " HTG" },
+                    { class: "purple", icon: "fa-hourglass-half", title: "En attente", value: donnees.prets_en_attente || 0, sub: "demandes" },
+                    { class: "teal", icon: "fa-user-plus", title: "Nouveaux clients", value: donnees.nouveaux_clients || 0, sub: "ce mois-ci" }
+                ];
+            }
+
+            document.getElementById('kpiGrid').innerHTML = kpis.map(k => `
+                <div class="kpi-card ${k.class}">
+                    <div class="kpi-title"><i class="fas ${k.icon}"></i> ${k.title}</div>
+                    <div class="kpi-value">${k.value}</div>
+                    <div class="kpi-sub">${k.sub}</div>
+                </div>
+            `).join('');
+        }
+
+        function mettreAJourGraphiques(donnees) {
+            const maxMontant = donnees.max_montant || 5000000;
+
+            // Graphique évolution
+            if (donnees.evolution && donnees.evolution.length) {
+                document.getElementById('evolutionChart').innerHTML = donnees.evolution.map(e => `
+                    <div class="chart-bar">
+                        <div class="chart-label">${e.mois}</div>
+                        <div class="chart-line">
+                            <div class="chart-fill" style="width: ${(e.montant / maxMontant) * 100}%">${formatMoney(e.montant)}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('evolutionChart').innerHTML = '<p class="no-data">Aucune donnée disponible</p>';
+            }
+
+            // Graphique prévisions
+            if (donnees.previsions && donnees.previsions.length) {
+                const allPrevisions = [...(donnees.evolution || []).slice(-2), ...donnees.previsions];
+                document.getElementById('previsionChart').innerHTML = allPrevisions.map(e => `
+                    <div class="chart-bar">
+                        <div class="chart-label">${e.mois}</div>
+                        <div class="chart-line">
+                            <div class="chart-fill" style="width: ${(e.montant / maxMontant) * 100}%; background: ${e.prevision ? 'linear-gradient(90deg, #fd7e14, #ffc107)' : 'linear-gradient(90deg, #0b3b4f, #1a566e)'}">
+                                ${formatMoney(e.montant)} ${e.prevision ? '🔮' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('previsionChart').innerHTML = '<p class="no-data">Aucune prévision disponible</p>';
+            }
+        }
+
+        function mettreAJourTopClients(clients) {
+            if (!clients || clients.length === 0) {
+                document.querySelector('#topClientsTable tbody').innerHTML = '<tr><td colspan="3">Aucun client</td></tr>';
+                return;
+            }
+            document.querySelector('#topClientsTable tbody').innerHTML = clients.map(c => `
+                <tr>
+                    <td><i class="fas fa-user-circle"></i> ${c.nom} ${c.prenom || ''}</td>
+                    <td>${formatMoney(c.total_depots || 0)} HTG</td>
+                    <td>${c.prets_actifs || 0} prêts</td>
+                </tr>
+            `).join('');
+        }
+
+        function mettreAJourTransactions(transactions) {
+            if (!transactions || transactions.length === 0) {
+                document.querySelector('#transactionsTable tbody').innerHTML = '<tr><td colspan="5">Aucune transaction</td></tr>';
+                return;
+            }
+            document.querySelector('#transactionsTable tbody').innerHTML = transactions.map(t => `
+                <tr>
+                    <td>${t.date || ''}</td>
+                    <td>${t.type || ''}</td>
+                    <td>${t.client_nom || ''} ${t.client_prenom || ''}</td>
+                    <td>${formatMoney(t.montant || 0)} HTG</td>
+                    <td><span class="badge badge-success">${t.statut || 'Payé'}</span></td>
+                </tr>
+            `).join('');
+        }
+
+
+        updateDate();
+        chargerDonnees();
+
+        setInterval(chargerDonnees, 60000);
+    </script>
+</body>
+</html>

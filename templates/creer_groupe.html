@@ -1,0 +1,87 @@
+<!-- templates/creer_groupe.html -->
+{% extends "base.html" %}
+
+{% block title %}Créer un Groupe - GMEShaiti{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Créer un Nouveau Groupe</h1>
+        <a href="{{ url_for('liste_groupes') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Retour à la liste
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6 mx-auto">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Informations du Groupe</h6>
+                </div>
+                <div class="card-body">
+                    <!-- Formulaire simple sans WTForms -->
+                    <form method="POST" action="{{ url_for('creer_groupe') }}">
+                        <!-- Protection CSRF si activé -->
+                        {% if csrf_token %}
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        {% endif %}
+
+                        <div class="form-group">
+                            <label for="nom">Nom du Groupe *</label>
+                            <input type="text" class="form-control" id="nom" name="nom"
+                                   placeholder="Ex: Groupe Solidarité Delmas" required>
+                            <small class="form-text text-muted">Nom unique pour identifier le groupe</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="zone">Zone / Localisation *</label>
+                            <input type="text" class="form-control" id="zone" name="zone"
+                                   placeholder="Ex: Delmas 31, Pétion-Ville, etc." required>
+                            <small class="form-text text-muted">Zone géographique du groupe</small>
+                        </div>
+
+                        <!-- Champs supplémentaires optionnels -->
+                        <div class="form-group">
+                            <label for="description">Description (optionnel)</label>
+                            <textarea class="form-control" id="description" name="description"
+                                      rows="3" placeholder="Description du groupe..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="type_groupe">Type de Groupe (optionnel)</label>
+                            <select class="form-control" id="type_groupe" name="type_groupe">
+                                <option value="">-- Sélectionner --</option>
+                                <option value="solidaire">Groupe Solidaire</option>
+                                <option value="rotatif">Tontine Rotative</option>
+                                <option value="epargne">Groupe d'Épargne</option>
+                                <option value="credit">Groupe de Crédit</option>
+                                <option value="agricole">Groupe Agricole</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="nombre_max_membres">Nombre Maximum de Membres (optionnel)</label>
+                            <input type="number" class="form-control" id="nombre_max_membres"
+                                   name="nombre_max_membres" min="1" max="100" placeholder="Ex: 20">
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Note :</strong> Un code de groupe unique sera automatiquement généré.
+                        </div>
+
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fas fa-save"></i> Créer le Groupe
+                            </button>
+                            <a href="{{ url_for('liste_groupes') }}" class="btn btn-secondary btn-block mt-2">
+                                <i class="fas fa-times"></i> Annuler
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

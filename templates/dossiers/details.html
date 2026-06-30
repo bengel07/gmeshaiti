@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- En-tête avec navigation -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>
+                <i class="fas {{ dossier.icone_type }} text-primary"></i>
+                Dossier {{ dossier.reference }}
+            </h1>
+            <p class="text-muted mb-0">
+                <i class="fas fa-calendar"></i> Créé le {{ dossier.date_inscription.strftime('%d/%m/%Y à %H:%M') }}
+                {% if dossier.date_modification %}
+                | <i class="fas fa-edit"></i> Modifié le {{ dossier.date_modification.strftime('%d/%m/%Y %H:%M') }}
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            <a href="{{ url_for('dossiers_succursale', succursale_code=dossier.succursale.code) }}"
+               class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left"></i> Retour à la liste
+            </a>
+            <div class="btn-group">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-cog"></i> Actions
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="imprimerDossier()">
+                        <i class="fas fa-print"></i> Imprimer
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="exporterPDF()">
+                        <i class="fas fa-file-pdf"></i> Exporter PDF
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-warning" href="#" onclick="archiverDossier()">
+                        <i class="fas fa-archive"></i> Archiver
+                    </a></li>
+                    <li><a class="dropdown-item text-success" href="#" onclick="cloturerDossier()">
+                        <i class="fas fa-check-circle"></i> Clôturer
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Badges d'information -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="info-badge">
+                <span class="badge-label">Type</span>
+                <span class="badge-value">
+                    <i class="fas {{ dossier.icone_type }}"></i>
+                    {{ dossier.type|capitalize }}
+                </span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-badge">
+                <span class="badge-label">Statut</span>
+                <span class="badge-value">
+                    <span class="badge bg-{{ dossier.statut_couleur }} p-2">
+                        {{ dossier.statut|capitalize }}
+                    </span>
+                </span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-badge">
+                <span class="badge-label">Priorité</span>
+                <span class="badge-value">
+                    <span class="badge bg-{{ dossier.couleur_priorite }} p-2">
+                        {{ dossier.priorite|capitalize }}
+                    </span>
+                </span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-badge">
+                <span class="badge-label">Succursale</span>
+                <span class="badge-value">
+                    <i class="fas fa-store-alt"></i>
+                    {{ dossier.succursale.nom }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informations principales -->
+    <div class="row">
+        <!-- Colonne gauche -->
+        <div class="col-md-4">
+            <!-- Carte propriétaire -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-user"></i> Propriétaire</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar me-3">
+                            {% if dossier.user.photo_profil %}
+                                <img src="{{ url_for('static', filename='uploads/profils/' + dossier.user.photo_profil) }}"
+                                     class="rounded-circle" width="60" height="60">
+                            {% else %}
+                                <div class="avatar-placeholder rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                                     style="width: 60px; height: 60px; font-size: 24px;">
+                                    {{ dossier.user.prenom[0] }}{{ dossier.user.nom[0] }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h6 class="mb-1">{{ dossier.user.prenom }} {{ dossier.user.nom }}</h6>
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-envelope"></i> {{ dossier.user.email }}<br>
+                                <i class="fas fa-phone"></i> {{ dossier.user.telephone or 'Non renseigné' }}
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('voir_dossier_utilisateur', employe_id=dossier.user.id) }}"
+                       class="btn btn-sm btn-outline-primary w-100">
+                        <i class="fas fa-folder-open"></i> Voir son dossier
+                    </a>
+                </div>
+            </div>
+
+            <!-- Carte agent responsable -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-tie"></i> Agent responsable</h5>
+                </div>
+                <div class="card-body">
+                    {% if dossier.agent %}
+                        <div class="d-flex align-items-center">
+                            <div class="avatar me-3">
+                                <div class="avatar-placeholder rounded-circle bg-info text-white d-flex align-items-center justify-content-center"
+                                     style="width: 50px; height: 50px;">
+                                    {{ dossier.agent.prenom[0] }}{{ dossier.agent.nom[0] }}
+                                </div>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">{{ dossier.agent.prenom }} {{ dossier.agent.nom }}</h6>
+                                <p class="text-muted mb-0">{{ dossier.agent.fonction or 'Agent' }}</p>
+                            </div>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-3">Aucun agent assigné</p>
+                        <button class="btn btn-sm btn-outline-primary w-100" onclick="assignerAgent()">
+                            <i class="fas fa-user-plus"></i> Assigner un agent
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Tags -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-tags"></i> Tags</h5>
+                </div>
+                <div class="card-body">
+                    {% if dossier.tags %}
+                        <div class="tags-cloud">
+                            {% for tag in dossier.tags.split(',') %}
+                                <span class="badge bg-light text-dark p-2 me-2 mb-2">
+                                    <i class="fas fa-tag"></i> {{ tag.strip() }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">Aucun tag</p>
+                    {% endif %}
+                    <button class="btn btn-sm btn-outline-secondary mt-3 w-100" onclick="ajouterTag()">
+                        <i class="fas fa-plus"></i> Ajouter un tag
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonne droite -->
+        <div class="col-md-8">
+            <!-- Description -->
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-align-left"></i> Description</h5>
+                </div>
+                <div class="card-body">
+                    {% if dossier.description %}
+                        <p class="mb-0">{{ dossier.description }}</p>
+                    {% else %}
+                        <p class="text-muted mb-0">Aucune description</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Documents -->
+            <div class="card mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-file-alt"></i> Documents ({{ dossier.nb_documents }})</h5>
+                    <button class="btn btn-sm btn-primary" onclick="ajouterDocument()">
+                        <i class="fas fa-plus"></i> Ajouter
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if dossier.documents %}
+                        <div class="list-group">
+                            {% for doc in dossier.documents[:5] %}
+                                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas {{ doc.icone }} me-2 text-primary"></i>
+                                        <a href="{{ url_for('static', filename=doc.file_path) }}" target="_blank">
+                                            {{ doc.nom }}
+                                        </a>
+                                        <small class="text-muted ms-2">({{ doc.taille_formattee }})</small>
+                                    </div>
+                                    <span class="badge bg-{{ 'success' if doc.est_verifie else 'warning' }}">
+                                        {{ 'Vérifié' if doc.est_verifie else 'En attente' }}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if dossier.documents|length > 5 %}
+                            <div class="text-center mt-3">
+                                <a href="{{ url_for('liste_documents', employe_id=dossier.user.id) }}" class="btn btn-link">
+                                    Voir tous les documents ({{ dossier.documents|length }})
+                                </a>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted text-center py-3">Aucun document</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Notes récentes -->
+            <div class="card mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-sticky-note"></i> Notes récentes</h5>
+                    <button class="btn btn-sm btn-primary" onclick="ajouterNote()">
+                        <i class="fas fa-plus"></i> Ajouter
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if dossier.notes %}
+                        <div class="notes-list">
+                            {% for note in dossier.notes[:3] %}
+                                <div class="note-item mb-3 p-3 bg-light rounded">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <strong>{{ note.auteur.prenom }} {{ note.auteur.nom }}</strong>
+                                        <small class="text-muted">{{ note.date.strftime('%d/%m/%Y %H:%M') }}</small>
+                                    </div>
+                                    <p class="mb-0">{{ note.contenu }}</p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if dossier.notes|length > 3 %}
+                            <div class="text-center mt-3">
+                                <a href="{{ url_for('notes_demande', employe_id=dossier.user.id) }}" class="btn btn-link">
+                                    Voir toutes les notes ({{ dossier.notes|length }})
+                                </a>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted text-center py-3">Aucune note</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Historique des actions -->
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Actions récentes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for action in dossier.actions[:5] %}
+                            <div class="timeline-item">
+                                <div class="timeline-badge bg-{{ action.classe }}"></div>
+                                <div class="timeline-content">
+                                    <span class="timeline-date">{{ action.date.strftime('%d/%m/%Y %H:%M') }}</span>
+                                    <h6>{{ action.action }}</h6>
+                                    <p>{{ action.details }}</p>
+                                    <small class="text-muted">
+                                        <i class="fas fa-user"></i> {{ action.user.prenom }} {{ action.user.nom }}
+                                        {% if action.ip %} | <i class="fas fa-network-wired"></i> {{ action.ip }}{% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.info-badge {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.badge-label {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.badge-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline:before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-badge {
+    position: absolute;
+    left: -30px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    top: 5px;
+}
+
+.timeline-badge.bg-primary { background: #007bff; }
+.timeline-badge.bg-success { background: #28a745; }
+.timeline-badge.bg-warning { background: #ffc107; }
+.timeline-badge.bg-danger { background: #dc3545; }
+.timeline-badge.bg-info { background: #17a2b8; }
+
+.timeline-content {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.timeline-date {
+    float: right;
+    color: #999;
+    font-size: 0.85rem;
+}
+
+.avatar-placeholder {
+    font-weight: 600;
+}
+
+@media print {
+    .btn, .dropdown, .card-header button {
+        display: none !important;
+    }
+}
+</style>
+
+<script>
+function imprimerDossier() {
+    window.print();
+}
+
+function exporterPDF() {
+    // À implémenter avec une bibliothèque PDF
+    alert('Export PDF en cours de développement');
+}
+
+function archiverDossier() {
+    if (confirm('Archiver ce dossier ?')) {
+        fetch(`/api/dossier/{{ dossier.id }}/archiver`, {
+            method: 'POST'
+        }).then(response => {
+            if (response.ok) location.reload();
+        });
+    }
+}
+
+function cloturerDossier() {
+    if (confirm('Clôturer ce dossier ?')) {
+        fetch(`/api/dossier/{{ dossier.id }}/cloturer`, {
+            method: 'POST'
+        }).then(response => {
+            if (response.ok) location.reload();
+        });
+    }
+}
+
+function assignerAgent() {
+    // Modal d'assignation d'agent
+    alert('Fonctionnalité à venir');
+}
+
+function ajouterTag() {
+    const tag = prompt('Nouveau tag:');
+    if (tag) {
+        fetch(`/api/dossier/{{ dossier.id }}/tags`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({tag: tag})
+        }).then(response => {
+            if (response.ok) location.reload();
+        });
+    }
+}
+
+function ajouterDocument() {
+    window.location.href = "{{ url_for('upload_document', employe_id=dossier.user.id) }}";
+}
+
+function ajouterNote() {
+    window.location.href = "{{ url_for('notes_demande', employe_id=dossier.user.id) }}";
+}
+</script>
+{% endblock %}

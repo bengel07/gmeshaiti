@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Liste des employés - GMES</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background: #003366;
+            color: white;
+        }
+        .btn {
+            padding: 6px 12px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        .btn-success {
+            background: #28a745;
+        }
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 0.875rem;
+        }
+        .text-muted {
+            color: #6c757d;
+        }
+        .filter-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 2fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .filter-item {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: white;
+            color: black;
+        }
+    </style>
+    <script>
+function filterTable() {
+    const statut = document.getElementById('filtre_statut').value;
+    const role = document.getElementById('filtre_role').value;
+    const succursale = document.getElementById('filtre_succursale').value;
+    const search = document.getElementById('searchInput').value.toLowerCase();
+
+    const rows = document.querySelectorAll('tbody tr');
+
+    rows.forEach(row => {
+        let show = true;
+
+        // Filtre rôle (colonne 2)
+        if (show && role) {
+            const roleCell = row.cells[2]?.textContent.toLowerCase();
+            if (!roleCell.includes(role.toLowerCase())) show = false;
+        }
+
+        // Filtre succursale (colonne 3)
+        if (show && succursale) {
+            const succCell = row.cells[3]?.textContent;
+            if (!succCell.includes(succursale)) show = false;
+        }
+
+        // Filtre statut (basé sur le bouton Approuver)
+        if (show && statut) {
+            const actionCell = row.cells[4]?.innerHTML;
+            if (statut === 'en_attente') {
+                if (!actionCell.includes('Approuver')) show = false;
+            } else if (statut === 'actif') {
+                if (actionCell.includes('Approuver')) show = false;
+            }
+        }
+
+        // Recherche textuelle
+        if (show && search) {
+            const text = row.textContent.toLowerCase();
+            if (!text.includes(search)) show = false;
+        }
+
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+// Ajouter les filtres en haut du tableau
+document.addEventListener('DOMContentLoaded', function() {
+    const filterDiv = document.createElement('div');
+    filterDiv.className = 'filter-container';
+
+    filterDiv.innerHTML = `
+        <select id="filtre_statut" class="filter-item">
+            <option value="">Tous les statuts</option>
+            <option value="actif">Actif</option>
+            <option value="en_attente">En attente</option>
+            <option value="inactif">Inactif</option>
+        </select>
+
+        <select id="filtre_role" class="filter-item">
+            <option value="">Tous les rôles</option>
+            <option value="super_admin">Super Admin</option>
+            <option value="admin_succursale">Admin</option>
+            <option value="agent">Agent</option>
+            <option value="caissier">Caissier</option>
+            <option value="agent_credit">Agent Crédit</option>
+        </select>
+
+        <select id="filtre_succursale" class="filter-item">
+            <option value="">Toutes les succursales</option>
+            {% for s in succursales %}
+            <option value="{{ s.nom }}">{{ s.nom }}</option>
+            {% endfor %}
+        </select>
+
+        <input type="text" id="searchInput" class="filter-item" placeholder="Rechercher...">
+    `;
+
+    document.querySelector('.container').insertBefore(filterDiv, document.querySelector('table'));
+
+    // Ajouter les écouteurs
+    document.getElementById('filtre_statut').addEventListener('change', filterTable);
+    document.getElementById('filtre_role').addEventListener('change', filterTable);
+    document.getElementById('filtre_succursale').addEventListener('change', filterTable);
+    document.getElementById('searchInput').addEventListener('keyup', filterTable);
+
+    // Exécuter le filtre initial
+    filterTable();
+});
+</script>
+</head>
+<body>
+
+<div class="container">
+    <h2>👥 Liste des employés</h2>
+
+    {% if employes %}
+    <table>
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Username</th>
+                <th>Rôle</th>
+                <th>Succursale</th>
+                <th>Actions</th>
+                <th>Info approbation</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employe in employes %}
+            <tr>
+                <td>{{ employe.prenom }} {{ employe.nom }}</td>
+                <td>{{ employe.username }}</td>
+                <td>{{ employe.role }}</td>
+                <td>
+                    {{ employe.succursale.nom if employe.succursale else '—' }}
+                </td>
+                <td>
+                    {% if employe.statut == 'en_attente' %}
+                        <a href="{{ url_for('employees.activer_employe', employe_id=user.id) }}"
+                           class="btn btn-success btn-sm">
+                           ✅ Approuver
+                        </a>
+                    {% else %}
+                        <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if employe.approuve_par %}
+                    <small class="text-muted">
+                        Activé par: {{ User.query.get(employe.approuve_par).nom_complet if User.query.get(employe.approuve_par) else 'N/A' }}
+                        <br>
+                        Le: {{ employe.date_approbation.strftime('%d/%m/%Y %H:%M') if employe.date_approbation else '' }}
+                    </small>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>Aucun employé trouvé.</p>
+    {% endif %}
+
+    <br>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn">⬅ Retour</a>
+
+</div>
+
+</body>
+</html>
