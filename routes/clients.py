@@ -1,31 +1,66 @@
 from flask import Blueprint, render_template, request, jsonify, session
 from flask_login import login_required, current_user
-from models import User, Account, Transaction
+from models import User, Transaction
 from database import db
+from models import Client, Succursale
+from utils.security import filtrer_par_role
 
-clients_bp = Blueprint('clients', __name__)
 
+clients_bp = Blueprint('clients', __name__, url_prefix='/clients')
+
+
+
+# @clients_bp.route('/<succursale_code>')
+# @login_required
+# def list(succursale_code):
+#
+#     succursale = Succursale.query.filter_by(code=succursale_code).first_or_404()
+#
+#     clients = filtrer_par_role(Client).filter_by(
+#         succursale_id=succursale.id
+#     ).all()
+#
+#     return render_template(
+#         'clients/list.html',
+#         succursale=succursale,
+#         clients=clients
+#     )
 
 @clients_bp.route('/dashboard')
 @login_required
-def dashboard():
-    if not hasattr(current_user, 'account_number'):  # Vérifier si c'est un client
-        return redirect(url_for('auth.login'))
+def client_dashboard():
+    # Vérifier que c'est bien un client
+    if not hasattr(current_user, 'role') or current_user.role != 'client':
+        # Si c'est un employé/admin, rediriger vers le dashboard employé
+        if hasattr(current_user, 'role') and current_user.role in ['employee', 'admin_succursale', 'admin_principal']:
+            return redirect(url_for('employees.employee_dashboard'))
+        abort(403, "Accès réservé aux clients")
+
+    # Vérifier l'acceptation des termes
+    if not current_user.terms_accepted:
+        return redirect(url_for("terms.accept_terms_notice"))
+
+    # Vérifier que c'est bien un client avec un compte
+    if not hasattr(current_user, 'account_number'):
+        abort(403, "Client sans compte bancaire")
 
     # Récupérer les informations du compte
-    account = Account.query.filter_by(user_id=current_user.id).first()
-    transactions = Transaction.query.filter_by(user_id=current_user.id) \
+    account = Account.query.filter_by(employe_id=current_user.id).first()
+    transactions = Transaction.query.filter_by(employe_id=current_user.id) \
         .order_by(Transaction.date_created.desc()) \
         .limit(10).all()
 
     # Récupérer les prêts
     from models import Loan
-    loans = Loan.query.filter_by(user_id=current_user.id).all()
+    loans = Loan.query.filter_by(employe_id=current_user.id).all()
 
     return render_template('client_portal.html',
                            account=account,
                            transactions=transactions,
-                           loans=loans)
+                           loans=loans,
+                           user=current_user)
+
+
 
 
 @clients_bp.route('/profile', methods=['GET', 'PUT'])
@@ -42,7 +77,7 @@ def profile():
         if data.get('address'):
             user.address = data['address']
 
-        db.session.commit()
+        session.commit()
         return jsonify({'status': 'success', 'message': 'Profil mis à jour'})
 
     return jsonify({
@@ -61,7 +96,7 @@ def transactions():
     page = request.args.get('page', 1, type=int)
     per_page = 20
 
-    transactions = Transaction.query.filter_by(user_id=current_user.id) \
+    transactions = Transaction.query.filter_by(employe_id=current_user.id) \
         .order_by(Transaction.date_created.desc()) \
         .paginate(page=page, per_page=per_page)
 
