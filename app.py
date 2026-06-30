@@ -228,14 +228,16 @@ from config import Config, allowed_file, UPLOAD_FOLDER, MAX_FILE_SIZE, ALLOWED_E
 from database import db, init_db
 
 # ==================== MODELS ====================
-from models import (
-    Pret, Notification, Pointage, Employe, Remboursement, Journal,
-    Transaction, TransactionCaisse, AuditLog, Paiement,
-    CreerGroupeForm, Succursale, ErrorLog, Competence, Note,
-    ContactHistorique, HistoriqueAction, Tracking, QuestionSecrete,
-    Client, Groupe, User, Document, Dossier, Action, RetardPaiement,
-    ScoringCredit, HistoriqueEmploye, Epargne, TransactionEpargne, Depense
-)
+import models
+
+# from models import (
+#     Pret, Notification, Pointage, Employe, Remboursement, Journal,
+#     Transaction, TransactionCaisse, AuditLog, Paiement,
+#     CreerGroupeForm, Succursale, ErrorLog, Competence, Note,
+#     ContactHistorique, HistoriqueAction, Tracking, QuestionSecrete,
+#     Client, Groupe, User, Document, Dossier, Action, RetardPaiement,
+#     ScoringCredit, HistoriqueEmploye, Epargne, TransactionEpargne, Depense
+# )
 
 # ==================== ROUTES / BLUEPRINTS ====================
 from routes import *
@@ -308,7 +310,7 @@ app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads', 'profils')
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
 # Créer le blueprint
-employees_bp = Blueprint('employees', __name__, url_prefix='/employees')
+# employees_bp = Blueprint('employees', __name__, url_prefix='/employees')
 
 mail.init_app(app)
 
@@ -19143,74 +19145,6 @@ def pointage():
     return jsonify({"status": "ok", "message": result})
 
 
-# === CRÉATION DES TABLES ET ADMIN AU DÉMARRAGE ===
-with app.app_context():
-    # Créer toutes les tables si elles n'existent pas
-    db.create_all()
-    print("✅ Tables vérifiées/créées")
-
-    # Vérifier si super_admin existe
-    super_admin = User.query.filter_by(role='super_admin').first()
-
-    if not super_admin:
-        print("⚡ Création du super admin...")
-
-        default_password = os.environ.get("SUPER_ADMIN_PASSWORD", "Spadmin123")
-
-        super_admin = User(
-            username="super_admin",
-            prenom="Geler",
-            nom="Begin",
-            email="super_admin@gmes.com",
-            role="super_admin",
-            fonction="admin_general",
-            statut="actif",
-            premier_connexion=False
-        )
-        super_admin.password_hash = generate_password_hash(default_password)
-
-        db.session.add(super_admin)
-        db.session.commit()
-
-        print(f"✅ Super admin créé avec succès!")
-        print(f"   Email: super_admin@gmes.com")
-        print(f"   Identifiant: super_admin")
-        print(f"   Mot de passe: {default_password}")
-
-        # Vérification après création
-        from werkzeug.security import check_password_hash
-
-        result = check_password_hash(super_admin.password_hash, default_password)
-        print(f"🔐 Vérification mot de passe: {result}")
-
-
-    else:
-
-        print(f"ℹ️ Super admin déjà existant: {super_admin.email}")
-
-        # 🔐 RÉINITIALISER LE MOT DE PASSE ICI 🔐
-
-        from werkzeug.security import generate_password_hash, check_password_hash
-
-        # Réinitialiser le mot de passe
-
-        new_password = "admin123"
-
-        super_admin.password_hash = generate_password_hash(new_password)
-
-        db.session.commit()
-
-        # Vérifier que le nouveau mot de passe fonctionne
-
-        result = check_password_hash(super_admin.password_hash, new_password)
-
-        print(f"🔐 Mot de passe réinitialisé à '{new_password}': {result}")
-
-    # Lister tous les utilisateurs pour vérifier
-    users = User.query.all()
-    print(f"📋 Total utilisateurs dans la base: {len(users)}")
-    for u in users:
-        print(f"   - {u.username} ({u.email}) - Rôle: {u.role}")
 
 
 
@@ -19489,7 +19423,7 @@ def fermeture_caisse():
 
 from flask import request, jsonify, session, Blueprint
 
-from models import Partner, PartnerAPIKey, PartnerWebhook, PartnerIntegration
+# from models import Partner, PartnerAPIKey, PartnerWebhook, PartnerIntegration
 from services.partner_service import PartnerService
 from middleware.auth import login_requis
 from datetime import datetime
@@ -19674,6 +19608,74 @@ def create_partner_integration_direct():
     # Même code que ci-dessus
     pass
 
+# === CRÉATION DES TABLES ET ADMIN AU DÉMARRAGE ===
+with app.app_context():
+    # Créer toutes les tables si elles n'existent pas
+    db.create_all()
+    print("✅ Tables vérifiées/créées")
+
+    # Vérifier si super_admin existe
+    super_admin = User.query.filter_by(role='super_admin').first()
+
+    if not super_admin:
+        print("⚡ Création du super admin...")
+
+        default_password = os.environ.get("SUPER_ADMIN_PASSWORD", "Spadmin123")
+
+        super_admin = User(
+            username="super_admin",
+            prenom="Geler",
+            nom="Begin",
+            email="super_admin@gmes.com",
+            role="super_admin",
+            fonction="admin_general",
+            statut="actif",
+            premier_connexion=False
+        )
+        super_admin.password_hash = generate_password_hash(default_password)
+
+        db.session.add(super_admin)
+        db.session.commit()
+
+        print(f"✅ Super admin créé avec succès!")
+        print(f"   Email: super_admin@gmes.com")
+        print(f"   Identifiant: super_admin")
+        print(f"   Mot de passe: {default_password}")
+
+        # Vérification après création
+        from werkzeug.security import check_password_hash
+
+        result = check_password_hash(super_admin.password_hash, default_password)
+        print(f"🔐 Vérification mot de passe: {result}")
+
+
+    else:
+
+        print(f"ℹ️ Super admin déjà existant: {super_admin.email}")
+
+        # 🔐 RÉINITIALISER LE MOT DE PASSE ICI 🔐
+
+        from werkzeug.security import generate_password_hash, check_password_hash
+
+        # Réinitialiser le mot de passe
+
+        new_password = "admin123"
+
+        super_admin.password_hash = generate_password_hash(new_password)
+
+        db.session.commit()
+
+        # Vérifier que le nouveau mot de passe fonctionne
+
+        result = check_password_hash(super_admin.password_hash, new_password)
+
+        print(f"🔐 Mot de passe réinitialisé à '{new_password}': {result}")
+
+    # Lister tous les utilisateurs pour vérifier
+    users = User.query.all()
+    print(f"📋 Total utilisateurs dans la base: {len(users)}")
+    for u in users:
+        print(f"   - {u.username} ({u.email}) - Rôle: {u.role}")
 
 
 

@@ -1,9 +1,9 @@
 
 
-import sys
-
-if "models" in sys.modules:
-    del sys.modules["models"]
+# import sys
+#
+# if "models" in sys.modules:
+#     del sys.modules["models"]
 
 from database import db
 from datetime import datetime, date
@@ -31,7 +31,7 @@ import flet as ft  # Assurez-vous d'avoir importé votre bibliothèque d'interfa
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
-from database import db
+
 import sqlite3
 from flask_login import UserMixin  # ← AJOUTEZ CETTE LIGNE
 
@@ -43,9 +43,9 @@ from wtforms import StringField, TextAreaField, SelectField, DecimalField, DateF
 from wtforms.validators import DataRequired, Length, Optional
 
 
-from sqlalchemy import MetaData
-metadata = MetaData()
-
+# from sqlalchemy import MetaData
+# metadata = MetaData()
+#
 
 
 class User(UserMixin, db.Model):
@@ -5527,7 +5527,7 @@ class Dossier(db.Model):
     agent = db.relationship('User', foreign_keys=[agent_id], backref='dossiers_assignes')
 
     # === DOCUMENTS LIÉS ===
-    documents = db.relationship('Document', secondary='dossier_documents', backref='dossiers')
+    documents = db.relationship('Document', secondary=dossier_documents, backref='dossiers')
 
     def __repr__(self):
         return f'<Dossier {self.reference}: {self.nom}>'
