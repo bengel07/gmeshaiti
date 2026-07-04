@@ -1311,7 +1311,7 @@ class Notification(db.Model):
     __tablename__ = 'notifications'
 
     id = db.Column(db.Integer, primary_key=True)
-    employe_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # ← AJOUT foreign key
+    employe_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # ← AJOUT foreign key
     acteur_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Qui a déclenché
     titre = db.Column(db.String(200), nullable=False)
     message = db.Column(db.Text, nullable=False)

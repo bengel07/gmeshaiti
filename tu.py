@@ -1,12 +1,17 @@
-import traceback
+# fix_terms.py
+from app import app
+from database import db
+from models import TermsAcceptance  # Adapte selon ton modèle
 
-print("===== DEBUT =====")
+with app.app_context():
+    print("⚠️ Recréation de la table terms_acceptance...")
 
-try:
-    import models
-    print("✅ models importé")
-except Exception:
-    print("❌ ERREUR IMPORT models")
-    traceback.print_exc()
+    # Supprimer la table
+    TermsAcceptance.__table__.drop(db.engine)
+    print("✅ Ancienne table supprimée")
 
-print("===== FIN =====")
+    # Recréer avec nullable=True
+    TermsAcceptance.__table__.create(db.engine)
+    print("✅ Nouvelle table créée")
+
+    print("🎯 Problème résolu !")
