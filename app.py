@@ -15516,15 +15516,16 @@ def rejeter_compte(employe_id):
             for contact in user.contacts_recus:
                 db.session.delete(contact)
 
-        # 5. Récupérer le nom avant suppression pour le message
+        # ⭐ 5. SUPPRIMER LES LOGS D'AUDIT (LA PARTIE MANQUANTE) ⭐
+        logs = AuditLog.query.filter_by(employe_id=user.id).all()
+        for log in logs:
+            db.session.delete(log)
+
+        # Récupérer le nom avant suppression pour le message
         nom_complet = f"{user.prenom} {user.nom}"
         username = user.username
         email = user.email
 
-        # 6. Supprimer les logs d'audit (LA PARTIE MANQUANTE !)
-        if user.audit_logs:  # ou le nom de la relation dans ton modèle
-            for log in user.audit_logs:
-                db.session.delete(log)
 
         # 🔴 SUPPRIMER L'UTILISATEUR
         db.session.delete(user)
