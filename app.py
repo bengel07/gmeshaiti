@@ -5079,13 +5079,17 @@ def connexion():
         ).first()
 
         # 🔴 BLOQUAGE STATUT
+        if user is None:
+            flash("Identifiants incorrects", "danger")
+            return render_template('connexion.html')
+
         if user.statut != 'actif':
             if user.statut == 'en_attente':
                 flash("⏳ Compte en attente d'approbation", "warning")
             elif user.statut == 'rejete':
                 flash("⛔ Compte rejeté par l'administration", "danger")
             else:
-                flash("⛔ Compte désactivé", "danger")
+                flash(f"⛔ Compte désactivé (statut : {user.statut})", "danger")
             return render_template('connexion.html')
 
         if user and check_password_hash(user.password_hash, password):
@@ -9525,7 +9529,7 @@ def calcul_pret():
 @login_required
 def admin_dashboard():
 
-    if current_user.role not in ['super_admin', 'admin_succursale']:
+    if current_user.role not in ['super_admin', 'admin_succursale', 'admin_central']:
         flash("Accès refusé", "danger")
         return redirect(url_for('tableau_de_bord'))
 
@@ -19470,13 +19474,6 @@ with app.app_context():
     db.create_all()
     print("✅ Tables vérifiées/créées")
 
-    # DEBUG - Montrer tous les admins
-    admins = User.query.filter_by(role='super_admin').all()
-    print(f"📋 {len(admins)} super_admin trouvés:")
-    for a in admins:
-        print(f"   - ID:{a.id} | username:{a.username} | email:{a.email}")
-
-
     # Vérifier si super_admin existe
     super_admin = User.query.filter_by(role='super_admin').first()
 
@@ -19523,6 +19520,8 @@ with app.app_context():
         print(f"ℹ️ Super admin déjà existant: {super_admin.email}")
 
         # 🔐 RÉINITIALISER LE MOT DE PASSE ICI 🔐
+        # Correction statut super_admin
+        super_admin.statut = "actif"
 
         from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -19539,6 +19538,7 @@ with app.app_context():
         result = check_password_hash(super_admin.password_hash, new_password)
 
         print(f"🔐 Mot de passe réinitialisé à '{new_password}': {result}")
+        print("✅ Statut super_admin corrigé: actif")
 
     # Lister tous les utilisateurs pour vérifier
     users = User.query.all()
