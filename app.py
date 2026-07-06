@@ -19470,40 +19470,53 @@ with app.app_context():
     db.create_all()
     print("✅ Tables vérifiées/créées")
 
+    # DEBUG - Montrer tous les admins
+    admins = User.query.filter_by(role='super_admin').all()
+    print(f"📋 {len(admins)} super_admin trouvés:")
+    for a in admins:
+        print(f"   - ID:{a.id} | username:{a.username} | email:{a.email}")
+
+
     # Vérifier si super_admin existe
     super_admin = User.query.filter_by(role='super_admin').first()
 
     if not super_admin:
         print("⚡ Création du super admin...")
 
-        default_password = os.environ.get("SUPER_ADMIN_PASSWORD", "Spadmin123")
+        try:
+            default_password = os.environ.get("SUPER_ADMIN_PASSWORD", "Spadmin123")
 
-        super_admin = User(
-            username="super_admin",
-            prenom="Geler",
-            nom="Begin",
-            email="super_admin@gmes.com",
-            role="super_admin",
-            fonction="admin_general",
-            statut="actif",
-            premier_connexion=False
-        )
-        super_admin.password_hash = generate_password_hash(default_password)
+            super_admin = User(
+                username="super_admin",
+                prenom="Geler",
+                nom="Begin",
+                email="super_admin@gmes.com",
+                role="super_admin",
+                fonction="admin_general",
+                statut="actif",
+                premier_connexion=False
+            )
+            super_admin.password_hash = generate_password_hash(default_password)
 
-        db.session.add(super_admin)
-        db.session.commit()
+            db.session.add(super_admin)
+            db.session.flush()
+            db.session.commit()
 
-        print(f"✅ Super admin créé avec succès!")
-        print(f"   Email: super_admin@gmes.com")
-        print(f"   Identifiant: super_admin")
-        print(f"   Mot de passe: {default_password}")
+            print(f"✅ Super admin créé avec succès!")
+            print(f"   Email: super_admin@gmes.com")
+            print(f"   Identifiant: super_admin")
+            print(f"   Mot de passe: {default_password}")
 
-        # Vérification après création
-        from werkzeug.security import check_password_hash
+            # Vérification après création
+            from werkzeug.security import check_password_hash
 
-        result = check_password_hash(super_admin.password_hash, default_password)
-        print(f"🔐 Vérification mot de passe: {result}")
+            result = check_password_hash(super_admin.password_hash, default_password)
+            print(f"🔐 Vérification mot de passe: {result}")
 
+        except IntegrityError:
+            # Si l'erreur de doublon se produit, on annule la transaction
+            db.session.rollback()
+            print("ℹ️ Le super admin a déjà été créé par un autre processus.")
 
     else:
 
