@@ -645,6 +645,7 @@ def envoyer_email_conditions(client):
             email_envoye = True
             print(f"✅ Email envoyé avec succès à {client.email}")
         except Exception as e:
+            flash(f"❌ Erreur: {str(e)}", "danger")
             print(f"❌ Erreur envoi email: {e}")
             email_envoye = False
 
@@ -686,6 +687,7 @@ def envoyer_email_conditions(client):
     except Exception as e:
         db.session.rollback()
         app.logger.error(f"Erreur envoi email conditions à {client.email}: {e}")
+        flash(f"❌ Erreur: {str(e)}", "danger")
         return jsonify({'success': False, 'message': f'❌ Erreur: {str(e)}'}), 500
 
 
@@ -5050,40 +5052,6 @@ def check_database_state():
 
 
 
-# @app.route('/connexion', methods=['GET', 'POST'])
-# def connexion():
-#     if request.method == 'POST':
-#         identifiant = request.form.get('identifiant')
-#         password = request.form.get('password')
-#
-#         user = User.query.filter(
-#             (User.username == identifiant) | (User.email == identifiant)
-#         ).first()
-#
-#         if user and check_password_hash(user.password_hash, password):
-#             login_user(user)
-#
-#             # ✅ Vérifier si c'est la première connexion
-#             if user.premier_connexion:
-#                 user.premier_connexion = False
-#                 user.date_premiere_connexion = datetime.now()
-#                 db.session.commit()
-#                 flash("🔐 Bienvenue ! Veuillez changer votre mot de passe pour sécuriser votre compte.", "warning")
-#                 return redirect(url_for('premier_changement_mot_de_passe'))
-#
-#             # Le reste doit être après le bloc if
-#             if user.role == 'admin':
-#                 verifier_retards()
-#             return redirect(url_for('dashboard'))
-#
-#
-#             return redirect(url_for('dashboard_redirect'))
-#
-#         flash("Identifiants incorrects", "danger")
-#
-#     return render_template('connexion.html')
-
-
 @app.route('/connexion', methods=['GET', 'POST'])
 def connexion():
     if request.method == 'POST':
@@ -5098,6 +5066,16 @@ def connexion():
         user = User.query.filter(
             (User.username == identifiant) | (User.email == identifiant)
         ).first()
+
+        # 🔴 BLOQUAGE STATUT
+        if user.statut != 'actif':
+            if user.statut == 'en_attente':
+                flash("⏳ Compte en attente d'approbation", "warning")
+            elif user.statut == 'rejete':
+                flash("⛔ Compte rejeté par l'administration", "danger")
+            else:
+                flash("⛔ Compte désactivé", "danger")
+            return render_template('connexion.html')
 
         if user and check_password_hash(user.password_hash, password):
             login_user(user)
@@ -12590,7 +12568,7 @@ def approuver_employe(employe_id):
     employe.approuve_par = current_user.id
     employe.date_approbation = datetime.utcnow()
 
-    session.commit()
+    db.session.commit()
 
     flash(f'Employé {employe.prenom} {employe.nom} approuvé avec succès', 'success')
 
@@ -15542,6 +15520,11 @@ def rejeter_compte(employe_id):
         nom_complet = f"{user.prenom} {user.nom}"
         username = user.username
         email = user.email
+
+        # 6. Supprimer les logs d'audit (LA PARTIE MANQUANTE !)
+        if user.audit_logs:  # ou le nom de la relation dans ton modèle
+            for log in user.audit_logs:
+                db.session.delete(log)
 
         # 🔴 SUPPRIMER L'UTILISATEUR
         db.session.delete(user)
