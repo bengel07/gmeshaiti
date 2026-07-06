@@ -227,6 +227,17 @@ from config import Config, allowed_file, UPLOAD_FOLDER, MAX_FILE_SIZE, ALLOWED_E
 # ==================== DATABASE CUSTOM ====================
 from database import db, init_db
 
+from email import (
+    send_welcome_email,
+    send_approval_email,
+    send_rejection_email,
+    send_password_reset_email,
+    send_password_reset_confirmation_email,
+    send_transfer_notification_email,
+    send_email_async,
+    send_email
+)
+
 # ==================== MODELS ====================
 
 
@@ -11747,7 +11758,12 @@ def ajouter_employe(succursale_code):
                 succursale_id=employe.succursale_id
             )
 
-            flash("Employé créé avec succès", "success")
+            # ✅ ENVOYER L'EMAIL DE BIENVENUE
+            password = request.form.get('password')
+            send_welcome_email(employe, password)  # Envoi automatique en tâche de fond
+
+            flash(f"✅ Employé {employe.prenom} {employe.nom} créé avec succès !", "success")
+
             return redirect(url_for('gerer_employes'))
 
         except Exception as e:
@@ -14322,6 +14338,10 @@ def ajouter_admin():
             db.session.add(new_admin)
             db.session.commit()
 
+            # ✅ ENVOYER L'EMAIL DE BIENVENUE
+            password = request.form.get('password')
+            send_welcome_email(employe, password)  # Envoi automatique en tâche de fond
+
 
             flash("✅ Admin ajouté avec succès", "success")
             return redirect(url_for('admin_dashboard'))
@@ -15368,40 +15388,6 @@ def exporter_attentes():
         }
     )
 
-def send_approval_email(email, nom_complet):
-    sender_email = "tonemail@gmail.com"
-    sender_password = "ton_mot_de_passe_app"
-
-    sujet = "Candidature acceptée - GMES"
-
-    message = f"""
-Bonjour {nom_complet},
-
-Nous avons le plaisir de vous informer que votre candidature a été acceptée.
-
-Vous êtes invité à vous présenter à la succursale pour compléter les formalités administratives et finaliser votre intégration.
-
-Nous vous remercions pour votre confiance.
-
-Cordialement,
-L'équipe GMES
-"""
-
-    msg = MIMEMultipart()
-    msg["From"] = sender_email
-    msg["To"] = email
-    msg["Subject"] = sujet
-
-    msg.attach(MIMEText(message, "plain"))
-
-    server = smtplib.SMTP("smtp.gmail.com", 587)
-    server.starttls()
-    server.login(sender_email, sender_password)
-
-    server.send_message(msg)
-    server.quit()
-
-
 
 @app.route('/admin/approuver-compte/<int:employe_id>')
 @login_required
@@ -15424,8 +15410,9 @@ def approuver_compte(employe_id):
     # ✅ Envoyer un email de confirmation
     try:
         send_approval_email(user)
-    except:
-        pass  # Log l'erreur mais ne pas bloquer
+    except Exception as e:
+        db.session.rollback()
+        flash(f"❌ Erreur: {str(e)}", "danger")
 
     flash(f"✅ Compte de {user.prenom} {user.nom} approuvé et activé", "success")
 
@@ -15439,43 +15426,7 @@ def approuver_compte(employe_id):
 
     return redirect(url_for('liste_users'))
 
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
-
-def send_rejection_email(email, nom_complet):
-    sender_email = "tonemail@gmail.com"
-    sender_password = "ton_mot_de_passe_app"
-
-    sujet = "Décision concernant votre candidature"
-
-    message = f"""
-Bonjour {nom_complet},
-
-Nous vous remercions pour l'intérêt que vous avez porté à notre institution.
-
-Après étude de votre dossier, nous regrettons de vous informer que votre candidature n'a pas été retenue pour le moment.
-
-Nous vous souhaitons beaucoup de succès dans vos projets futurs.
-
-Cordialement,
-L'équipe GMES
-"""
-
-    msg = MIMEMultipart()
-    msg["From"] = sender_email
-    msg["To"] = email
-    msg["Subject"] = sujet
-
-    msg.attach(MIMEText(message, "plain"))
-
-    server = smtplib.SMTP("smtp.gmail.com", 587)
-    server.starttls()
-    server.login(sender_email, sender_password)
-
-    server.send_message(msg)
-    server.quit()
 
 
 @app.route('/admin/rejeter-compte/<int:employe_id>')
