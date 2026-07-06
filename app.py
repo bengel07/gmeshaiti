@@ -13791,20 +13791,20 @@ def dashboard_succursale(succursale_code):
     )
 
 
-# Dans admin_dashboard()
-def admin_dashboard():
-    # Top 5 des pires retards
-    pires_retards = RetardPaiement.query.filter_by(statut='impaye') \
-        .order_by(RetardPaiement.jours_retard.desc()) \
-        .limit(5) \
-        .all()
-
-    # Récupérer les infos clients
-    for retard in pires_retards:
-        retard.client_nom = Client.query.get(retard.client_id).nom
-        retard.client_prenom = Client.query.get(retard.client_id).prenom
-
-    return render_template('direction/dashboard.html', pires_retards=pires_retards)
+# # Dans admin_dashboard()
+# def admin_dashboard():
+#     # Top 5 des pires retards
+#     pires_retards = RetardPaiement.query.filter_by(statut='impaye') \
+#         .order_by(RetardPaiement.jours_retard.desc()) \
+#         .limit(5) \
+#         .all()
+#
+#     # Récupérer les infos clients
+#     for retard in pires_retards:
+#         retard.client_nom = Client.query.get(retard.client_id).nom
+#         retard.client_prenom = Client.query.get(retard.client_id).prenom
+#
+#     return render_template('direction/dashboard.html', pires_retards=pires_retards)
 
 
 
