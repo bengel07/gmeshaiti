@@ -227,7 +227,7 @@ from config import Config, allowed_file, UPLOAD_FOLDER, MAX_FILE_SIZE, ALLOWED_E
 # ==================== DATABASE CUSTOM ====================
 from database import db, init_db
 
-from email import (
+from emails import (
     send_welcome_email,
     send_approval_email,
     send_rejection_email,
@@ -550,8 +550,8 @@ def envoyer_email_conditions(client):
 
         # 3. ENVOYER L'EMAIL VIA SMTP (solution intégrée)
         import smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
+        from emails.mime.text import MIMEText
+        from emails.mime.multipart import MIMEMultipart
 
         # Configuration email (à mettre dans vos variables d'environnement)
         import os
@@ -3982,8 +3982,8 @@ def directeur_approuver_dossier(client_id):
     from models import User, Notification, Action, Client
     from datetime import datetime, timedelta
     import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
+    from emails.mime.text import MIMEText
+    from emails.mime.multipart import MIMEMultipart
     import os
 
     # ✅ CORRECTION : Vérification des permissions
@@ -16093,8 +16093,8 @@ def renvoyer_lien(client_id):
 
         # 3. ENVOYER L'EMAIL VIA SMTP (solution intégrée)
         import smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
+        from emails.mime.text import MIMEText
+        from emails.mime.multipart import MIMEMultipart
 
         # Configuration email (à mettre dans vos variables d'environnement)
         import os
