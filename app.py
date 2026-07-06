@@ -11704,6 +11704,7 @@ def ajouter_employe(succursale_code):
             # Ajouter les questions secrètes
             if question_1 and reponse_1:
                 q1 = QuestionSecrete(
+                    user_id=current_user.id,
                     employe_id=employe.id,
                     question=question_1,
                     reponse=reponse_1
@@ -11712,6 +11713,7 @@ def ajouter_employe(succursale_code):
 
             if question_2 and reponse_2:
                 q2 = QuestionSecrete(
+                    user_id=current_user.id,
                     employe_id=employe.id,
                     question=question_2,
                     reponse=reponse_2
@@ -11720,6 +11722,7 @@ def ajouter_employe(succursale_code):
 
             if question_3 and reponse_3:
                 q3 = QuestionSecrete(
+                    user_id=current_user.id,
                     employe_id=employe.id,
                     question=question_3,
                     reponse=reponse_3
