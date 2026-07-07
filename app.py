@@ -165,7 +165,7 @@ import time
 import traceback
 import warnings
 from datetime import datetime, timedelta
-from turtle import distance
+from math import dist
 
 # ==================== FLASK CORE ====================
 from flask import (
@@ -19537,6 +19537,8 @@ with app.app_context():
     print(f"📋 Total utilisateurs dans la base: {len(users)}")
     for u in users:
         print(f"   - {u.username} ({u.email}) - Rôle: {u.role}")
+
+
 
 
 
