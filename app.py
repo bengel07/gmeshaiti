@@ -153,6 +153,8 @@
 
 # ==================== STANDARD LIB ====================
 import os
+import secrets
+import sqlite3
 import uuid
 import random
 import json
@@ -163,6 +165,7 @@ import time
 import traceback
 import warnings
 from datetime import datetime, timedelta
+from turtle import distance
 
 # ==================== FLASK CORE ====================
 from flask import (
@@ -247,7 +250,7 @@ from models import (
     CreerGroupeForm, Succursale, ErrorLog, Competence, Note,
     ContactHistorique, HistoriqueAction, Tracking, QuestionSecrete,
     Client, Groupe, User, Document, Dossier, Action, RetardPaiement,
-    ScoringCredit, HistoriqueEmploye, Epargne, TransactionEpargne, Depense
+    ScoringCredit, HistoriqueEmploye, Epargne, TransactionEpargne, Depense, PartnerIntegration, PartnerWebhook, Partner
 )
 
 # ==================== ROUTES / BLUEPRINTS ====================
@@ -434,16 +437,6 @@ async def notify_director(message):
             "message": message
         })
 
-# @app.websocket("/ws")
-# async def websocket_endpoint(websocket: WebSocket):
-#     await websocket.accept()
-#     clients.append(websocket)
-#
-#     try:
-#         while True:
-#             await websocket.receive_text()
-#     except:
-#         clients.remove(websocket)
 
 
 # ✅ Route WebSocket
@@ -801,11 +794,6 @@ def demande_pret():
     def allowed_file(filename):
         return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-    # ========== TRAITEMENT POST ==========
-    # if request.method == 'POST':
-    #     if not client:
-    #         flash("Veuillez ouvrir un compte pour beneficier nos service merci ", "danger")
-    #         return redirect(request.url)
 
     # ========== TRAITEMENT POST ==========
     if request.method == 'POST':
