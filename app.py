@@ -19456,6 +19456,33 @@ def create_partner_integration_direct():
     # Même code que ci-dessus
     pass
 
+
+
+@app.route('/fix_super_admin')
+def fix_super_admin():
+    """Correction du rôle super_admin"""
+    try:
+        user = User.query.filter_by(username='super_admin').first()
+        if user:
+            old_role = user.role
+            user.role = 'super_admin'
+            user.statut = 'actif'
+            db.session.commit()
+            return f"""
+            <h1 style="color:green;">✅ Super Admin corrigé !</h1>
+            <p><strong>Utilisateur:</strong> {user.username}</p>
+            <p><strong>Ancien rôle:</strong> {old_role}</p>
+            <p><strong>Nouveau rôle:</strong> {user.role}</p>
+            <p><strong>Statut:</strong> {user.statut}</p>
+            <br>
+            <a href="/dashboard" style="font-size:20px;">→ Aller au dashboard</a>
+            """
+        return "❌ Utilisateur super_admin non trouvé"
+    except Exception as e:
+        return f"❌ Erreur: {str(e)}"
+
+
+
 # === CRÉATION DES TABLES ET ADMIN AU DÉMARRAGE ===
 with app.app_context():
     # Créer toutes les tables si elles n'existent pas
