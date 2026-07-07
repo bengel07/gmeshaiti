@@ -19512,9 +19512,8 @@ with app.app_context():
         super_admin.statut = "actif"
 
         # ✅ FORCER LE BON RÔLE
-        if super_admin.role != 'super_admin':
-            print(f"   🔧 Rôle actuel: {super_admin.role} → correction en super_admin")
-            super_admin.role = 'super_admin'
+
+        super_admin.role = 'super_admin'
 
         from werkzeug.security import generate_password_hash, check_password_hash
 
