@@ -328,7 +328,7 @@ def register():
     return """
     <h1>Inscription</h1>
     <p>Fonctionnalité en développement</p>
-    <a href="/connexion">Retour à la connexion</a>
+    <a href="connexion">Retour à la connexion</a>
     """
 
 

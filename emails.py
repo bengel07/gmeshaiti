@@ -1,48 +1,64 @@
 import os
-import smtplib
 import threading
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import requests
 from flask import render_template
 
 # ============================================
-# CONFIGURATION EMAIL
+# CONFIGURATION EMAIL - VERSION API BREVO
 # ============================================
 
-SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
-SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
-SMTP_USERNAME = os.environ.get('SMTP_USERNAME')
-SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
 APP_URL = os.environ.get('APP_URL', 'https://gmeshaiti.onrender.com')
+
+# Email expéditeur (doit être vérifié sur Brevo)
+FROM_EMAIL = "gmeshaiti@gmail.com"
+FROM_NAME = "GMES Microcrédit"
 
 
 # ============================================
 # FONCTION DE BASE POUR ENVOYER UN EMAIL
 # ============================================
 
-def send_email(to_email, subject, html_content, from_email=None):
+def send_email(to_email, subject, html_content, from_email=None, from_name=None):
     """
-    Fonction générique pour envoyer un email
+    Envoie un email via l'API Brevo
     """
-    if not SMTP_USERNAME or not SMTP_PASSWORD:
-        print("⚠️ Email non configuré (SMTP_USERNAME/SMTP_PASSWORD manquants)")
+    if not BREVO_API_KEY:
+        print("⚠️ Email non configuré (BREVO_API_KEY manquant)")
         return False
 
     try:
-        msg = MIMEMultipart()
-        msg['From'] = from_email or SMTP_USERNAME
-        msg['To'] = to_email
-        msg['Subject'] = subject
+        url = "https://api.brevo.com/v3/smtp/email"
 
-        msg.attach(MIMEText(html_content, 'html'))
+        headers = {
+            "api-key": BREVO_API_KEY,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
 
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USERNAME, SMTP_PASSWORD)
-            server.send_message(msg)
+        data = {
+            "sender": {
+                "name": from_name or FROM_NAME,
+                "email": from_email or FROM_EMAIL
+            },
+            "to": [
+                {
+                    "email": to_email,
+                    "name": to_email.split('@')[0]
+                }
+            ],
+            "subject": subject,
+            "htmlContent": html_content
+        }
 
-        print(f"✅ Email envoyé à {to_email}")
-        return True
+        response = requests.post(url, json=data, headers=headers, timeout=30)
+
+        if response.status_code == 201:
+            print(f"✅ Email envoyé à {to_email}")
+            return True
+        else:
+            print(f"❌ Erreur envoi email à {to_email}: {response.status_code} - {response.text}")
+            return False
 
     except Exception as e:
         print(f"❌ Erreur envoi email à {to_email}: {str(e)}")

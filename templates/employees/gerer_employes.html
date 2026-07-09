@@ -153,6 +153,13 @@
                                        title="Supprimer">
                                         🗑️
                                     </a>
+
+                                    <button onclick="resendEmail({{ user.id }})"
+                                            class="btn btn-outline-info"
+                                            title="Renvoyer email">
+                                        📧 Renvoyer email
+                                    </button>
+
                                 </div>
                             </td>
                         </tr>
@@ -244,6 +251,22 @@ document.getElementById('searchInput').addEventListener('keyup', function() {
 function ajouterEmploye() {
     window.location.href = "{{ url_for('ajouter_employe') }}";
 }
+
+
+
+function resendEmail(userId) {
+    fetch("/resend-email/" + userId, {
+        method: "POST"
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+    })
+    .catch(error => {
+        alert("Erreur : " + error);
+    });
+}
+
 </script>
 
 <style>
@@ -261,5 +284,7 @@ function ajouterEmploye() {
     font-size: 0.9em;
     padding: 0.5em 0.7em;
 }
+
+
 </style>
 {% endblock %}

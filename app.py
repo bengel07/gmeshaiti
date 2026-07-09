@@ -1,155 +1,4 @@
 #
-# import time
-# import json
-# # ==================== FLASK CORE ====================
-#
-# # ==================== DATABASE ====================
-# from flask_sqlalchemy import SQLAlchemy
-# from sqlalchemy.exc import IntegrityError
-# from sqlalchemy import inspect, text
-#
-# # ==================== SECURITY ====================
-# from werkzeug.security import generate_password_hash, check_password_hash
-# from werkzeug.utils import secure_filename
-# from werkzeug.exceptions import RequestEntityTooLarge
-# from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-#
-# # ==================== SOCKET / REALTIME ====================
-# from flask_socketio import SocketIO, emit, join_room, leave_room
-# from flask_sock import Sock
-# from flask import Blueprint
-#
-# from reportlab.lib.pagesizes import A4
-# from reportlab.lib.units import mm
-# from reportlab.lib import colors
-# from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-# from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-# from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
-# from reportlab.pdfgen import canvas
-# import qrcode
-# import os
-# from datetime import datetime
-#
-# from flask import render_template, request, flash, redirect, url_for
-#
-#
-#
-# from models import Pret, Client
-# from datetime import datetime, timedelta
-# from reportlab.lib.pagesizes import A4
-# from reportlab.lib.units import mm
-# from reportlab.lib import colors
-# from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-# from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-# from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
-# from reportlab.pdfgen import canvas
-# import qrcode
-# import os
-#
-#
-# from flask import render_template, request, flash, redirect, url_for
-# from flask_login import login_required, current_user
-# from models import Epargne, TransactionEpargne, Client, Depense
-#
-# from datetime import datetime
-#
-#
-# # ==================== EMAIL ====================
-# from flask_mail import Mail, Message
-#
-# # ==================== CORS / PROXY ====================
-# from flask_cors import CORS
-# from werkzeug.middleware.proxy_fix import ProxyFix
-#
-# # ==================== ENV ====================
-# from dotenv import load_dotenv
-#
-# # ==================== DATE / TIME ====================
-# from datetime import datetime, timedelta
-#
-# # ==================== STANDARD LIB ====================
-# import os
-# import uuid
-# import random
-# import json
-# import re
-# import io
-# import base64
-# import traceback
-# import warnings
-#
-# # ==================== WARNINGS ====================
-# from pkg_resources import PkgResourcesDeprecationWarning
-#
-# # ==================== IMAGE / AI ====================
-# import cv2
-# import numpy as np
-# from PIL import Image
-# from datetime import datetime, timedelta
-# import schedule
-# import threading
-#
-# # ==================== QR / JWT ====================
-# import qrcode
-# import jwt
-#
-# # ==================== PDF ====================
-# from reportlab.platypus import SimpleDocTemplate, Paragraph, Image as RLImage, Table, TableStyle
-# from reportlab.lib.styles import getSampleStyleSheet
-# from reportlab.pdfgen import canvas
-# from reportlab.lib.pagesizes import A4
-# from reportlab.lib import colors
-# from functools import wraps
-# from flask import flash, redirect, url_for
-#
-# # ==================== MATH ====================
-#
-# # ==================== LOCAL CONFIG ====================
-# from config import Config, allowed_file, UPLOAD_FOLDER, MAX_FILE_SIZE, ALLOWED_EXTENSIONS, send_email
-#
-# # ==================== DATABASE CUSTOM ====================
-# from database import db, init_db
-#
-#
-#
-# # ==================== MODELS ====================
-# from models import (
-#     Pret, Notification, Pointage, Employe, Remboursement, Journal,
-#     Transaction, TransactionCaisse, AuditLog, Paiement,
-#     CreerGroupeForm, Succursale, ErrorLog, Competence, Note,
-#     ContactHistorique, HistoriqueAction, Tracking, QuestionSecrete,
-#     Client, Groupe, User, Document, Dossier, Action, RetardPaiement, ScoringCredit, HistoriqueEmploye)
-#
-# # ==================== ROUTES / BLUEPRINTS ====================
-# from routes import *
-# from routes.auth import auth_bp
-# from routes.prets import prets_bp
-# from routes.accueil import accueil_bp
-# from routes.employees import employees_bp
-# from routes.terms import terms_bp
-# from routes.clients import clients_bp
-# from routes.functions import functions_bp
-# from config import Config
-#
-# # routes/api.py (ou dans le même fichier)
-# from utils.stats import (
-#      get_stats_dashboard,get_stats_employes_succursale,
-#     get_stats_direction_succursale,get_stats_remboursements_succursale,
-#      get_stats_dossiers_attente, get_stats_caissier,get_stats_succursale,
-#     get_stats_admin_succursale, get_stats_verifications_brh,
-#      get_stats_employe, get_stats_employes, get_stats_succursales, get_detail_succursale_stats,
-#      get_stats_admin_central_succursales ) # ← IMPORTER
-#
-#
-#
-# # ==================== UTILS ====================
-# from utils.errors import humanize_unique_error
-# from jinja2.exceptions import TemplateNotFound
-# # ==================== DECORATORS ====================
-# from functools import wraps
-#
-# from utils.notifications import notification_manager
-
 
 # ==================== STANDARD LIB ====================
 import os
@@ -175,6 +24,7 @@ from flask import (
 
 # ==================== AUTH ====================
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+
 
 # ==================== DATABASE ====================
 from flask_sqlalchemy import SQLAlchemy
@@ -209,7 +59,7 @@ from PIL import Image
 import jwt
 
 # ==================== EMAIL ====================
-from flask_mail import Mail, Message
+from email_utils import send_email_via_brevo
 
 # ==================== CORS ====================
 from flask_cors import CORS
@@ -250,7 +100,9 @@ from models import (
     CreerGroupeForm, Succursale, ErrorLog, Competence, Note,
     ContactHistorique, HistoriqueAction, Tracking, QuestionSecrete,
     Client, Groupe, User, Document, Dossier, Action, RetardPaiement,
-    ScoringCredit, HistoriqueEmploye, Epargne, TransactionEpargne, Depense, PartnerIntegration, PartnerWebhook, Partner
+    ScoringCredit, HistoriqueEmploye, Epargne, TransactionEpargne,
+    Depense, PartnerIntegration, PartnerWebhook, Partner, ProjetSocial,
+    Satisfaction,Emploi, Famille
 )
 
 # ==================== ROUTES / BLUEPRINTS ====================
@@ -290,7 +142,7 @@ from datetime import datetime
 import logging
 
 
-mail = Mail()
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'gmes-microcredit-2024')
@@ -344,9 +196,6 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 # Créer le blueprint
 # employees_bp = Blueprint('employees', __name__, url_prefix='/employees')
 
-mail.init_app(app)
-
-
 
 
 
@@ -391,7 +240,7 @@ def age_filter(date_naissance):
 def index():
     """Page d'accueil publique"""
     stats = get_stats_dashboard()
-    return render_template('index.html', stats=stats)
+    return render_template('index.html', stats=stats,  current_user=current_user)
 
 
 
@@ -541,25 +390,18 @@ def envoyer_email_conditions(client):
         except:
             pass
 
-        # 3. ENVOYER L'EMAIL VIA SMTP (solution intégrée)
-        import smtplib
-        from emails.mime.text import MIMEText
-        from emails.mime.multipart import MIMEMultipart
-
-        # Configuration email (à mettre dans vos variables d'environnement)
+        # 3. ENVOYER L'EMAIL VIA API BREVO (solution intégrée)
+        import requests
         import os
-        EMAIL_EXPEDITEUR = os.environ.get('MAIL_USERNAME', 'gmeshaiti@gmail.com')
-        EMAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')  # ← Utilise le .env
-        EMAIL_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
-        EMAIL_PORT = int(os.environ.get('SMTP_PORT', 587))
 
-        print(f"📧 Envoi depuis: {EMAIL_EXPEDITEUR}")
-        print(f"🔐 Mot de passe: {'✅ Défini' if EMAIL_PASSWORD else '❌ Manquant'}")
-        # Créer le message
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = "📋 GMES Microcrédit - Acceptation des conditions d'utilisation"
-        msg['From'] = f"GMES Microcrédit <{EMAIL_EXPEDITEUR}>"
-        msg['To'] = client.email
+        # Configuration email API Brevo
+        BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
+        FROM_EMAIL = os.environ.get('FROM_EMAIL', 'gmeshaiti@gmail.com')
+        FROM_NAME = os.environ.get('FROM_NAME', 'GMES Microcrédit')
+        APP_URL = os.environ.get('APP_URL', 'https://gmeshaiti.onrender.com')
+
+        print(f"📧 Envoi depuis: {FROM_EMAIL}")
+        print(f"🔑 Clé API Brevo: {'✅ Définie' if BREVO_API_KEY else '❌ Manquante'}")
 
         # Corps de l'email (version HTML)
         corps_html = f"""
@@ -633,25 +475,57 @@ def envoyer_email_conditions(client):
         GMES Microcrédit
         """
 
-        # Attacher les versions texte et HTML
-        part1 = MIMEText(corps_texte, 'plain')
-        part2 = MIMEText(corps_html, 'html')
-        msg.attach(part1)
-        msg.attach(part2)
+        import os
+        import requests
+
+        # Configuration
+        BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
+        FROM_EMAIL = os.environ.get('FROM_EMAIL', 'gmeshaiti@gmail.com')
+        FROM_NAME = os.environ.get('FROM_NAME', 'GMES Microcrédit')
 
         # Envoyer l'email
         try:
-            server = smtplib.SMTP(EMAIL_SERVER, EMAIL_PORT)
-            server.starttls()
-            server.login(EMAIL_EXPEDITEUR, EMAIL_PASSWORD)
-            server.send_message(msg)
-            server.quit()
-            email_envoye = True
-            print(f"✅ Email envoyé avec succès à {client.email}")
+            if not BREVO_API_KEY:
+                print("❌ BREVO_API_KEY manquant")
+                flash("Configuration email manquante", "danger")
+                email_envoye = False
+            else:
+                url = "https://api.brevo.com/v3/smtp/email"
+
+                headers = {
+                    "api-key": BREVO_API_KEY,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                }
+
+                data = {
+                    "sender": {
+                        "name": FROM_NAME,
+                        "email": FROM_EMAIL
+                    },
+                    "to": [
+                        {
+                            "email": client.email,
+                            "name": f"{client.prenom} {client.nom}"
+                        }
+                    ],
+                    "subject": "📋 GMES Microcrédit - Acceptation des conditions d'utilisation",
+                    "htmlContent": corps_html,
+                    "textContent": corps_texte
+                }
+
+                response = requests.post(url, json=data, headers=headers, timeout=30)
+
+                if response.status_code == 201:
+                    email_envoye = True
+                    print(f"✅ Email envoyé avec succès à {client.email}")
+                else:
+                    email_envoye = False
+                    print(f"❌ Erreur envoi email: {response.status_code} - {response.text}")
+
         except Exception as e:
-            flash(f"❌ Erreur: {str(e)}", "danger")
-            print(f"❌ Erreur envoi email: {e}")
             email_envoye = False
+            print(f"❌ Erreur envoi email: {e}")
 
         # 4. Créer une notification dans la base
         from datetime import datetime
@@ -2518,7 +2392,7 @@ def envoyer_email_directeurs(pret, destinataires, action,  config):
     Envoie un email aux directeurs pour les informer
     """
     try:
-        from flask_mail import Message
+        from email_utils import send_email_via_brevo
 
         client = pret.client
         agent = pret.agent
@@ -4012,10 +3886,9 @@ def directeur_approuver_dossier(client_id):
         db.session.flush()
 
     # Configuration email
-    EMAIL_EXPEDITEUR = os.environ.get('MAIL_USERNAME', 'gmeshaiti@gmail.com')
-    EMAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
-    EMAIL_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
-    EMAIL_PORT = int(os.environ.get('SMTP_PORT', 587))
+    BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
+    FROM_EMAIL = os.environ.get('FROM_EMAIL', 'gmeshaiti@gmail.com')
+    FROM_NAME = os.environ.get('FROM_NAME', 'GMES Microcrédit')
 
     if action == 'approuver':
         client.statut = 'actif'
@@ -8754,7 +8627,7 @@ def test_email_notification():
         # Ici votre logique d'envoi d'email de test
         # Exemple avec Flask-Mail
         """
-        from flask_mail import Message
+        from email_utils import send_email_via_brevo
 
         msg = Message(
             subject="Test Notification - GMES",
@@ -13426,7 +13299,7 @@ def create_superviseur_test():
     <p>Mot de passe: <strong>superviseur123</strong></p>
     <p>Email: <strong>superviseur@gmes.com</strong></p>
     <br>
-    <a href="/connexion" style="background: blue; color: white; padding: 10px; text-decoration: none;">
+    <a href="connexion" style="background: blue; color: white; padding: 10px; text-decoration: none;">
     🚀 Se connecter maintenant
     </a>
     """
@@ -16021,23 +15894,6 @@ def debug_liens_clients():
 
 
 
-# Route de test
-@app.route('/test-email/<email>')
-def test_email(email):
-    from utils.notifications import notification_manager
-    try:
-        msg = f"Test email à {datetime.now()}"
-        notification_manager.envoyer_email(
-            destinataire=email,
-            sujet="Test GMES",
-            message_html=f"<h1>Test</h1><p>{msg}</p>",
-            message_text=msg
-        )
-        return f"✅ Email envoyé à {email}"
-    except Exception as e:
-        return f"❌ Erreur: {e}"
-
-
 @app.route('/conseiller/renvoyer-lien/<int:client_id>', methods=['POST'])
 @login_required
 def renvoyer_lien(client_id):
@@ -16084,26 +15940,47 @@ def renvoyer_lien(client_id):
         db.session.commit()
 
         # 3. ENVOYER L'EMAIL VIA SMTP (solution intégrée)
-        import smtplib
-        from emails.mime.text import MIMEText
-        from emails.mime.multipart import MIMEMultipart
+        import requests
 
         # Configuration email (à mettre dans vos variables d'environnement)
         import os
-        EMAIL_EXPEDITEUR = os.environ.get('MAIL_USERNAME', 'gmeshaiti@gmail.com')
-        EMAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')  # ← Utilise le .env
-        EMAIL_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
-        EMAIL_PORT = int(os.environ.get('SMTP_PORT', 587))
+        BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
+        FROM_EMAIL = os.environ.get('FROM_EMAIL', 'gmeshaiti@gmail.com')
+        FROM_NAME = os.environ.get('FROM_NAME', 'GMES Microcrédit')
 
-        print(f"📧 Envoi depuis: {EMAIL_EXPEDITEUR}")
-        print(f"🔐 Mot de passe: {'✅ Défini' if EMAIL_PASSWORD else '❌ Manquant'}")
-        print("PASS EXACT:", repr(app.config['MAIL_PASSWORD']))
+        url = "https://api.brevo.com/v3/smtp/email"
 
-        # Créer le message
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = "🔐 GMES - Lien de signature de vos conditions générales"
-        msg['From'] = f"GMES Microcrédit <{EMAIL_EXPEDITEUR}>"
-        msg['To'] = client.email
+        headers = {
+            "api-key": BREVO_API_KEY,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+
+        data = {
+            "sender": {
+                "name": FROM_NAME,
+                "email": FROM_EMAIL
+            },
+            "to": [
+                {
+                    "email": client.email,
+                    "name": client.email.split("@")[0]
+                }
+            ],
+            "subject": "🔐 GMES - Lien de signature de vos conditions générales",
+            "htmlContent": html_content
+        }
+
+        response = requests.post(
+            url,
+            json=data,
+            headers=headers,
+            timeout=30
+        )
+
+        print("📤 FROM :", FROM_EMAIL)
+        print("📥 TO :", client.email)
+        print("BREVO :", response.status_code, response.text)
 
         # Version HTML du message
         html = f"""
@@ -17805,7 +17682,7 @@ def statut_retrait(token):
 # Ajoutez cette fonction dans votre app.py
 def envoyer_email_recu_client(transaction, client):
     """Envoie le reçu par email au client"""
-    from flask_mail import Message
+    from email_utils import send_email_via_brevo
     from flask import url_for
 
     try:
@@ -17871,7 +17748,7 @@ def envoyer_email_recu_client(transaction, client):
 def employe_recu_retrait(employe_id, transaction_id):
     """Affiche le reçu du retrait pour l'employé"""
     from models import TransactionEpargne, User, Client
-    from flask_mail import Message
+    from email_utils import send_email_via_brevo
 
     if current_user.is_authenticated:
         if current_user.id != employe_id or current_user.role != 'employe':
@@ -19481,6 +19358,60 @@ def fix_super_admin():
     except Exception as e:
         return f"❌ Erreur: {str(e)}"
 
+@app.route('/simulation-pret')
+def simulation_pret():
+    """Page de simulation de prêt"""
+    return render_template('simulation.html', current_user=current_user)
+
+
+@app.route('/projets')
+def projets():
+    """Page des projets en cours"""
+    projets = ProjetSocial.query.filter_by(statut='en_cours').all()
+    return render_template('projets.html', projets=projets, current_user=current_user)
+
+@app.route('/projet/<int:id>')
+def projet_detail(id):
+    """Détail d'un projet"""
+    projet = ProjetSocial.query.get_or_404(id)
+    return render_template('projet_detail.html', projet=projet, current_user=current_user)
+
+
+
+@app.route('/test-email')
+def test_email():
+    from email_utils import send_email_via_brevo
+    result = send_email(
+        to_email="gmeshaiti@gmail.com",
+        subject="✅ Test Brevo sur Render",
+        html_content="<h1>Ça marche ! 🎉</h1><p>L'email fonctionne parfaitement.</p>"
+    )
+    return "Email envoyé !" if result else "Erreur d'envoi"
+
+
+@app.route("/resend-email/<int:user_id>", methods=["POST"])
+@login_required
+def resend_email(user_id):
+
+    employe = User.query.get_or_404(user_id)
+
+    try:
+        send_email(
+            employe.email,
+            "Confirmation de votre compte GMES",
+            "Votre lien de confirmation GMES..."
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "✅ Email renvoyé avec succès à " + employe.email
+        })
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": "❌ Erreur: " + str(e)
+        }), 500
 
 
 # === CRÉATION DES TABLES ET ADMIN AU DÉMARRAGE ===
@@ -19502,7 +19433,7 @@ with app.app_context():
                 username="super_admin",
                 prenom="Geler",
                 nom="Begin",
-                email="super_admin@gmes.com",
+                email="Gsuper_admin@gmes.com",
                 role="super_admin",
                 fonction="admin_general",
                 statut="actif",

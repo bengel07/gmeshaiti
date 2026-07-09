@@ -1,24 +1,442 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="hero">
-    <h2>Bienvenue sur GMES</h2>
-    <p>Système de Gestion Multi-Plateforme</p>
+<!-- SECTION HERO PUBLICITAIRE -->
+<div class="ad-hero" style="
+    background: linear-gradient(135deg, #0f172a 0%, #1a3a5f 50%, #0d9488 100%);
+    border-radius: 24px;
+    padding: 60px 40px;
+    margin: 20px 0 40px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(13, 148, 136, 0.3);
+">
+    <div style="
+        position: absolute;
+        top: -100px;
+        right: -100px;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+        border-radius: 50%;
+    "></div>
+    <div style="
+        position: absolute;
+        bottom: -80px;
+        left: -80px;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(13, 148, 136, 0.2) 0%, transparent 70%);
+        border-radius: 50%;
+    "></div>
 
-    <div class="cta-buttons">
-        <a href="{{ url_for('client_portal') }}" class="btn btn-primary">Portail Client</a>
-        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Administration</a>
-        <a href="{{ url_for('employe_section') }}" class="btn btn-tertiary">Espace Employés</a>
+    <div style="position: relative; z-index: 2;">
+        <div style="
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        ">
+            💰 GMES - MICROCRÉDIT & FINANCEMENT SOLIDAIRE
+        </div>
+
+        <h1 style="
+            font-size: 52px;
+            font-weight: 800;
+            margin: 0 0 16px 0;
+            line-height: 1.1;
+            background: linear-gradient(to right, #ffffff, #5eead4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        ">
+            Ensemble,<br>
+            <span style="color: white; -webkit-text-fill-color: white;">finançons <span style="color: #2dd4bf; -webkit-text-fill-color: #2dd4bf;">vos projets</span> et <span style="color: #2dd4bf; -webkit-text-fill-color: #2dd4bf;">nos actions</span></span>
+        </h1>
+
+        <p style="
+            font-size: 20px;
+            color: rgba(255,255,255,0.85);
+            max-width: 600px;
+            margin: 0 0 35px 0;
+            line-height: 1.6;
+        ">
+            GMES accompagne les entrepreneurs, les artisans et les petites entreprises
+            avec des solutions de microcrédit accessibles. Nous finançons aussi des
+            projets sociaux pour un impact durable.
+        </p>
+
+        <!-- Statistiques dynamiques -->
+        <div style="display: flex; gap: 40px; margin-bottom: 35px; flex-wrap: wrap;">
+            <div>
+                <div style="font-size: 32px; font-weight: 800; color: #2dd4bf;">
+                    {{ stats.total_clients if stats else '0' }}
+                </div>
+                <div style="color: rgba(255,255,255,0.7); font-size: 14px;">Clients accompagnés</div>
+            </div>
+            <div>
+                <div style="font-size: 32px; font-weight: 800; color: #2dd4bf;">
+                    {{ stats.total_prets if stats else '0' }}
+                </div>
+                <div style="color: rgba(255,255,255,0.7); font-size: 14px;">Prêts accordés</div>
+            </div>
+            <div>
+                <div style="font-size: 32px; font-weight: 800; color: #2dd4bf;">
+                    {{ stats.projets_sociaux if stats else '12' }}
+                </div>
+                <div style="color: rgba(255,255,255,0.7); font-size: 14px;">Projets sociaux financés</div>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+            <a href="{{ url_for('connexion') }}" style="
+                background: white;
+                color: #0f172a;
+                padding: 16px 40px;
+                border-radius: 60px;
+                font-weight: 700;
+                font-size: 18px;
+                text-decoration: none;
+                display: inline-block;
+                transition: all 0.3s;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                💳 Demander un Prêt
+            </a>
+            <a href="#projets" style="
+                background: rgba(255,255,255,0.1);
+                backdrop-filter: blur(10px);
+                color: white;
+                padding: 16px 32px;
+                border-radius: 60px;
+                font-weight: 600;
+                font-size: 18px;
+                text-decoration: none;
+                display: inline-block;
+                border: 1px solid rgba(255,255,255,0.2);
+                transition: all 0.3s;
+            " onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
+                🌍 Nos actions solidaires
+            </a>
+        </div>
     </div>
 </div>
 
-<div class="status-card">
-    <h3>✅ Système Opérationnel</h3>
-    <p>GMES est maintenant fonctionnel avec toutes les plateformes:</p>
-    <ul>
-        <li>🌐 <strong>Web</strong> - Interface complète</li>
-        <li>🖥️ <strong>Desktop</strong> - Application de réception</li>
-        <li>📱 <strong>Mobile</strong> - Application mobile</li>
-    </ul>
+<!-- SECTION NOS PROJETS EN COURS -->
+<div id="projets" style="margin: 60px 0;">
+    <h2 style="color: #0f172a; font-size: 32px; text-align: center; margin-bottom: 12px;">
+        🌟 Nos projets en cours
+    </h2>
+    <p style="text-align: center; color: #64748b; font-size: 18px; margin-bottom: 40px;">
+        Découvrez les actions que nous finançons et les bénéficiaires que nous accompagnons
+    </p>
+
+    <div style="
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+    ">
+        <!-- Projet 1 -->
+        <div style="
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+            border: 1px solid #f0f4f9;
+            transition: all 0.3s;
+        " onmouseover="this.style.transform='translateY(-8px)'; this.style.boxShadow='0 16px 48px rgba(13,148,136,0.12)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 30px rgba(0,0,0,0.06)'">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                <div style="font-size: 40px;">👩‍🍳</div>
+                <div>
+                    <span style="background: #0d9488; color: white; padding: 4px 12px; border-radius: 50px; font-size: 12px; font-weight: 600;">En cours</span>
+                </div>
+            </div>
+            <h3 style="color: #0f172a; margin: 0 0 8px 0;">Food Truck Solidaire</h3>
+            <p style="color: #475569; line-height: 1.6; margin-bottom: 16px;">
+                Financement d'un food truck pour une association qui distribue des repas chauds aux personnes sans-abri.
+            </p>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+                <div>
+                    <div style="font-size: 14px; color: #64748b;">Objectif</div>
+                    <div style="font-weight: 700; color: #0f172a;">150 000 000 HTG</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 14px; color: #64748b;">Collecté</div>
+                    <div style="font-weight: 700; color: #0d9488;">900 200 000 HTG</div>
+                </div>
+            </div>
+            <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 10px; margin-top: 12px; overflow: hidden;">
+                <div style="width: 61%; height: 100%; background: linear-gradient(to right, #0d9488, #2dd4bf); border-radius: 10px;"></div>
+            </div>
+            <div style="margin-top: 16px; color: #0d9488; font-weight: 600; font-size: 14px;">
+                🤝 61% financé
+            </div>
+        </div>
+
+        <!-- Projet 2 -->
+        <div style="
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+            border: 1px solid #f0f4f9;
+            transition: all 0.3s;
+        " onmouseover="this.style.transform='translateY(-8px)'; this.style.boxShadow='0 16px 48px rgba(13,148,136,0.12)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 30px rgba(0,0,0,0.06)'">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                <div style="font-size: 40px;">🎓</div>
+                <div>
+                    <span style="background: #0d9488; color: white; padding: 4px 12px; border-radius: 50px; font-size: 12px; font-weight: 600;">En cours</span>
+                </div>
+            </div>
+            <h3 style="color: #0f172a; margin: 0 0 8px 0;">Bourses d'études</h3>
+            <p style="color: #475569; line-height: 1.6; margin-bottom: 16px;">
+                Programme de bourses pour 10 étudiants méritants issus de familles modestes.
+            </p>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+                <div>
+                    <div style="font-size: 14px; color: #64748b;">Objectif</div>
+                    <div style="font-weight: 700; color: #0f172a;">2500 000 000 HTG</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 14px; color: #64748b;">Collecté</div>
+                    <div style="font-weight: 700; color: #0d9488;">180  500 000 HTG</div>
+                </div>
+            </div>
+            <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 10px; margin-top: 12px; overflow: hidden;">
+                <div style="width: 74%; height: 100%; background: linear-gradient(to right, #0d9488, #2dd4bf); border-radius: 10px;"></div>
+            </div>
+            <div style="margin-top: 16px; color: #0d9488; font-weight: 600; font-size: 14px;">
+                🤝 74% financé
+            </div>
+        </div>
+
+        <!-- Projet 3 -->
+        <div style="
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+            border: 1px solid #f0f4f9;
+            transition: all 0.3s;
+        " onmouseover="this.style.transform='translateY(-8px)'; this.style.boxShadow='0 16px 48px rgba(13,148,136,0.12)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 30px rgba(0,0,0,0.06)'">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                <div style="font-size: 40px;">🏡</div>
+                <div>
+                    <span style="background: #0d9488; color: white; padding: 4px 12px; border-radius: 50px; font-size: 12px; font-weight: 600;">Nouveau</span>
+                </div>
+            </div>
+            <h3 style="color: #0f172a; margin: 0 0 8px 0;">Habitat Durable</h3>
+            <p style="color: #475569; line-height: 1.6; margin-bottom: 16px;">
+                Construction de logements écologiques pour 5 familles à faible revenu.
+            </p>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+                <div>
+                    <div style="font-size: 14px; color: #64748b;">Objectif</div>
+                    <div style="font-weight: 700; color: #0f172a;">500 000 000 HTG</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 14px; color: #64748b;">Collecté</div>
+                    <div style="font-weight: 700; color: #0d9488;">800 200 000 HTG</div>
+                </div>
+            </div>
+            <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 10px; margin-top: 12px; overflow: hidden;">
+                <div style="width: 16%; height: 100%; background: linear-gradient(to right, #0d9488, #2dd4bf); border-radius: 10px;"></div>
+            </div>
+            <div style="margin-top: 16px; color: #0d9488; font-weight: 600; font-size: 14px;">
+                🤝 16% financé
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- SECTION QUI NOUS AIDONS -->
+<div style="
+    background: #f8fafc;
+    border-radius: 24px;
+    padding: 50px 40px;
+    margin: 40px 0;
+">
+    <h2 style="color: #0f172a; font-size: 32px; text-align: center; margin-bottom: 12px;">
+        🤝 Qui nous aidons ?
+    </h2>
+    <p style="text-align: center; color: #64748b; font-size: 18px; margin-bottom: 40px;">
+        Nos bénéficiaires et partenaires qui font la différence
+    </p>
+
+    <div style="
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 30px;
+    ">
+        <div style="text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 12px;">👩‍💼</div>
+            <h4 style="color: #0f172a; margin: 0 0 6px 0;">Artisans</h4>
+            <p style="color: #64748b; font-size: 14px;">Boulangers, menuisiers, électriciens...</p>
+        </div>
+
+        <div style="text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 12px;">👨‍🌾</div>
+            <h4 style="color: #0f172a; margin: 0 0 6px 0;">Agriculteurs</h4>
+            <p style="color: #64748b; font-size: 14px;">Petits exploitants et maraîchers</p>
+        </div>
+
+        <div style="text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 12px;">👩‍🎓</div>
+            <h4 style="color: #0f172a; margin: 0 0 6px 0;">Étudiants</h4>
+            <p style="color: #64748b; font-size: 14px;">Bourses et formations professionnelles</p>
+        </div>
+
+        <div style="text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 12px;">🏪</div>
+            <h4 style="color: #0f172a; margin: 0 0 6px 0;">Petits commerces</h4>
+            <p style="color: #64748b; font-size: 14px;">Épiceries, boutiques, food trucks</p>
+        </div>
+
+        <div style="text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 12px;">🌍</div>
+            <h4 style="color: #0f172a; margin: 0 0 6px 0;">Associations</h4>
+            <p style="color: #64748b; font-size: 14px;">Projets sociaux et environnementaux</p>
+        </div>
+    </div>
+</div>
+
+<!-- SECTION IMPACT SOCIAL -->
+<div style="
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 24px;
+    margin: 40px 0;
+">
+    <div style="background: white; border-radius: 16px; padding: 30px; text-align: center; border: 1px solid #e2e8f0;">
+        <div style="font-size: 36px; color: #0d9488;">👨‍👩‍👧‍👦</div>
+        <div style="font-size: 28px; font-weight: 800; color: #0f172a;">{{ stats.familles_aidees if stats else '45' }}</div>
+        <div style="color: #64748b; font-size: 14px;">Familles aidées</div>
+    </div>
+
+    <div style="background: white; border-radius: 16px; padding: 30px; text-align: center; border: 1px solid #e2e8f0;">
+        <div style="font-size: 36px; color: #0d9488;">💼</div>
+        <div style="font-size: 28px; font-weight: 800; color: #0f172a;">{{ stats.emplois_crees if stats else '28' }}</div>
+        <div style="color: #64748b; font-size: 14px;">Emplois créés</div>
+    </div>
+
+    <div style="background: white; border-radius: 16px; padding: 30px; text-align: center; border: 1px solid #e2e8f0;">
+        <div style="font-size: 36px; color: #0d9488;">🏆</div>
+        <div style="font-size: 28px; font-weight: 800; color: #0f172a;">{{ stats.projets_realises if stats else '23' }}</div>
+        <div style="color: #64748b; font-size: 14px;">Projets réalisés</div>
+    </div>
+
+    <div style="background: white; border-radius: 16px; padding: 30px; text-align: center; border: 1px solid #e2e8f0;">
+        <div style="font-size: 36px; color: #0d9488;">💚</div>
+        <div style="font-size: 28px; font-weight: 800; color: #0f172a;">{{ stats.taux_satisfaction if stats else '98%' }}</div>
+        <div style="color: #64748b; font-size: 14px;">Taux de satisfaction</div>
+    </div>
+</div>
+
+<!-- TÉMOIGNAGES -->
+<div style="
+    background: linear-gradient(135deg, #134e4a 0%, #0f172a 100%);
+    border-radius: 24px;
+    padding: 50px 40px;
+    margin: 40px 0;
+    text-align: center;
+">
+    <h2 style="color: white; font-size: 30px; margin: 0 0 30px 0;">💬 Ils témoignent</h2>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px;">
+        <div style="background: rgba(255,255,255,0.05); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08);">
+            <p style="color: rgba(255,255,255,0.85); font-style: italic; font-size: 16px; line-height: 1.6; margin-bottom: 12px;">
+                "Grâce à GMES, j'ai pu acheter mon fournil et lancer ma boulangerie. Aujourd'hui, j'emploie 3 personnes !"
+            </p>
+            <div style="color: #2dd4bf; font-weight: 600;">— Jean-Marc, Boulanger</div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.05); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08);">
+            <p style="color: rgba(255,255,255,0.85); font-style: italic; font-size: 16px; line-height: 1.6; margin-bottom: 12px;">
+                "Le microcrédit de GMES m'a permis de financer ma formation et d'obtenir mon diplôme. Un vrai tremplin !"
+            </p>
+            <div style="color: #2dd4bf; font-weight: 600;">— Amélie, Étudiante</div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.05); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08);">
+            <p style="color: rgba(255,255,255,0.85); font-style: italic; font-size: 16px; line-height: 1.6; margin-bottom: 12px;">
+                "Notre association a pu construire un abri pour les animaux grâce au soutien de GMES. Merci !"
+            </p>
+            <div style="color: #2dd4bf; font-weight: 600;">— Clara, Association Animaux</div>
+        </div>
+    </div>
+</div>
+
+<!-- APPEL À L'ACTION FINAL -->
+<div style="
+    background: linear-gradient(135deg, #0f172a 0%, #1a3a5f 100%);
+    border-radius: 24px;
+    padding: 50px 40px;
+    margin: 40px 0;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.05);
+">
+    <h2 style="color: white; font-size: 34px; margin: 0 0 12px 0;">Vous avez un projet ?</h2>
+    <p style="color: rgba(255,255,255,0.7); font-size: 18px; max-width: 500px; margin: 0 auto 30px auto;">
+        Que vous soyez entrepreneur, étudiant ou association, GMES est là pour vous accompagner.
+    </p>
+    <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+        <a href="{{ url_for('connexion') }}" style="
+            background: #0d9488;
+            color: white;
+            padding: 16px 44px;
+            border-radius: 60px;
+            font-weight: 700;
+            font-size: 18px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(13, 148, 136, 0.4);
+        " onmouseover="this.style.background='#0f766e'; this.style.transform='scale(1.03)'" onmouseout="this.style.background='#0d9488'; this.style.transform='scale(1)'">
+            💳 Demander un financement
+        </a>
+        <a href="#projets" style="
+            background: rgba(255,255,255,0.08);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 18px;
+            text-decoration: none;
+            display: inline-block;
+            border: 1px solid rgba(255,255,255,0.15);
+            transition: all 0.3s;
+        " onmouseover="this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+            🌍 Voir nos actions
+        </a>
+    </div>
+</div>
+
+<!-- Pied de page -->
+<div style="text-align: center; color: #94a3b8; font-size: 13px; padding: 20px 0 10px 0; border-top: 1px solid #e2e8f0;">
+    © 2026 GMES — Microcrédit & Financement Solidaire <span style="display: inline-block; margin: 0 10px;">·</span>
+    <span style="color: #64748b;">Agréé ORIAS n°123456</span>
+</div>
+
+<style>
+    .ad-hero {
+        animation: fadeInUp 0.8s ease-out;
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 768px) {
+        .ad-hero h1 { font-size: 32px; }
+        [style*="grid-template-columns: 2fr 1fr"] {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
 {% endblock %}

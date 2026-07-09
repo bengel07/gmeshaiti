@@ -5769,6 +5769,26 @@ class QuestionSecrete(db.Model):
         backref=db.backref("questions_secretes", cascade="all, delete-orphan")
     )
 
+class ProjetSocial(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    titre = db.Column(db.String(200))
+    description = db.Column(db.Text)
+    objectif = db.Column(db.Float)
+    collecte = db.Column(db.Float, default=0)
+    statut = db.Column(db.String(20), default='en_cours')
+    image = db.Column(db.String(100))
+    date_debut = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Famille(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nom = db.Column(db.String(100))
+    statut = db.Column(db.String(20), default='aidee')
+
+class Emploi(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    titre = db.Column(db.String(100))
+    statut = db.Column(db.String(20), default='actif')
+
 
 
 class Echeancier(db.Model):
@@ -6286,6 +6306,12 @@ class PartnerAPIKey(db.Model):
 
     # Relation - UNIQUEMENT back_populates
     partner = db.relationship("Partner", back_populates="api_keys")
+
+
+class Satisfaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
+    note = db.Column(db.Integer)
 
 
 

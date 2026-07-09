@@ -1,13 +1,11 @@
 import os
 import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import requests
 from datetime import datetime
 import logging
 from itsdangerous import URLSafeTimedSerializer
 from flask import url_for
-from flask_mail import Message
+from email_utils import send_email_via_brevo
 
 # # Import différé pour éviter circularité
 from models import Client,Notification, Pret, User , Employe # REMPLACÉ PAR IMPORT LOCAL
@@ -35,16 +33,21 @@ import sqlite3
 
 class NotificationManager:
     def __init__(self):
-        self.smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
-        self.smtp_port = int(os.getenv('SMTP_PORT', 587))
-        self.smtp_username = os.getenv('MAIL_USERNAME', 'gmeshaiti@gmail.com')
-        self.smtp_password = os.getenv('MAIL_PASSWORD', 'qgjd lrgh azxi mpvd')
+        self.brevo_api_key = os.getenv('BREVO_API_KEY')
+        self.from_email = os.getenv('FROM_EMAIL', 'gmeshaiti@gmail.com')
+        self.from_name = os.getenv('FROM_NAME', 'GMES Microcrédit')
+
+        # ============================================
+        # CONFIGURATION SMS (inchangée)
+        # ============================================
         self.sms_api_key = os.getenv('SMS_API_KEY')
         self.sms_api_secret = os.getenv('SMS_API_SECRET')
+        self.sms_sender = os.getenv('SMS_SENDER', 'GMES')
+        self.sms_provider = os.getenv('SMS_PROVIDER', 'shortcode')
 
-        # SMS Short Code / Sender ID
-        self.sms_sender = os.getenv('SMS_SENDER', 'GMES')  # ici ton short code ou "GMES"
-        self.sms_provider = "shortcode"  # mode simulation/local
+        # Vérification de la configuration
+        if not self.brevo_api_key:
+            print("⚠️ BREVO_API_KEY manquant dans les variables d'environnement")
 
     def _generate_terms_token(self, client_id):
         """
