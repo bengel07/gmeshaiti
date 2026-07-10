@@ -80,7 +80,7 @@ def send_email_async(to_email, subject, html_content, from_email=None):
 # EMAILS SPÉCIFIQUES
 # ============================================
 
-def send_welcome_email(employe, password):
+def send_welcome_email(employe, mot_de_passe_temp):
     """Email de bienvenue pour un nouvel employé"""
     html_content = f"""
     <html>
@@ -95,7 +95,7 @@ def send_welcome_email(employe, password):
             <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
                 <h3 style="margin-top: 0;">📋 Vos identifiants de connexion</h3>
                 <p><strong>Nom d'utilisateur :</strong> {employe.username}</p>
-                <p><strong>Mot de passe :</strong> {password}</p>
+                <p><strong>Mot de passe :</strong> {mot_de_passe_temp}</p>
             </div>
 
             <p><strong>Rôle :</strong> {employe.role}</p>

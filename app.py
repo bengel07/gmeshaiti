@@ -159,6 +159,8 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 app.config['DEBUG'] = True  # Pour le développement
 
+app.config["APP_URL"] = os.environ.get("APP_URL","http://127.0.0.1:10000")
+
 app.config.from_object(Config)  # ← Charge TOUTES les configs (y compris email)
 
 
@@ -366,7 +368,6 @@ def add_header(response):
     return response
 
 def envoyer_email_conditions(client):
-    print("EMAIL AP VOYE POU:", client.email)
     """
     Envoie un email au client avec un lien pour accepter les conditions d'utilisation
     """
@@ -378,17 +379,24 @@ def envoyer_email_conditions(client):
         # Générer un token unique pour ce client
         token = generer_token_conditions(client)
 
+        # URL publique Render
+        APP_URL = app.config.get(
+            "APP_URL",
+            "http://127.0.0.1:10000"
+        )
+
         # Créer le lien d'acceptation
-        lien_acceptation = url_for('accepter_conditions', token=token, _external=True)
-        import socket
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80))
-            local_ip = s.getsockname()[0]
-            s.close()
-            lien_acceptation = lien_acceptation.replace('127.0.0.1', local_ip).replace('localhost', local_ip)
-        except:
-            pass
+        lien_acceptation = f"{APP_URL}/accepter-conditions/{token}"
+
+        print("🔗 Lien acceptation :", lien_acceptation)
+        # try:
+        #     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        #     s.connect(("8.8.8.8", 80))
+        #     local_ip = s.getsockname()[0]
+        #     s.close()
+        #     lien_acceptation = lien_acceptation.replace('127.0.0.1', local_ip).replace('localhost', local_ip)
+        # except:
+        #     pass
 
         # 3. ENVOYER L'EMAIL VIA API BREVO (solution intégrée)
         import requests
@@ -11356,6 +11364,11 @@ def schedule_brh_check():
         time.sleep(60)
 
 
+def generer_mot_de_passe():
+    caracteres = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(caracteres) for _ in range(10))
+
+
 # Démarrer dans un thread séparé (au démarrage de l'app)
 threading.Thread(target=schedule_brh_check, daemon=True).start()
 
@@ -11560,7 +11573,13 @@ def ajouter_employe(succursale_code):
             statut_conformite = 'en_attente'
 
         )
-        employe.set_password(request.form.get('password'))
+        mot_de_passe_temp = request.form.get('password')
+
+        if not mot_de_passe_temp:
+            mot_de_passe_temp = generer_mot_de_passe()
+
+        employe.set_password(mot_de_passe_temp)
+        employe.premier_connexion = True
 
         print("creer employe")
 
@@ -11624,8 +11643,7 @@ def ajouter_employe(succursale_code):
             )
 
             # ✅ ENVOYER L'EMAIL DE BIENVENUE
-            password = request.form.get('password')
-            send_welcome_email(employe, password)  # Envoi automatique en tâche de fond
+            send_welcome_email(employe, mot_de_passe_temp)
 
             flash(f"✅ Employé {employe.prenom} {employe.nom} créé avec succès !", "success")
 
@@ -19394,13 +19412,16 @@ def test_email():
 def resend_email(user_id):
 
     employe = User.query.get_or_404(user_id)
+    mot_de_passe_temp = request.form.get('password')
+
+    if not mot_de_passe_temp:
+        mot_de_passe_temp = generer_mot_de_passe()
 
     try:
-        send_email(
-            employe.email,
-            "Confirmation de votre compte GMES",
-            "Votre lien de confirmation GMES..."
-        )
+        # ✅ ENVOYER L'EMAIL DE BIENVENUE
+        send_welcome_email(employe, mot_de_passe_temp)
+
+        flash(f"✅ Employé {employe.prenom} {employe.nom} créé avec succès !", "success")
 
         return jsonify({
             "success": True,
