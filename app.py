@@ -12426,17 +12426,17 @@ def debug_all_users():
 @login_required
 def gerer_employes():
     # Rôles autorisés à gérer les employés
-    roles_autorises = ['admin', 'admin_succursale', 'super_admin']
+    roles_autorises = ['direction', 'admin_succursale', 'super_admin']
 
     if current_user.role not in roles_autorises:
         flash(f'⛔ Accès non autorisé. Votre rôle est "{current_user.role}"', 'danger')
         abort(403)
 
     # Filtrer par succursale - les admins ne voient que leurs employés
-    query = User.query.filter(User.role.in_(['employe', 'superviseur']))
+    query = User.query.filter(User.role.in_(['employe','direction','super_admin', 'superviseur']))
 
     # Si c'est un admin de succursale, filtrer par sa succursale
-    if current_user.role in ['admin', 'admin_succursale']:
+    if current_user.role in ['admin','direction', 'admin_succursale']:
         query = query.filter_by(succursale_id=current_user.succursale_id)
 
     utilisateurs = query.all()
@@ -12448,7 +12448,10 @@ def gerer_employes():
         'actifs': len([u for u in utilisateurs if u.statut == 'actif']),
         'suspendus': len([u for u in utilisateurs if u.statut == 'suspendu']),
         'employes': len([u for u in utilisateurs if u.role == 'employe']),
-        'superviseurs': len([u for u in utilisateurs if u.role == 'superviseur'])
+        'superviseurs': len([u for u in utilisateurs if u.role == 'superviseur']),
+        'directeur': len([u for u in utilisateurs if u.role == 'direction']),
+        #'super_admin': len([u for u in utilisateurs if u.role == 'super_admin']),
+        'admin_succursale': len([u for u in utilisateurs if u.role == 'admin_succursale'])
     }
 
     return render_template('employees/gerer_employes.html', utilisateurs=utilisateurs, stats=stats)
