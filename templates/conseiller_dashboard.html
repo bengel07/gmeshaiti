@@ -484,7 +484,7 @@
                     <a href="{{ url_for('tableau_de_bord') }}" class="btn">
                         <i class="fas fa-chart-bar"></i> Statistiques
                     </a>
-                    <a href="{{ url_for('paiements.retards') }}" class="btn">
+                    <a href="{{ url_for('remboursements_retards', succursale_code=succursale.code) }}" class="btn">
                         <i class="fas fa-chart-bar"></i> Retard Pret
                     </a>
                 </div>

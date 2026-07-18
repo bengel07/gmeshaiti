@@ -13677,22 +13677,21 @@ def dashboard_succursale(succursale_code):
     )
 
 
-# # Dans admin_dashboard()
-# def admin_dashboard():
-#     # Top 5 des pires retards
-#     pires_retards = RetardPaiement.query.filter_by(statut='impaye') \
-#         .order_by(RetardPaiement.jours_retard.desc()) \
-#         .limit(5) \
-#         .all()
-#
-#     # Récupérer les infos clients
-#     for retard in pires_retards:
-#         retard.client_nom = Client.query.get(retard.client_id).nom
-#         retard.client_prenom = Client.query.get(retard.client_id).prenom
-#
-#     return render_template('direction/dashboard.html', pires_retards=pires_retards)
+@app.route('/<succursale_code>/remboursements/retards')
+@login_required
+def remboursements_retards(succursale_code):
+    """Remboursements en retard pour une succursale"""
+    succursale = Succursale.query.filter_by(code=succursale_code.upper()).first_or_404()
 
+    # Récupérer les remboursements en retard
+    remboursements_retard = Remboursement.query.filter_by(
+        succursale_id=succursale.id,
+        statut='en_retard'  # ou 'retard', 'impaye', selon votre modèle
+    ).all()
 
+    return render_template('succursale/remboursements_retards.html',
+                           succursale=succursale,
+                           remboursements=remboursements_retard)
 
 @app.route('/<succursale_code>/remboursements')
 @login_required
@@ -18249,7 +18248,7 @@ def transfert_entre_clients():
             flash(
                 f'✅ Transfert de {montant:,.0f} HTG vers {compte_destination.client.prenom} {compte_destination.client.nom} effectué avec succès',
                 'success')
-            return redirect(url_for('dashboard_client'))
+            return redirect(url_for('client_dashboard'))
 
         except ValueError as e:
             db.session.rollback()
@@ -18270,7 +18269,7 @@ def transfert_entre_clients():
 
     if not comptes_utilisateur:
         flash('Vous n\'avez aucun compte actif disponible pour effectuer un transfert', 'warning')
-        return redirect(url_for('dashboard_client'))
+        return redirect(url_for('client_dashboard'))
 
     return render_template('transfert_client.html',
                            comptes_source=comptes_utilisateur)
@@ -18473,54 +18472,186 @@ def verifier_transfert():
 # ============================================
 
 def envoyer_email_transfert_sortant(client_source, client_dest, montant, ref_transfert):
+    """
+    Envoie un email de confirmation de transfert au client source via Brevo.
+
+    Args:
+        client_source: Client qui envoie l'argent
+        client_dest: Client qui reçoit l'argent
+        montant: Montant du transfert
+        ref_transfert: Référence du transfert
+
+    Returns:
+        dict: Résultat de l'envoi avec success, data ou error
+    """
     try:
-        html = f"""
-        <h2>Confirmation de votre transfert</h2>
-        <p>Bonjour {client_source.prenom} {client_source.nom},</p>
-        <p>Transfert de <strong>{montant:,.0f} HTG</strong> vers {client_dest.prenom} {client_dest.nom}.</p>
-        <p>Référence: {ref_transfert}</p>
-        <p>Date: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</p>
+        # Vérifier que le client source a un email valide
+        if not client_source or not client_source.email:
+            print("❌ Client source ou email manquant")
+            return {"success": False, "error": "Email client source manquant"}
+
+        # Formater le montant avec séparateur de milliers
+        montant_formate = f"{montant:,.0f}".replace(',', ' ')
+
+        # Construction du HTML de l'email
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{ font-family: Arial, sans-serif; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
+                .content {{ background: #f8fafc; padding: 30px; border-radius: 0 0 10px 10px; }}
+                .montant {{ font-size: 28px; font-weight: bold; color: #0d9488; }}
+                .info-block {{ background: white; padding: 20px; border-radius: 10px; margin: 20px 0; border: 1px solid #e2e8f0; }}
+                .footer {{ text-align: center; color: #94a3b8; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0; }}
+                .statut {{ display: inline-block; background: #0d9488; color: white; padding: 6px 16px; border-radius: 50px; font-size: 14px; font-weight: 600; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h2>🏦 GMES - Confirmation de transfert</h2>
+                </div>
+                <div class="content">
+                    <p style="font-size: 18px;">Bonjour <strong>{client_source.prenom} {client_source.nom}</strong>,</p>
+                    <p>Votre transfert a été effectué avec succès.</p>
+
+                    <div class="info-block">
+                        <p><strong>📤 Destinataire :</strong> {client_dest.prenom} {client_dest.nom}</p>
+                        <p><strong>💰 Montant :</strong> <span class="montant">{montant_formate} HTG</span></p>
+                        <p><strong>🔑 Référence :</strong> <code style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px;">{ref_transfert}</code></p>
+                        <p><strong>📅 Date :</strong> {datetime.now().strftime('%d/%m/%Y à %H:%M')}</p>
+                        <p><strong>📊 Statut :</strong> <span class="statut">✅ Confirmé</span></p>
+                    </div>
+
+                    <p style="color: #64748b; font-size: 14px;">
+                        ⚠️ Si vous n'êtes pas à l'origine de ce transfert, veuillez nous contacter immédiatement.
+                    </p>
+                </div>
+                <div class="footer">
+                    <p>© 2026 GMES - Microcrédit & Financement Solidaire</p>
+                    <p style="font-size: 11px;">Cet email est généré automatiquement, merci de ne pas y répondre.</p>
+                    <p style="font-size: 11px;">
+                        📧 <a href="mailto:gmeshaiti@gmail.com" style="color: #0d9488;">gmeshaiti@gmail.com</a> 
+                        | 📞 <span style="color: #64748b;">+509 1234 5678</span>
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
         """
 
-        print("📧 Envoi email sortant ->", client_source.email)
+        # Sujet de l'email
+        subject = f"✅ Confirmation de transfert - {ref_transfert}"
 
-        msg = Message(
-            "Confirmation de transfert",
-            recipients=[client_source.email],
-            html=html
+        print(f"📧 Envoi email sortant vers {client_source.email}")
+
+        # Envoyer via Brevo
+        result = send_email_via_brevo(
+            to_email=client_source.email,
+            subject=subject,
+            html_content=html_content,
+            from_name="GMES Microcrédit"
         )
 
-        mail.send(msg)
-        print("✔ Email sortant envoyé")
+        if result["success"]:
+            print(f"✔ Email sortant envoyé à {client_source.email}")
+        else:
+            print(f"❌ Échec envoi email: {result.get('error', 'Erreur inconnue')}")
+
+        return result
 
     except Exception as e:
-        print("❌ ERREUR EMAIL SORTANT:", str(e))
+        print(f"❌ ERREUR EMAIL SORTANT: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
 
 
+# Fonction pour email entrant (au destinataire)
 def envoyer_email_transfert_entrant(client_dest, client_source, montant, ref_transfert):
+    """Envoie un email de notification au client qui reçoit l'argent."""
     try:
-        html = f"""
-        <h2>Vous avez reçu un transfert</h2>
+        if not client_dest or not client_dest.email:
+            return {"success": False, "error": "Email client destinataire manquant"}
+
+        montant_formate = f"{montant:,.0f}".replace(',', ' ')
+
+        html_content = f"""
+        <h2>💰 Vous avez reçu un transfert</h2>
         <p>Bonjour {client_dest.prenom} {client_dest.nom},</p>
-        <p>Vous avez reçu <strong>{montant:,.0f} HTG</strong> de {client_source.prenom} {client_source.nom}.</p>
-        <p>Référence: {ref_transfert}</p>
-        <p>Date: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</p>
+        <p>Vous avez reçu un transfert sur votre compte.</p>
+        <ul>
+            <li><strong>Expéditeur :</strong> {client_source.prenom} {client_source.nom}</li>
+            <li><strong>Montant :</strong> {montant_formate} HTG</li>
+            <li><strong>Référence :</strong> {ref_transfert}</li>
+            <li><strong>Date :</strong> {datetime.now().strftime('%d/%m/%Y %H:%M')}</li>
+        </ul>
+        <p style="color: #0d9488;">✅ Les fonds sont disponibles sur votre compte.</p>
         """
 
-        print("📧 Envoi email entrant ->", client_dest.email)
+        subject = f"💰 Réception de transfert - {ref_transfert}"
 
-        msg = Message(
-            "Vous avez reçu un transfert",
-            recipients=[client_dest.email],
-            html=html
+        result = send_email_via_brevo(
+            to_email=client_dest.email,
+            subject=subject,
+            html_content=html_content,
+            from_name="GMES Microcrédit"
         )
 
-        mail.send(msg)
-        print("✔ Email entrant envoyé")
+        return result
 
     except Exception as e:
-        print("❌ ERREUR EMAIL ENTRANT:", str(e))
+        print(f"❌ ERREUR ENTRANT: {str(e)}")
+        return {"success": False, "error": str(e)}
 
+
+
+@app.route('/paiements/retards')
+@login_required
+def retards():
+    """Page des paiements en retard"""
+    try:
+        # Récupérer tous les paiements en retard
+        # Supposons que vous ayez un modèle Payment ou Paiement
+        from models import Paiement, Client, Abonnement
+
+        # Récupérer les paiements avec statut 'en_retard' ou 'impaye'
+        paiements_retard = Paiement.query.filter(
+            Paiement.statut.in_(['en_retard', 'impaye', 'non_paye'])
+        ).order_by(Paiement.date_echeance.asc()).all()
+
+        # Compter le nombre total de retards
+        total_retards = len(paiements_retard)
+
+        # Calculer le montant total dû
+        montant_total_du = sum(p.montant for p in paiements_retard if p.montant)
+
+        # Regrouper par client pour l'affichage
+        clients_concernes = {}
+        for paiement in paiements_retard:
+            if paiement.client_id not in clients_concernes:
+                clients_concernes[paiement.client_id] = {
+                    'client': Client.query.get(paiement.client_id),
+                    'paiements': [],
+                    'total_du': 0
+                }
+            clients_concernes[paiement.client_id]['paiements'].append(paiement)
+            clients_concernes[paiement.client_id]['total_du'] += paiement.montant or 0
+
+        return render_template('retards.html',
+                               paiements_retard=paiements_retard,
+                               total_retards=total_retards,
+                               montant_total_du=montant_total_du,
+                               clients_concernes=clients_concernes,
+                               maintenant=datetime.now())
+
+    except Exception as e:
+        flash(f'Erreur lors du chargement des paiements en retard: {str(e)}', 'error')
+        return redirect(url_for('dashboard'))
 
 @app.route('/api/verifier-compte', methods=['POST'])
 @login_required

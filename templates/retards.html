@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Paiements en retard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>📋 Paiements en retard</h1>
+    <hr>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h5 class="card-title">Total des retards</h5>
+                    <h2>{{ total_retards }}</h2>
+                    <p class="card-text">Paiements en retard</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Montant total dû</h5>
+                    <h2>{{ montant_total_du|default(0) }} FCFA</h2>
+                    <p class="card-text">À recouvrer</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>Liste des paiements en retard</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Client</th>
+                            <th>Montant</th>
+                            <th>Date échéance</th>
+                            <th>Jours de retard</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for paiement in paiements_retard %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ paiement.client.nom if paiement.client else 'N/A' }}</td>
+                            <td>{{ paiement.montant }} FCFA</td>
+                            <td>{{ paiement.date_echeance.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                {% set jours_retard = (maintenant - paiement.date_echeance).days %}
+                                <span class="badge bg-danger">{{ jours_retard }} jours</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-warning">{{ paiement.statut }}</span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('paiement_detail', id=paiement.id) }}" class="btn btn-sm btn-info">Voir</a>
+                                <a href="{{ url_for('paiement_payer', id=paiement.id) }}" class="btn btn-sm btn-success">Payer</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center">✅ Aucun paiement en retard</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
