@@ -12705,23 +12705,30 @@ def conseiller_dashboard():
         flash('⛔ Accès non autorisé', 'danger')
         return redirect(url_for('tableau_de_bord'))
 
+    # ✅ Récupérer la succursale de l'utilisateur
+    succursale = None
+    if hasattr(current_user, 'succursale_id') and current_user.succursale_id:
+        succursale = Succursale.query.get(current_user.succursale_id)
+
+    # Si l'utilisateur n'a pas de succursale, essayer via les clients
+    if not succursale:
+        # Chercher une succursale via les clients du conseiller
+        client_avec_succursale = Client.query.filter_by(
+            cree_par_id=current_user.id
+        ).filter(Client.succursale_id.isnot(None)).first()
+
+        if client_avec_succursale:
+            succursale = Succursale.query.get(client_avec_succursale.succursale_id)
+
     # ✅ FILTRER UNIQUEMENT les clients créés par CE conseiller
-    clients = Client.query.filter_by(
-        cree_par_id=current_user.id  # ← Important : seulement ses clients
-    ).order_by(
-        Client.date_inscription.desc()
-    ).limit(6).all()
-
-    # Dans la route du conseiller
-    dossiers = Client.query.filter_by(
-        succursale_id=current_user.succursale_id
-    ).all()
-
-    # Il faut ajouter cree_par_id à Client (comme mentionné avant)
-    dossiers = Client.query.filter_by(
-        succursale_id=current_user.succursale_id,
-        cree_par_id=current_user.id
-    ).all()
+        # Dossiers de la succursale créés par ce conseiller
+        if succursale:
+            dossiers = Client.query.filter_by(
+                succursale_id=succursale.id,
+                cree_par_id=current_user.id
+            ).all()
+        else:
+            dossiers = []
 
 
     # Statistiques réelles (pas en dur)
@@ -12755,7 +12762,9 @@ def conseiller_dashboard():
                            rdv_aujourdhui=rdv_aujourdhui,
                            clients_prioritaires=clients_prioritaires,
                            dossiers_urgence=dossiers_urgence,
-                           appels_attente=appels_attente)
+                           appels_attente=appels_attente,
+                           succursale=succursale)  # ✅ AJOUTER CETTE LIGNE
+
 
 
 # Route Analyste avec données
