@@ -3757,7 +3757,7 @@ def client_terms(token):
                 client.date_signature_terms = datetime.now()
 
                 # Créer ou récupérer l'utilisateur
-                user = db.session.get(User, client.id)
+                user = User.query.filter_by(email=client.email).first()
                 if not user:
                     from werkzeug.security import generate_password_hash
                     import uuid
