@@ -37,13 +37,12 @@ class NotificationManager:
         self.from_email = os.getenv('FROM_EMAIL', 'gmeshaiti@gmail.com')
         self.from_name = os.getenv('FROM_NAME', 'GMES Microcrédit')
 
-        # ============================================
-        # CONFIGURATION SMS (inchangée)
-        # ============================================
+        # Configuration SMS (inchangée)
         self.sms_api_key = os.getenv('SMS_API_KEY')
         self.sms_api_secret = os.getenv('SMS_API_SECRET')
         self.sms_sender = os.getenv('SMS_SENDER', 'GMES')
         self.sms_provider = os.getenv('SMS_PROVIDER', 'shortcode')
+
 
         # Vérification de la configuration
         if not self.brevo_api_key:
@@ -119,41 +118,54 @@ class NotificationManager:
 
     def envoyer_email(self, destinataire, sujet, message_html, message_text=None):
         """
-        Envoie un email de notification
+        Envoie un email via l'API Brevo
         """
         try:
-            if not self.smtp_username or not self.smtp_password:
-                logger.warning("Configuration SMTP manquante - Email simulé")
+            if not self.brevo_api_key:
+                logger.warning("BREVO_API_KEY manquante - Email simulé")
                 self._simuler_email(destinataire, sujet, message_html)
                 return True
 
-            # Création du message
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = sujet
-            msg['From'] = self.smtp_username
-            msg['To'] = destinataire
+            url = "https://api.brevo.com/v3/smtp/email"
 
-            # Partie texte
+            headers = {
+                "api-key": self.brevo_api_key,
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+
+            data = {
+                "sender": {
+                    "name": self.from_name,
+                    "email": self.from_email
+                },
+                "to": [
+                    {
+                        "email": destinataire,
+                        "name": destinataire.split('@')[0]
+                    }
+                ],
+                "subject": sujet,
+                "htmlContent": message_html
+            }
+
+            # Ajouter le texte brut si fourni
             if message_text:
-                part1 = MIMEText(message_text, 'plain')
-                msg.attach(part1)
+                data["textContent"] = message_text
 
-            # Partie HTML
-            part2 = MIMEText(message_html, 'html')
-            msg.attach(part2)
+            response = requests.post(url, json=data, headers=headers, timeout=30)
 
-            # Envoi
-            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_username, self.smtp_password)
-                server.send_message(msg)
-
-            logger.info(f"Email envoyé à {destinataire}: {sujet}")
-            return True
+            if response.status_code == 201:
+                logger.info(f"✅ Email envoyé à {destinataire}: {sujet}")
+                return True
+            else:
+                logger.error(f"❌ Erreur envoi email à {destinataire}: {response.status_code} - {response.text}")
+                # Fallback vers la simulation en cas d'erreur
+                self._simuler_email(destinataire, sujet, message_html)
+                return False
 
         except Exception as e:
-            logger.error(f"Erreur envoi email à {destinataire}: {e}")
-            # Simulation en cas d'erreur
+            logger.error(f"❌ Erreur envoi email à {destinataire}: {e}")
             self._simuler_email(destinataire, sujet, message_html)
             return False
 
@@ -533,28 +545,7 @@ class NotificationManager:
             logger.error(f"Erreur send_more_information_notification: {e}")
             return False
 
-    # def _create_db_notification(self, user_id=None, client_id=None, title="", message="",
-    #                             pret_id=None, notification_type="info", requires_action=False):
-    #     """Créer une notification en base de données"""
-    #     try:
-    #         notif = Notification(
-    #             user_id=user_id,
-    #             client_id=client_id,
-    #             title=title,
-    #             message=message,
-    #             type=notification_type,
-    #             pret_id=pret_id,
-    #             requires_action=requires_action,
-    #             created_at=datetime.now(),
-    #             is_read=False
-    #         )
-    #         db.session.add(notif)
-    #         db.session.commit()
-    #         return notif
-    #     except Exception as e:
-    #         logger.error(f"Erreur création notification DB: {e}")
-    #         db.session.rollback()
-    #         return None
+
 
     def _create_db_notification(self, destinataire_id=None, client_id=None, titre="", message="",
                                 pret_id=None, notification_type="info", requires_action=False,
