@@ -5268,20 +5268,38 @@ class TermsAcceptance(db.Model):
     client = db.relationship('User', backref='terms_acceptances')
 
 class Competence(db.Model):
-    __tablename__ = 'competences'
+    __tablename__ = "competences"
 
     id = db.Column(db.Integer, primary_key=True)
-    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
-    employe_id = db.Column(db.Integer, db.ForeignKey('users.id'),
-                        nullable=True)  # ← Changé à True (permet NULL)
-    nom = db.Column(db.String(100), nullable=False)
-    niveau = db.Column(db.String(50))  # débutant, intermédiaire, expert
-    description = db.Column(db.Text)
-    date_creation = db.Column(db.DateTime, default=datetime.now)
 
-    # Spécifier explicitement quelle clé étrangère utiliser
-    client = db.relationship('User', foreign_keys=[client_id], backref='competences_client')
-    user = db.relationship('User', foreign_keys=[employe_id], backref='competences_user')
+    client_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False
+    )
+
+    employe_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=True
+    )
+
+    nom = db.Column(db.String(100), nullable=False)
+    niveau = db.Column(db.String(50))
+    description = db.Column(db.Text)
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+
+    client = db.relationship(
+        "User",
+        foreign_keys=[client_id],
+        backref=db.backref("competences_client", lazy=True)
+    )
+
+    employe = db.relationship(
+        "User",
+        foreign_keys=[employe_id],
+        backref=db.backref("competences_employe", lazy=True)
+    )
 
 
 class ErrorLog(db.Model):
