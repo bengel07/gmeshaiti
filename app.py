@@ -2964,7 +2964,7 @@ def accepter_conditions(token):
             nom=client.nom,
             email=client.email,
             telephone=client.telephone,
-            password=generate_password_hash(str(uuid.uuid4())),
+            password_hash=generate_password_hash(str(uuid.uuid4())),
             compte_actif=True,
             terms_accepted=False,
             date_creation=datetime.now()
@@ -3765,7 +3765,7 @@ def client_terms(token):
                         nom=client.nom,
                         email=client.email,
                         telephone=client.telephone,
-                        password=generate_password_hash(str(uuid.uuid4())),
+                        password_hash=generate_password_hash(str(uuid.uuid4())),
                         compte_actif=True,
                         terms_accepted=True,
                         role='client',
