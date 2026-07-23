@@ -2965,8 +2965,10 @@ def accepter_conditions(token):
             email=client.email,
             telephone=client.telephone,
             password_hash=generate_password_hash(str(uuid.uuid4())),
-            compte_actif=True,
+            statut="en_attente_approbation",
             terms_accepted=False,
+            succursale_id=client.succursale_id,
+            cree_par_id=client.cree_par_id,
             date_creation=datetime.now()
         )
         db.session.add(user)
@@ -3766,10 +3768,11 @@ def client_terms(token):
                         email=client.email,
                         telephone=client.telephone,
                         password_hash=generate_password_hash(str(uuid.uuid4())),
-                        compte_actif=True,
                         terms_accepted=True,
                         role='client',
                         statut='en_attente_approbation',
+                        succursale_id=client.succursale_id,
+                        cree_par_id=client.cree_par_id,
                         date_creation=datetime.now()
                     )
                     db.session.add(user)
