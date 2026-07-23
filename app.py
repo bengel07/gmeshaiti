@@ -16151,6 +16151,8 @@ def renvoyer_lien(client_id):
         FROM_EMAIL = os.environ.get('FROM_EMAIL', 'gmeshaiti@gmail.com')
         FROM_NAME = os.environ.get('FROM_NAME', 'GMES Microcrédit')
 
+        email_envoye = False
+
         url = "https://api.brevo.com/v3/smtp/email"
 
         headers = {
@@ -16238,31 +16240,34 @@ def renvoyer_lien(client_id):
             date_envoi=datetime.now(),
             lue=False,
             date_creation=datetime.now(),
-            destinataire_id=client.id,
+            destinataire_id=current_user.id,
             action_id=action_defaut.id  # ← CORRIGÉ !
         )
         db.session.add(nouvelle_notification)
         db.session.commit()
 
         # 5. Message flash pour le conseiller
-        flash(f'✅ Lien de signature renvoyé à {client.prenom} {client.nom} ({client.email})', 'success')
+        flash(
+            f'✅ Lien de signature renvoyé à {client.prenom} {client.nom} ({client.email})',
+            'success'
+        )
 
         if email_envoye:
             return jsonify({
                 'success': True,
-                'message': f'✅ Email envoyé à {client.email}',
+                'message': f'✅ Email envoyé avec succès à {client.email}',
                 'email_envoye': True
             })
         else:
             return jsonify({
                 'success': True,
-                'message': f'⚠️ Notification créée mais email non envoyé (vérifiez config SMTP)',
+                'message': f'⚠️ Notification créée mais l’email Brevo n’a pas été envoyé. Vérifiez BREVO_API_KEY.',
                 'email_envoye': False
             })
 
     except Exception as e:
         db.session.rollback()
-        print("PASS EXACT:", repr(app.config['MAIL_PASSWORD']))
+        print("MAIL PASSWORD:", repr(os.environ.get('MAIL_PASSWORD')))
         print(f"❌ Erreur renvoi lien: {e}")
         return jsonify({'success': False, 'message': f'❌ Erreur: {str(e)}'}), 500
 
