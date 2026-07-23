@@ -5260,12 +5260,18 @@ class TermsAcceptance(db.Model):
     __tablename__ = 'terms_acceptance'
 
     id = db.Column(db.Integer, primary_key=True)
-    client_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    client_id = db.Column(
+        db.Integer,
+        db.ForeignKey('clients.id'),
+        nullable=False
+    )
+
     date_acceptation = db.Column(db.DateTime, nullable=False)
     ip_address = db.Column(db.String(45))
     user_agent = db.Column(db.Text)
 
-    client = db.relationship('User', backref='terms_acceptances')
+    client = db.relationship('Client', backref='terms_acceptances')
 
 class Competence(db.Model):
     __tablename__ = "competences"

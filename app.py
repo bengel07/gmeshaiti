@@ -3747,14 +3747,6 @@ def client_terms(token):
 
         if action == 'accepter':
             try:
-                # Enregistrer l'acceptation
-                acceptance = TermsAcceptance(
-                    client_id=client.id,
-                    date_acceptation=datetime.now(),
-                    ip_address=request.remote_addr,
-                    user_agent=request.user_agent.string
-                )
-                db.session.add(acceptance)
 
                 # Mettre à jour le client
                 client.statut = 'en_attente_approbation'
@@ -3784,6 +3776,15 @@ def client_terms(token):
                 else:
                     user.terms_accepted = True
                     user.statut = 'en_attente_approbation'
+
+                # Enregistrer l'acceptation
+                acceptance = TermsAcceptance(
+                    client_id=client.id,
+                    date_acceptation=datetime.now(),
+                    ip_address=request.remote_addr,
+                    user_agent=request.user_agent.string
+                )
+                db.session.add(acceptance)
 
                 # Gérer l'action par défaut
                 action_defaut = Action.query.first()
