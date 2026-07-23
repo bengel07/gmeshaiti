@@ -19766,38 +19766,32 @@ with app.app_context():
         print(f"   - {u.username} ({u.email}) - Rôle: {u.role}")
 
 
-# app.py - Ajoute cette route à la fin du fichier, avant le if __name__ == '__main__'
-@app.route('/debug/test_conseiller')
-def test_conseiller():
-    """Test simple de la route conseiller"""
-    from flask import url_for
+from sqlalchemy import text
+
+@app.route("/fix_competence_fk")
+def fix_competence_fk():
 
     try:
-        # Importer PAGES depuis views
-        from views import PAGES
+        with db.engine.begin() as conn:
 
-        if 'conseiller' not in PAGES:
-            return {"error": "conseiller n'existe pas dans PAGES"}
+            # Supprimer l'ancienne contrainte
+            conn.execute(text("""
+                ALTER TABLE competences
+                DROP CONSTRAINT IF EXISTS competences_client_id_fkey;
+            """))
 
-        page = PAGES['conseiller']
-        endpoint = page['endpoint']
+            # Recréer la bonne contrainte
+            conn.execute(text("""
+                ALTER TABLE competences
+                ADD CONSTRAINT competences_client_id_fkey
+                FOREIGN KEY (client_id)
+                REFERENCES clients(id);
+            """))
 
-        # Tester url_for
-        url = url_for(endpoint)
+        return "✅ Correction FK competences terminée"
 
-        return {
-            'page_key': 'conseiller',
-            'page_data': page,
-            'endpoint': endpoint,
-            'generated_url': url,
-            'status': '✅ OK'
-        }
     except Exception as e:
-        import traceback
-        return {
-            'error': str(e),
-            'traceback': traceback.format_exc()
-        }
+        return f"❌ Erreur: {str(e)}"
 
 
 
