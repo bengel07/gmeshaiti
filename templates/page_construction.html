@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚧 {{ title }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        h1 {
+            color: #1a1a2e;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        .page-name {
+            color: #667eea;
+            font-weight: 700;
+            font-size: 20px;
+            background: #f8f9ff;
+            padding: 10px 20px;
+            border-radius: 12px;
+            display: inline-block;
+            margin: 15px 0;
+        }
+        p {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 14px 35px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            text-decoration: none;
+            margin-top: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #f0f2ff;
+            color: #667eea;
+            margin-left: 10px;
+        }
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 13px;
+            color: #999;
+        }
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-bar .progress {
+            width: 30%;
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            animation: progress 2s ease-in-out infinite;
+        }
+        @keyframes progress {
+            0% { width: 20%; }
+            50% { width: 60%; }
+            100% { width: 20%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🚧</div>
+        <h1>Page en construction</h1>
+        <div class="subtitle">Cette fonctionnalité est actuellement en développement</div>
+
+        <div class="page-name">
+            📄 {{ page_name }}
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress"></div>
+        </div>
+
+        <p>
+            Nous travaillons activement pour vous offrir cette fonctionnalité.<br>
+            Elle sera disponible prochainement.
+        </p>
+        <p style="font-size: 14px; color: #999;">
+            ⏳ Merci de votre patience
+        </p>
+
+        <div>
+            <a href="{{ url_for('super_admin.switcher') }}" class="btn">
+                🔙 Retour au Super Admin
+            </a>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+                📊 Tableau de bord
+            </a>
+        </div>
+
+        <div class="footer">
+            <a href="{{ url_for('deconnexion') }}">🔒 Se déconnecter</a> •
+            <a href="{{ url_for('accueil') }}">🏠 Accueil</a>
+        </div>
+    </div>
+</body>
+</html>

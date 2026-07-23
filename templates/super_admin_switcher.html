@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔓 Super Admin - Accès total</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            max-width: 850px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        h1 {
+            color: #1a1a2e;
+            font-size: 28px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+        .info-box {
+            background: #f8f9ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        .info-box strong {
+            color: #667eea;
+        }
+        .badge {
+            display: inline-block;
+            background: #e94560;
+            color: white;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .count {
+            background: #667eea;
+            color: white;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-left: 10px;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .dropdown-container {
+            width: 100%;
+            position: relative;
+        }
+        #searchBox {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            border: 2px solid #ddd;
+            font-size: 17px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        #searchBox:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        .dropdown-list {
+            margin-top: 10px;
+            max-height: 500px;
+            overflow-y: auto;
+            border-radius: 12px;
+            background: white;
+            border: 1px solid #ddd;
+        }
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+        .dropdown-item:hover {
+            background: #667eea;
+            color: white;
+        }
+        .dropdown-item:hover .subtitle {
+            color: rgba(255,255,255,0.8);
+        }
+        .icon {
+            font-size: 25px;
+            width: 40px;
+            flex-shrink: 0;
+        }
+        .info {
+            flex: 1;
+            margin: 0 10px;
+        }
+        .title {
+            font-weight: bold;
+        }
+        .subtitle {
+            font-size: 13px;
+            opacity: 0.7;
+            transition: color 0.2s;
+        }
+        .arrow {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .footer {
+            margin-top: 25px;
+            text-align: center;
+            font-size: 13px;
+            color: #999;
+        }
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 5px;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .quick-links {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .quick-links a {
+            background: #f0f2ff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #667eea;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .quick-links a:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+        .category-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+        .category-badge.admin {
+            background: #e94560;
+            color: white;
+        }
+        .category-badge.employes {
+            background: #2ecc71;
+            color: white;
+        }
+        .category-badge.superviseurs {
+            background: #f39c12;
+            color: white;
+        }
+        .category-badge.direction {
+            background: #9b59b6;
+            color: white;
+        }
+        /* Scrollbar personnalisée */
+        .dropdown-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .dropdown-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .dropdown-list::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+        .dropdown-list::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+        /* Responsive */
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 22px;
+                flex-wrap: wrap;
+            }
+            .dropdown-item {
+                padding: 12px;
+            }
+            .icon {
+                font-size: 20px;
+                width: 30px;
+            }
+        }
+        .no-results {
+            padding: 30px;
+            text-align: center;
+            color: #999;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            🔓 Accès Super Admin
+            <span class="badge">{{ role or 'Super Admin' }}</span>
+        </h1>
+        <div class="subtitle">
+            👋 Connecté en tant que <strong>{{ username or 'Administrateur' }}</strong>
+            <span class="count">{{ pages|length if pages else 0 }} pages disponibles</span>
+        </div>
+
+        <div class="warning">
+            ⚠️ Tu as accès à <strong>TOUTES</strong> les pages du système, sans restrictions.
+        </div>
+
+        <div class="info-box">
+            📌 <strong>Sélectionne une fonction</strong> dans la liste ci-dessous pour y accéder instantanément.
+        </div>
+
+        <!-- Container de recherche et liste -->
+        <div class="dropdown-container">
+            <input type="text"
+                   id="searchBox"
+                   placeholder="🔍 Rechercher une page..."
+                   autocomplete="off"
+                   aria-label="Rechercher une page">
+
+            <div id="dropdownList" class="dropdown-list">
+                {% if pages %}
+                    {% for key, page in pages.items() %}
+                    <div class="dropdown-item"
+                         data-name="{{ page.name|lower }} {{ page.function|lower }} {{ page.category|lower }}"
+                         data-key="{{ key }}">
+                        <span class="icon">{{ page.icon or '📄' }}</span>
+                        <div class="info">
+                            <div class="title">{{ page.name }}</div>
+                            <div class="subtitle">
+                                {{ page.function or 'Fonction' }}
+                                •
+                                {{ page.category or 'Général' }}
+                                <span class="category-badge {{ page.category|lower if page.category else '' }}">
+                                    {{ page.category or 'Général' }}
+                                </span>
+                            </div>
+                        </div>
+                        <span class="arrow">➜</span>
+                    </div>
+                    {% endfor %}
+                    <div class="no-results" id="noResults">
+                        😕 Aucune page trouvée
+                    </div>
+                {% else %}
+                    <div class="dropdown-item" style="justify-content: center; color: #999;">
+                        Aucune page disponible
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Raccourcis rapides -->
+        <div style="margin-top: 20px;">
+        <label style="font-size: 14px; color: #666;">⚡ Accès rapide :</label>
+        <div class="quick-links">
+            {% for key, page in pages.items() %}
+                <a href="{{ url_for('super_admin.quick_access', page_key=key) }}" title="{{ page.name }}">
+                    {{ page.icon }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+
+        <div class="footer">
+            <a href="{{ url_for('deconnexion') }}">🔒 Se déconnecter</a> •
+            <a href="{{ url_for('admin_dashboard') }}">📊 Tableau de bord</a> •
+            <a href="{{ url_for('accueil') }}">🏠 Accueil</a>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ===== Gestion de la recherche =====
+            const searchBox = document.getElementById('searchBox');
+            const items = document.querySelectorAll('.dropdown-item');
+            const noResults = document.getElementById('noResults');
+
+            function filterPages() {
+                const query = searchBox.value.toLowerCase().trim();
+                let visibleCount = 0;
+
+                items.forEach(function(item) {
+                    const searchData = item.getAttribute('data-name') || '';
+                    const match = searchData.includes(query);
+                    item.style.display = match ? 'flex' : 'none';
+                    if (match) visibleCount++;
+                });
+
+                // Gérer l'affichage du message "aucun résultat"
+                if (noResults) {
+                    noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+                }
+            }
+
+            // Événement de recherche avec debounce pour de meilleures performances
+            let searchTimeout;
+            searchBox.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(filterPages, 150);
+            });
+
+            // ===== Navigation vers les pages =====
+            window.goToPage = function(pageKey) {
+                if (pageKey) {
+                    window.location.href = '/super_admin/go/' + encodeURIComponent(pageKey);
+                }
+            };
+
+            // ===== Navigation au clavier (Entrée/Espace) =====
+            document.querySelectorAll(".dropdown-item").forEach(item => {
+
+                item.addEventListener("click", function () {
+                    goToPage(this.dataset.key);
+                });
+
+                item.addEventListener("keydown", function(e) {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        goToPage(this.dataset.key);
+                    }
+                });
+
+            });
+
+            // ===== Raccourci clavier Ctrl+F / Cmd+F =====
+            document.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                    e.preventDefault();
+                    searchBox.focus();
+                    searchBox.select();
+                }
+            });
+
+            // ===== Focus automatique sur la recherche =====
+            // Optionnel: décommentez pour focus automatique
+            // searchBox.focus();
+
+            // ===== Message dans la console pour les développeurs =====
+            console.log('🔓 Super Admin - Interface chargée avec succès');
+            console.log(`📄 ${items.length} pages disponibles`);
+
+        })();
+    </script>
+</body>
+</html>

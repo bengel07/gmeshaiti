@@ -16,6 +16,8 @@ import warnings
 from datetime import datetime, timedelta
 from math import dist
 
+
+
 # ==================== FLASK CORE ====================
 from flask import (
     Flask, render_template, redirect, url_for, flash,
@@ -141,7 +143,7 @@ from middleware.auth import login_requis
 from datetime import datetime
 import logging
 
-
+from super_admin_bp import super_admin_bp
 
 
 app = Flask(__name__)
@@ -186,6 +188,10 @@ app.register_blueprint(accueil_bp)
 app.register_blueprint(employees_bp)
 app.register_blueprint(prets_bp)
 
+
+app.register_blueprint(super_admin_bp)
+
+
 app._static_folder = 'static'
 
 init_db(app)  # ← Déplacé ICI, avant les imports des modèles !
@@ -208,20 +214,51 @@ partner_portal_bp = Blueprint('partner_portal', __name__, url_prefix='/api/partn
 
 
 
+# def role_required(*roles):
+#     def decorator(f):
+#         @wraps(f)
+#         def decorated_function(*args, **kwargs):
+#             if not current_user.is_authenticated:
+#                 flash('Veuillez vous connecter', 'danger')
+#                 return redirect(url_for('connexion'))
+#             if current_user.role not in roles:
+#                 flash('Accès non autorisé', 'danger')
+#                 # ✅ Au lieu de dashboard_redirect, rester sur la page si possible
+#                 if request.referrer:
+#                     return redirect(request.referrer)
+#                 return redirect(url_for('dashboard_redirect'))
+#             return f(*args, **kwargs)
+#         return decorated_function
+#     return decorator
+
+
+from functools import wraps
+from flask import flash, redirect, request, url_for
+from flask_login import current_user
+
 def role_required(*roles):
+    # Accepte aussi bien une liste qu'un tuple ou des arguments séparés
+    if len(roles) == 1 and isinstance(roles[0], (list, tuple, set)):
+        roles = tuple(roles[0])
+
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
+
             if not current_user.is_authenticated:
                 flash('Veuillez vous connecter', 'danger')
                 return redirect(url_for('connexion'))
+
             if current_user.role not in roles:
                 flash('Accès non autorisé', 'danger')
-                # ✅ Au lieu de dashboard_redirect, rester sur la page si possible
+
                 if request.referrer:
                     return redirect(request.referrer)
+
                 return redirect(url_for('dashboard_redirect'))
+
             return f(*args, **kwargs)
+
         return decorated_function
     return decorator
 
@@ -3035,7 +3072,7 @@ def generer_token_conditions(client):
 
 
 @app.route('/conseiller/creer-dossier', methods=['GET', 'POST'])
-@login_required
+@role_required('employe', 'super_admin', 'direction')
 def creer_dossier():
     """Créer un nouveau dossier client avec processus d'approbation complet"""
     from models import User, Succursale, Notification, TermsAcceptance, Competence, Action
@@ -3049,7 +3086,10 @@ def creer_dossier():
     import json
     import re
     # Vérification des permissions
-    if current_user.role != 'employe' or not current_user.has_permission('conseiller'):
+    is_super_admin = (current_user.role == 'super_admin')
+    is_conseiller = (current_user.role == 'employe' and current_user.fonction == 'conseiller')
+
+    if not (is_super_admin or is_conseiller):
         flash('⛔ Accès non autorisé', 'danger')
         return redirect(url_for('employe_dashboard_generique'))
     # Récupérer la succursale du conseiller connecté
@@ -4963,6 +5003,14 @@ def connexion():
 
         if user and check_password_hash(user.password_hash, password):
             login_user(user)
+
+            # 🔥 AJOUTER CES 3 LIGNES ICI 🔥
+            session['user'] = f"{user.prenom} {user.nom}"
+            session['role'] = user.role
+            session['user_id'] = user.id
+
+            print(f"✅ Connexion réussie: {user.email} - Rôle: {user.role}")  # Debug
+
 
             # CAS 1: Première connexion - obliger le changement de MDP
             if user.premier_connexion:
@@ -9398,6 +9446,8 @@ def calcul_pret():
 @login_required
 def admin_dashboard():
 
+    from views import PAGES
+
     if current_user.role not in ['super_admin', 'admin_succursale', 'admin_central']:
         flash("Accès refusé", "danger")
         return redirect(url_for('tableau_de_bord'))
@@ -9443,6 +9493,9 @@ def admin_dashboard():
         total_admins=total_admins,
         total_agents=total_agents,
         total_clients=total_clients,
+        pages=PAGES,
+        role=session.get('role'),  # 👈 AJOUTE CECI
+        username=session.get('user'),  # 👈 AJOUTE CECI
         comptes_en_attente=comptes_en_attente
     )
 
@@ -12699,11 +12752,18 @@ def rapports_dashboard():
 
 # Route Conseiller avec données
 @app.route('/employe/conseiller')
-@login_required
+@role_required('employe', 'super_admin')
 def conseiller_dashboard():
-    if current_user.role != 'employe' or current_user.fonction != 'conseiller':
+    """Dashboard pour les conseillers - accessible aussi aux super_admin"""
+
+    # ✅ VÉRIFICATION D'ACCÈS POUR SUPER_ADMIN
+    is_super_admin = (current_user.role == 'super_admin')
+    is_conseiller = (current_user.role == 'employe' and current_user.fonction == 'conseiller')
+
+    # ✅ SI CE N'EST NI SUPER_ADMIN NI CONSEILLER → REFUSER
+    if not (is_super_admin or is_conseiller):
         flash('⛔ Accès non autorisé', 'danger')
-        return redirect(url_for('tableau_de_bord'))
+        return redirect(url_for('admin_dashboard'))
 
     # ✅ Récupérer la succursale de l'utilisateur
     succursale = None
@@ -12730,6 +12790,15 @@ def conseiller_dashboard():
         else:
             dossiers = []
 
+    # ✅ DÉFINIR clients AVANT de l'utiliser !
+    if succursale:
+        clients = Client.query.filter_by(
+            succursale_id=succursale.id,
+            cree_par_id=current_user.id
+        ).all()
+    else:
+        clients = []
+
 
     # Statistiques réelles (pas en dur)
     total_clients = Client.query.filter_by(cree_par_id=current_user.id).count()
@@ -12755,6 +12824,7 @@ def conseiller_dashboard():
 
     return render_template('conseiller_dashboard.html',
                            clients=clients,
+                           dossiers=dossiers,
                            clients_avec_prets=clients_avec_prets,
                            total_clients=total_clients,
                            dossiers_actifs=dossiers_actifs,
@@ -12767,9 +12837,12 @@ def conseiller_dashboard():
 
 
 
+
+
+
 # Route Analyste avec données
 @app.route('/employe/analyste')
-@login_required
+@role_required('employe', 'super_admin')
 def analyste_dashboard():
     if current_user.role != 'employe' or current_user.fonction != 'analyste_credit':
         return redirect(url_for('tableau_de_bord'))
@@ -12785,7 +12858,7 @@ def analyste_dashboard():
 
 # Route Gestionnaire avec données
 @app.route('/employe/gestionnaire')
-@login_required
+@role_required('employe', 'super_admin')
 def gestionnaire_dashboard():
     if current_user.role != 'employe' or current_user.fonction != 'gestionnaire':
         return redirect(url_for('tableau_de_bord'))
@@ -12803,7 +12876,7 @@ def gestionnaire_dashboard():
 
 # ✅ APPROUVER un employé/superviseur
 @app.route('/admin/approver-utilisateur/<int:employe_id>')
-@login_required
+@role_required('employe', 'super_admin')
 def approver_utilisateur(employe_id):
     if current_user.role != 'admin':
         return redirect(url_for('tableau_de_bord'))
@@ -12826,7 +12899,7 @@ def approver_utilisateur(employe_id):
 
 # ⏸️ SUSPENDRE un utilisateur
 @app.route('/admin/suspendre-utilisateur/<int:employe_id>')
-@login_required
+@role_required('employe', 'super_admin')
 def suspendre_utilisateur(employe_id):
     if current_user.role != 'admin':
         return redirect(url_for('tableau_de_bord'))
@@ -12848,7 +12921,7 @@ def suspendre_utilisateur(employe_id):
 
 # 👥 VOIR TOUS LES EMPLOYÉS
 @app.route('/superviseur/employes')
-@login_required
+@role_required('employe', 'super_admin')
 def superviseur_tous_employes():
     if current_user.role != 'superviseur':
         return redirect(url_for('tableau_de_bord'))
@@ -12859,7 +12932,7 @@ def superviseur_tous_employes():
 
 # 🏦 VOIR PAR FONCTION
 @app.route('/superviseur/fonction/<fonction>')
-@login_required
+@role_required('employe', 'super_admin')
 def superviseur_voir_fonction(fonction):
     if current_user.role != 'superviseur':
         return redirect(url_for('tableau_de_bord'))
@@ -12883,7 +12956,7 @@ def superviseur_voir_fonction(fonction):
 
 # 👤 VOIR DÉTAILS EMPLOYÉ
 @app.route('/superviseur/employe/<int:employe_id>')
-@login_required
+@role_required('employe', 'super_admin')
 def superviseur_voir_employe(employe_id):
     """Page de détail d'un employé"""
     if current_user.role != 'superviseur':
@@ -12904,7 +12977,7 @@ def superviseur_voir_employe(employe_id):
 
 # 📊 RAPPORTS PERFORMANCE
 @app.route('/superviseur/rapports')
-@login_required
+@role_required('employe', 'super_admin')
 def superviseur_rapports():
     if current_user.role != 'superviseur':
         return redirect(url_for('tableau_de_bord'))
@@ -12922,7 +12995,7 @@ def superviseur_rapports():
 
 
 @app.route('/superviseur/employes')
-@login_required
+@role_required('employe', 'super_admin')
 def superviseur_employes():
     if current_user.role != 'superviseur':
         return redirect(url_for('tableau_de_bord'))
@@ -12932,7 +13005,7 @@ def superviseur_employes():
 
 
 @app.route('/superviseur/dashboard')
-@login_required
+@role_required('employe', 'super_admin')
 def superviseur_dashboard():
     if current_user.role != 'superviseur':
         return redirect(url_for('tableau_de_bord'))
@@ -12982,7 +13055,7 @@ def superviseur_dashboard():
 
 # 📝 JOURNAL DES ACTIVITÉS
 @app.route('/superviseur/activites')
-@login_required
+@role_required('employe', 'super_admin')
 def superviseur_activites():
     if current_user.role != 'superviseur':
         return redirect(url_for('tableau_de_bord'))
@@ -12991,7 +13064,7 @@ def superviseur_activites():
 
 
 @app.route('/superviseur/init-fonctions')
-@login_required
+@role_required('employe', 'super_admin')
 def init_fonctions():
     if current_user.role != 'superviseur':
         return redirect(url_for('tableau_de_bord'))
@@ -13016,7 +13089,7 @@ def init_fonctions():
 
 
 @app.route('/superviseur/debug-fonctions')
-@login_required
+@role_required('employe', 'super_admin')
 def debug_fonctions():
     if current_user.role != 'superviseur':
         return redirect(url_for('tableau_de_bord'))
@@ -15032,7 +15105,7 @@ def create_agent():
 
     # GET : Afficher le formulaire
     succursales = Succursale.query.all()
-    return render_template('admin_central/ajouter_employe.html', succursales=succursales)
+    return render_template('admin/ajouter_employe.html', succursales=succursales)
 
 #temporaire
 @app.route('/admin/reset_test_data', methods=['GET', 'POST'])
@@ -18291,8 +18364,7 @@ def transfert_entre_clients():
 # ============================================
 
 @app.route('/employe/transfert_client', methods=['GET', 'POST'])
-@login_required
-@role_required('employe')
+@role_required('employe', 'super_admin')
 def employe_transfert_entre_clients():
     """Transfert d'argent entre deux clients (réservé aux employés)"""
 
@@ -19577,6 +19649,17 @@ def resend_email(user_id):
             "message": "❌ Erreur: " + str(e)
         }), 500
 
+@app.route('/page_en_construction/<page_name>')
+@login_required
+def page_en_construction(page_name):
+    """Page temporaire pour les pages en construction"""
+    return render_template('page_construction.html',
+                         page_name=page_name,
+                         title=f"Page en construction: {page_name}")
+
+
+
+# from views import super_admin_switcher, super_admin_go, super_admin_quick_access, PAGES
 
 # === CRÉATION DES TABLES ET ADMIN AU DÉMARRAGE ===
 with app.app_context():
@@ -19661,6 +19744,38 @@ with app.app_context():
         print(f"   - {u.username} ({u.email}) - Rôle: {u.role}")
 
 
+# app.py - Ajoute cette route à la fin du fichier, avant le if __name__ == '__main__'
+@app.route('/debug/test_conseiller')
+def test_conseiller():
+    """Test simple de la route conseiller"""
+    from flask import url_for
+
+    try:
+        # Importer PAGES depuis views
+        from views import PAGES
+
+        if 'conseiller' not in PAGES:
+            return {"error": "conseiller n'existe pas dans PAGES"}
+
+        page = PAGES['conseiller']
+        endpoint = page['endpoint']
+
+        # Tester url_for
+        url = url_for(endpoint)
+
+        return {
+            'page_key': 'conseiller',
+            'page_data': page,
+            'endpoint': endpoint,
+            'generated_url': url,
+            'status': '✅ OK'
+        }
+    except Exception as e:
+        import traceback
+        return {
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }
 
 
 
