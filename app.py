@@ -19685,16 +19685,21 @@ def test_email():
 def resend_email(user_id):
 
     employe = User.query.get_or_404(user_id)
+
+    # Récupérer le mot de passe fourni
     mot_de_passe_temp = request.form.get('password')
 
+    # Si aucun mot de passe fourni, générer un nouveau
     if not mot_de_passe_temp:
         mot_de_passe_temp = generer_mot_de_passe()
 
-    try:
-        # ✅ ENVOYER L'EMAIL DE BIENVENUE
-        send_welcome_email(employe, mot_de_passe_temp)
+    # Mettre à jour le hash avec CE mot de passe
+    employe.password_hash = generate_password_hash(mot_de_passe_temp)
 
-        flash(f"✅ Employé {employe.prenom} {employe.nom} créé avec succès !", "success")
+    db.session.commit()
+
+    try:
+        send_welcome_email(employe, mot_de_passe_temp)
 
         return jsonify({
             "success": True,
@@ -19702,6 +19707,8 @@ def resend_email(user_id):
         })
 
     except Exception as e:
+        db.session.rollback()
+
         return jsonify({
             "success": False,
             "message": "❌ Erreur: " + str(e)
