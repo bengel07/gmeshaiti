@@ -3883,7 +3883,7 @@ def client_terms(token):
             except Exception as e:
                 db.session.rollback()
                 print(f"❌ Erreur acceptation: {e}")
-                flash('❌ Une erreur est survenue. Veuillez réessayer.', 'danger')
+                flash(f'❌ Erreur: {str(e)}', 'danger')
                 return redirect(request.url)
 
         elif action == 'refuser':
