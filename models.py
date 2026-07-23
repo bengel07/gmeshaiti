@@ -5274,7 +5274,7 @@ class Competence(db.Model):
 
     client_id = db.Column(
         db.Integer,
-        db.ForeignKey("users.id"),
+        db.ForeignKey("clients.id"),
         nullable=False
     )
 
@@ -5290,7 +5290,7 @@ class Competence(db.Model):
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
 
     client = db.relationship(
-        "User",
+        "Client",
         foreign_keys=[client_id],
         backref=db.backref("competences_client", lazy=True)
     )
