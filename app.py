@@ -14718,7 +14718,7 @@ def modifier_employe(employe_id):
         # Seul un admin peut changer ces champs sensibles
         if current_user.role in ['admin', 'super_admin','direction']:
             nouveau_role = request.form.get('role')
-            if nouveau_role and nouveau_role in ['employe', 'superviseur', 'admin_succursale']:
+            if nouveau_role and nouveau_role in ['employe', 'superviseur', 'admin_succursale', 'direction']:
                 employe.role = nouveau_role
 
             nouvelle_succursale = request.form.get('succursale_id')
