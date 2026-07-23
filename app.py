@@ -12756,6 +12756,10 @@ def rapports_dashboard():
 def conseiller_dashboard():
     """Dashboard pour les conseillers - accessible aussi aux super_admin"""
 
+    # ✅ AJOUTEZ CES 2 LIGNES ICI (au début de la fonction)
+    clients = []  # ← AJOUTER CETTE LIGNE
+    dossiers = []  # ← AJOUTER CETTE LIGNE
+
     # ✅ VÉRIFICATION D'ACCÈS POUR SUPER_ADMIN
     is_super_admin = (current_user.role == 'super_admin')
     is_conseiller = (current_user.role == 'employe' and current_user.fonction == 'conseiller')
