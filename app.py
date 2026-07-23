@@ -427,13 +427,6 @@ def envoyer_email_conditions(client):
 
         print("🔗 Lien acceptation :", lien_acceptation)
         # try:
-        #     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        #     s.connect(("8.8.8.8", 80))
-        #     local_ip = s.getsockname()[0]
-        #     s.close()
-        #     lien_acceptation = lien_acceptation.replace('127.0.0.1', local_ip).replace('localhost', local_ip)
-        # except:
-        #     pass
 
         # 3. ENVOYER L'EMAIL VIA API BREVO (solution intégrée)
         import requests
@@ -573,21 +566,55 @@ def envoyer_email_conditions(client):
             print(f"❌ Erreur envoi email: {e}")
 
         # 4. Créer une notification dans la base
-        from datetime import datetime
-        from models import Notification
+        from models import Notification, Action
+        from datetime import datetime, timedelta
+
+        # Créer une action valide
+        action = Action.query.filter_by(
+            assignee_a_id=current_user.id
+        ).first()
+
+        if not action:
+            action = Action(
+                titre="Signature conditions client",
+                assignee_a_id=current_user.id,
+                creee_par_id=current_user.id,
+                date_echeance=datetime.now() + timedelta(days=7),
+                type_action="tache",
+                priorite="moyenne",
+                statut="a_faire",
+                progression=0
+            )
+            db.session.add(action)
+            db.session.flush()
 
         nouvelle_notification = Notification(
-            employe_id=client.id,
+            employe_id=current_user.id,
+            acteur_id=current_user.id,
+
+            client_id=client.id,
+
             titre="🔔 Nouveau lien de signature",
             message=f"Bonjour {client.prenom}, voici votre nouveau lien pour signer vos conditions : {lien_acceptation}",
+
             type_notification='terms',
+            type='info',
+            niveau='info',
+            level='info',
+
             lien=lien_acceptation,
+
             date_envoi=datetime.now(),
-            lue=False,
             date_creation=datetime.now(),
-            destinataire_id=client.id,
-            action_id=0
+
+            lue=False,
+            is_read=False,
+
+            destinataire_id=current_user.id,
+
+            action_id=action.id
         )
+
         db.session.add(nouvelle_notification)
         db.session.commit()
 
@@ -16010,6 +16037,8 @@ def debug_liens_clients():
 @app.route('/conseiller/renvoyer-lien/<int:client_id>', methods=['POST'])
 @login_required
 def renvoyer_lien(client_id):
+    import requests
+    import os
     """Renvoie le lien de signature au client (avec email réel)"""
 
     # Vérifier les permissions
@@ -16039,61 +16068,17 @@ def renvoyer_lien(client_id):
         lien_terms = url_for('client_terms', token=nouveau_token, _external=True)
 
         # 2. Remplacer localhost par l'IP réelle pour les clients externes
-        import socket
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80))
-            local_ip = s.getsockname()[0]
-            s.close()
-            lien_terms = lien_terms.replace('127.0.0.1', local_ip).replace('localhost', local_ip)
-        except:
-            pass
+        APP_URL = os.environ.get(
+            "APP_URL",
+            "https://gmeshaiti-aeo3.onrender.com"
+        )
+
+        lien_terms = f"{APP_URL}/client/terms/{nouveau_token}"
 
         client.token_signature = nouveau_token
         db.session.commit()
 
-        # 3. ENVOYER L'EMAIL VIA SMTP (solution intégrée)
-        import requests
 
-        # Configuration email (à mettre dans vos variables d'environnement)
-        import os
-        BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
-        FROM_EMAIL = os.environ.get('FROM_EMAIL', 'gmeshaiti@gmail.com')
-        FROM_NAME = os.environ.get('FROM_NAME', 'GMES Microcrédit')
-
-        url = "https://api.brevo.com/v3/smtp/email"
-
-        headers = {
-            "api-key": BREVO_API_KEY,
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        }
-
-        data = {
-            "sender": {
-                "name": FROM_NAME,
-                "email": FROM_EMAIL
-            },
-            "to": [
-                {
-                    "email": client.email,
-                    "name": client.email.split("@")[0]
-                }
-            ],
-            "subject": "🔐 GMES - Lien de signature de vos conditions générales",
-            "htmlContent": html_content
-        }
-
-        response = requests.post(
-            url,
-            json=data,
-            headers=headers,
-            timeout=30
-        )
-
-        print("📤 FROM :", FROM_EMAIL)
-        print("📥 TO :", client.email)
-        print("BREVO :", response.status_code, response.text)
 
         # Version HTML du message
         html = f"""
@@ -16158,24 +16143,67 @@ def renvoyer_lien(client_id):
         L'équipe GMES Microcrédit
         """
 
-        # Attacher les versions texte et HTML
-        part1 = MIMEText(text, 'plain')
-        part2 = MIMEText(html, 'html')
-        msg.attach(part1)
-        msg.attach(part2)
+        # 3. ENVOYER L'EMAIL VIA SMTP (solution intégrée)
 
-        # Envoyer l'email
-        try:
-            server = smtplib.SMTP(EMAIL_SERVER, EMAIL_PORT)
-            server.starttls()
-            server.login(EMAIL_EXPEDITEUR, EMAIL_PASSWORD)
-            server.send_message(msg)
-            server.quit()
-            email_envoye = True
-            print(f"✅ Email envoyé avec succès à {client.email}")
-        except Exception as e:
-            print(f"❌ Erreur envoi email: {e}")
-            email_envoye = False
+        # Configuration email (à mettre dans vos variables d'environnement)
+
+        BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
+        FROM_EMAIL = os.environ.get('FROM_EMAIL', 'gmeshaiti@gmail.com')
+        FROM_NAME = os.environ.get('FROM_NAME', 'GMES Microcrédit')
+
+        url = "https://api.brevo.com/v3/smtp/email"
+
+        headers = {
+            "api-key": BREVO_API_KEY,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+
+        data = {
+            "sender": {
+                "name": FROM_NAME,
+                "email": FROM_EMAIL
+            },
+            "to": [
+                {
+                    "email": client.email,
+                    "name": client.email.split("@")[0]
+                }
+            ],
+            "subject": "🔐 GMES - Lien de signature de vos conditions générales",
+            "htmlContent": html
+        }
+
+        response = requests.post(
+            url,
+            json=data,
+            headers=headers,
+            timeout=30
+        )
+
+        print("📤 FROM :", FROM_EMAIL)
+        print("📥 TO :", client.email)
+        print("BREVO :", response.status_code, response.text)
+
+
+        # Attacher les versions texte et HTML
+        # part1 = MIMEText(text, 'plain')
+        # part2 = MIMEText(html, 'html')
+        # msg.attach(part1)
+        # msg.attach(part2)
+        #
+        # # Envoyer l'email
+        # try:
+        #     server = smtplib.SMTP(EMAIL_SERVER, EMAIL_PORT)
+        #     server.starttls()
+        #     server.login(EMAIL_EXPEDITEUR, EMAIL_PASSWORD)
+        #     server.send_message(msg)
+        #     server.quit()
+        #     email_envoye = True
+        #     print(f"✅ Email envoyé avec succès à {client.email}")
+        # except Exception as e:
+        #     print(f"❌ Erreur envoi email: {e}")
+        #     email_envoye = False
 
         # 4. Créer une notification dans la base
         from datetime import datetime
@@ -16199,7 +16227,10 @@ def renvoyer_lien(client_id):
             db.session.flush()
 
         nouvelle_notification = Notification(
-            employe_id=client.id,
+            employe_id=current_user.id,
+            acteur_id=current_user.id,
+
+            client_id=client.id,
             titre="🔔 Nouveau lien de signature",
             message=f"Bonjour {client.prenom}, voici votre nouveau lien pour signer vos conditions : {lien_terms}",
             type_notification='terms',
