@@ -3471,7 +3471,10 @@ def creer_dossier():
 
             # Notification client
             notification_client = Notification(
-                employe_id=nouveau_client.id,
+                employe_id=current_user.id,  # le conseiller qui crée la notification
+                acteur_id=current_user.id,  # celui qui déclenche
+                client_id=nouveau_client.id,  # le vrai client concerné
+
                 titre="Conditions générales à signer",
                 message=f"Bonjour {prenom}, veuillez signer les conditions générales via ce lien : {lien_terms}",
                 type_notification='terms',
@@ -3479,7 +3482,7 @@ def creer_dossier():
                 date_envoi=datetime.now(),
                 lue=False,
                 date_creation=datetime.now(),
-                destinataire_id=nouveau_client.id,
+                destinataire_id=current_user.id,  # car FK obligatoire vers users
                 action_id=action_defaut.id
             )
             db.session.add(notification_client)

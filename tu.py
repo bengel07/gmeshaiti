@@ -1,42 +1,87 @@
 from app import app, db
 from sqlalchemy import text
 
-with app.app_context():
 
-    try:
-        print("🔧 Correction table competences...")
+def fix_competence_fk():
 
-        # Désactiver les clés étrangères temporairement
-        db.session.execute(text("PRAGMA foreign_keys=OFF;"))
+    with app.app_context():
 
-        # Supprimer l'ancienne table
-        db.session.execute(text("""
-            DROP TABLE IF EXISTS competences;
-        """))
+        engine = db.engine
+        db_type = engine.name
 
-        # Recréer la table avec la bonne relation
-        db.session.execute(text("""
-            CREATE TABLE competences (
-                id INTEGER PRIMARY KEY,
-                client_id INTEGER NOT NULL,
-                employe_id INTEGER,
-                nom VARCHAR(100) NOT NULL,
-                niveau VARCHAR(50),
-                description TEXT,
-                date_creation DATETIME,
+        print(f"🗄 Base détectée : {db_type}")
 
-                FOREIGN KEY(client_id)
-                REFERENCES clients(id),
+        if db_type == "postgresql":
 
-                FOREIGN KEY(employe_id)
-                REFERENCES users(id)
-            );
-        """))
+            print("🔍 Vérification PostgreSQL...")
 
-        db.session.commit()
+            result = db.session.execute(text("""
+                SELECT
+                    ccu.table_name AS foreign_table
+                FROM information_schema.table_constraints tc
+                JOIN information_schema.constraint_column_usage ccu
+                ON tc.constraint_name = ccu.constraint_name
+                WHERE tc.table_name='competences'
+                AND tc.constraint_name='competences_client_id_fkey';
+            """))
 
-        print("✅ Table competences corrigée.")
+            row = result.fetchone()
 
-    except Exception as e:
-        db.session.rollback()
-        print("❌ Erreur :", e)
+            if row:
+                print("➡️ Référence actuelle :", row.foreign_table)
+
+                if row.foreign_table == "users":
+
+                    print("🗑 Suppression ancienne FK...")
+
+                    db.session.execute(text("""
+                        ALTER TABLE competences
+                        DROP CONSTRAINT competences_client_id_fkey;
+                    """))
+
+                    db.session.commit()
+
+                    print("🔧 Création nouvelle FK...")
+
+                    db.session.execute(text("""
+                        ALTER TABLE competences
+                        ADD CONSTRAINT competences_client_id_fkey
+                        FOREIGN KEY (client_id)
+                        REFERENCES clients(id);
+                    """))
+
+                    db.session.commit()
+
+                    print("✅ Correction PostgreSQL terminée")
+
+                else:
+                    print("✅ Déjà correct")
+
+            else:
+                print("⚠️ Contrainte inexistante")
+
+
+        elif db_type == "sqlite":
+
+            print("🔍 Vérification SQLite...")
+
+            result = db.session.execute(
+                text("PRAGMA foreign_key_list(competences);")
+            )
+
+            rows = result.fetchall()
+
+            for row in rows:
+                print(row)
+
+            print("""
+⚠️ SQLite ne permet pas de modifier directement une FK.
+Il faut recréer la table.
+""")
+
+        else:
+            print("❌ Base inconnue")
+
+
+if __name__ == "__main__":
+    fix_competence_fk()
