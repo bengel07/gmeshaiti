@@ -19766,33 +19766,6 @@ with app.app_context():
         print(f"   - {u.username} ({u.email}) - Rôle: {u.role}")
 
 
-from sqlalchemy import text
-
-@app.route("/fix_competence_fk")
-def fix_competence_fk():
-
-    try:
-        with db.engine.begin() as conn:
-
-            # Supprimer l'ancienne contrainte
-            conn.execute(text("""
-                ALTER TABLE competences
-                DROP CONSTRAINT IF EXISTS competences_client_id_fkey;
-            """))
-
-            # Recréer la bonne contrainte
-            conn.execute(text("""
-                ALTER TABLE competences
-                ADD CONSTRAINT competences_client_id_fkey
-                FOREIGN KEY (client_id)
-                REFERENCES clients(id);
-            """))
-
-        return "✅ Correction FK competences terminée"
-
-    except Exception as e:
-        return f"❌ Erreur: {str(e)}"
-
 
 
 if __name__ == '__main__':
