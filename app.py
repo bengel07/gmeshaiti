@@ -3437,9 +3437,13 @@ def creer_dossier():
             from utils.notifications import notification_manager
 
             # Créer le lien
+            APP_URL = os.environ.get(
+                "APP_URL",
+                "http://127.0.0.1:10000"
+            )
+
             token = generer_token_conditions(nouveau_client)
-            lien_terms = f"http://10.0.0.226:10000/client/terms/{token}"
-            print(f"🔗 Lien pour le client: {lien_terms}")
+            lien_terms = f"{APP_URL}/client/terms/{token}"
 
             # Envoyer l'email via votre NotificationManager
             try:
