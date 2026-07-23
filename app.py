@@ -104,7 +104,7 @@ from models import (
     Client, Groupe, User, Document, Dossier, Action, RetardPaiement,
     ScoringCredit, HistoriqueEmploye, Epargne, TransactionEpargne,
     Depense, PartnerIntegration, PartnerWebhook, Partner, ProjetSocial,
-    Satisfaction,Emploi, Famille
+    Satisfaction, Emploi, Famille, ProduitEpargne
 )
 
 # ==================== ROUTES / BLUEPRINTS ====================
@@ -19662,7 +19662,7 @@ def page_en_construction(page_name):
                          title=f"Page en construction: {page_name}")
 
 
-from models import ProduitEpargne
+
 
 def creer_produit_epargne_defaut():
     produit = ProduitEpargne.query.filter_by(id=1).first()
@@ -19670,8 +19670,10 @@ def creer_produit_epargne_defaut():
     if not produit:
         produit = ProduitEpargne(
             id=1,
+            code="7-12519",
             nom="Compte Epargne Standard",
-            description="Compte épargne GMES"
+            description="Compte épargne GMES",
+            date_lancement = date.today()
         )
         db.session.add(produit)
         db.session.commit()
