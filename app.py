@@ -19662,11 +19662,29 @@ def page_en_construction(page_name):
                          title=f"Page en construction: {page_name}")
 
 
+from models import ProduitEpargne
+
+def creer_produit_epargne_defaut():
+    produit = ProduitEpargne.query.filter_by(id=1).first()
+
+    if not produit:
+        produit = ProduitEpargne(
+            id=1,
+            nom="Compte Epargne Standard",
+            description="Compte épargne GMES",
+            taux_interet=0,
+            statut="actif"
+        )
+        db.session.add(produit)
+        db.session.commit()
+        print("✅ Produit épargne par défaut créé")
+
 
 # from views import super_admin_switcher, super_admin_go, super_admin_quick_access, PAGES
 
 # === CRÉATION DES TABLES ET ADMIN AU DÉMARRAGE ===
 with app.app_context():
+    creer_produit_epargne_defaut()
     # Créer toutes les tables si elles n'existent pas
     db.create_all()
     print("✅ Tables vérifiées/créées")
