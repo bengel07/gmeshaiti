@@ -19671,9 +19671,7 @@ def creer_produit_epargne_defaut():
         produit = ProduitEpargne(
             id=1,
             nom="Compte Epargne Standard",
-            description="Compte épargne GMES",
-            taux_interet=0,
-            statut="actif"
+            description="Compte épargne GMES"
         )
         db.session.add(produit)
         db.session.commit()
