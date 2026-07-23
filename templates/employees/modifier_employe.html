@@ -47,6 +47,7 @@
                         <select name="role" class="form-control">
                             <option value="employe" {% if employe.role == 'employe' %}selected{% endif %}>Employé</option>
                             <option value="superviseur" {% if employe.role == 'superviseur' %}selected{% endif %}>Superviseur</option>
+                            <option value="direction" {% if employe.role == 'direction' %}selected{% endif %}>direction</option>
                         </select>
                     </div>
                     <div class="col-md-6 mb-3">
