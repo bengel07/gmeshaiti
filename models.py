@@ -5271,7 +5271,7 @@ class Competence(db.Model):
     __tablename__ = 'competences'
 
     id = db.Column(db.Integer, primary_key=True)
-    client_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
     employe_id = db.Column(db.Integer, db.ForeignKey('users.id'),
                         nullable=True)  # ← Changé à True (permet NULL)
     nom = db.Column(db.String(100), nullable=False)
