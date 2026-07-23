@@ -3807,16 +3807,23 @@ def client_terms(token):
                     if conseiller:
                         notification_conseiller = Notification(
                             employe_id=conseiller.id,
+                            acteur_id=conseiller.id,
                             titre="✅ Client a signé les conditions",
                             message=f"{client.prenom} {client.nom} a accepté les conditions générales. En attente d'approbation.",
                             type_notification='info',
                             action_id=action_defaut.id,
                             date_envoi=datetime.now(),
-                            destinataire_id=client.cree_par_id,
+                            destinataire_id=conseiller.id,
+                            client_id=client.id,
                             lien=url_for('conseiller_voir_dossier', dossier_id=client.id, _external=True)
                         )
                         db.session.add(notification_conseiller)
                         print(f"✅ Notification envoyée au conseiller: {conseiller.prenom} {conseiller.nom}")
+                    else:
+                        flash(f"⚠️ Conseiller introuvable id={client.cree_par_id}, notification ignorée")
+                        print(
+                            f"⚠️ Conseiller introuvable id={client.cree_par_id}, notification ignorée"
+                        )
 
                 # Notifier le directeur
                 directeur = User.query.filter_by(
