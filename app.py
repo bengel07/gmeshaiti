@@ -14701,7 +14701,7 @@ def modifier_employe(employe_id):
             'email': employe.email,
             'telephone': employe.telephone,
             'role': employe.role,
-            'adesse': employe.role,
+            'adesse': employe.adresse,
             'fonction': employe.fonction,
             'succursale_id': employe.succursale_id,
             'statut': employe.statut
@@ -14712,7 +14712,7 @@ def modifier_employe(employe_id):
         employe.prenom = request.form.get('prenom', employe.prenom)
         employe.email = request.form.get('email', employe.email)
         employe.telephone = request.form.get('telephone', employe.telephone)
-        employe.telephone = request.form.get('adesse', employe.adresse)
+        employe.adresse = request.form.get('adesse', employe.adresse)
         employe.fonction = request.form.get('fonction', employe.fonction)
 
         # Seul un admin peut changer ces champs sensibles
