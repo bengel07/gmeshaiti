@@ -10,21 +10,7 @@ clients_bp = Blueprint('clients', __name__, url_prefix='/clients')
 
 
 
-# @clients_bp.route('/<succursale_code>')
-# @login_required
-# def list(succursale_code):
-#
-#     succursale = Succursale.query.filter_by(code=succursale_code).first_or_404()
-#
-#     clients = filtrer_par_role(Client).filter_by(
-#         succursale_id=succursale.id
-#     ).all()
-#
-#     return render_template(
-#         'clients/list.html',
-#         succursale=succursale,
-#         clients=clients
-#     )
+
 
 @clients_bp.route('/dashboard')
 @login_required

@@ -77,7 +77,7 @@ from pkg_resources import PkgResourcesDeprecationWarning
 from functools import wraps
 
 # ==================== LOCAL CONFIG ====================
-from config import Config, allowed_file, UPLOAD_FOLDER, MAX_FILE_SIZE, ALLOWED_EXTENSIONS, send_email
+from config import Config, allowed_file, UPLOAD_FOLDER, MAX_FILE_SIZE, ALLOWED_EXTENSIONS, send_email, config
 
 # ==================== DATABASE CUSTOM ====================
 from database import db, init_db
@@ -213,23 +213,6 @@ logger = logging.getLogger(__name__)
 partner_portal_bp = Blueprint('partner_portal', __name__, url_prefix='/api/partner/portal')
 
 
-
-# def role_required(*roles):
-#     def decorator(f):
-#         @wraps(f)
-#         def decorated_function(*args, **kwargs):
-#             if not current_user.is_authenticated:
-#                 flash('Veuillez vous connecter', 'danger')
-#                 return redirect(url_for('connexion'))
-#             if current_user.role not in roles:
-#                 flash('Accès non autorisé', 'danger')
-#                 # ✅ Au lieu de dashboard_redirect, rester sur la page si possible
-#                 if request.referrer:
-#                     return redirect(request.referrer)
-#                 return redirect(url_for('dashboard_redirect'))
-#             return f(*args, **kwargs)
-#         return decorated_function
-#     return decorator
 
 
 from functools import wraps
@@ -640,6 +623,73 @@ def envoyer_email_conditions(client):
         flash(f"❌ Erreur: {str(e)}", "danger")
         return jsonify({'success': False, 'message': f'❌ Erreur: {str(e)}'}), 500
 
+
+@app.route("/resend-conditions-email/<int:client_id>", methods=["POST"])
+@login_required
+def resend_conditions_email(client_id):
+
+    # Vérification des droits
+    if current_user.role not in [
+        "super_admin",
+        "admin",
+        "direction",
+        "admin_succursale",
+        "employe"
+    ]:
+        flash("⛔ Accès refusé.", "danger")
+        return redirect(request.referrer)
+
+
+    # Chercher le client
+    client = Client.query.get_or_404(client_id)
+
+
+    # Si déjà accepté
+    if client.terms_accepted:
+        flash(
+            f"ℹ️ {client.prenom} {client.nom} a déjà accepté les conditions.",
+            "info"
+        )
+        return redirect(request.referrer)
+
+
+    # Vérifier email
+    if not client.email:
+        flash(
+            "⚠️ Ce client n'a pas d'adresse email.",
+            "warning"
+        )
+        return redirect(request.referrer)
+
+
+    try:
+        # Appel de ta fonction existante
+        envoyer_email_conditions(client)
+
+        print(
+            f"📧 Nouveau lien envoyé à {client.email}"
+        )
+
+        flash(
+            f"✅ Lien de conditions renvoyé à {client.email}",
+            "success"
+        )
+
+
+    except Exception as e:
+        db.session.rollback()
+
+        print(
+            f"❌ Erreur renvoi conditions : {e}"
+        )
+
+        flash(
+            "❌ Impossible de renvoyer l'email.",
+            "danger"
+        )
+
+
+    return redirect(request.referrer)
 
 # Ajouter cette fonction au début du fichier (hors de la route)
 def generer_numero_pret():
@@ -8274,7 +8324,7 @@ def modifier_client(client_id):
         db.session.commit()
 
         flash("✅ Client modifié avec succès.")
-        return redirect(url_for('voir_client', id=client.id))
+        return redirect(url_for('voir_client', client_id=client.id))
 
     return render_template("modifier_client.html", client=client)
 
@@ -14264,6 +14314,7 @@ def ajouter_admin():
             cin_nif = request.form.get('cin_nif')
             password = request.form.get('password')
             role = request.form.get('role')
+            photo_selfie=request.files.get("photo_selfie")
             fonction = request.form.get('fonction') or "Non défini"
             succursale_id = request.form.get('succursale_id') or None
 
@@ -14296,7 +14347,7 @@ def ajouter_admin():
             print("👉  77:")
 
             # Hasher le mot de passe
-            mot_de_passe_hash = generate_password_hash(password)
+            password_hash = generate_password_hash(password)
 
             # Gérer la photo (si vous avez un champ photo)
             photo_filename = None
@@ -14330,8 +14381,9 @@ def ajouter_admin():
                 adresse=adresse,
                 date_naissance=datetime.strptime(date_naissance, '%Y-%m-%d').date() if date_naissance else None,
                 cin_nif=cin_nif,
-                mot_de_passe_hash=mot_de_passe_hash,
+                password_hash=password_hash,
                 role=role,
+                photo_selfie=photo_selfie,
                 fonction=fonction,
                 succursale_id=int(succursale_id) if succursale_id and succursale_id.isdigit() else None,
                 photo=photo_filename,
@@ -14356,7 +14408,7 @@ def ajouter_admin():
 
             # ✅ ENVOYER L'EMAIL DE BIENVENUE
             password = request.form.get('password')
-            send_welcome_email(employe, password)  # Envoi automatique en tâche de fond
+            send_welcome_email(new_admin, password)  # Envoi automatique en tâche de fond
 
 
             flash("✅ Admin ajouté avec succès", "success")
@@ -19763,7 +19815,7 @@ with app.app_context():
                 username="super_admin",
                 prenom="Geler",
                 nom="Begin",
-                email="Gsuper_admin@gmes.com",
+                email="super_admin@gmes.com",
                 role="super_admin",
                 fonction="admin_general",
                 statut="actif",

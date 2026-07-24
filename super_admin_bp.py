@@ -58,6 +58,13 @@ def go():
             # Rediriger vers la page de construction
             flash(f'🚧 La page "{page_name}" est en construction.', 'info')
             return redirect(url_for('page_en_construction', page_name=page_name))
+        if endpoint == "voir_client":
+            flash("⚠️ Veuillez d'abord sélectionner un client.", "warning")
+            return redirect(url_for("liste_clients"))
+
+        if endpoint == "voir_dossiers":
+            return redirect(url_for("liste_dossiers"))
+
         return redirect(url_for(endpoint))
     except Exception as e:
         flash(f'🚧 La page "{page_name}" est en cours de développement.', 'info')
@@ -83,6 +90,14 @@ def quick_access(page_key):
         if endpoint not in current_app.view_functions:
             flash(f'🚧 La page "{page_name}" est en construction.', 'info')
             return redirect(url_for('page_en_construction', page_name=page_name))
+
+        if endpoint == "voir_client":
+            flash("⚠️ Veuillez d'abord sélectionner un client.", "warning")
+            return redirect(url_for("liste_clients"))
+
+        if endpoint == "voir_dossiers":
+            return redirect(url_for("liste_dossiers"))
+
         return redirect(url_for(endpoint))
     except Exception:
         flash(f'🚧 La page "{page_name}" est en cours de développement.', 'info')
