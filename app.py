@@ -4278,6 +4278,104 @@ def directeur_voir_dossier(dossier_id):
     return render_template('direction/voir_dossier.html', dossier=dossier)
 
 
+@app.route('/direction/modifier-dossier/<int:dossier_id>', methods=['POST'])
+@login_required
+def directeur_modifier_dossier(dossier_id):
+    """Modifier un dossier par le directeur"""
+    if current_user.role not in ['direction', 'admin_succursale', 'super_admin']:
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('connexion'))
+
+    dossier = Client.query.get_or_404(dossier_id)
+    action = request.form.get('action')
+
+    # Mettre à jour les informations
+    try:
+        dossier.prenom = request.form.get('prenom')
+        dossier.nom = request.form.get('nom')
+        dossier.email = request.form.get('email')
+        dossier.telephone = request.form.get('telephone')
+        dossier.adresse = request.form.get('adresse')
+        dossier.ville = request.form.get('ville')
+        dossier.code_postal = request.form.get('code_postal')
+        dossier.cin = request.form.get('cin')
+        dossier.profession = request.form.get('profession')
+        dossier.sexe = request.form.get('sexe')
+
+        # Date de naissance
+        date_naissance = request.form.get('date_naissance')
+        if date_naissance:
+            dossier.date_naissance = datetime.strptime(date_naissance, '%Y-%m-%d')
+
+        # Informations financières
+        dossier.revenu_mensuel = float(request.form.get('revenu_mensuel') or 0)
+        dossier.depenses_mensuelles = float(request.form.get('depenses_mensuelles') or 0)
+        dossier.capacite_remboursement = float(request.form.get('capacite_remboursement') or 0)
+
+
+        # Gestion des photos
+        from werkzeug.utils import secure_filename
+        import os
+        import time
+
+        # Gestion des photos
+        if 'photo_face' in request.files:
+            file = request.files['photo_face']
+            if file and file.filename:
+                filename = secure_filename(f"face_{dossier.id}_{int(time.time())}.jpg")
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'clients', filename))
+                dossier.photo_face = filename
+
+        if 'photo_dos' in request.files:
+            file = request.files['photo_dos']
+            if file and file.filename:
+                filename = secure_filename(f"dos_{dossier.id}_{int(time.time())}.jpg")
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'clients', filename))
+                dossier.photo_dos = filename
+
+        if 'selfie_reference' in request.files:
+            file = request.files['selfie_reference']
+            if file and file.filename:
+                filename = secure_filename(f"selfie_{dossier.id}_{int(time.time())}.jpg")
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'clients', filename))
+                dossier.selfie_reference = filename
+
+        # Ensuite
+        if action == "save":
+            db.session.commit()
+
+            flash(
+                "✅ Modifications enregistrées avec succès.",
+                "success"
+            )
+
+        # Action: Envoyer les termes et conditions
+        if action == "save_send_terms":
+
+            dossier.terms_accepted = False
+            dossier.statut = "en_attente_terms"
+            dossier.date_envoi_terms = datetime.now()
+
+            db.session.commit()
+
+            envoyer_email_conditions(dossier)
+
+            flash(
+                "✅ Dossier modifié et nouvelles conditions envoyées au client.",
+                "success"
+            )
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Erreur: {str(e)}', 'danger')
+        return redirect(url_for('directeur_voir_dossier', dossier_id=dossier.id))
+
+    return redirect(url_for('directeur_voir_dossier', dossier_id=dossier.id))
+
+
+
+
+
 
 
 @app.route('/directeur/rejeter-dossier/<int:client_id>', methods=['GET'])
