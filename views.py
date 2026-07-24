@@ -599,7 +599,7 @@ PAGES = {
         "name": "Voir dossier",
         "icon": "👁️",
         "function": "Détails du dossier",
-        "endpoint": "voir_dossiers",  # ✅ EXISTE: /conseiller/dossier/<int:dossier_id>
+        "endpoint": "liste_dossiers",  # ✅ EXISTE: /conseiller/dossier/<int:dossier_id>
         "category": "Général"
     },
     "modifier_client": {

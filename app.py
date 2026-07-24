@@ -4323,21 +4323,27 @@ def directeur_modifier_dossier(dossier_id):
             file = request.files['photo_face']
             if file and file.filename:
                 filename = secure_filename(f"face_{dossier.id}_{int(time.time())}.jpg")
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'clients', filename))
+                # ✅ CORRECTION : Chemin complet vers static/uploads/profils/clients/
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'clients', filename)
+                file.save(file_path)
                 dossier.photo_face = filename
 
         if 'photo_dos' in request.files:
             file = request.files['photo_dos']
             if file and file.filename:
                 filename = secure_filename(f"dos_{dossier.id}_{int(time.time())}.jpg")
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'clients', filename))
+                # ✅ CORRECTION : Chemin complet vers static/uploads/profils/clients/
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'clients', filename)
+                file.save(file_path)
                 dossier.photo_dos = filename
 
         if 'selfie_reference' in request.files:
             file = request.files['selfie_reference']
             if file and file.filename:
                 filename = secure_filename(f"selfie_{dossier.id}_{int(time.time())}.jpg")
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'clients', filename))
+                # ✅ CORRECTION : Chemin complet vers static/uploads/profils/clients/
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'clients', filename)
+                file.save(file_path)
                 dossier.selfie_reference = filename
 
         # Ensuite
@@ -5691,6 +5697,18 @@ def voir_dossiers(dossier_id):
 
     return render_template('dossiers/details.html', dossier=dossier)
 
+@app.route('/dossiers')
+@login_required
+def liste_dossiers(dossier_id):
+    """Voir la liste des dossiers"""
+    # Rediriger selon le rôle
+    if current_user.role in ['super_admin', 'direction', 'admin_succursale']:
+        return redirect(url_for('directeur_tous_les_dossiers'))
+    elif current_user.role == 'conseiller':
+        return redirect(url_for('conseiller_liste_dossiers'))
+    else:
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('connexion'))
 
 
 @app.route('/dashboard')

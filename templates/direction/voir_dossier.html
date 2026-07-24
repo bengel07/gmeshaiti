@@ -178,7 +178,7 @@
                             <div class="col-md-4 text-center">
                                 <h6><i class="fas fa-id-card"></i> Recto CIN</h6>
                                 {% if dossier.photo_face %}
-                                    <img src="{{ url_for('static', filename='uploads/clients/' + dossier.photo_face) }}"
+                                    <img src="{{ url_for('static', filename='uploads/profils/clients/' ~ dossier.photo_face) }}"
                                          class="img-fluid rounded border mb-2"
                                          style="max-height: 200px; cursor: pointer;"
                                          onclick="window.open(this.src)"
@@ -202,7 +202,7 @@
                             <div class="col-md-4 text-center">
                                 <h6><i class="fas fa-id-card"></i> Verso CIN</h6>
                                 {% if dossier.photo_dos %}
-                                    <img src="{{ url_for('static', filename='uploads/clients/' + dossier.photo_dos) }}"
+                                    <img src="{{ url_for('static', filename='uploads/profils/clients/' ~ dossier.photo_dos) }}"
                                          class="img-fluid rounded border mb-2"
                                          style="max-height: 200px; cursor: pointer;"
                                          onclick="window.open(this.src)"
@@ -226,7 +226,7 @@
                             <div class="col-md-4 text-center">
                                 <h6><i class="fas fa-user"></i> Selfie</h6>
                                 {% if dossier.selfie_reference %}
-                                    <img src="{{ url_for('static', filename='uploads/clients/' + dossier.selfie_reference) }}"
+                                    <img src="{{ url_for('static', filename='uploads/profils/clients/' ~ dossier.selfie_reference) }}"
                                          class="img-fluid rounded border mb-2"
                                          style="max-height: 200px; cursor: pointer;"
                                          onclick="window.open(this.src)"
@@ -247,12 +247,12 @@
                             </div>
                         </div>
 
-                        <!-- Vérification faciale -->
+                        <!-- selfie_reference -->
                         <div class="row mt-3">
                             <div class="col-12">
                                 <div class="bg-light p-3 rounded">
-                                    <h6><i class="fas fa-face-smile"></i> Vérification faciale</h6>
-                                    {% if dossier.verification_faciale %}
+                                    <h6><i class="fas fa-face-smile"></i> selfie_reference</h6>
+                                    {% if dossier.selfie_reference %}
                                         <p class="text-success mb-0">
                                             <i class="fas fa-check-circle"></i>
                                             Correspondance: {{ dossier.score_verification or 0 }}%
