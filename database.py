@@ -7,37 +7,45 @@ db = SQLAlchemy()
 def init_db(app):
     db.init_app(app)
 
-    from sqlalchemy import inspect, text
+    from sqlalchemy import text
 
-    def add_columns(app):
-        """Ajoute les colonnes manquantes à la table clients"""
-        with app.app_context():
-            try:
-                inspector = inspect(db.engine)
-                columns = [col["name"] for col in inspector.get_columns("clients")]
+    def ajouter_colonnes_clients():
+        """Ajoute les nouvelles colonnes de la table clients si elles n'existent pas."""
+        try:
+            with db.engine.begin() as conn:
 
-                new_columns = {
-                    "code_postal": "VARCHAR(100)",
-                    "ville": "VARCHAR(200)"
-                }
+                # Vérifier si la colonne ville existe
+                result = conn.execute(text("""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name='clients'
+                    AND column_name='ville'
+                """))
 
-                for name, sql_type in new_columns.items():
-                    if name not in columns:
-                        try:
-                            print(f"📌 Ajout de {name}...")
-                            db.session.execute(
-                                text(f"ALTER TABLE clients ADD COLUMN {name} {sql_type}")
-                            )
-                            db.session.commit()
-                            print(f"✅ {name} ajouté")
-                        except Exception as e:
-                            db.session.rollback()
-                            print(f"❌ Erreur pour {name}: {e}")
-                    else:
-                        print(f"✅ {name} existe déjà")
+                if result.fetchone() is None:
+                    print("➕ Ajout de la colonne ville...")
+                    conn.execute(text("""
+                        ALTER TABLE clients
+                        ADD COLUMN ville VARCHAR(100)
+                    """))
 
-            except Exception as e:
-                print(f"❌ Erreur générale : {e}")
-                db.session.rollback()
+                # Vérifier si la colonne code_postal existe
+                result = conn.execute(text("""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name='clients'
+                    AND column_name='code_postal'
+                """))
 
+                if result.fetchone() is None:
+                    print("➕ Ajout de la colonne code_postal...")
+                    conn.execute(text("""
+                        ALTER TABLE clients
+                        ADD COLUMN code_postal VARCHAR(100)
+                    """))
+
+            print("✅ Vérification des colonnes clients terminée.")
+
+        except Exception as e:
+            print(f"❌ Erreur migration clients : {e}")
 
