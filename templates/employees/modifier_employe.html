@@ -44,11 +44,16 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label>Rôle</label>
-                        <select name="role" class="form-control">
-                            <option value="employe" {% if employe.role == 'employe' %}selected{% endif %}>Employé</option>
-                            <option value="superviseur" {% if employe.role == 'superviseur' %}selected{% endif %}>Superviseur</option>
-                            <option value="direction" {% if employe.role == 'direction' %}selected{% endif %}>direction</option>
-                        </select>
+                        {% if employe.role == "super_admin" %}
+                            <input type="text" class="form-control" value="Super Admin" readonly>
+                        {% else %}
+                            <select name="role" class="form-control">
+                                <option value="employe" {% if employe.role == 'employe' %}selected{% endif %}>Employé</option>
+                                <option value="superviseur" {% if employe.role == 'superviseur' %}selected{% endif %}>Superviseur</option>
+                                <option value="direction" {% if employe.role == 'direction' %}selected{% endif %}>Direction</option>
+                                <option value="admin_succursale" {% if employe.role == 'admin_succursale' %}selected{% endif %}>Admin succursale</option>
+                            </select>
+                        {% endif %}
                     </div>
                     <div class="col-md-6 mb-3">
                         <label>Fonction</label>
@@ -60,6 +65,12 @@
                         <i class="fas fa-save me-2"></i> Enregistrer
                     </button>
                 </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-lock"></i>
+                    Le compte Super Admin ne peut pas être modifié.
+                </div>
+                {% endif %}
             </form>
         </div>
     </div>

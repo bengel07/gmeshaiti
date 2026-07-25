@@ -14900,6 +14900,10 @@ def modifier_employe(employe_id):
     # Récupérer l'employé (notez User au lieu de Employe)
     employe = User.query.get_or_404(employe_id)
 
+    if employe.role == "super_admin":
+        flash("Le compte Super Admin ne peut pas être modifié.", "danger")
+        return redirect(url_for("voir_employe", employe_id=employe.id))
+
     # Vérifier les permissions
     if not (current_user.role in ['admin', 'super_admin','direction'] or
             (current_user.role == 'admin_succursale' and
@@ -14915,24 +14919,57 @@ def modifier_employe(employe_id):
             'email': employe.email,
             'telephone': employe.telephone,
             'role': employe.role,
-            'adesse': employe.adresse,
+            'adresse': employe.adresse,
             'fonction': employe.fonction,
             'succursale_id': employe.succursale_id,
             'statut': employe.statut
         }
 
+        nouvel_email = request.form.get("email", "").strip()
+
+        if nouvel_email != employe.email:
+            existe = User.query.filter(
+                User.email == nouvel_email,
+                User.id != employe.id
+            ).first()
+
+            if existe:
+                flash("Cet email est déjà utilisé.", "danger")
+                return redirect(request.url)
+
+        nouvel_telephone = request.form.get("telephone", "").strip()
+
+
+        if nouvel_telephone != employe.telephone:
+            existe = User.query.filter(
+                User.telephone == nouvel_telephone,
+                User.id != employe.id
+            ).first()
+
+            if existe:
+                flash("Cet telephone est déjà utilisé.", "danger")
+                return redirect(request.url)
+
         # Récupérer les nouvelles valeurs du formulaire
         employe.nom = request.form.get('nom', employe.nom)
         employe.prenom = request.form.get('prenom', employe.prenom)
-        employe.email = request.form.get('email', employe.email)
-        employe.telephone = request.form.get('telephone', employe.telephone)
-        employe.adresse = request.form.get('adesse', employe.adresse)
+        employe.email = nouvel_email
+        employe.telephone = nouvel_telephone
+        employe.adresse = request.form.get('adresse', employe.adresse)
         employe.fonction = request.form.get('fonction', employe.fonction)
 
         # Seul un admin peut changer ces champs sensibles
         if current_user.role in ['admin', 'super_admin','direction']:
-            nouveau_role = request.form.get('role')
-            if nouveau_role and nouveau_role in ['employe', 'superviseur', 'admin_succursale', 'direction']:
+            roles_autorises = [
+                "employe",
+                "superviseur",
+                "admin_succursale",
+                "direction"
+            ]
+
+            nouveau_role = request.form.get("role")
+
+            if nouveau_role in roles_autorises:
                 employe.role = nouveau_role
 
             nouvelle_succursale = request.form.get('succursale_id')
