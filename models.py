@@ -626,7 +626,7 @@ class Client(db.Model):
     numero_compte = db.Column(db.String(50), unique=True)
 
     ville = db.Column(db.String(100), nullable=True)  # ✅ Le champ doit exister
-    code_postal = db.Column(db.String(100)  # ✅ Le champ doit exister
+    code_postal = db.Column(db.String(100), nullable=True)  # ✅ Le champ doit exister
     # Dans votre modèle Client
 
     @property
