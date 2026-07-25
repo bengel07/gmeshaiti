@@ -3986,13 +3986,12 @@ def directeur_approuver_dossier(client_id):
     """Le directeur approuve ou rejette le dossier"""
     from models import User, Notification, Action, Client
     from datetime import datetime, timedelta
-    import smtplib
-    from emails.mime.text import MIMEText
-    from emails.mime.multipart import MIMEMultipart
     import os
+    import requests
 
-    # ✅ CORRECTION : Vérification des permissions
-    if current_user.role != 'direction' or current_user.fonction not in ['directeur','direction' 'directeur_operations', 'directeur_general']:
+    # ✅ Vérification des permissions
+    if current_user.role != 'direction' or current_user.fonction not in ['directeur', 'direction',
+                                                                         'directeur_operations', 'directeur_general']:
         flash('⛔ Accès non autorisé', 'danger')
         return redirect(url_for('dashboard_redirect'))
 
@@ -4001,8 +4000,6 @@ def directeur_approuver_dossier(client_id):
     conseiller = None
     if client.cree_par_id:
         conseiller = db.session.get(User, client.cree_par_id)
-
-
 
     # ✅ GESTION GET - Afficher le formulaire d'approbation
     if request.method == 'GET':
@@ -4028,7 +4025,7 @@ def directeur_approuver_dossier(client_id):
         db.session.add(action_defaut)
         db.session.flush()
 
-    # Configuration email
+    # Configuration Brevo
     BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
     FROM_EMAIL = os.environ.get('FROM_EMAIL', 'gmeshaiti@gmail.com')
     FROM_NAME = os.environ.get('FROM_NAME', 'GMES Microcrédit')
@@ -4037,7 +4034,6 @@ def directeur_approuver_dossier(client_id):
         client.statut = 'actif'
         client.date_approbation = datetime.now()
         client.approuve_par_id = current_user.id
-
 
         message_client = f"✅ Félicitations {client.prenom}! Votre dossier a été approuvé. Vous pouvez maintenant accéder à votre compte."
         message_agent = f"✅ Le dossier de {client.prenom} {client.nom} a été approuvé."
@@ -4056,94 +4052,134 @@ def directeur_approuver_dossier(client_id):
 
         message_client = f"❌ Votre dossier n'a pas été approuvé. Motif: {commentaire}"
         message_agent = f"❌ Le dossier de {client.prenom} {client.nom} a été rejeté. Motif: {commentaire}"
+        sujet_email = "❌ Mise à jour de votre dossier - GMES"
         flash(f'❌ Dossier de {client.prenom} {client.nom} rejeté', 'warning')
     else:
         flash('❌ Action invalide', 'danger')
         return redirect(url_for('directeur_tous_les_dossiers'))
 
-        # 📧 ENVOI D'EMAIL AU CLIENT
+    # 📧 ENVOI D'EMAIL AVEC BREVO
     try:
-        # Créer le message
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = sujet_email
-        msg['From'] = f"GMES Microcrédit <{EMAIL_EXPEDITEUR}>"
-        msg['To'] = client.email
+        # Corps de l'email (version HTML)
+        corps_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #0b3b4f 0%, #1a6b8a 100%); 
+                          color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
+                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+                .footer {{ margin-top: 30px; font-size: 0.9em; color: #666; text-align: center; }}
+                .status {{ 
+                    display: inline-block; 
+                    padding: 10px 20px; 
+                    border-radius: 5px; 
+                    font-weight: bold;
+                    {'background: #28a745; color: white;' if action == 'approuver' else 'background: #dc3545; color: white;'}
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🏦 GMES Microcrédit</h1>
+                </div>
+                <div class="content">
+                    <h2>Bonjour {client.prenom} {client.nom},</h2>
 
-        # Version HTML du message
-        html = f"""
-           <!DOCTYPE html>
-           <html>
-           <head>
-               <style>
-                   body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
-                   .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                   .header {{ background: #0b3b4f; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
-                   .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
-                   .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
-               </style>
-           </head>
-           <body>
-               <div class="container">
-                   <div class="header">
-                       <h1>GMES Microcrédit</h1>
-                   </div>
-                   <div class="content">
-                       <h2>Bonjour {client.prenom} {client.nom},</h2>
-                       <p>{message_client}</p>
-                       <p>Si vous avez des questions, n'hésitez pas à contacter votre conseiller.</p>
-                       <p>Cordialement,<br>L'équipe GMES Microcrédit</p>
-                   </div>
-                   <div class="footer">
-                       <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
-                       <p>© 2025 GMES Microcrédit. Tous droits réservés.</p>
-                   </div>
-               </div>
-           </body>
-           </html>
-           """
+                    <p>Nous vous informons que votre dossier a été <strong>{'approuvé' if action == 'approuver' else 'rejeté'}</strong>.</p>
 
-        # Version texte simple
-        text = f"""
-           Bonjour {client.prenom} {client.nom},
+                    <div style="text-align: center; margin: 20px 0;">
+                        <span class="status">{'✅ APPROUVÉ' if action == 'approuver' else '❌ REJETÉ'}</span>
+                    </div>
 
-           {message_client}
+                    <p>{message_client}</p>
 
-           Si vous avez des questions, n'hésitez pas à contacter votre conseiller.
+                    {'<p><strong>Motif du rejet :</strong> ' + commentaire + '</p>' if action == 'rejeter' else ''}
 
-           Cordialement,
-           L'équipe GMES Microcrédit
-           """
+                    <p>Si vous avez des questions, n'hésitez pas à contacter votre conseiller.</p>
 
-        # Attacher les versions texte et HTML
-        part1 = MIMEText(text, 'plain')
-        part2 = MIMEText(html, 'html')
-        msg.attach(part1)
-        msg.attach(part2)
+                    <p>Cordialement,<br><strong>L'équipe GMES Microcrédit</strong></p>
+                </div>
+                <div class="footer">
+                    <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
+                    <p>© 2025 GMES Microcrédit. Tous droits réservés.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
 
-        # Envoyer l'email
-        server = smtplib.SMTP(EMAIL_SERVER, EMAIL_PORT)
-        server.starttls()
-        server.login(EMAIL_EXPEDITEUR, EMAIL_PASSWORD)
-        server.send_message(msg)
-        server.quit()
-        print(f"✅ Email envoyé à {client.email}")
+        # Corps de l'email (version texte)
+        corps_texte = f"""
+        Bonjour {client.prenom} {client.nom},
+
+        Nous vous informons que votre dossier a été {'approuvé' if action == 'approuver' else 'rejeté'}.
+
+        {message_client}
+
+        {'Motif du rejet : ' + commentaire if action == 'rejeter' else ''}
+
+        Si vous avez des questions, n'hésitez pas à contacter votre conseiller.
+
+        Cordialement,
+        L'équipe GMES Microcrédit
+        """
+
+        # Envoyer l'email via Brevo
+        if BREVO_API_KEY:
+            url = "https://api.brevo.com/v3/smtp/email"
+
+            headers = {
+                "api-key": BREVO_API_KEY,
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+
+            data = {
+                "sender": {
+                    "name": FROM_NAME,
+                    "email": FROM_EMAIL
+                },
+                "to": [
+                    {
+                        "email": client.email,
+                        "name": f"{client.prenom} {client.nom}"
+                    }
+                ],
+                "subject": sujet_email,
+                "htmlContent": corps_html,
+                "textContent": corps_texte
+            }
+
+            response = requests.post(url, json=data, headers=headers, timeout=30)
+
+            if response.status_code == 201:
+                print(f"✅ Email envoyé avec succès à {client.email}")
+            else:
+                print(f"❌ Erreur envoi email: {response.status_code} - {response.text}")
+        else:
+            print("❌ BREVO_API_KEY manquant")
 
     except Exception as e:
         print(f"❌ Erreur envoi email à {client.email}: {e}")
 
-    # Notification au client (en utilisant type_notification)
+    # 📝 Notification au client
     notification_client = Notification(
         employe_id=client.id,
         titre=f"Dossier {action}",
         message=message_client,
         type_notification='info',
         date_envoi=datetime.now(),
-        action_id = action_defaut.id,  # ← AJOUTÉ
-        destinataire_id = client.id  # ← AJOUTÉ (souvent le même que employe_id)
+        action_id=action_defaut.id,
+        destinataire_id=client.id
     )
     db.session.add(notification_client)
 
-    # Notification au conseiller
+    # 📝 Notification au conseiller
     if client.cree_par_id:
         notification_agent = Notification(
             employe_id=client.cree_par_id,
@@ -4151,14 +4187,16 @@ def directeur_approuver_dossier(client_id):
             message=message_agent,
             type_notification='info',
             date_envoi=datetime.now(),
-            action_id=action_defaut.id,  # ← AJOUTÉ
-            destinataire_id=client.cree_par_id  # ← AJOUTÉ
+            action_id=action_defaut.id,
+            destinataire_id=client.cree_par_id
         )
         db.session.add(notification_agent)
 
     db.session.commit()
 
     return redirect(url_for('directeur_tous_les_dossiers'))
+
+
 
 
 @app.route('/direction/tous_dossiers')
@@ -4302,6 +4340,7 @@ def directeur_modifier_dossier(dossier_id):
         dossier.profession = request.form.get('profession')
         dossier.sexe = request.form.get('sexe')
 
+
         # Date de naissance
         date_naissance = request.form.get('date_naissance')
         if date_naissance:
@@ -4345,6 +4384,10 @@ def directeur_modifier_dossier(dossier_id):
                 file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'clients', filename)
                 file.save(file_path)
                 dossier.selfie_reference = filename
+
+
+
+
 
         # Ensuite
         if action == "save":
@@ -5679,6 +5722,7 @@ def conseiller_voir_dossier(dossier_id):
 
     return render_template('conseiller/voir_dossier.html', dossier=dossier)
 
+
 @app.route('/dossier/<int:dossier_id>')
 @login_required
 def voir_dossiers(dossier_id):
@@ -5696,6 +5740,8 @@ def voir_dossiers(dossier_id):
         return redirect(url_for('dashboard'))
 
     return render_template('dossiers/details.html', dossier=dossier)
+
+
 
 @app.route('/dossiers')
 @login_required

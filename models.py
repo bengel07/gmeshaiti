@@ -624,6 +624,9 @@ class Client(db.Model):
     solde = db.Column(db.Float, default=0.0)
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
     numero_compte = db.Column(db.String(50), unique=True)
+
+    ville = db.Column(db.String(100), nullable=True)  # ✅ Le champ doit exister
+    Code_postal = db.Column(db.String(100), nullable=True)  # ✅ Le champ doit exister
     # Dans votre modèle Client
 
     @property

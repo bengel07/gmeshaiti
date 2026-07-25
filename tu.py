@@ -1,17 +1,27 @@
-from sqlalchemy import create_engine, text
+from app import app, db
+from sqlalchemy import inspect, text
 
-DATABASE_URL = "COLLE_ICI_LA_DATABASE_URL_DE_RENDER"
+with app.app_context():
+    inspector = inspect(db.engine)
+    columns = [col['name'] for col in inspector.get_columns('clients')]
 
-# Certaines URL Render commencent par postgres://
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    try:
+        if 'code_postal' not in columns:
+            # ✅ Utilisation de db.session.execute() avec text()
+            db.session.execute(text('ALTER TABLE clients ADD COLUMN code_postal VARCHAR(20)'))
+            db.session.commit()
+            print("✅ Colonne code_postal ajoutée")
+        else:
+            print("ℹ️ Colonne code_postal existe déjà")
 
-engine = create_engine(DATABASE_URL)
+        if 'ville' not in columns:
+            # ✅ Utilisation de db.session.execute() avec text()
+            db.session.execute(text('ALTER TABLE clients ADD COLUMN ville VARCHAR(100)'))
+            db.session.commit()
+            print("✅ Colonne ville ajoutée")
+        else:
+            print("ℹ️ Colonne ville existe déjà")
 
-with engine.begin() as conn:
-    conn.execute(text("""
-        ALTER TABLE clients
-        ALTER COLUMN statut TYPE VARCHAR(100);
-    """))
-
-print("✅ Colonne 'statut' modifiée avec succès.")
+    except Exception as e:
+        print(f"❌ Erreur: {e}")
+        db.session.rollback()
