@@ -3092,7 +3092,6 @@ def accepter_conditions(token):
             if not user.role:
                 user.role = 'client'
 
-            login_user(user)
 
             # ===== NOTIFICATIONS =====
             admins = User.query.filter(
@@ -3114,15 +3113,35 @@ def accepter_conditions(token):
 
             db.session.commit()
 
+            login_user(user)
+
             flash("✅ Conditions acceptées !", "success")
 
             print("✅ Conditions acceptées !", "success")
             return render_template('promotions.html')
 
+
         except Exception as e:
+
             db.session.rollback()
-            print(f"❌ Erreur: {e}")
-            flash("❌ Ce lien est invalide ou a expiré.", "danger")
+
+            import traceback
+
+            traceback.print_exc()
+
+            print(f"❌ Erreur réelle : {e}")
+
+            flash(f"❌ Erreur : {e}", "danger")
+
+            return render_template(
+
+                "accepter_conditions.html",
+
+                user=user,
+
+                token_valide=True
+
+            )
 
     return render_template('accepter_conditions.html', user=user,token_valide=True)
 
