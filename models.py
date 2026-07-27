@@ -5556,6 +5556,12 @@ class Dossier(db.Model):
     # === DOCUMENTS LIÉS ===
     documents = db.relationship('Document', secondary=dossier_documents, backref='dossiers')
 
+    client_id = db.Column(
+        db.Integer,
+        db.ForeignKey('clients.id'),
+        nullable=True
+    )
+
     def __repr__(self):
         return f'<Dossier {self.reference}: {self.nom}>'
 
