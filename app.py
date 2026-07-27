@@ -4362,11 +4362,10 @@ def directeur_tous_les_dossiers(succursale_code=None):
     stats = {
         'total_dossiers': len(clients),
         'agents_actifs': len(conseillers),
-        'en_attente': User.query.filter_by(
-            role='client',
-            statut='en_attente_approbation',
-            succursale_id=succursale.id
-        ).count(),
+        'en_attente': Client.query.filter_by(
+        statut='en_attente_approbation',
+        succursale_id=succursale.id
+    ).count(),
         'succursale_nom': succursale.nom,
         'succursale_code': succursale.code
     }
@@ -14886,8 +14885,9 @@ def voir_employe(employe_id):
 @app.route('/admin/employe/<int:employe_id>/modifier', methods=['GET', 'POST'])
 @login_required
 def modifier_employe(employe_id):
-    from models import User, Succursale, HistoriqueEmploye
+    from models import User, Succursale, HistoriqueEmploye, Client, Employe
     from flask import request
+    from datetime import datetime
 
     # Récupérer l'employé (notez User au lieu de Employe)
     employe = User.query.get_or_404(employe_id)
