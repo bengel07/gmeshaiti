@@ -2902,14 +2902,14 @@ def client_peut_demander_pret(client):
 @app.route('/accepter-conditions/<token>', methods=['GET', 'POST'])
 def accepter_conditions(token):
     from flask_login import login_user
-    from models import User, Notification, Client
+    from models import User, Notification, Client, Action, Pret
     import jwt
-    from datetime import datetime
-    from flask import session  # ← AJOUTER l'import de session ici
+    from datetime import datetime, timedelta
+    from flask import session
 
     print(f"🔍 Token reçu: {token[:50]}...")
 
-    client = None  # ✅ Important
+    client = None
 
     # ===== 1. DÉCODER TOKEN =====
     try:
@@ -2941,7 +2941,6 @@ def accepter_conditions(token):
 
     # ===== 2. VÉRIFIER SI DÉJÀ ACCEPTÉ =====
     if client.terms_accepted:
-
         print(f"⚠️ Déjà accepté: {client.email}")
         flash("Vous avez déjà accepté les conditions", "info")
         return redirect(url_for('connexion'))
@@ -2954,7 +2953,6 @@ def accepter_conditions(token):
         import uuid
 
         user = User(
-            id=client.id,
             prenom=client.prenom,
             nom=client.nom,
             email=client.email,
@@ -2964,7 +2962,8 @@ def accepter_conditions(token):
             terms_accepted=False,
             succursale_id=client.succursale_id,
             cree_par_id=client.cree_par_id,
-            date_creation=datetime.now()
+            date_creation=datetime.now(),
+            role='client'  # ✅ AJOUTÉ : définir le rôle
         )
         db.session.add(user)
         db.session.commit()
@@ -2977,13 +2976,21 @@ def accepter_conditions(token):
 
             if not signature_data:
                 flash("Veuillez signer", "danger")
-                return render_template('accepter_conditions.html', user=user)
+                return render_template('accepter_conditions.html', user=user, token_valide=True)
 
             if 'base64,' in signature_data:
                 signature_data = signature_data.split('base64,')[1]
 
-            # ✅ UPDATE CLIENT (PAS USER)
+            # ✅ UPDATE CLIENT
             client.terms_accepted = True
+            client.terms_accepted_at = datetime.now()
+
+            # ✅ UPDATE USER
+            user.terms_signature = signature_data
+            user.terms_accepted = True
+            user.terms_signature_ip = request.remote_addr
+            user.terms_signature_user_agent = request.user_agent.string
+            user.statut = 'en_attente_approbation'
 
             # 🔥 RÉCUPÉRER LES DONNÉES DU PRÊT
             pret_data = session.get('pret_data')
@@ -3005,7 +3012,7 @@ def accepter_conditions(token):
                     duree_mois=duree,
                     motif=pret_data.get('objet'),
                     type_pret=pret_data.get('type_pret'),
-                    signature=user.terms_signature,
+                    signature=signature_data,
                     mensualite=round(mensualite, 2),
                     montant_interet=round(montant_interet, 2),
                     montant_total=round(montant_total, 2),
@@ -3015,28 +3022,38 @@ def accepter_conditions(token):
                 )
 
                 db.session.add(nouveau_pret)
-
                 print("✅ Prêt créé après signature")
 
-                # 🔥 IMPORTANT : nettoyer session
+                # 🔥 Nettoyer session
                 session.pop('pret_data', None)
 
-            client.terms_accepted = True
-            client.terms_accepted_at = datetime.now()
+            # ===== CRÉER UNE ACTION =====
+            # ✅ Trouver un admin pour assigner l'action
+            admin = User.query.filter(
+    User.succursale_id == client.succursale_id,
+                User.role.in_(['admin', 'super_admin', 'admin_succursale', 'direction'])
+            ).first()
 
+            if not admin:
+                # Si aucun admin, utiliser l'utilisateur lui-même
+                admin = user
 
-            # ✅ UPDATE USER
+            action = Action(
+                titre="Validation d'un nouveau client",
+                description=f"Le client {client.prenom} {client.nom} attend validation.",
+                assignee_a_id=admin.id,  # ✅ Utiliser admin.id au lieu de current_user.id
+                creee_par_id=admin.id,   # ✅ Utiliser admin.id au lieu de current_user.id
+                date_echeance=datetime.now() + timedelta(days=7),
+                type_action="tache",
+                priorite="moyenne",
+                statut="a_faire",
+                progression=0
+            )
 
+            db.session.add(action)
+            db.session.flush()  # crée l'id sans commit
 
-            user.terms_signature = signature_data
-            user.terms_accepted = True
-            user.terms_signature_ip = request.remote_addr
-            user.terms_signature_user_agent = request.user_agent.string
-            user.statut = 'en_attente_approbation'
-
-            if not user.role:
-                user.role = 'client'
-
+            print("✅ Action créée :", action.id)
 
             # ===== NOTIFICATIONS =====
             admins = User.query.filter(
@@ -3046,49 +3063,50 @@ def accepter_conditions(token):
             for admin in admins:
                 notif = Notification(
                     employe_id=admin.id,
+                    destinataire_id=admin.id,
+                    acteur_id=admin.id,
+                    client_id=client.id,
+
                     titre="📝 Client en attente",
                     message=f"{client.prenom} {client.nom} attend validation",
-                    type_notification='info',
+
+                    type_notification="info",
+                    type="info",
+                    niveau="info",
+                    level="info",
+
                     lien=url_for('voir_client', client_id=client.id),
+
                     date_envoi=datetime.now(),
-                    destinataire_id=admin.id,
-                    action_id=None
+                    date_creation=datetime.now(),
+
+                    action_id=action.id,  # <-- ICI
+
+                    lue=False,
+                    is_read=False
                 )
                 db.session.add(notif)
 
             db.session.commit()
 
+            # ✅ Connecter l'utilisateur
             login_user(user)
 
-            flash("✅ Conditions acceptées !", "success")
+            flash("✅ Conditions acceptées ! Votre dossier est en attente de validation.", "success")
 
-            print("✅ Conditions acceptées !", "success")
-            return render_template('promotions.html')
-
+            # ✅ Rediriger vers le tableau de bord ou une page de confirmation
+            return redirect(url_for('dashboard_redirect'))
 
         except Exception as e:
-
             db.session.rollback()
-
             import traceback
-
             traceback.print_exc()
-
             print(f"❌ Erreur réelle : {e}")
+            flash(f"❌ Erreur : {str(e)}", "danger")
+            return render_template("accepter_conditions.html", user=user, token_valide=True)
 
-            flash(f"❌ Erreur : {e}", "danger")
-
-            return render_template(
-
-                "accepter_conditions.html",
-
-                user=user,
-
-                token_valide=True
-
-            )
-
-    return render_template('accepter_conditions.html', user=user,token_valide=True)
+    # ===== 5. GET =====
+    return render_template('accepter_conditions.html', user=user, token_valide=True)
 
 
 def generer_token_conditions(client):
