@@ -5844,13 +5844,13 @@ def dashboard_redirect():
 
     # 🔑 ADMIN CENTRAL
     elif current_user.role == 'admin_central':
-        return redirect(url_for('dashboard_succursale',succursale_code=current_user.succursale.code if current_user.succursale else None))
+        return redirect(url_for('admin_succursale_dashboard',succursale_code=current_user.succursale.code if current_user.succursale else None))
 
     # 🏢 ADMIN SUCCURSALE
     elif current_user.role == 'admin_succursale':
         # Vérifier si la succursale existe
         if current_user.succursale:
-            return redirect(url_for('dashboard_succursale',
+            return redirect(url_for('admin_succursale_dashboard',
                                     succursale_code=current_user.succursale.code if current_user.succursale else None))
         else:
             # Si pas de succursale, rediriger vers l'admin dashboard
