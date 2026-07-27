@@ -1,27 +1,26 @@
-from app import app, db
-from sqlalchemy import inspect, text
+from app import app
+from models import User
 
 with app.app_context():
-    inspector = inspect(db.engine)
-    columns = [col['name'] for col in inspector.get_columns('clients')]
 
-    try:
-        if 'code_postal' not in columns:
-            # ✅ Utilisation de db.session.execute() avec text()
-            db.session.execute(text('ALTER TABLE clients ADD COLUMN code_postal VARCHAR(20)'))
-            db.session.commit()
-            print("✅ Colonne code_postal ajoutée")
+    admin = User.query.filter_by(role="admin_succursale").first()
+
+    if not admin:
+        print("❌ Aucun admin_succursale trouvé.")
+    else:
+        print("=" * 60)
+        print("ID          :", admin.id)
+        print("Nom         :", admin.nom, admin.prenom)
+        print("Email       :", admin.email)
+        print("Role        :", admin.role)
+        print("Fonction    :", admin.fonction)
+        print("Statut      :", admin.statut)
+        print("Succursale  :", admin.succursale_id)
+
+        if admin.succursale:
+            print("Code        :", admin.succursale.code)
+            print("Dashboard   :", f"/{admin.succursale.code}/dashboard")
         else:
-            print("ℹ️ Colonne code_postal existe déjà")
+            print("❌ Aucune succursale assignée.")
 
-        if 'ville' not in columns:
-            # ✅ Utilisation de db.session.execute() avec text()
-            db.session.execute(text('ALTER TABLE clients ADD COLUMN ville VARCHAR(100)'))
-            db.session.commit()
-            print("✅ Colonne ville ajoutée")
-        else:
-            print("ℹ️ Colonne ville existe déjà")
-
-    except Exception as e:
-        print(f"❌ Erreur: {e}")
-        db.session.rollback()
+        print("=" * 60)

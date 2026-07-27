@@ -2984,6 +2984,7 @@ def accepter_conditions(token):
             # ✅ UPDATE CLIENT
             client.terms_accepted = True
             client.terms_accepted_at = datetime.now()
+            client.statut = "en_attente_approbation"
 
             # ✅ UPDATE USER
             user.terms_signature = signature_data
@@ -3087,15 +3088,21 @@ def accepter_conditions(token):
                 )
                 db.session.add(notif)
 
+            # AJOUT ICI
+            dossier = Dossier.query.filter_by(client_id=client.id).first()
+
+            if dossier:
+                dossier.statut = "en_attente_validation"
+                dossier.date_signature = datetime.now()
+                print(f"✅ Dossier {dossier.id} mis à jour")
+
             db.session.commit()
 
-            # ✅ Connecter l'utilisateur
-            login_user(user)
 
             flash("✅ Conditions acceptées ! Votre dossier est en attente de validation.", "success")
 
             # ✅ Rediriger vers le tableau de bord ou une page de confirmation
-            return redirect(url_for('dashboard_redirect'))
+            return render_template("confirmation_signature.html")
 
         except Exception as e:
             db.session.rollback()
@@ -13916,90 +13923,6 @@ def test_login(employe_id):
 
 from flask import abort
 
-@app.route('/<succursale_code>/dashboard')
-@login_required
-def dashboard_succursale(succursale_code):
-    print(f"🚨 DASHBOARD {succursale_code} - DÉBUT")
-    print(f"current_user: {current_user}")
-    print(f"is_authenticated: {current_user.is_authenticated}")
-    print(f"Rôle: {current_user.role}")
-    print(f"Fonction: {getattr(current_user, 'fonction', 'Non définie')}")
-    print(f"Succursale utilisateur: {current_user.succursale_id}")
-    print(f"Succursale demandée: {succursale_code}")
-
-    print("\n" + "=" * 60)
-    print(f"🚨 DASHBOARD {succursale_code} - DÉBUT")
-    print(f"current_user: {current_user}")
-    print(f"is_authenticated: {current_user.is_authenticated}")
-
-    succursale = Succursale.query.filter_by(
-        code=succursale_code.upper()
-    ).first_or_404()
-
-    user_role = getattr(current_user, 'role', None)
-    user_succursale_id = getattr(current_user, 'succursale_id', None)
-
-    print(f"Rôle: {user_role}")
-    print(f"Succursale utilisateur: {user_succursale_id}")
-    print(f"Succursale demandée: {succursale.id}")
-
-    # 🔑 SUPER ADMIN & ADMIN GLOBAL
-    if user_role in ['super_admin', 'admin','direction','admin_central']:
-        print("✅ Accès autorisé: admin")
-        pass
-
-    # 🏦 ADMIN DE SUCCURSALE
-    elif user_role == 'admin_succursale':
-        if user_succursale_id != succursale.id:
-            print("❌ Accès refusé: mauvaise succursale")
-            abort(403)
-        print("✅ Accès autorisé: admin_succursale")
-
-    # 👔 EMPLOYÉS
-    elif user_role in ['directeur', 'employe']:
-        if user_succursale_id != succursale.id:
-            print("❌ Accès refusé: employé mauvaise succursale")
-            abort(403)
-        print("✅ Accès autorisé: employé")
-
-    # ❌ AUTRES RÔLES
-    else:
-        print(f"❌ Accès refusé: rôle inconnu {user_role}")
-        abort(403)
-
-
-    users_query = User.query.filter( User.succursale_id == succursale.id ).filter( User.role != 'client' )
-
-    employes_query = Employe.query.filter_by( succursale_id=succursale.id )
-
-    users_employes = users_query.all()
-
-    employes_table = employes_query.all()
-
-    emsembles = users_employes + employes_table
-
-
-
-
-    # 📊 Stats
-    stats = {
-        'clients': Client.query.filter_by(succursale_id=succursale.id).count(),
-        'employes': len(emsembles),
-
-        'prets': Pret.query.filter( Pret.succursale_id == succursale.id, Pret.statut.in_(['actif', 'approuve'])).count(),
-        'remboursements': Remboursement.query.filter_by( succursale_id=succursale.id ).count(),
-        'montant_total': db.session.query(db.func.sum(Pret.montant_accorde)).filter(
-            Pret.succursale_id == succursale.id, Pret.statut.in_(['actif', 'approuve'])).scalar() or 0
-    }
-
-    print(f"✅ Accès réussi à la succursale {succursale.code}")
-
-
-    return render_template(
-        'succursale/dashboard.html',
-        succursale=succursale,
-        stats=stats
-    )
 
 
 @app.route('/<succursale_code>/remboursements/retards')
