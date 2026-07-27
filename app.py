@@ -3122,7 +3122,7 @@ def accepter_conditions(token):
         except Exception as e:
             db.session.rollback()
             print(f"❌ Erreur: {e}")
-            flash("Erreur", "danger", token_valide=True)
+            flash("❌ Ce lien est invalide ou a expiré.", "danger")
 
     return render_template('accepter_conditions.html', user=user,token_valide=True)
 
