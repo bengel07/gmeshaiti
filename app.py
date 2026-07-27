@@ -3581,6 +3581,9 @@ def creer_dossier():
                 'success'
             )
 
+            print("📂 Upload folder :", app.config['UPLOAD_FOLDER'])
+            print("📂 Fichier :", filename)
+
             # FORCER la redirection avec un code 302
             # Juste avant le return, ajoutez :
 
@@ -4156,15 +4159,18 @@ def directeur_approuver_dossier(client_id):
     except Exception as e:
         print(f"❌ Erreur envoi email à {client.email}: {e}")
 
+
+    user_client = User.query.filter_by(email=client.email).first()
+
     # 📝 Notification au client
     notification_client = Notification(
-        employe_id=client.id,
+        employe_id=client.user_id if hasattr(client, 'user_id') else None,
         titre=f"Dossier {action}",
         message=message_client,
         type_notification='info',
         date_envoi=datetime.now(),
         action_id=action_defaut.id,
-        destinataire_id=client.id
+        destinataire_id=user_client.id if user_client else None
     )
     db.session.add(notification_client)
 

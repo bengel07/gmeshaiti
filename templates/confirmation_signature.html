@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-success text-white text-center py-4">
+                    <i class="fas fa-check-circle fa-4x mb-2"></i>
+                    <h2 class="mb-0">✅ Signature confirmée !</h2>
+                </div>
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h4>Bonjour {{ client.prenom }} {{ client.nom }},</h4>
+                        <p class="lead">Vous avez accepté les conditions d'utilisation avec succès.</p>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Prochaines étapes :</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Votre dossier est en cours de validation</li>
+                            <li>Un administrateur va examiner votre demande</li>
+                            <li>Vous recevrez une notification dès que votre dossier sera approuvé</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="{{ url_for('dashboard_redirect') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-arrow-right me-2"></i> Accéder à mon tableau de bord
+                        </a>
+                        <a href="{{ url_for('connexion') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-sign-out-alt me-2"></i> Se déconnecter
+                        </a>
+                    </div>
+                </div>
+                <div class="card-footer text-muted text-center">
+                    <small>GMES Microcrédit - © 2025 Tous droits réservés</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border-radius: 15px;
+    overflow: hidden;
+}
+.card-header {
+    border-radius: 0;
+}
+.btn {
+    border-radius: 10px;
+    padding: 12px 20px;
+}
+.alert-info {
+    background-color: #e7f3ff;
+    border-color: #b8daff;
+}
+</style>
+{% endblock %}
