@@ -610,10 +610,16 @@
                                 <span class="statut-badge statut-{{ dossier.statut }}">
                                     {% if dossier.statut == 'en_attente_terms' %}
                                         <i class="fas fa-hourglass-half"></i> Attente signature
+
                                     {% elif dossier.statut == 'en_attente_approbation' %}
                                         <i class="fas fa-clock"></i> Attente approbation
+
                                     {% elif dossier.statut == 'actif' %}
                                         <i class="fas fa-check-circle"></i> Approuvé
+
+                                    {% elif dossier.statut == 'en_attente_validation' %}
+                                        <i class="fas fa-clock"></i> En validation
+
                                     {% else %}
                                         <i class="fas fa-times-circle"></i> Refusé
                                     {% endif %}

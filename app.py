@@ -3092,7 +3092,7 @@ def accepter_conditions(token):
             dossier = Dossier.query.filter_by(client_id=client.id).first()
 
             if dossier:
-                dossier.statut = "en_attente_validation"
+                dossier.statut = "en_attente_approbation"
                 dossier.date_signature = datetime.now()
                 print(f"✅ Dossier {dossier.id} mis à jour")
 
