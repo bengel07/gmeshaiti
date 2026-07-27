@@ -2899,61 +2899,6 @@ def client_peut_demander_pret(client):
     return True, "✅ Éligible à une demande de prêt"
 
 
-
-# @app.route('/accepter-conditions/<token>', methods=['GET', 'POST'])
-# def accepter_conditions(token):
-#     from flask_login import login_user
-#     from models import User, Notification, Client
-#     import jwt
-#     from datetime import datetime
-#
-#     print(f"🔍 Token reçu: {token[:50]}...")
-#
-#     client = None  # ✅ IMPORTANT
-#
-#     # ===== 1. DÉCODER TOKEN =====
-#     try:
-#         data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-#
-#         print(f"✅ Token décodé: {data}")
-#
-#         if data.get('type') != 'conditions':
-#             return render_template('accepter_conditions.html', token_invalide=True)
-#
-#         # ✅ NOUVEAU TOKEN
-#         if 'client_id' in data:
-#             client = db.session.get(Client, data['client_id'])
-#
-#         # ❌ ANCIEN TOKEN → on bloque
-#         elif 'employe_id' in data:
-#             print("⚠️ Ancien token détecté (employe_id)")
-#             return render_template(
-#                 'accepter_conditions.html',
-#                 token_invalide=True,
-#                 message="Lien expiré. Veuillez redemander un email."
-#             )
-#
-#         if not client:
-#             return render_template('accepter_conditions.html', token_invalide=True)
-#
-#     except jwt.ExpiredSignatureError:
-#         return render_template('accepter_conditions.html', token_expire=True)
-#     except jwt.InvalidTokenError:
-#         return render_template('accepter_conditions.html', token_invalide=True)
-#
-#     # ===== 2. VÉRIFIER SI DÉJÀ ACCEPTÉ =====
-#     if client.terms_accepted:
-#         print(f"⚠️ Déjà accepté: {client.email}")
-#         flash("Vous avez déjà accepté les conditions", "info")
-#         return redirect(url_for('connexion'))
-#
-#     # ===== 3. CRÉER OU RÉCUPÉRER USER =====
-#     user = db.session.get(User, client.id)
-#
-#     if not user:
-#         from werkzeug.security import generate_password_hash
-#         import uuid
-
 @app.route('/accepter-conditions/<token>', methods=['GET', 'POST'])
 def accepter_conditions(token):
     from flask_login import login_user
@@ -3107,7 +3052,7 @@ def accepter_conditions(token):
                     lien=url_for('voir_client', client_id=client.id),
                     date_envoi=datetime.now(),
                     destinataire_id=admin.id,
-                    action_id=0
+                    action_id=None
                 )
                 db.session.add(notif)
 
