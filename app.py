@@ -4243,6 +4243,10 @@ def directeur_approuver_dossier(client_id):
 
     user_client = User.query.filter_by(email=client.email).first()
 
+    # ✅ AJOUTEZ CES LIGNES APRÈS :
+    if user_client:
+        user_client.statut = 'actif'  # ou 'approuve' selon votre convention
+
     # 📝 Notification au client
     notification_client = Notification(
         employe_id=client.user_id if hasattr(client, 'user_id') else None,
@@ -4362,10 +4366,11 @@ def directeur_tous_les_dossiers(succursale_code=None):
     stats = {
         'total_dossiers': len(clients),
         'agents_actifs': len(conseillers),
-        'en_attente': Client.query.filter_by(
-        statut='en_attente_approbation',
-        succursale_id=succursale.id
-    ).count(),
+        'en_attente': User.query.filter_by(
+            role='client',
+            statut='en_attente_approbation',
+            succursale_id=succursale.id
+        ).count(),
         'succursale_nom': succursale.nom,
         'succursale_code': succursale.code
     }
