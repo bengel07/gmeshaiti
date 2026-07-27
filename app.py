@@ -2902,7 +2902,7 @@ def client_peut_demander_pret(client):
 @app.route('/accepter-conditions/<token>', methods=['GET', 'POST'])
 def accepter_conditions(token):
     from flask_login import login_user
-    from models import User, Notification, Client, Action, Pret
+    from models import User, Notification, Client, Action, Pret, Dossier
     import jwt
     from datetime import datetime, timedelta
     from flask import session
