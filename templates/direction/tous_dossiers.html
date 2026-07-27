@@ -720,28 +720,69 @@
             });
         }
 
-        // Exporter en Excel (CSV)
+        // Exporter en Excel (CSV) - Version améliorée
         function exporterExcel() {
+            // 🔍 Récupérer les filtres actifs
+            const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase() || '';
+            const statutFilter = document.getElementById('statutFilter')?.value || 'tous';
+
             const rows = document.querySelectorAll('#dossiersTable tbody tr');
             let csv = "Client,Email,Téléphone,CIN,Code client,Agent,Date création,Statut\n";
+            let count = 0;
 
             rows.forEach(row => {
-                if (row.style.display !== 'none') {
-                    const cols = row.querySelectorAll('td');
+                // Vérifier si la ligne est visible
+                const display = window.getComputedStyle(row).display;
+                if (display === 'none') return;
 
-                    // Vérifie que le nombre de colonnes est correct
-                    if (cols.length >= 7) {
-                        csv += '"' + cols[0].textContent.trim().replace(/"/g, '""') + '",';
-                        csv += '"' + cols[1].textContent.trim().replace(/"/g, '""') + '",';
-                        csv += '"' + cols[2].textContent.trim().replace(/"/g, '""') + '",';
-                        csv += '"' + cols[3].textContent.trim().replace(/"/g, '""') + '",';
-                        csv += '"' + cols[4].textContent.trim().replace(/"/g, '""') + '",';
-                        csv += '"' + cols[5].textContent.trim().replace(/"/g, '""') + '",';
-                        csv += '"' + cols[6].textContent.trim().replace(/"/g, '""') + '",';
-                        csv += '"' + cols[7].textContent.trim().replace(/"/g, '""') + '"\n';
-                    }
-                }
+                const cols = row.querySelectorAll('td');
+                if (cols.length < 8) return;
+
+                // Nettoyer les données
+                const client = cols[0].textContent.trim().replace(/"/g, '""');
+                const email = cols[1].textContent.trim().replace(/"/g, '""');
+                const telephone = cols[2].textContent.trim().replace(/"/g, '""');
+                const cin = cols[3].textContent.trim().replace(/"/g, '""');
+                const codeClient = cols[4].textContent.trim().replace(/"/g, '""');
+                const agent = cols[5].textContent.trim().replace(/"/g, '""');
+                const dateCreation = cols[6].textContent.trim().replace(/"/g, '""');
+                const statut = cols[7].textContent.trim().replace(/"/g, '""');
+
+                csv += `"${client}","${email}","${telephone}","${cin}","${codeClient}","${agent}","${dateCreation}","${statut}"\n`;
+                count++;
             });
+
+            if (count === 0) {
+                alert('⚠️ Aucun dossier à exporter. Vérifiez vos filtres.');
+                return;
+            }
+
+            // Ajouter le nombre de lignes exportées
+            console.log(`📊 ${count} dossiers exportés`);
+
+            // Créer et télécharger le fichier
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }); // \uFEFF = BOM pour Excel
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+
+            const dateStr = new Date().toISOString().slice(0,10);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `dossiers_${dateStr}.csv`);
+            link.style.display = 'none';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            // Feedback utilisateur
+            const btn = document.querySelector('.btn-export');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '✅ Exporté !';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+            }, 2000);
+        }
 
             // Ajout BOM pour UTF-8 (supporte les accents)
             const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });

@@ -3971,6 +3971,87 @@ def check_cc_permissions():
     return result
 
 
+@app.route('/direction/exporter-dossiers')
+@login_required
+def exporter_dossiers_excel():
+    """Exporter les dossiers en Excel"""
+    if current_user.role not in ['direction', 'admin_succursale', 'super_admin']:
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('connexion'))
+
+    import pandas as pd
+    from io import BytesIO
+    from flask import send_file
+    from datetime import datetime
+
+    # Récupérer les dossiers selon le rôle
+    if current_user.role == 'super_admin':
+        dossiers = Client.query.all()
+    else:
+        # Pour direction et admin_succursale
+        if hasattr(current_user, 'succursale_id') and current_user.succursale_id:
+            dossiers = Client.query.filter_by(succursale_id=current_user.succursale_id).all()
+        else:
+            dossiers = Client.query.all()
+
+    # Préparer les données
+    data = []
+    for dossier in dossiers:
+        data.append({
+            'ID': dossier.id,
+            'Code Client': dossier.id_client,
+            'Prénom': dossier.prenom,
+            'Nom': dossier.nom,
+            'Email': dossier.email,
+            'Téléphone': dossier.telephone,
+            'CIN': dossier.cin,
+            'Profession': dossier.profession or '',
+            'Sexe': 'Masculin' if dossier.sexe == 'M' else 'Féminin',
+            'Date Naissance': dossier.date_naissance.strftime('%d/%m/%Y') if dossier.date_naissance else '',
+            'Adresse': dossier.adresse,
+            'Ville': dossier.ville,
+            'Revenu Mensuel': dossier.revenu_mensuel or 0,
+            'Dépenses Mensuelles': dossier.depenses_mensuelles or 0,
+            'Capacité Remboursement': dossier.capacite_remboursement or 0,
+            'Statut': dossier.statut,
+            'Date Création': dossier.date_inscription.strftime('%d/%m/%Y %H:%M'),
+            'Date Approbation': dossier.date_approbation.strftime('%d/%m/%Y %H:%M') if dossier.date_approbation else '',
+            'Terms Acceptés': 'Oui' if dossier.terms_accepted else 'Non'
+        })
+
+    # Créer le DataFrame
+    df = pd.DataFrame(data)
+
+    # Créer le fichier Excel
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Dossiers', index=False)
+
+        # Ajuster les colonnes
+        worksheet = writer.sheets['Dossiers']
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_length = min(max_length + 2, 50)
+            worksheet.column_dimensions[column_letter].width = adjusted_length
+
+    output.seek(0)
+
+    # Envoyer le fichier
+    filename = f"dossiers_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
+
 
 @app.route('/direction/approuver-dossier/<int:client_id>', methods=['GET', 'POST'])
 @login_required
