@@ -14494,7 +14494,7 @@ def humanize_unique_error(error):
         return f"❌ Une erreur est survenue: {str(error)}"
 
 
-@app.route('/admin/create_admin', methods=['GET', 'POST'])
+@app.route('/admin/ajouter_admin', methods=['GET', 'POST'])
 @login_required
 def ajouter_admin():
     print("🔥🔥🔥 ROUTE AJOUTER_EMPLOYE APPELÉE 🔥🔥🔥")
