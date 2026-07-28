@@ -14497,19 +14497,17 @@ def humanize_unique_error(error):
 @app.route('/admin/ajouter_admin', methods=['GET', 'POST'])
 @login_required
 def ajouter_admin():
-    print("🔥🔥🔥 ROUTE AJOUTER_EMPLOYE APPELÉE 🔥🔥🔥")
+    print("🔥 ROUTE AJOUTER_ADMIN APPELÉE")
 
-    print("========== DEBUG AJOUT EMPLOYÉ ==========")
+    succursale_id_url = request.args.get('succursale_id')
+
     print("User ID :", current_user.id)
-    print("Username :", getattr(current_user, 'username', getattr(current_user, 'nom_utilisateur', 'N/A')))
-
+    print("Username :", current_user.username)
     print("Role :", current_user.role)
     print("Succursale user :", current_user.succursale_id)
-    print("Succursale code URL :", succursale_code)
+    print("Succursale ID URL :", succursale_id_url)
     print("Méthode :", request.method)
-    # 🔍 DEBUG (tu peux enlever après)
-    print("👉 ROUTE ajouter_employe APPELÉE")
-    print("succursale_code =", succursale_code)
+
 
     # print(f"🔍 DEBUG RÔLE UTILISATEUR: {current_user.role}")
     # print(f"🔍 DEBUG ATTRIBUTS UTILISATEUR: {dir(current_user)}")
@@ -14524,11 +14522,13 @@ def ajouter_admin():
 
     # 🎯 Déterminer la succursale cible
     succursale = None
-    if succursale_code:
-        succursale = Succursale.query.filter_by(code=succursale_code).first()
+    if succursale_id_url:
+        succursale = Succursale.query.get(int(succursale_id_url))
+
         if not succursale:
-            flash("Succursale invalide", 'danger')
-            return redirect(url_for('dashboard'))
+            flash("Succursale invalide", "danger")
+            return redirect(url_for('admin_dashboard'))
+
     else:
         succursale = current_user.succursale
 
