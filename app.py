@@ -12823,7 +12823,7 @@ def gerer_employes():
         abort(403)
 
     # Filtrer par succursale - les admins ne voient que leurs employés
-    query = User.query.filter(User.role.in_(['employe','direction','super_admin', 'superviseur']))
+    query = User.query.filter(User.role.in_(['employe','direction','super_admin', 'superviseur', 'admin_succursale']))
 
     # Si c'est un admin de succursale, filtrer par sa succursale
     if current_user.role in ['admin','direction', 'admin_succursale']:
