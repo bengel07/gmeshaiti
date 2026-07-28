@@ -86,7 +86,7 @@
         <div style="background: white; padding: 2rem; border-radius: 10px; margin: 2rem 0;">
             <h3>🚀 Actions Rapides</h3>
             <a href="{{ url_for('prets_en_attente') }}" class="btn">📋 Gérer les prêts ({{ stats.prets.en_attente if stats else '0' }})</a>
-            <a href="{{ url_for('create_partner_integration') }}" class="btn">👥 partner_intergrer</a>
+            <a href="{{ url_for('create_partner_integration_direct') }}" class="btn"> 👥 partner_intergrer</a>
             <a href="{{ url_for('gerer_employes') }}" class="btn">👥 Gérer les employés</a>
             <a href="{{ url_for('admin_rapports') }}" class="btn">📊 Rapports détaillés</a>
             <a href="{{ url_for('admin_remboursements') }}" class="btn">💳 Voir remboursements</a>
