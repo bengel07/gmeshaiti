@@ -3582,7 +3582,9 @@ def creer_dossier():
             )
 
             print("📂 Upload folder :", app.config['UPLOAD_FOLDER'])
-            print("📂 Fichier :", filename)
+            print("📂 Recto :", recto_filename)
+            print("📂 Verso :", verso_filename)
+            print("📂 Selfie :", selfie_filename)
 
             # FORCER la redirection avec un code 302
             # Juste avant le return, ajoutez :
@@ -3744,38 +3746,38 @@ def client_terms(token):
 
     # ===== 1. DÉCODER LE TOKEN JWT =====
     try:
-        from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+        token = token.strip()
 
-        try:
-            # Nettoyer le token (enlever espaces ou retours à la ligne)
-            token = token.strip()
+        payload = jwt.decode(
+            token,
+            app.config['SECRET_KEY'],
+            algorithms=['HS256']
+        )
 
-            s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-            client_id = s.loads(token, salt="terms-accept", max_age=604800)
-
-            client = db.session.get(Client, client_id)
-
-            if not client:
-                flash('❌ Client non trouvé', 'danger')
-                return redirect(url_for('connexion'))
-
-            print(f"✅ Client trouvé: {client.email}")
-
-        except SignatureExpired:
-            flash('⚠️ Le lien a expiré (7 jours). Veuillez demander un nouveau lien.', 'danger')
+        if payload.get('type') != 'conditions':
+            flash('❌ Type de lien invalide.', 'danger')
             return redirect(url_for('connexion'))
-        except BadSignature as e:
-            print(f"❌ Token invalide: {e}")
-            flash('❌ Lien invalide. Veuillez contacter votre conseiller.', 'danger')
+
+        client_id = payload.get('client_id')
+
+        client = db.session.get(Client, client_id)
+
+        if not client:
+            flash('❌ Client non trouvé', 'danger')
             return redirect(url_for('connexion'))
+
+        print(f"✅ Client trouvé: {client.email}")
+
 
     except jwt.ExpiredSignatureError:
         flash('⚠️ Le lien a expiré (7 jours). Veuillez demander un nouveau lien.', 'danger')
         return redirect(url_for('connexion'))
+
     except jwt.InvalidTokenError as e:
-        print(f"❌ Token invalide: {e}")
+        print(f"❌ Token JWT invalide: {e}")
         flash('❌ Lien invalide. Veuillez contacter votre conseiller.', 'danger')
         return redirect(url_for('connexion'))
+
 
     # ===== 2. VÉRIFIER SI LE CLIENT EST DÉJÀ TRAITÉ =====
     if client.statut != 'en_attente_terms':
@@ -5339,7 +5341,9 @@ def connexion():
             session['role'] = user.role
             session['user_id'] = user.id
 
-            print(f"✅ Connexion réussie: {user.email} - Rôle: {user.role}")  # Debug
+            print("Premier connexion :", user.premier_connexion)
+            print("Mot de passe temporaire :",
+                  user.mot_de_passe_temporaire if hasattr(user, "mot_de_passe_temporaire") else "Champ absent")
 
 
             # CAS 1: Première connexion - obliger le changement de MDP
@@ -13265,94 +13269,6 @@ def conseiller_dashboard():
                            succursale=succursale)  # ✅ AJOUTER CETTE LIGNE
 
 
-@app.route('/employe/conseiller')
-@role_required('employe', 'super_admin')
-def conseiller_client_dashboard(succursale_code):
-    # ✅ AJOUTEZ CES 2 LIGNES ICI (au début de la fonction)
-    clients = []  # ← AJOUTER CETTE LIGNE
-    dossiers = []  # ← AJOUTER CETTE LIGNE
-
-    # ✅ VÉRIFICATION D'ACCÈS POUR SUPER_ADMIN
-    is_super_admin = (current_user.role == 'super_admin')
-    is_conseiller = (current_user.role == 'employe' and current_user.fonction == 'conseiller')
-
-    # ✅ SI CE N'EST NI SUPER_ADMIN NI CONSEILLER → REFUSER
-    if not (is_super_admin or is_conseiller):
-        flash('⛔ Accès non autorisé', 'danger')
-        return redirect(url_for('admin_dashboard'))
-
-    # ✅ Récupérer la succursale de l'utilisateur
-    succursale = None
-    if hasattr(current_user, 'succursale_id') and current_user.succursale_id:
-        succursale = Succursale.query.get(current_user.succursale_id)
-
-    # Si l'utilisateur n'a pas de succursale, essayer via les clients
-    if not succursale:
-        # Chercher une succursale via les clients du conseiller
-        client_avec_succursale = Client.query.filter_by(
-            cree_par_id=current_user.id
-        ).filter(Client.succursale_id.isnot(None)).first()
-
-        if client_avec_succursale:
-            succursale = Succursale.query.get(client_avec_succursale.succursale_id)
-
-        # ✅ FILTRER UNIQUEMENT les clients créés par CE conseiller
-        # Dossiers de la succursale créés par ce conseiller
-        if succursale:
-            dossiers = Client.query.filter_by(
-                succursale_id=succursale.id,
-                cree_par_id=current_user.id
-            ).all()
-        else:
-            dossiers = []
-
-    # ✅ DÉFINIR clients AVANT de l'utiliser !
-    if succursale:
-        clients = Client.query.filter_by(
-            succursale_id=succursale.id,
-            cree_par_id=current_user.id
-        ).all()
-    else:
-        clients = []
-
-    # Statistiques réelles (pas en dur)
-    total_clients = Client.query.filter_by(cree_par_id=current_user.id).count()
-    dossiers_actifs = Client.query.filter_by(cree_par_id=current_user.id, statut='actif').count()
-    demandes_attente = Client.query.filter_by(cree_par_id=current_user.id,
-                                              statut='en_attente_terms').count()
-
-    # Valeurs par défaut (à adapter)
-    rdv_aujourdhui = 2
-    clients_prioritaires = 0
-    dossiers_urgence = 0
-    appels_attente = 0
-
-    # Préparer les données pour l'affichage
-    clients_avec_prets = []
-    for client in clients:
-        # Compter les prêts du client (à adapter selon votre modèle)
-        nb_prets = 0  # Remplacer par votre logique
-        clients_avec_prets.append({
-            'client': client,
-            'nb_prets': nb_prets
-        })
-
-    return render_template('conseiller_dashboard.html',
-                           clients=clients,
-                           dossiers=dossiers,
-                           clients_avec_prets=clients_avec_prets,
-                           total_clients=total_clients,
-                           dossiers_actifs=dossiers_actifs,
-                           demandes_attente=demandes_attente,
-                           rdv_aujourdhui=rdv_aujourdhui,
-                           clients_prioritaires=clients_prioritaires,
-                           dossiers_urgence=dossiers_urgence,
-                           appels_attente=appels_attente,
-                           succursale=succursale)  # ✅ AJOUTER CETTE LIGNE
-
-
-
-
 # Route Analyste avec données
 @app.route('/employe/analyste')
 @role_required('employe', 'super_admin')
@@ -20658,6 +20574,12 @@ def resend_email(user_id):
 
     # Mettre à jour le hash avec CE mot de passe
     employe.password_hash = generate_password_hash(mot_de_passe_temp)
+    # ✅ FORCER LE CHANGEMENT À LA PROCHAINE CONNEXION
+    employe.premier_connexion = True
+
+    # ✅ Si ce champ existe dans ton modèle
+    if hasattr(employe, "mot_de_passe_temporaire"):
+        employe.mot_de_passe_temporaire = True
 
     db.session.commit()
 

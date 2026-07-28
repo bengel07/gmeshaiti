@@ -1,12 +1,16 @@
-from app import app, db
-from models import User
+from app import app
 
-with app.app_context():
-    # Compter les users en attente
-    count = User.query.filter_by(role='client', statut='en_attente_approbation').count()
-    print(f"📊 Nombre d'utilisateurs en attente : {count}")
+def afficher_endpoints():
+    print("\n" + "=" * 100)
+    print(f"{'ENDPOINT':40} {'METHODS':20} URL")
+    print("=" * 100)
 
-    # Lister les users en attente
-    users = User.query.filter_by(role='client', statut='en_attente_approbation').all()
-    for user in users:
-        print(f"  - {user.id} | {user.nom} {user.prenom} | {user.email}")
+    for rule in sorted(app.url_map.iter_rules(), key=lambda r: r.rule):
+        methods = ", ".join(sorted(rule.methods - {"HEAD", "OPTIONS"}))
+        print(f"{rule.endpoint:40} {methods:20} {rule.rule}")
+
+    print("=" * 100)
+    print(f"Total des endpoints : {len(app.url_map._rules)}")
+
+if __name__ == "__main__":
+    afficher_endpoints()

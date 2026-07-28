@@ -451,12 +451,13 @@
             <div class="header-title">
                 <h1><i class="fas fa-chart-line"></i> Tableau de bord direction</h1>
                 <p><i class="fas fa-user-tie"></i> {{ current_user.prenom }} {{ current_user.nom }} - Directeur</p>
-            </div>
-            <div class="header-stats">
                 <div class="stat-item">
                      <button type="button" class="btn btn-secondary" onclick="history.back()">
                     ⬅️ Retour
                 </button>
+            </div>
+            <div class="header-stats">
+
                     <div class="stat-value">{{ stats.total_dossiers }}</div>
                     <div class="stat-label">Total dossiers</div>
                 </div>
