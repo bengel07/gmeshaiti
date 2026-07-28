@@ -343,7 +343,7 @@
                     <h4>{{ succursale.nom }} <small>({{ succursale.code }})</small></h4>
                     <p><strong>📍</strong> {{ succursale.adresse }}, {{ succursale.ville }}</p>
                     <div class="buttons">
-                        <a href="{{ url_for('create_admin', succursale_id=succursale.id) }}"
+                        <a href="{{ url_for('ajouter-admin', succursale_id=succursale.id) }}"
                            class="btn" style="background: #4CAF50; color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; display: inline-block; margin: 5px;">
                             👑 Ajouter un Admin ici
                         </a>
