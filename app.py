@@ -12934,7 +12934,7 @@ def suspendre_employe(employe_id):
 @app.route('/admin/supprimer-employe/<int:employe_id>', methods=['GET','POST'])
 @login_required
 def supprimer_employe(employe_id):
-    from models import User, Competence, Notification, Action, HistoriqueEmploye, QuestionSecrete, Epargne
+    from models import User, Competence, Notification, Action, HistoriqueEmploye, QuestionSecrete, Epargne, TermsAcceptance
 
     # Vérifier les permissions
     roles_autorises = ['direction', 'admin_succursale', 'super_admin']
@@ -12969,6 +12969,7 @@ def supprimer_employe(employe_id):
     try:
         with db.session.no_autoflush:
             print(f"🔍 Suppression de l'employé: {nom_complet} (ID: {employe_id})")
+            TermsAcceptance.query.filter_by(client_id=client.id).delete()
 
             # 1. Supprimer les compétences
             deleted = Competence.query.filter_by(client_id=employe_id).delete()
