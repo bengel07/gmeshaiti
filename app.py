@@ -12969,7 +12969,7 @@ def supprimer_employe(employe_id):
     try:
         with db.session.no_autoflush:
             print(f"🔍 Suppression de l'employé: {nom_complet} (ID: {employe_id})")
-            TermsAcceptance.query.filter_by(client_id=client.id).delete()
+
 
             # 1. Supprimer les compétences
             deleted = Competence.query.filter_by(client_id=employe_id).delete()
@@ -12985,6 +12985,7 @@ def supprimer_employe(employe_id):
 
             for client in clients:
                 # Notifications liées au client
+                TermsAcceptance.query.filter_by(client_id=client.id).delete()
                 Notification.query.filter_by(client_id=client.id).delete()
 
                 # Épargnes
