@@ -14497,150 +14497,298 @@ def humanize_unique_error(error):
 @app.route('/admin/ajouter-admin', methods=['GET', 'POST'])
 @login_required
 def ajouter_admin():
-    from werkzeug.security import generate_password_hash
-    """Ajouter un nouvel administrateur"""
+    print("🔥🔥🔥 ROUTE AJOUTER_EMPLOYE APPELÉE 🔥🔥🔥")
 
-    print("👉  44 admin:")
+    print("========== DEBUG AJOUT EMPLOYÉ ==========")
+    print("User ID :", current_user.id)
+    print("Username :", getattr(current_user, 'username', getattr(current_user, 'nom_utilisateur', 'N/A')))
 
-    if current_user.role != 'super_admin':
-        flash("Accès refusé. Seul le super-admin peut ajouter un admin.", "danger")
-        return redirect(url_for('admin_dashboard'))
+    print("Role :", current_user.role)
+    print("Succursale user :", current_user.succursale_id)
+    print("Succursale code URL :", succursale_code)
+    print("Méthode :", request.method)
+    # 🔍 DEBUG (tu peux enlever après)
+    print("👉 ROUTE ajouter_employe APPELÉE")
+    print("succursale_code =", succursale_code)
 
-    print("👉  33 Geler:")
+    # print(f"🔍 DEBUG RÔLE UTILISATEUR: {current_user.role}")
+    # print(f"🔍 DEBUG ATTRIBUTS UTILISATEUR: {dir(current_user)}")
 
-    if request.method == 'POST':
-        try:
-            # Récupérer les données du formulaire
-            nom_utilisateur = request.form.get('nom_utilisateur')
-            prenom = request.form.get('prenom')
-            nom = request.form.get('nom')
-            email = request.form.get('email')
-            telephone = request.form.get('telephone')
-            adresse = request.form.get('adresse')
-            date_naissance = request.form.get('date_naissance')
-            cin_nif = request.form.get('cin_nif')
-            password = request.form.get('password')
-            role = request.form.get('role')
-            photo_selfie=request.files.get("photo_selfie")
-            fonction = request.form.get('fonction') or "Non défini"
-            succursale_id = request.form.get('succursale_id') or None
+    # 🔐 Vérification des rôles
+    if current_user.role not in ['admin_succursale', 'directeur', 'direction', 'super_admin']:
+        flash("Permission refusée", 'danger')
+        return redirect(url_for('employe_dashboard'))
 
-            # ✅ Récupérer les questions secrètes
-            question_1 = request.form.get('question_1')
-            reponse_1 = request.form.get('reponse_1', '').strip().lower()
-            question_2 = request.form.get('question_2')
-            reponse_2 = request.form.get('reponse_2', '').strip().lower()
-            question_3 = request.form.get('question_3')
-            reponse_3 = request.form.get('reponse_3', '').strip().lower()
-
-            print("👉 Fonction reçue du formulaire 75:", fonction)
-
-            # Validation des champs obligatoires
-            if not nom_utilisateur or not email or not password:
-                flash("Nom d'utilisateur, email et mot de passe sont obligatoires", "danger")
-                return redirect(request.referrer)
-
-            print("👉  76:")
-
-            # Vérifier si l'utilisateur existe déjà
-            existing_user = User.query.filter(
-                (User.username == nom_utilisateur) | (User.email == email)
-            ).first()
-
-            if existing_user:
-                flash("Nom d'utilisateur ou email déjà utilisé", "danger")
-                return redirect(request.referrer)
-
-            print("👉  77:")
-
-            # Hasher le mot de passe
-            mot_de_passe_temp = request.form.get('password')
-
-            if not mot_de_passe_temp:
-                mot_de_passe_temp = generer_mot_de_passe()
-
-
-
-            # Gérer la photo (si vous avez un champ photo)
-            photo_filename = None
-            photo_file = request.files.get('photo')
-            if photo_file and photo_file.filename:
-                from werkzeug.utils import secure_filename
-                import os
-                from datetime import datetime
-                from app import UPLOAD_FOLDER
-
-                def allowed_file(filename):
-                    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-                    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-                if allowed_file(photo_file.filename):
-                    original_filename = secure_filename(photo_file.filename)
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    photo_filename = f"admin_{timestamp}_{original_filename}"
-                    photo_path = os.path.join(app.root_path, UPLOAD_FOLDER, photo_filename)
-                    photo_file.save(photo_path)
-
-            print("👉  78:")
-
-            # Créer l'admin (utilisez User au lieu de Admin)
-            new_admin = User(
-                username=nom_utilisateur,
-                prenom=prenom,
-                nom=nom,
-                email=email,
-                telephone=telephone,
-                adresse=adresse,
-                date_naissance=datetime.strptime(date_naissance, '%Y-%m-%d').date() if date_naissance else None,
-                cin_nif=cin_nif,
-                password_hash=mot_de_passe_temp,
-                role=role,
-                photo_selfie=photo_filename,
-                fonction=fonction,
-                succursale_id=int(succursale_id) if succursale_id and succursale_id.isdigit() else None,
-                photo=photo_filename,
-                statut='en_attente',
-                date_creation=datetime.now(),
-
-                # ✅ Questions secrètes
-                question_secrete_1=question_1 if question_1 else None,
-                reponse_secrete_1=reponse_1 if reponse_1 else None,
-                question_secrete_2=question_2 if question_2 else None,
-                reponse_secrete_2=reponse_2 if reponse_2 else None,
-                question_secrete_3=question_3 if question_3 else None,
-                reponse_secrete_3=reponse_3 if reponse_3 else None,
-
-                # ✅ Première connexion
-                premier_connexion=True
-            )
-            print("👉 Fonction reçue du formulaire:", fonction)
-
-            db.session.add(new_admin)
-            db.session.commit()
-
-            new_admin.set_password(mot_de_passe_temp)
-            new_admin.premier_connexion = True
-
-            # ✅ ENVOYER L'EMAIL DE BIENVENUE
-            send_welcome_email(new_admin, mot_de_passe_temp)
-
-
-            flash("✅ Admin ajouté avec succès", "success")
-            return redirect(url_for('admin_dashboard'))
-
-        except IntegrityError as e:
-            db.session.rollback()
-            flash(humanize_unique_error(e), "danger")
-            return redirect(request.referrer)
-
-
-    # GET - Afficher le formulaire
-    from models import Succursale
+    # 🏦 Récupérer les succursales
     succursales = Succursale.query.all()
 
-    print("👉  99:")
+    # 🎯 Déterminer la succursale cible
+    succursale = None
+    if succursale_code:
+        succursale = Succursale.query.filter_by(code=succursale_code).first()
+        if not succursale:
+            flash("Succursale invalide", 'danger')
+            return redirect(url_for('dashboard'))
+    else:
+        succursale = current_user.succursale
 
-    return render_template('admin_central/ajouter_admin.html', succursales=succursales)
+    # 📩 POST
+    if request.method == 'POST':
+        # succursale_id = request.form.get('succursale_id')
+
+        if current_user.role != 'super_admin':
+            succursale_id = current_user.succursale_id
+        else:
+            succursale_id = request.form.get('succursale_id')
+
+        photo_profil = request.files.get('photo_profil')
+        photo_recto = request.files.get('photo_recto')
+        photo_verso = request.files.get('photo_verso')
+
+        import os
+        import uuid
+        from werkzeug.utils import secure_filename
+        from flask import current_app
+
+        def save_file(file):
+            """Sauvegarde un fichier et retourne son nom unique"""
+            if file and file.filename != '':
+                # Vérifier l'extension
+                if not allowed_file(file.filename):
+                    return None
+
+                filename = secure_filename(file.filename)
+                unique_name = str(uuid.uuid4()) + "_" + filename
+
+                # Utiliser la configuration de l'application
+                upload_folder = current_app.config['UPLOAD_FOLDER']
+
+                # Créer le chemin absolu
+                absolute_path = os.path.join(current_app.root_path, upload_folder)
+
+                # Créer le dossier s'il n'existe pas
+                os.makedirs(absolute_path, exist_ok=True)
+
+                # Chemin complet du fichier
+                file_path = os.path.join(absolute_path, unique_name)
+
+                # Sauvegarder
+                file.save(file_path)
+
+                print(f"Fichier sauvegardé : {file_path}")  # Debug
+                print(f"Existe ? {os.path.exists(file_path)}")  # Debug
+
+                return unique_name
+            return None
+
+        # Dans votre route
+        profil_filename = save_file(photo_profil)
+
+        if profil_filename:
+            current_user.photo_profil = profil_filename
+            db.session.commit()
+            print(f"Photo sauvegardée en BDD : {profil_filename}")  # Debug
+
+        recto_filename = save_file(photo_recto)
+        verso_filename = save_file(photo_verso)
+
+        if not succursale_id:
+            flash("Veuillez sélectionner une succursale", "danger")
+            return render_template(
+                'admin/ajouter_employe.html',
+                succursales=succursales,
+                succursale=succursale,
+                employees=[]
+            )
+        # Récupérer les valeurs du formulaire
+        username = request.form.get('username')
+        email = request.form.get('email')
+        telephone = request.form.get('telephone')
+        adresse = request.form.get('adresse')
+        cin_nif = request.form.get('id_number')  # ← Changé: cin/nif → cin_nif
+        id_type = request.form.get('id_type')  # ← Ajouté
+        password = request.form.get('password')
+
+        # Juste après avoir récupéré les fichiers
+        photo_recto = request.files.get('photo_recto')
+        photo_verso = request.files.get('photo_verso')
+
+        print("  valeurs Récupérer")
+
+        # 🔎 Vérifications
+        if User.query.filter_by(username=request.form.get('username')).first():
+            flash("Nom d'utilisateur déjà utilisé", "danger")
+            return render_template(
+                'admin/ajouter_employe.html',
+                succursales=succursales,
+                succursale=succursale,
+                employees=[]
+            )
+        print("nom utilisateur")
+
+        if User.query.filter_by(email=request.form.get('email')).first():
+            flash("Email déjà utilisé", "danger")
+
+            print("Email déjà utilisé", "danger")
+
+            return render_template(
+                'admin/ajouter_employe.html',
+                succursales=succursales,
+                succursale=succursale,
+                employees=[]
+            )
+        print("email")
+
+        if User.query.filter_by(telephone=request.form.get('telephone')).first():
+            flash(" numero de telephone a ete déjà utilisé", "danger")
+            return render_template(
+                'admin/ajouter_employe.html',
+                succursales=succursales,
+                succursale=succursale,
+                employees=[]
+            )
+        print("tel")
+
+        if cin_nif and User.query.filter_by(cin_nif=cin_nif).first():  # ← Changé
+            flash("Numéro de CIN/NIF déjà utilisé", "danger")
+            return render_template(
+                'admin/ajouter_employe.html',
+                succursales=succursales,
+                succursale=succursale,
+                employees=[]
+            )
+        print("cin")
+
+        password = request.form.get('password')
+
+        if not password or len(password) < 8:
+            flash("Mot de passe invalide (min 8 caractères)", "danger")
+            return redirect(request.url)
+
+        if not photo_recto or not photo_verso:
+            flash("Recto et verso obligatoires", "danger")
+            return redirect(request.url)
+
+        # 👤 Création utilisateur
+        employe = User(
+            username=request.form.get('username'),
+            email=request.form.get('email'),
+            nom=request.form.get('nom'),
+            prenom=request.form.get('prenom'),
+            telephone=request.form.get('telephone'),
+            adresse=request.form.get('adresse'),
+            cin_nif=request.form.get('id_number'),
+            id_type=request.form.get('id_type'),  # ← Ajouté
+            role=request.form.get('role'),
+            fonction=request.form.get('fonction'),
+            statut='en_attente',
+            succursale_id=int(succursale_id),
+            photo_profil=profil_filename,
+            photo_recto=recto_filename,
+            photo_verso=verso_filename,
+            # Nouveaux champs BRH
+            date_embauche=datetime.utcnow().date(),
+            verification_antecedents=False,
+            formation_aml_cft=False,
+            statut_conformite='en_attente'
+
+        )
+        mot_de_passe_temp = request.form.get('password')
+
+        if not mot_de_passe_temp:
+            mot_de_passe_temp = generer_mot_de_passe()
+
+        employe.set_password(mot_de_passe_temp)
+        employe.premier_connexion = True
+
+        print("creer employe")
+
+        # Sauvegarder les questions secrètes si présentes
+        question_1 = request.form.get('question_1')
+        reponse_1 = request.form.get('reponse_1')
+        question_2 = request.form.get('question_2')
+        reponse_2 = request.form.get('reponse_2')
+        question_3 = request.form.get('question_3')
+        reponse_3 = request.form.get('reponse_3')
+
+        try:
+            db.session.add(employe)
+            db.session.flush()  # Pour obtenir user.id sans commit
+
+            # Ajouter les questions secrètes
+            if question_1 and reponse_1:
+                q1 = QuestionSecrete(
+                    user_id=current_user.id,
+                    employe_id=employe.id,
+                    question=question_1,
+                    reponse=reponse_1
+                )
+                db.session.add(q1)
+
+            if question_2 and reponse_2:
+                q2 = QuestionSecrete(
+                    user_id=current_user.id,
+                    employe_id=employe.id,
+                    question=question_2,
+                    reponse=reponse_2
+                )
+                db.session.add(q2)
+
+            if question_3 and reponse_3:
+                q3 = QuestionSecrete(
+                    user_id=current_user.id,
+                    employe_id=employe.id,
+                    question=question_3,
+                    reponse=reponse_3
+                )
+                db.session.add(q3)
+
+            db.session.commit()
+
+            # Logger l'action
+            log_audit(
+                action='create',
+                module='employe',
+                details={
+                    'employe_id': employe.id,
+                    'employe_nom': f"{employe.prenom} {employe.nom}",
+                    'username': employe.username,
+                    'role': employe.role,
+                    'fonction': employe.fonction,
+                    'succursale_id': employe.succursale_id
+                },
+                succursale_id=employe.succursale_id
+            )
+
+            # ✅ ENVOYER L'EMAIL DE BIENVENUE
+            send_welcome_email(employe, mot_de_passe_temp)
+
+            flash(f"✅ Employé {employe.prenom} {employe.nom} créé avec succès !", "success")
+
+            return redirect(url_for('gerer_employes'))
+
+        except Exception as e:
+            db.session.rollback()
+            print("=" * 50)
+            print("❌ ERREUR DÉTAILLÉE:")
+            print(f"Type d'erreur: {type(e).__name__}")
+            print(f"Message: {str(e)}")
+            print("=" * 50)
+
+            # Pour voir l'erreur complète
+            import traceback
+            traceback.print_exc()
+
+            flash(f"Erreur lors de la création de l'employé: {str(e)}", "danger")
+            return redirect(request.url)
+
+    # 📄 GET
+    return render_template(
+        'admin/ajouter_employe.html',
+        succursales=succursales,
+        succursale=succursale,
+        employees=[]
+    )
 
 def filtrer_par_role(model):
     if current_user.role == 'super_admin':
