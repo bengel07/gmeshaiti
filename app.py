@@ -13265,8 +13265,7 @@ def conseiller_dashboard():
                            succursale=succursale)  # ✅ AJOUTER CETTE LIGNE
 
 
-@app.route('/<succursale_code>/conseiller-client/dashboard')
-@login_required
+@app.route('/employe/conseiller')
 @role_required('employe', 'super_admin')
 def conseiller_client_dashboard(succursale_code):
     # ✅ AJOUTEZ CES 2 LIGNES ICI (au début de la fonction)
