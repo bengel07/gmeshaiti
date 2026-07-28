@@ -16242,6 +16242,18 @@ def admin_rapport_global():
 def caissier_dashboard(succursale_code):
     """Dashboard spécifique pour les caissiers"""
 
+    print("===== TEST CAISSIER =====")
+    print("Utilisateur :", current_user.username)
+    print("Role :", current_user.role)
+    print("Fonction :", current_user.fonction)
+    print("Succursale ID :", current_user.succursale_id)
+    print("Code URL :", succursale_code)
+
+    if current_user.role != 'employe' or current_user.fonction != 'caissier':
+        print("❌ BLOQUE PAR ROLE/FONCTION")
+        flash('⛔ Accès non autorisé - Espace caissier', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
     # Vérifier que l'utilisateur est bien caissier
     if current_user.role != 'employe' or current_user.fonction != 'caissier':
         flash('⛔ Accès non autorisé - Espace caissier', 'danger')
