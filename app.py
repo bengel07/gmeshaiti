@@ -13241,6 +13241,91 @@ def conseiller_dashboard():
                            succursale=succursale)  # ✅ AJOUTER CETTE LIGNE
 
 
+@app.route('/<succursale_code>/conseiller-client/dashboard')
+@login_required
+@role_required('employe', 'super_admin')
+def conseiller_client_dashboard(succursale_code):
+    # ✅ AJOUTEZ CES 2 LIGNES ICI (au début de la fonction)
+    clients = []  # ← AJOUTER CETTE LIGNE
+    dossiers = []  # ← AJOUTER CETTE LIGNE
+
+    # ✅ VÉRIFICATION D'ACCÈS POUR SUPER_ADMIN
+    is_super_admin = (current_user.role == 'super_admin')
+    is_conseiller = (current_user.role == 'employe' and current_user.fonction == 'conseiller')
+
+    # ✅ SI CE N'EST NI SUPER_ADMIN NI CONSEILLER → REFUSER
+    if not (is_super_admin or is_conseiller):
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('admin_dashboard'))
+
+    # ✅ Récupérer la succursale de l'utilisateur
+    succursale = None
+    if hasattr(current_user, 'succursale_id') and current_user.succursale_id:
+        succursale = Succursale.query.get(current_user.succursale_id)
+
+    # Si l'utilisateur n'a pas de succursale, essayer via les clients
+    if not succursale:
+        # Chercher une succursale via les clients du conseiller
+        client_avec_succursale = Client.query.filter_by(
+            cree_par_id=current_user.id
+        ).filter(Client.succursale_id.isnot(None)).first()
+
+        if client_avec_succursale:
+            succursale = Succursale.query.get(client_avec_succursale.succursale_id)
+
+        # ✅ FILTRER UNIQUEMENT les clients créés par CE conseiller
+        # Dossiers de la succursale créés par ce conseiller
+        if succursale:
+            dossiers = Client.query.filter_by(
+                succursale_id=succursale.id,
+                cree_par_id=current_user.id
+            ).all()
+        else:
+            dossiers = []
+
+    # ✅ DÉFINIR clients AVANT de l'utiliser !
+    if succursale:
+        clients = Client.query.filter_by(
+            succursale_id=succursale.id,
+            cree_par_id=current_user.id
+        ).all()
+    else:
+        clients = []
+
+    # Statistiques réelles (pas en dur)
+    total_clients = Client.query.filter_by(cree_par_id=current_user.id).count()
+    dossiers_actifs = Client.query.filter_by(cree_par_id=current_user.id, statut='actif').count()
+    demandes_attente = Client.query.filter_by(cree_par_id=current_user.id,
+                                              statut='en_attente_terms').count()
+
+    # Valeurs par défaut (à adapter)
+    rdv_aujourdhui = 2
+    clients_prioritaires = 0
+    dossiers_urgence = 0
+    appels_attente = 0
+
+    # Préparer les données pour l'affichage
+    clients_avec_prets = []
+    for client in clients:
+        # Compter les prêts du client (à adapter selon votre modèle)
+        nb_prets = 0  # Remplacer par votre logique
+        clients_avec_prets.append({
+            'client': client,
+            'nb_prets': nb_prets
+        })
+
+    return render_template('conseiller_dashboard.html',
+                           clients=clients,
+                           dossiers=dossiers,
+                           clients_avec_prets=clients_avec_prets,
+                           total_clients=total_clients,
+                           dossiers_actifs=dossiers_actifs,
+                           demandes_attente=demandes_attente,
+                           rdv_aujourdhui=rdv_aujourdhui,
+                           clients_prioritaires=clients_prioritaires,
+                           dossiers_urgence=dossiers_urgence,
+                           appels_attente=appels_attente,
+                           succursale=succursale)  # ✅ AJOUTER CETTE LIGNE
 
 
 
