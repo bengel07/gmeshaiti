@@ -93,8 +93,15 @@
                             <td>{{ user.prenom or user.first_name or '' }}</td>
                             <td><strong>{{ user.username }}</strong></td>
                             <td>
-                                {% if user.role == 'superviseur' %}
+                                {% if user.role == 'super_admin' %}
+                                    <span class="badge bg-danger">Super Admin</span>
+
+                                {% elif user.role == 'admin_succursale' %}
+                                    <span class="badge bg-primary">Admin Succursale</span>
+
+                                {% elif user.role == 'superviseur' %}
                                     <span class="badge bg-info">Superviseur</span>
+
                                 {% else %}
                                     <span class="badge bg-secondary">Employé</span>
                                 {% endif %}
