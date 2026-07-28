@@ -592,7 +592,6 @@
                             <div>
                                 <label class="form-label required-field">Type de compte</label>
                                 <select class="form-select" name="role" id="roleSelect" required>
-                                    <option value="">Choisir un type</option>
                                     <option value="admin_succursale" selected>
                                         🏦 Admin succursale
                                     </option>
@@ -602,10 +601,9 @@
 
                             <div>
                                 <label class="form-label required-field">Fonction</label>
-                                <select class="form-select" name="fonction" id="functionSelect" required>
-                                    <option value="">Choisir une fonction</option>
+                               <select class="form-select" name="fonction" id="functionSelect" required>
                                     <option value="admin" selected>
-                                        👤 Administrateur
+                                        👤 Administrateur succursale
                                     </option>
                                 </select>
                             </div>
@@ -645,81 +643,6 @@
     </div>
 
     <script>
-        // Options de fonction selon le rôle
-        const functionOptions = {
-            employe: {
-                'caissier': '🏦 Caissier - Gestion des remboursements',
-                'analyste_credit': '📊 Analyste crédit - Analyse des prêts',
-                'conseiller': '👥 Conseiller clientèle - Gestion clients',
-                'gestionnaire_groupe': '🎯 Gestionnaire de groupes',
-                'rapports': '📈 Génération de rapports',
-                'agent_credit': '💰 Agent de crédit - Analyse et octroi',
-                'superviseur_credit': '👨‍💼 Superviseur crédit - Validation prêts',
-                'gestionnaire_portefeuille': '📋 Gestionnaire portefeuille - Suivi prêts',
-                'conseiller_client': '👥 Conseiller client - Accueil et orientation',
-                'relation_client': '🤝 Relation client - Fidélisation',
-                'animateur_groupe': '🎯 Animateur de groupe - Formation clients',
-                'caissier_principal': '💼 Caissier principal - Supervision caisse',
-                'agent_remboursement': '💵 Agent remboursement - Suivi échéances',
-                'agent_saisie': '⌨️ Agent saisie - Saisie données',
-                'agent_conformite': '🛡️ Agent conformité - Vérifications AML/CFT',
-                'agent_risque': '⚠️ Agent risque - Évaluation risques',
-                'controlleur_interne': '🔍 Contrôleur interne - Audit interne',
-                'secretaire': '📋 Secrétaire - Support administratif',
-                'archiviste': '🗂️ Archiviste - Gestion dossiers',
-                'chargé_rh': '👥 Chargé RH - Personnel',
-                'informaticien': '💻 Informaticien - Support IT',
-                'agent_terrain': '🚗 Agent terrain - Visites clients',
-                'collecteur': '📦 Collecteur - Recouvrement terrain',
-                'formateur': '🎓 Formateur - Formation clients'
-            },
-            superviseur: {
-                'chef_agence': '🏢 Chef d\'agence - Direction succursale',
-                'superviseur_operations': '👨‍💼 Superviseur opérations - Supervision équipe',
-                'chef_credit': '💰 Chef crédit - Direction département crédit',
-                'responsable_conformite': '🛡️ Responsable conformité - Direction conformité',
-                'coordinateur_terrain': '🗺️ Coordinateur terrain - Supervision agents terrain',
-                'directeur_regional': '🌍 Directeur régional - Supervision multi-agences'
-            },
-            direction: {
-                'directeur_general': '👑 Directeur général - Direction générale',
-                'directeur_financier': '💼 Directeur financier - Finances',
-                'directeur_operations': '⚙️ Directeur opérations - Opérations',
-                'directeur_commercial': '📈 Directeur commercial - Développement',
-                'directeur_rh': '👥 Directeur RH - Ressources humaines',
-                'directeur_conformite': '🛡️ Directeur conformité - Conformité BRH'
-            }
-        };
-
-        function updateFunctionOptions() {
-            const roleSelect = document.getElementById('roleSelect');
-            const functionSelect = document.getElementById('functionSelect');
-            const selectedRole = roleSelect.value;
-
-            // Vider les options actuelles
-            functionSelect.innerHTML = '';
-
-            if (selectedRole && functionOptions[selectedRole]) {
-                // Ajouter les options selon le rôle
-                for (const [key, value] of Object.entries(functionOptions[selectedRole])) {
-                    const option = document.createElement('option');
-                    option.value = key;
-                    option.textContent = value;
-                    functionSelect.appendChild(option);
-                }
-            } else {
-                const option = document.createElement('option');
-                option.value = '';
-                option.textContent = 'Choisir d\'abord le type';
-                functionSelect.appendChild(option);
-            }
-        }
-
-        // Initialiser au chargement
-        document.addEventListener('DOMContentLoaded', function() {
-            updateFunctionOptions();
-        });
-
         // Fonctions pour la gestion des photos
         function previewProfilePhoto(input) {
             if (input.files && input.files[0]) {
