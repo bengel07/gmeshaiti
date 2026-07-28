@@ -12934,7 +12934,7 @@ def suspendre_employe(employe_id):
 @app.route('/admin/supprimer-employe/<int:employe_id>', methods=['GET','POST'])
 @login_required
 def supprimer_employe(employe_id):
-    from models import User, Competence, Notification, Action, HistoriqueEmploye, QuestionSecrete, Epargne, TermsAcceptance
+    from models import User, Competence, Notification, Action, HistoriqueEmploye, QuestionSecrete, Epargne, TermsAcceptance, AuditLog
 
     # Vérifier les permissions
     roles_autorises = ['direction', 'admin_succursale', 'super_admin']
@@ -13039,6 +13039,12 @@ def supprimer_employe(employe_id):
             # 6. Supprimer l'historique
             deleted = HistoriqueEmploye.query.filter_by(employe_id=employe_id).delete()
             print(f"   🗑️ {deleted} entrées d'historique supprimées")
+
+            deleted = AuditLog.query.filter_by(
+                employe_id=employe_id
+            ).delete(synchronize_session=False)
+
+            print(f"🗑️ {deleted} audit logs supprimés")
 
 
             # Flush pour appliquer toutes les suppressions
