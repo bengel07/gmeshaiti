@@ -13000,8 +13000,7 @@ def supprimer_employe(employe_id):
                     Remboursement.query.filter_by(pret_id=pret.id).delete()
                     db.session.delete(pret)
 
-                # FaceData
-                FaceData.query.filter_by(client_id=client.id).delete()
+
 
                 # Enfin supprimer le client
                 db.session.delete(client)
