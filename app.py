@@ -30,7 +30,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 
 # ==================== DATABASE ====================
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy import inspect, text
 
 # ==================== SECURITY ====================
@@ -20073,13 +20073,383 @@ def delete_partner_integration(integration_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-# Si tu n'utilises pas de Blueprint, voici la version directe
-@app.route('/api/partner/portal/integrations', methods=['POST'])
+
+@app.route('/api/partner/portal/integrations', methods=['GET', 'POST'])
 @login_requis
 def create_partner_integration_direct():
-    """Version directe sans Blueprint"""
-    # Même code que ci-dessus
-    pass
+    """
+    Version directe sans Blueprint
+    Crée une intégration partenaire avec gestion sécurisée des clients
+    """
+
+    if request.method == "GET":
+        return render_template("admin_central/ajouter_integration.html")
+    try:
+        # Récupération des données
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Données JSON requises'
+            }), 400
+
+        # Validation des données requises
+        required_fields = ['partner_id', 'client_id', 'integration_type']
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            return jsonify({
+                'success': False,
+                'error': f'Champs manquants: {", ".join(missing_fields)}'
+            }), 400
+
+        partner_id = data.get('partner_id')
+        client_id = data.get('client_id')
+        integration_type = data.get('integration_type')
+        cree_par_id = data.get('cree_par_id', request.user.id)  # Par défaut, l'utilisateur connecté
+
+        # Vérification que le client existe
+        with current_app.db.session() as session:
+            # 1. Vérifier l'existence du client
+            client_check = session.execute(
+                text("SELECT id, cree_par_id, actif FROM clients WHERE id = :client_id"),
+                {'client_id': client_id}
+            ).first()
+
+            if not client_check:
+                return jsonify({
+                    'success': False,
+                    'error': f'Client avec ID {client_id} non trouvé'
+                }), 404
+
+            # Vérifier si le client a des enregistrements liés (pour information)
+            epargnes_count = session.execute(
+                text("SELECT COUNT(*) FROM epargnes WHERE client_id = :client_id"),
+                {'client_id': client_id}
+            ).scalar()
+
+            # 2. Créer l'intégration
+            integration_data = {
+                'partner_id': partner_id,
+                'client_id': client_id,
+                'integration_type': integration_type,
+                'cree_par_id': cree_par_id,
+                'status': data.get('status', 'active'),
+                'config': data.get('config', {}),
+                'created_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }
+
+            # Insertion de l'intégration
+            insert_query = text("""
+                INSERT INTO partner_integrations (
+                    partner_id, client_id, integration_type, 
+                    cree_par_id, status, config, created_at, updated_at
+                ) VALUES (
+                    :partner_id, :client_id, :integration_type,
+                    :cree_par_id, :status, :config, :created_at, :updated_at
+                ) RETURNING id
+            """)
+
+            result = session.execute(insert_query, integration_data)
+            integration_id = result.scalar()
+
+            # 3. Log de l'action
+            logger.info(f"Intégration créée: ID={integration_id}, Client={client_id}, Partenaire={partner_id}")
+
+            # 4. Si le client a des enregistrements liés, on peut proposer des actions
+            warning_message = None
+            if epargnes_count > 0:
+                warning_message = f"Attention: Ce client a {epargnes_count} enregistrement(s) lié(s) dans la table epargnes. Toute suppression future devra gérer ces dépendances."
+
+            session.commit()
+
+            return jsonify({
+                'success': True,
+                'data': {
+                    'integration_id': integration_id,
+                    'client_id': client_id,
+                    'partner_id': partner_id,
+                    'integration_type': integration_type,
+                    'status': integration_data['status'],
+                    'created_at': integration_data['created_at'].isoformat(),
+                    'epargnes_count': epargnes_count
+                },
+                'warning': warning_message,
+                'message': 'Intégration créée avec succès'
+            }), 201
+
+    except IntegrityError as e:
+        # Gestion spécifique des erreurs d'intégrité (clés étrangères)
+        logger.error(f"Erreur d'intégrité: {str(e)}")
+
+        # Analyser l'erreur pour un message plus explicite
+        error_message = str(e)
+        if 'foreign key constraint' in error_message.lower():
+            if 'epargnes_client_id_fkey' in error_message:
+                return jsonify({
+                    'success': False,
+                    'error': "Le client est toujours référencé dans la table 'epargnes'. Supprimez d'abord les enregistrements liés.",
+                    'error_code': 'FOREIGN_KEY_VIOLATION',
+                    'details': 'Le client ne peut pas être supprimé car il est utilisé dans d\'autres tables.',
+                    'suggestion': 'Utilisez l\'endpoint /api/clients/{id}/delete_with_dependencies pour supprimer avec gestion des dépendances.'
+                }), 409  # Conflict
+
+            elif 'partner_integrations_partner_id_fkey' in error_message:
+                return jsonify({
+                    'success': False,
+                    'error': 'Le partenaire spécifié n\'existe pas',
+                    'error_code': 'FOREIGN_KEY_VIOLATION'
+                }), 404
+
+        return jsonify({
+            'success': False,
+            'error': f'Erreur d\'intégrité de la base de données: {str(e)}'
+        }), 400
+
+    except SQLAlchemyError as e:
+        logger.error(f"Erreur SQLAlchemy: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Erreur de base de données: {str(e)}'
+        }), 500
+
+    except Exception as e:
+        logger.error(f"Erreur inattendue: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Erreur serveur: {str(e)}'
+        }), 500
+
+
+@app.route('/api/clients/<int:client_id>/delete_with_dependencies', methods=['DELETE'])
+@login_requis
+def delete_client_with_dependencies(client_id):
+    """
+    Supprime un client avec gestion des dépendances (enregistrements liés)
+    """
+    try:
+        data = request.get_json() or {}
+        strategy = data.get('strategy', 'cascade')  # 'cascade', 'reassign', 'prevent'
+        reassign_to = data.get('reassign_to')
+        cree_par_id = data.get('cree_par_id', request.user.id)
+
+        with current_app.db.session() as session:
+            # Vérifier l'existence du client
+            client = session.execute(
+                text("SELECT id, cree_par_id FROM clients WHERE id = :client_id"),
+                {'client_id': client_id}
+            ).first()
+
+            if not client:
+                return jsonify({
+                    'success': False,
+                    'error': f'Client avec ID {client_id} non trouvé'
+                }), 404
+
+            # Vérifier les enregistrements liés
+            epargnes_records = session.execute(
+                text("SELECT id, montant, date_creation FROM epargnes WHERE client_id = :client_id"),
+                {'client_id': client_id}
+            ).fetchall()
+
+            epargnes_count = len(epargnes_records)
+
+            # Si aucun enregistrement lié, suppression directe
+            if epargnes_count == 0:
+                session.execute(
+                    text("DELETE FROM clients WHERE id = :client_id"),
+                    {'client_id': client_id}
+                )
+                session.commit()
+                return jsonify({
+                    'success': True,
+                    'message': 'Client supprimé avec succès',
+                    'deleted_records': 0
+                }), 200
+
+            # Traiter selon la stratégie
+            sql_queries = []
+            deleted_records = 0
+
+            if strategy == 'cascade':
+                # Suppression en cascade
+                deleted_records = epargnes_count
+                session.execute(
+                    text("DELETE FROM epargnes WHERE client_id = :client_id"),
+                    {'client_id': client_id}
+                )
+                session.execute(
+                    text("DELETE FROM clients WHERE id = :client_id"),
+                    {'client_id': client_id}
+                )
+                sql_queries = [
+                    f"DELETE FROM epargnes WHERE client_id = {client_id};",
+                    f"DELETE FROM clients WHERE id = {client_id};"
+                ]
+
+            elif strategy == 'reassign':
+                if not reassign_to:
+                    return jsonify({
+                        'success': False,
+                        'error': 'ID de réaffectation requis pour la stratégie "reassign"'
+                    }), 400
+
+                # Vérifier que le client de réaffectation existe
+                target_client = session.execute(
+                    text("SELECT id FROM clients WHERE id = :reassign_to"),
+                    {'reassign_to': reassign_to}
+                ).first()
+
+                if not target_client:
+                    return jsonify({
+                        'success': False,
+                        'error': f'Client de réaffectation avec ID {reassign_to} non trouvé'
+                    }), 404
+
+                # Réaffecter les enregistrements
+                session.execute(
+                    text("UPDATE epargnes SET client_id = :reassign_to WHERE client_id = :client_id"),
+                    {'reassign_to': reassign_to, 'client_id': client_id}
+                )
+                session.execute(
+                    text("DELETE FROM clients WHERE id = :client_id"),
+                    {'client_id': client_id}
+                )
+                sql_queries = [
+                    f"UPDATE epargnes SET client_id = {reassign_to} WHERE client_id = {client_id};",
+                    f"DELETE FROM clients WHERE id = {client_id};"
+                ]
+                deleted_records = 0  # Les enregistrements ont été réaffectés, non supprimés
+
+            elif strategy == 'prevent':
+                # Bloquer la suppression
+                return jsonify({
+                    'success': False,
+                    'error': f'Suppression bloquée. {epargnes_count} enregistrement(s) lié(s) existent.',
+                    'related_records': [
+                        {'id': r[0], 'montant': str(r[1]), 'date': str(r[2])}
+                        for r in epargnes_records
+                    ],
+                    'suggestion': 'Utilisez strategy="cascade" ou strategy="reassign"'
+                }), 409
+
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': f'Stratégie non reconnue: {strategy}'
+                }), 400
+
+            session.commit()
+
+            return jsonify({
+                'success': True,
+                'message': f'Client {client_id} supprimé avec succès',
+                'strategy_used': strategy,
+                'related_records_handled': epargnes_count,
+                'deleted_records': deleted_records,
+                'sql_queries': sql_queries
+            }), 200
+
+    except IntegrityError as e:
+        logger.error(f"Erreur d'intégrité lors de la suppression: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Erreur de contrainte: {str(e)}',
+            'error_code': 'FOREIGN_KEY_VIOLATION'
+        }), 409
+
+    except Exception as e:
+        logger.error(f"Erreur inattendue: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Erreur serveur: {str(e)}'
+        }), 500
+
+
+@app.route('/api/clients/<int:client_id>/dependencies', methods=['GET'])
+@login_requis
+def get_client_dependencies(client_id):
+    """
+    Vérifie les dépendances d'un client avant suppression
+    """
+    try:
+        with current_app.db.session() as session:
+            # Vérifier l'existence du client
+            client = session.execute(
+                text("SELECT id, nom, cree_par_id FROM clients WHERE id = :client_id"),
+                {'client_id': client_id}
+            ).first()
+
+            if not client:
+                return jsonify({
+                    'success': False,
+                    'error': f'Client avec ID {client_id} non trouvé'
+                }), 404
+
+            # Récupérer les dépendances
+            dependencies = {
+                'epargnes': [],
+                'partner_integrations': [],
+                'total_count': 0
+            }
+
+            # Enregistrements dans epargnes
+            epargnes = session.execute(
+                text("""
+                    SELECT id, montant, date_creation, type 
+                    FROM epargnes 
+                    WHERE client_id = :client_id
+                    ORDER BY date_creation DESC
+                """),
+                {'client_id': client_id}
+            ).fetchall()
+
+            for e in epargnes:
+                dependencies['epargnes'].append({
+                    'id': e[0],
+                    'montant': float(e[1]) if e[1] else None,
+                    'date': str(e[2]),
+                    'type': e[3] if len(e) > 3 else 'N/A'
+                })
+
+            # Intégrations partenaires liées
+            integrations = session.execute(
+                text("""
+                    SELECT id, partner_id, integration_type, status 
+                    FROM partner_integrations 
+                    WHERE client_id = :client_id
+                """),
+                {'client_id': client_id}
+            ).fetchall()
+
+            for i in integrations:
+                dependencies['partner_integrations'].append({
+                    'id': i[0],
+                    'partner_id': i[1],
+                    'type': i[2],
+                    'status': i[3]
+                })
+
+            dependencies['total_count'] = len(dependencies['epargnes']) + len(dependencies['partner_integrations'])
+
+            return jsonify({
+                'success': True,
+                'client': {
+                    'id': client[0],
+                    'nom': client[1],
+                    'cree_par_id': client[2]
+                },
+                'dependencies': dependencies,
+                'can_delete': dependencies['total_count'] == 0,
+                'suggested_strategy': 'cascade' if dependencies['total_count'] > 0 else 'direct'
+            }), 200
+
+    except Exception as e:
+        logger.error(f"Erreur: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Erreur serveur: {str(e)}'
+        }), 500
 
 
 
