@@ -5962,6 +5962,92 @@ def dashboard_redirect():
     abort(403)
 
 
+
+@app.route('/<succursale_code>/conseiller/dashboard')
+@login_required
+def conseiller_dashboard(succursale_code):
+    """Dashboard conseiller client"""
+
+    # Vérification accès
+    if current_user.role != 'employe' or current_user.fonction != 'conseiller':
+        flash("⛔ Accès non autorisé - Espace Conseiller Client", "danger")
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération succursale
+    succursale = Succursale.query.filter_by(
+        code=succursale_code
+    ).first_or_404()
+
+    # Sécurité succursale
+    if current_user.succursale_id != succursale.id:
+        flash("⛔ Cette succursale ne vous appartient pas.", "danger")
+        return redirect(url_for('dashboard_redirect'))
+
+
+    # Statistiques conseiller
+    total_clients = Client.query.filter_by(
+        succursale_id=succursale.id
+    ).count()
+
+
+    dossiers_actifs = Pret.query.filter_by(
+        succursale_id=succursale.id,
+        statut="actif"
+    ).count()
+
+
+    demandes_attente = Pret.query.filter_by(
+        succursale_id=succursale.id,
+        statut="en_attente"
+    ).count()
+
+
+    rdv_aujourdhui = 0
+    # si tu as une table rendez-vous tu feras la requête ici
+
+
+    clients_prioritaires = 0
+    dossiers_urgence = 0
+    appels_attente = 0
+
+
+    # Clients avec nombre de prêts
+    clients_avec_prets = []
+
+    clients = Client.query.filter_by(
+        succursale_id=succursale.id
+    ).limit(20).all()
+
+
+    for client in clients:
+        nb_prets = Pret.query.filter_by(
+            client_id=client.id
+        ).count()
+
+        clients_avec_prets.append({
+            "client": client,
+            "nb_prets": nb_prets
+        })
+
+
+    return render_template(
+        "conseiller_dashboard.html",
+
+        succursale=succursale,
+
+        total_clients=total_clients,
+        dossiers_actifs=dossiers_actifs,
+        demandes_attente=demandes_attente,
+        rdv_aujourdhui=rdv_aujourdhui,
+
+        clients_prioritaires=clients_prioritaires,
+        dossiers_urgence=dossiers_urgence,
+        appels_attente=appels_attente,
+
+        clients_avec_prets=clients_avec_prets
+    )
+
+
 @app.route('/<succursale_code>/agent-credit/dashboard')
 @login_required
 def agent_credit_dashboard(succursale_code):
