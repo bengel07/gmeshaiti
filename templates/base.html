@@ -83,6 +83,9 @@
         <div class="nav-container">
             <h1 style="margin:0; font-size:1.5rem;">🏦 GMES Microcrédit</h1>
             <div class="nav-links">
+                 <button type="button" class="btn btn-secondary" onclick="history.back()">
+                    ⬅️ Retour
+                </button>
                 <a href="{{ url_for('main.accueil') }}">Accueil</a>
                 {% if current_user.is_authenticated %}
                     <a href="{{ url_for('tableau_de_bord') }}">Tableau de Bord</a>

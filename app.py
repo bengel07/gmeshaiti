@@ -5336,10 +5336,8 @@ def connexion():
 
             # CAS 1: Première connexion - obliger le changement de MDP
             if user.premier_connexion:
-                user.premier_connexion = False
-                user.date_premiere_connexion = datetime.now()
-                db.session.commit()
-                flash("🔐 Bienvenue ! Veuillez changer votre mot de passe pour sécuriser votre compte.", "warning")
+                flash(
+                    "🔐 Bienvenue ! Veuillez changer votre mot de passe pour sécuriser votre compte.", "warning")
                 return redirect(url_for('premier_changement_mot_de_passe'))
 
             # CAS 2: Connexion normale - admin ou utilisateur standard
@@ -5393,6 +5391,10 @@ def gestion_retards():
 @login_required
 def premier_changement_mot_de_passe():
     """Premier changement de mot de passe à la première connexion"""
+
+    # Si le mot de passe a déjà été changé, empêcher l'accès à cette page
+    if not current_user.premier_connexion:
+        return redirect(url_for('dashboard_redirect'))
 
     if request.method == 'POST':
         nouveau_mdp = request.form.get('nouveau_mot_de_passe')
@@ -5841,6 +5843,9 @@ def liste_dossiers(dossier_id):
 @login_required
 def dashboard_redirect():
     """Point d'entrée unique pour tous les dashboards"""
+
+    if current_user.is_authenticated and current_user.premier_connexion:
+        return redirect(url_for("premier_changement_mot_de_passe"))
 
     # 🔑 SUPER ADMIN
     if current_user.role == 'super_admin':
