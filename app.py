@@ -5843,6 +5843,14 @@ def liste_dossiers(dossier_id):
 @login_required
 def dashboard_redirect():
     """Point d'entrée unique pour tous les dashboards"""
+    # 🔍 DEBUG - Affiche tout
+    print("=" * 50)
+    print(f"👤 Utilisateur: {current_user.email}")
+    print(f"📋 Role: {current_user.role}")
+    print(f"🔧 Fonction brute: '{current_user.fonction}'")
+    print(f"🔧 Type de fonction: {type(current_user.fonction)}")
+    print(f"🔐 Premier connexion: {current_user.premier_connexion}")
+    print("=" * 50)
 
     if current_user.is_authenticated and current_user.premier_connexion:
         return redirect(url_for("premier_changement_mot_de_passe"))
