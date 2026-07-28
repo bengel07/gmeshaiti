@@ -5870,6 +5870,11 @@ def dashboard_redirect():
     print(f"📦 Session role: {session.get('role')}")
     print(f"📦 Session user: {session.get('user')}")
     print("=" * 80)
+    print(f"👤 Utilisateur: {current_user.email}")
+    print(f"📋 Role: {current_user.role}")
+    print(f"🔧 Fonction brute: '{current_user.fonction}'")
+    print(f"🔧 Type de fonction: {type(current_user.fonction)}")
+    print(f"🔐 Premier connexion: {current_user.premier_connexion}")
 
     if current_user.is_authenticated and current_user.premier_connexion:
         return redirect(url_for("premier_changement_mot_de_passe"))
