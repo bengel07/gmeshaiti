@@ -14494,7 +14494,7 @@ def humanize_unique_error(error):
         return f"❌ Une erreur est survenue: {str(error)}"
 
 
-@app.route('/admin/ajouter-admin', methods=['GET', 'POST'])
+@app.route('/admin/create_admin', methods=['GET', 'POST'])
 @login_required
 def ajouter_admin():
     print("🔥🔥🔥 ROUTE AJOUTER_EMPLOYE APPELÉE 🔥🔥🔥")
@@ -15391,137 +15391,137 @@ def create_succursale():
 from werkzeug.security import generate_password_hash
 
 
-@app.route('/admin/create_admin', methods=['GET', 'POST'])
-@login_required
-def create_admin():
-    from datetime import datetime
-    from models import User, Succursale  # ← AJOUTEZ CETTE LIGNE
-    from werkzeug.security import generate_password_hash
-    """Route pour créer un nouvel administrateur"""
-    if current_user.role != 'super_admin':
-        flash("Accès refusé. Seul le super-admin peut ajouter un admin.", "danger")
-        return redirect(url_for('admin_dashboard'))
-
-    print("👉  33 Geler:")
-
-    if request.method == 'POST':
-        try:
-            # Récupérer les données du formulaire
-            nom_utilisateur = request.form.get('nom_utilisateur')
-            prenom = request.form.get('prenom')
-            nom = request.form.get('nom')
-            email = request.form.get('email')
-            telephone = request.form.get('telephone')
-            adresse = request.form.get('adresse')
-            date_naissance = request.form.get('date_naissance')
-            cin_nif = request.form.get('cin_nif')
-            password = request.form.get('password')
-            role = request.form.get('role')
-            fonction = request.form.get('fonction') or "Non défini"
-            succursale_id = request.form.get('succursale_id') or None
-
-            # ✅ Récupérer les questions secrètes
-            question_1 = request.form.get('question_1')
-            reponse_1 = request.form.get('reponse_1', '').strip().lower()
-            question_2 = request.form.get('question_2')
-            reponse_2 = request.form.get('reponse_2', '').strip().lower()
-            question_3 = request.form.get('question_3')
-            reponse_3 = request.form.get('reponse_3', '').strip().lower()
-
-            print("👉 Fonction reçue du formulaire 75:", fonction)
-
-            # Validation des champs obligatoires
-            if not nom_utilisateur or not email or not password:
-                flash("Nom d'utilisateur, email et mot de passe sont obligatoires", "danger")
-                return redirect(request.referrer)
-
-            print("👉  76:")
-
-            # Vérifier si l'utilisateur existe déjà
-            existing_user = User.query.filter(
-                (User.username == nom_utilisateur) | (User.email == email)
-            ).first()
-
-            if existing_user:
-                flash("Nom d'utilisateur ou email déjà utilisé", "danger")
-                return redirect(request.referrer)
-
-            print("👉  77:")
-
-            # Hasher le mot de passe
-            mot_de_passe_hash = generate_password_hash(password)
-
-            # Gérer la photo (si vous avez un champ photo)
-            photo_filename = None
-            photo_file = request.files.get('photo')
-            if photo_file and photo_file.filename:
-                from werkzeug.utils import secure_filename
-                import os
-                from datetime import datetime
-                from app import UPLOAD_FOLDER
-
-                def allowed_file(filename):
-                    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-                    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-                if allowed_file(photo_file.filename):
-                    original_filename = secure_filename(photo_file.filename)
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    photo_filename = f"admin_{timestamp}_{original_filename}"
-                    photo_path = os.path.join(app.root_path, UPLOAD_FOLDER, photo_filename)
-                    photo_file.save(photo_path)
-
-            print("👉  78:")
-
-            # Créer l'admin (utilisez User au lieu de Admin)
-            new_admin = User(
-                username=nom_utilisateur,
-                prenom=prenom,
-                nom=nom,
-                email=email,
-                telephone=telephone,
-                adresse=adresse,
-                date_naissance=datetime.strptime(date_naissance, '%Y-%m-%d').date() if date_naissance else None,
-                cin_nif=cin_nif,
-                password_hash=mot_de_passe_hash,
-                role=role,
-                fonction=fonction,
-                succursale_id=int(succursale_id) if succursale_id and succursale_id.isdigit() else None,
-                photo_selfie=photo_filename,
-                statut='en_attente',
-                date_creation=datetime.now(),
-
-                # ✅ Questions secrètes
-                question_secrete_1=question_1 if question_1 else None,
-                reponse_secrete_1=reponse_1 if reponse_1 else None,
-                question_secrete_2=question_2 if question_2 else None,
-                reponse_secrete_2=reponse_2 if reponse_2 else None,
-                question_secrete_3=question_3 if question_3 else None,
-                reponse_secrete_3=reponse_3 if reponse_3 else None,
-
-                # ✅ Première connexion
-                premier_connexion=True
-            )
-            print("👉 Fonction reçue du formulaire:", fonction)
-
-            db.session.add(new_admin)
-            db.session.commit()
-
-            flash("✅ Admin ajouté avec succès", "success")
-            return redirect(url_for('admin_dashboard'))
-
-        except IntegrityError as e:
-            db.session.rollback()
-            flash(humanize_unique_error(e), f"Erreur: {str(e)}", "danger")
-            return redirect(request.referrer)
-
-    # GET - Afficher le formulaire
-    from models import Succursale
-    succursales = Succursale.query.all()
-
-    print("👉  99:")
-
-    return render_template('admin_central/ajouter_admin.html', succursales=succursales)
+# @app.route('/admin/create_admin', methods=['GET', 'POST'])
+# @login_required
+# def create_admin():
+#     from datetime import datetime
+#     from models import User, Succursale  # ← AJOUTEZ CETTE LIGNE
+#     from werkzeug.security import generate_password_hash
+#     """Route pour créer un nouvel administrateur"""
+#     if current_user.role != 'super_admin':
+#         flash("Accès refusé. Seul le super-admin peut ajouter un admin.", "danger")
+#         return redirect(url_for('admin_dashboard'))
+#
+#     print("👉  33 Geler:")
+#
+#     if request.method == 'POST':
+#         try:
+#             # Récupérer les données du formulaire
+#             nom_utilisateur = request.form.get('nom_utilisateur')
+#             prenom = request.form.get('prenom')
+#             nom = request.form.get('nom')
+#             email = request.form.get('email')
+#             telephone = request.form.get('telephone')
+#             adresse = request.form.get('adresse')
+#             date_naissance = request.form.get('date_naissance')
+#             cin_nif = request.form.get('cin_nif')
+#             password = request.form.get('password')
+#             role = request.form.get('role')
+#             fonction = request.form.get('fonction') or "Non défini"
+#             succursale_id = request.form.get('succursale_id') or None
+#
+#             # ✅ Récupérer les questions secrètes
+#             question_1 = request.form.get('question_1')
+#             reponse_1 = request.form.get('reponse_1', '').strip().lower()
+#             question_2 = request.form.get('question_2')
+#             reponse_2 = request.form.get('reponse_2', '').strip().lower()
+#             question_3 = request.form.get('question_3')
+#             reponse_3 = request.form.get('reponse_3', '').strip().lower()
+#
+#             print("👉 Fonction reçue du formulaire 75:", fonction)
+#
+#             # Validation des champs obligatoires
+#             if not nom_utilisateur or not email or not password:
+#                 flash("Nom d'utilisateur, email et mot de passe sont obligatoires", "danger")
+#                 return redirect(request.referrer)
+#
+#             print("👉  76:")
+#
+#             # Vérifier si l'utilisateur existe déjà
+#             existing_user = User.query.filter(
+#                 (User.username == nom_utilisateur) | (User.email == email)
+#             ).first()
+#
+#             if existing_user:
+#                 flash("Nom d'utilisateur ou email déjà utilisé", "danger")
+#                 return redirect(request.referrer)
+#
+#             print("👉  77:")
+#
+#             # Hasher le mot de passe
+#             mot_de_passe_hash = generate_password_hash(password)
+#
+#             # Gérer la photo (si vous avez un champ photo)
+#             photo_filename = None
+#             photo_file = request.files.get('photo')
+#             if photo_file and photo_file.filename:
+#                 from werkzeug.utils import secure_filename
+#                 import os
+#                 from datetime import datetime
+#                 from app import UPLOAD_FOLDER
+#
+#                 def allowed_file(filename):
+#                     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+#                     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+#
+#                 if allowed_file(photo_file.filename):
+#                     original_filename = secure_filename(photo_file.filename)
+#                     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+#                     photo_filename = f"admin_{timestamp}_{original_filename}"
+#                     photo_path = os.path.join(app.root_path, UPLOAD_FOLDER, photo_filename)
+#                     photo_file.save(photo_path)
+#
+#             print("👉  78:")
+#
+#             # Créer l'admin (utilisez User au lieu de Admin)
+#             new_admin = User(
+#                 username=nom_utilisateur,
+#                 prenom=prenom,
+#                 nom=nom,
+#                 email=email,
+#                 telephone=telephone,
+#                 adresse=adresse,
+#                 date_naissance=datetime.strptime(date_naissance, '%Y-%m-%d').date() if date_naissance else None,
+#                 cin_nif=cin_nif,
+#                 password_hash=mot_de_passe_hash,
+#                 role=role,
+#                 fonction=fonction,
+#                 succursale_id=int(succursale_id) if succursale_id and succursale_id.isdigit() else None,
+#                 photo_selfie=photo_filename,
+#                 statut='en_attente',
+#                 date_creation=datetime.now(),
+#
+#                 # ✅ Questions secrètes
+#                 question_secrete_1=question_1 if question_1 else None,
+#                 reponse_secrete_1=reponse_1 if reponse_1 else None,
+#                 question_secrete_2=question_2 if question_2 else None,
+#                 reponse_secrete_2=reponse_2 if reponse_2 else None,
+#                 question_secrete_3=question_3 if question_3 else None,
+#                 reponse_secrete_3=reponse_3 if reponse_3 else None,
+#
+#                 # ✅ Première connexion
+#                 premier_connexion=True
+#             )
+#             print("👉 Fonction reçue du formulaire:", fonction)
+#
+#             db.session.add(new_admin)
+#             db.session.commit()
+#
+#             flash("✅ Admin ajouté avec succès", "success")
+#             return redirect(url_for('admin_dashboard'))
+#
+#         except IntegrityError as e:
+#             db.session.rollback()
+#             flash(humanize_unique_error(e), f"Erreur: {str(e)}", "danger")
+#             return redirect(request.referrer)
+#
+#     # GET - Afficher le formulaire
+#     from models import Succursale
+#     succursales = Succursale.query.all()
+#
+#     print("👉  99:")
+#
+#     return render_template('admin_central/ajouter_admin.html', succursales=succursales)
 
 
 
