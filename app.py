@@ -14497,6 +14497,7 @@ def humanize_unique_error(error):
 @app.route('/admin/ajouter-admin', methods=['GET', 'POST'])
 @login_required
 def ajouter_admin():
+    from werkzeug.security import generate_password_hash
     """Ajouter un nouvel administrateur"""
 
     print("👉  44 admin:")
@@ -14553,7 +14554,12 @@ def ajouter_admin():
             print("👉  77:")
 
             # Hasher le mot de passe
-            password_hash = generate_password_hash(password)
+            mot_de_passe_temp = request.form.get('password')
+
+            if not mot_de_passe_temp:
+                mot_de_passe_temp = generer_mot_de_passe()
+
+
 
             # Gérer la photo (si vous avez un champ photo)
             photo_filename = None
@@ -14587,9 +14593,9 @@ def ajouter_admin():
                 adresse=adresse,
                 date_naissance=datetime.strptime(date_naissance, '%Y-%m-%d').date() if date_naissance else None,
                 cin_nif=cin_nif,
-                password_hash=password_hash,
+                password_hash=mot_de_passe_temp,
                 role=role,
-                photo_selfie=photo_selfie,
+                photo_selfie=photo_filename,
                 fonction=fonction,
                 succursale_id=int(succursale_id) if succursale_id and succursale_id.isdigit() else None,
                 photo=photo_filename,
@@ -14612,9 +14618,11 @@ def ajouter_admin():
             db.session.add(new_admin)
             db.session.commit()
 
+            new_admin.set_password(mot_de_passe_temp)
+            new_admin.premier_connexion = True
+
             # ✅ ENVOYER L'EMAIL DE BIENVENUE
-            password = request.form.get('password')
-            send_welcome_email(new_admin, password)  # Envoi automatique en tâche de fond
+            send_welcome_email(new_admin, mot_de_passe_temp)
 
 
             flash("✅ Admin ajouté avec succès", "success")
@@ -14622,7 +14630,7 @@ def ajouter_admin():
 
         except IntegrityError as e:
             db.session.rollback()
-            flash(humanize_unique_error(e),f"Erreur: {str(e)}", "danger")
+            flash(humanize_unique_error(e), "danger")
             return redirect(request.referrer)
 
 
