@@ -13019,11 +13019,19 @@ def supprimer_employe(employe_id):
             print(f"🗑️ {deleted} notifications supprimées (employe_id)")
 
             # 5. Supprimer les actions
-            deleted = Action.query.filter_by(assignee_a_id=employe_id).delete()
-            print(f"   🗑️ {deleted} actions supprimées (assignee_a_id)")
+            # Récupérer les actions de l'employé
+            actions = Action.query.filter(
+                (Action.assignee_a_id == employe_id) |
+                (Action.creee_par_id == employe_id)
+            ).all()
 
-            deleted = Action.query.filter_by(creee_par_id=employe_id).delete()
-            print(f"   🗑️ {deleted} actions supprimées (creee_par_id)")
+            for action in actions:
+                # Supprimer les notifications liées à cette action
+                Notification.query.filter_by(action_id=action.id).delete()
+
+                # Puis supprimer l'action
+                db.session.delete(action)
+                db.session.flush()
 
             # 6. Supprimer l'historique
             deleted = HistoriqueEmploye.query.filter_by(employe_id=employe_id).delete()
