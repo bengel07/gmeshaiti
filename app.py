@@ -13144,12 +13144,10 @@ def rapports_dashboard():
 
 
 # Route Conseiller avec données
-@app.route('/<succursale_code>/conseiller/dashboard')
-@login_required
+@app.route('/employe/conseiller')
 @role_required('employe', 'super_admin')
-def conseiller_dashboard(succursale_code):
+def conseiller_dashboard():
     """Dashboard pour les conseillers - accessible aussi aux super_admin"""
-
 
     # ✅ AJOUTEZ CES 2 LIGNES ICI (au début de la fonction)
     clients = []  # ← AJOUTER CETTE LIGNE
@@ -13165,9 +13163,9 @@ def conseiller_dashboard(succursale_code):
         return redirect(url_for('admin_dashboard'))
 
     # ✅ Récupérer la succursale de l'utilisateur
-    succursale = Succursale.query.filter_by(
-        code=succursale_code
-    ).first_or_404()
+    succursale = None
+    if hasattr(current_user, 'succursale_id') and current_user.succursale_id:
+        succursale = Succursale.query.get(current_user.succursale_id)
 
     # Si l'utilisateur n'a pas de succursale, essayer via les clients
     if not succursale:
@@ -13181,10 +13179,13 @@ def conseiller_dashboard(succursale_code):
 
     # ✅ FILTRER UNIQUEMENT les clients créés par CE conseiller
         # Dossiers de la succursale créés par ce conseiller
-        dossiers = Client.query.filter_by(
-            succursale_id=succursale.id,
-            cree_par_id=current_user.id
-        ).all()
+        if succursale:
+            dossiers = Client.query.filter_by(
+                succursale_id=succursale.id,
+                cree_par_id=current_user.id
+            ).all()
+        else:
+            dossiers = []
 
     # ✅ DÉFINIR clients AVANT de l'utiliser !
     if succursale:
