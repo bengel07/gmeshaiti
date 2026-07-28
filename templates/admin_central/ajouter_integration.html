@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Clients - Suppression Sécurisée</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .alert {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .alert-danger {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .alert-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .alert-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #0069d9;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .related-records {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        .related-records table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .related-records th, .related-records td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .related-records th {
+            background-color: #e9ecef;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .options-group {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+        .options-group label {
+            font-weight: normal;
+            margin-bottom: 0;
+        }
+        .options-group input[type="radio"] {
+            width: auto;
+            margin-right: 10px;
+        }
+        .mt-20 {
+            margin-top: 20px;
+        }
+        .text-muted {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ Suppression Sécurisée des Clients</h1>
+
+        <!-- Message d'erreur/succès -->
+        <div id="alertMessage" style="display: none;"></div>
+
+        <!-- Formulaire de suppression -->
+        <form id="deleteForm">
+            <div class="form-group">
+                <label for="clientId">ID du Client à Supprimer</label>
+                <input type="number" id="clientId" name="clientId"
+                       placeholder="Exemple: 12" required min="1">
+                <small class="text-muted">Entrez l'ID du client que vous souhaitez supprimer</small>
+            </div>
+
+            <div class="form-group">
+                <label for="creeParId">ID du Créateur (cree_par_id)</label>
+                <input type="number" id="creeParId" name="creeParId"
+                       placeholder="Exemple: 39" required min="1">
+                <small class="text-muted">Utilisé pour la clause WHERE (ex: WHERE clients.cree_par_id = ?)</small>
+            </div>
+
+            <div class="options-group">
+                <label><strong>Stratégie de suppression :</strong></label><br>
+                <label>
+                    <input type="radio" name="deleteStrategy" value="cascade" checked>
+                    Supprimer en cascade (supprime aussi les enregistrements liés)
+                </label><br>
+                <label>
+                    <input type="radio" name="deleteStrategy" value="reassign">
+                    Réaffecter les enregistrements liés à un autre client
+                </label><br>
+                <label>
+                    <input type="radio" name="deleteStrategy" value="prevent">
+                    Bloquer la suppression (ne pas supprimer)
+                </label>
+            </div>
+
+            <div id="reassignSection" style="display: none;">
+                <div class="form-group">
+                    <label for="reassignTo">ID du Client de Réaffectation</label>
+                    <input type="number" id="reassignTo" name="reassignTo"
+                           placeholder="Exemple: 1" min="1">
+                    <small class="text-muted">Les enregistrements liés seront réaffectés à ce client</small>
+                </div>
+            </div>
+
+            <div class="mt-20">
+                <button type="button" class="btn btn-primary" onclick="checkRelatedRecords()">
+                    🔍 Vérifier les enregistrements liés
+                </button>
+                <button type="button" class="btn btn-danger" onclick="deleteClient()">
+                    🗑️ Supprimer le Client
+                </button>
+                <button type="reset" class="btn btn-secondary">Réinitialiser</button>
+            </div>
+        </form>
+
+        <!-- Zone d'affichage des enregistrements liés -->
+        <div id="relatedRecordsSection" style="display: none;" class="mt-20">
+            <h3>📋 Enregistrements liés dans la table 'epargnes'</h3>
+            <div class="related-records" id="relatedRecordsContent">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Client ID</th>
+                            <th>Montant</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="relatedRecordsTable">
+                        <!-- Rempli dynamiquement par JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Chargement -->
+        <div class="loading" id="loadingIndicator">
+            <div class="spinner"></div>
+            <p>Traitement en cours...</p>
+        </div>
+
+        <!-- Code SQL généré -->
+        <div id="sqlSection" style="display: none;" class="mt-20">
+            <h3>📝 Requête SQL générée</h3>
+            <div class="code-block" id="sqlCode"></div>
+        </div>
+    </div>
+
+    <script>
+        // Gestion de l'affichage des options de réaffectation
+        document.querySelectorAll('input[name="deleteStrategy"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const reassignSection = document.getElementById('reassignSection');
+                if (this.value === 'reassign') {
+                    reassignSection.style.display = 'block';
+                } else {
+                    reassignSection.style.display = 'none';
+                }
+            });
+        });
+
+        // Fonction pour afficher les messages
+        function showAlert(message, type = 'danger') {
+            const alertDiv = document.getElementById('alertMessage');
+            alertDiv.style.display = 'block';
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.innerHTML = message;
+            // Auto-masquer après 10 secondes
+            setTimeout(() => {
+                alertDiv.style.display = 'none';
+            }, 10000);
+        }
+
+        // Fonction pour vérifier les enregistrements liés
+        async function checkRelatedRecords() {
+            const clientId = document.getElementById('clientId').value;
+            if (!clientId) {
+                showAlert('Veuillez entrer un ID client.', 'danger');
+                return;
+            }
+
+            showLoading(true);
+            try {
+                // Simulation d'un appel API pour vérifier les enregistrements liés
+                // Dans la vraie vie, vous feriez un fetch() vers votre endpoint
+                const response = await simulateApiCall('check', clientId);
+
+                if (response.relatedRecords && response.relatedRecords.length > 0) {
+                    displayRelatedRecords(response.relatedRecords);
+                    showAlert(
+                        `⚠️ ${response.relatedRecords.length} enregistrement(s) lié(s) trouvé(s) dans la table 'epargnes'.`,
+                        'info'
+                    );
+                } else {
+                    document.getElementById('relatedRecordsSection').style.display = 'none';
+                    showAlert('✅ Aucun enregistrement lié trouvé. La suppression est sûre.', 'success');
+                }
+            } catch (error) {
+                showAlert(`Erreur: ${error.message}`, 'danger');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Fonction pour supprimer le client
+        async function deleteClient() {
+            const clientId = document.getElementById('clientId').value;
+            const creeParId = document.getElementById('creeParId').value;
+            const strategy = document.querySelector('input[name="deleteStrategy"]:checked').value;
+            const reassignTo = document.getElementById('reassignTo').value;
+
+            if (!clientId || !creeParId) {
+                showAlert('Veuillez remplir tous les champs requis.', 'danger');
+                return;
+            }
+
+            if (strategy === 'reassign' && !reassignTo) {
+                showAlert('Veuillez spécifier l\'ID du client de réaffectation.', 'danger');
+                return;
+            }
+
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce client ? Cette action est irréversible.')) {
+                return;
+            }
+
+            showLoading(true);
+            try {
+                // Simulation d'un appel API pour supprimer le client
+                const response = await simulateApiCall('delete', clientId, creeParId, strategy, reassignTo);
+
+                // Affichage de la requête SQL générée
+                displaySqlQuery(response.sqlQuery);
+
+                if (response.success) {
+                    showAlert(`✅ Client supprimé avec succès ! ${response.message || ''}`, 'success');
+                    document.getElementById('relatedRecordsSection').style.display = 'none';
+                } else {
+                    showAlert(`❌ Erreur: ${response.message || 'Échec de la suppression'}`, 'danger');
+                }
+            } catch (error) {
+                showAlert(`❌ Erreur: ${error.message}`, 'danger');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Fonction pour afficher les enregistrements liés
+        function displayRelatedRecords(records) {
+            const tableBody = document.getElementById('relatedRecordsTable');
+            tableBody.innerHTML = '';
+
+            records.forEach(record => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${record.id}</td>
+                    <td>${record.client_id}</td>
+                    <td>${record.montant || 'N/A'}</td>
+                    <td>${record.date || 'N/A'}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            document.getElementById('relatedRecordsSection').style.display = 'block';
+        }
+
+        // Fonction pour afficher la requête SQL
+        function displaySqlQuery(sql) {
+            const sqlDiv = document.getElementById('sqlCode');
+            sqlDiv.textContent = sql;
+            document.getElementById('sqlSection').style.display = 'block';
+        }
+
+        // Fonction pour afficher/masquer le chargement
+        function showLoading(show) {
+            document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
+        }
+
+        // Simulation d'API (à remplacer par vos vrais appels)
+        function simulateApiCall(action, clientId, creeParId, strategy, reassignTo) {
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    // Simulation de données
+                    const relatedRecords = [
+                        { id: 101, client_id: parseInt(clientId), montant: 1500.00, date: '2026-01-15' },
+                        { id: 102, client_id: parseInt(clientId), montant: 2300.50, date: '2026-02-20' }
+                    ];
+
+                    if (action === 'check') {
+                        resolve({ relatedRecords });
+                    } else if (action === 'delete') {
+                        let sql = '';
+                        let message = '';
+                        let success = true;
+
+                        switch(strategy) {
+                            case 'cascade':
+                                sql = `-- Suppression en cascade\n` +
+                                      `BEGIN;\n` +
+                                      `DELETE FROM epargnes WHERE client_id IN (SELECT id FROM clients WHERE cree_par_id = ${creeParId});\n` +
+                                      `DELETE FROM clients WHERE cree_par_id = ${creeParId};\n` +
+                                      `COMMIT;`;
+                                message = `${relatedRecords.length} enregistrement(s) lié(s) supprimé(s) en cascade.`;
+                                break;
+
+                            case 'reassign':
+                                sql = `-- Réaffectation des enregistrements liés\n` +
+                                      `BEGIN;\n` +
+                                      `UPDATE epargnes SET client_id = ${reassignTo} WHERE client_id IN (SELECT id FROM clients WHERE cree_par_id = ${creeParId});\n` +
+                                      `DELETE FROM clients WHERE cree_par_id = ${creeParId};\n` +
+                                      `COMMIT;`;
+                                message = `${relatedRecords.length} enregistrement(s) lié(s) réaffecté(s) au client ${reassignTo}.`;
+                                break;
+
+                            case 'prevent':
+                                sql = `-- Suppression bloquée\n` +
+                                      `-- ERREUR: La suppression est bloquée car ${relatedRecords.length} enregistrement(s) lié(s) existent.\n` +
+                                      `-- Utilisez la stratégie 'cascade' ou 'reassign' pour continuer.`;
+                                success = false;
+                                message = `Suppression bloquée. ${relatedRecords.length} enregistrement(s) lié(s) existent.`;
+                                break;
+                        }
+
+                        resolve({
+                            success,
+                            message,
+                            sqlQuery: sql,
+                            relatedRecords: relatedRecords
+                        });
+                    }
+                }, 1000);
+            });
+        }
+
+        // Exemple d'utilisation avec fetch (à décommenter pour une vraie intégration)
+        /*
+        async function realApiCall(action, data) {
+            const response = await fetch('/api/clients', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: action,
+                    ...data
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        }
+        */
+    </script>
+</body>
+</html>

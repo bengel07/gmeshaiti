@@ -19903,10 +19903,15 @@ def fermeture_caisse():
 
 
 
-@partner_portal_bp.route('/integrations', methods=['POST'])
+@partner_portal_bp.route('/integrations', methods=['POST', 'POST'])
 @login_requis
 def create_partner_integration():
     """Le partenaire enregistre ses identifiants pour une intégration"""
+
+    if request.method == "GET":
+        return render_template(
+            "admin_central/ajouter_integration.html"
+        )
     try:
         data = request.get_json()
 
