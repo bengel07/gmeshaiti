@@ -96,6 +96,12 @@
                                 {% if user.role == 'super_admin' %}
                                     <span class="badge bg-danger">Super Admin</span>
 
+                                {% elif user.role == 'direction' %}
+                                    <span class="badge bg-dark">Direction</span>
+
+                                {% elif user.role == 'admin' %}
+                                    <span class="badge bg-warning">Admin</span>
+
                                 {% elif user.role == 'admin_succursale' %}
                                     <span class="badge bg-primary">Admin Succursale</span>
 

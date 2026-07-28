@@ -187,8 +187,15 @@
                    {% endif %}
                 </p>
             </div>
+
             <div>
-                <a href="{{ url_for('deconnexion') }}" class="btn btn-danger">🚪 Déconnexion</a>
+                <button type="button" class="btn btn-secondary" onclick="history.back()">
+                    ⬅️ Retour
+                </button>
+
+                <a href="{{ url_for('deconnexion') }}" class="btn btn-danger">
+                    🚪 Déconnexion
+                </a>
             </div>
         </div>
 
