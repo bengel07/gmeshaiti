@@ -13006,8 +13006,17 @@ def supprimer_employe(employe_id):
             print(f"🗑️ {len(clients)} client(s) supprimé(s)")
 
             # 4. Supprimer les notifications
+            # Notifications où il est acteur
             deleted = Notification.query.filter_by(acteur_id=employe_id).delete()
-            print(f"   🗑️ {deleted} notifications supprimées (acteur_id)")
+            print(f"🗑️ {deleted} notifications supprimées (acteur_id)")
+
+            # Notifications où il est destinataire
+            deleted = Notification.query.filter_by(destinataire_id=employe_id).delete()
+            print(f"🗑️ {deleted} notifications supprimées (destinataire_id)")
+
+            # Notifications où il est employé
+            deleted = Notification.query.filter_by(employe_id=employe_id).delete()
+            print(f"🗑️ {deleted} notifications supprimées (employe_id)")
 
             # 5. Supprimer les actions
             deleted = Action.query.filter_by(assignee_a_id=employe_id).delete()
