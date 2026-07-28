@@ -12970,8 +12970,6 @@ def supprimer_employe(employe_id):
         with db.session.no_autoflush:
             print(f"🔍 Suppression de l'employé: {nom_complet} (ID: {employe_id})")
 
-
-
             # 1. Supprimer les compétences
             deleted = Competence.query.filter_by(client_id=employe_id).delete()
             print(f"   🗑️ {deleted} compétences supprimées")
