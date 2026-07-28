@@ -13030,8 +13030,9 @@ def supprimer_employe(employe_id):
                 Notification.query.filter_by(action_id=action.id).delete()
 
                 # Puis supprimer l'action
-                db.session.delete(action)
                 db.session.flush()
+                db.session.delete(action)
+
 
             # 6. Supprimer l'historique
             deleted = HistoriqueEmploye.query.filter_by(employe_id=employe_id).delete()
