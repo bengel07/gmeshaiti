@@ -12970,10 +12970,7 @@ def supprimer_employe(employe_id):
         with db.session.no_autoflush:
             print(f"🔍 Suppression de l'employé: {nom_complet} (ID: {employe_id})")
 
-            clients = Client.query.filter_by(cree_par_id=employe_id).all()
 
-            for client in clients:
-                Epargne.query.filter_by(client_id=client.id).delete()
 
             # 1. Supprimer les compétences
             deleted = Competence.query.filter_by(client_id=employe_id).delete()
@@ -12985,8 +12982,31 @@ def supprimer_employe(employe_id):
                 print(f"   🗑️ {deleted} questions secrètes supprimées")
 
             # 3. Supprimer les clients (une seule fois !)
-            deleted = Client.query.filter_by(cree_par_id=employe_id).delete()
-            print(f"   🗑️ {deleted} clients supprimés (cree_par_id)")
+            clients = Client.query.filter_by(cree_par_id=employe_id).all()
+
+            for client in clients:
+                # Notifications liées au client
+                Notification.query.filter_by(client_id=client.id).delete()
+
+                # Épargnes
+                Epargne.query.filter_by(client_id=client.id).delete()
+
+                # Compétences du client
+                Competence.query.filter_by(client_id=client.id).delete()
+
+                # Prêts et remboursements
+                prets = Pret.query.filter_by(client_id=client.id).all()
+                for pret in prets:
+                    Remboursement.query.filter_by(pret_id=pret.id).delete()
+                    db.session.delete(pret)
+
+                # FaceData
+                FaceData.query.filter_by(client_id=client.id).delete()
+
+                # Enfin supprimer le client
+                db.session.delete(client)
+
+            print(f"🗑️ {len(clients)} client(s) supprimé(s)")
 
             # 4. Supprimer les notifications
             deleted = Notification.query.filter_by(acteur_id=employe_id).delete()
