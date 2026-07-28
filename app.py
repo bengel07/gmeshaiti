@@ -5300,6 +5300,8 @@ def connexion():
         identifiant = request.form.get('identifiant')
         password = request.form.get('password')
 
+
+
         # Validation des champs
         if not identifiant or not password:
             flash("Veuillez remplir tous les champs", "danger")
@@ -5308,6 +5310,12 @@ def connexion():
         user = User.query.filter(
             (User.username == identifiant) | (User.email == identifiant)
         ).first()
+
+        print("===== APRES CONNEXION =====")
+        print("Utilisateur :", user.username)
+        print("Role :", user.role)
+        print("Fonction :", user.fonction)
+        print("Succursale :", user.succursale.code if user.succursale else None)
 
         # 🔴 BLOQUAGE STATUT
         if user is None:
@@ -5851,6 +5859,17 @@ def dashboard_redirect():
     print(f"🔧 Type de fonction: {type(current_user.fonction)}")
     print(f"🔐 Premier connexion: {current_user.premier_connexion}")
     print("=" * 50)
+    # Afficher chaque caractère de la fonction
+    if current_user.fonction:
+        print("🔍 DÉTAIL DES CARACTÈRES:")
+        for i, char in enumerate(current_user.fonction):
+            print(f"   Char {i}: '{char}' = {ord(char)} (hex: {hex(ord(char))})")
+        print("=" * 80)
+
+    # Vérification de la session
+    print(f"📦 Session role: {session.get('role')}")
+    print(f"📦 Session user: {session.get('user')}")
+    print("=" * 80)
 
     if current_user.is_authenticated and current_user.premier_connexion:
         return redirect(url_for("premier_changement_mot_de_passe"))
