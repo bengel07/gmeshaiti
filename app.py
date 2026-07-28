@@ -12934,10 +12934,10 @@ def suspendre_employe(employe_id):
 @app.route('/admin/supprimer-employe/<int:employe_id>', methods=['GET','POST'])
 @login_required
 def supprimer_employe(employe_id):
-    from models import User, Competence, Notification, Action, HistoriqueEmploye, QuestionSecrete
+    from models import User, Competence, Notification, Action, HistoriqueEmploye, QuestionSecrete, Epargne
 
     # Vérifier les permissions
-    roles_autorises = ['admin', 'admin_succursale', 'super_admin']
+    roles_autorises = ['direction', 'admin_succursale', 'super_admin']
     if current_user.role not in roles_autorises:
         flash(f'⛔ Vous n\'avez pas la permission de supprimer des employés (rôle: {current_user.role})', 'danger')
         return redirect(url_for('tableau_de_bord'))
@@ -12949,7 +12949,7 @@ def supprimer_employe(employe_id):
         return redirect(url_for('gerer_employes'))
 
     # Vérifier que c'est bien un employé
-    roles_employes = ['employe', 'superviseur', 'admin_succursale', 'admin', 'direction', 'admin_central']
+    roles_employes = ['employe', 'superviseur', 'admin_succursale', 'superviseur', 'direction', 'admin_central']
     if employe.role not in roles_employes:
         flash('❌ Cet utilisateur n\'est pas un employé', 'danger')
         return redirect(url_for('gerer_employes'))
@@ -12969,6 +12969,11 @@ def supprimer_employe(employe_id):
     try:
         with db.session.no_autoflush:
             print(f"🔍 Suppression de l'employé: {nom_complet} (ID: {employe_id})")
+
+            clients = Client.query.filter_by(cree_par_id=employe_id).all()
+
+            for client in clients:
+                Epargne.query.filter_by(client_id=client.id).delete()
 
             # 1. Supprimer les compétences
             deleted = Competence.query.filter_by(client_id=employe_id).delete()
