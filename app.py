@@ -14784,7 +14784,7 @@ def ajouter_admin():
 
     # 📄 GET
     return render_template(
-        'admin/ajouter_employe.html',
+        'admin/ajouter_admin.html',
         succursales=succursales,
         succursale=succursale,
         employees=[]
