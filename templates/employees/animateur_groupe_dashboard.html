@@ -1,0 +1,499 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Animateur Groupe{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">
+                    <i class="fas fa-users-cog"></i>
+                    Dashboard Animateur Groupe
+                </h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard_redirect') }}">Accueil</a></li>
+                    <li class="breadcrumb-item active">Animateur Groupe</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Groupes actifs</h6>
+                            <h2 class="mb-0 text-white">{{ groupes_actifs or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-layer-group fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Membres totaux</h6>
+                            <h2 class="mb-0 text-white">{{ membres_totaux or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-users fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-dark-50">Taux de participation</h6>
+                            <h2 class="mb-0">{{ taux_participation or 0 }}%</h2>
+                        </div>
+                        <i class="fas fa-chart-line fa-3x text-dark-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Sessions animées</h6>
+                            <h2 class="mb-0 text-white">{{ sessions_animees or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-calendar-check fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIONS RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Actions rapides</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('animateur_groupe_creer') }}" class="btn btn-success btn-block">
+                                <i class="fas fa-plus-circle"></i> Créer un groupe
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('animateur_groupe_liste') }}" class="btn btn-info btn-block">
+                                <i class="fas fa-list"></i> Mes groupes
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('animateur_groupe_session') }}" class="btn btn-warning btn-block">
+                                <i class="fas fa-calendar-plus"></i> Nouvelle session
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('animateur_groupe_rapports') }}" class="btn btn-primary btn-block">
+                                <i class="fas fa-file-alt"></i> Rapports
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- MES GROUPES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-layer-group text-primary"></i> Mes groupes</h5>
+                    <span class="badge badge-primary float-right">{{ groupes_actifs or 0 }} groupes actifs</span>
+                </div>
+                <div class="card-body">
+                    {% if groupes %}
+                        <div class="row">
+                            {% for groupe in groupes %}
+                            <div class="col-md-6 col-xl-4 mb-3">
+                                <div class="card h-100 border-{{ 'success' if groupe.statut == 'actif' else 'warning' if groupe.statut == 'en_attente' else 'secondary' }}">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-{{ 'check-circle text-success' if groupe.statut == 'actif' else 'clock text-warning' }}"></i>
+                                            {{ groupe.nom }}
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <small class="text-muted">Membres</small>
+                                                <h5>{{ groupe.nb_membres }}</h5>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted">Sessions</small>
+                                                <h5>{{ groupe.nb_sessions }}</h5>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar bg-{{ 'success' if groupe.taux_participation >= 70 else 'warning' if groupe.taux_participation >= 40 else 'danger' }}"
+                                                     role="progressbar"
+                                                     style="width: {{ groupe.taux_participation }}%;"
+                                                     aria-valuenow="{{ groupe.taux_participation }}"
+                                                     aria-valuemin="0"
+                                                     aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                            <small class="text-muted">Participation: {{ groupe.taux_participation }}%</small>
+                                        </div>
+                                        <p class="mt-2 small text-muted">
+                                            <i class="fas fa-map-marker-alt"></i> {{ groupe.localisation or 'Non spécifiée' }}
+                                            <br>
+                                            <i class="fas fa-calendar"></i> Créé le {{ groupe.date_creation.strftime('%d/%m/%Y') }}
+                                        </p>
+                                    </div>
+                                    <div class="card-footer bg-transparent">
+                                        <div class="btn-group w-100">
+                                            <a href="{{ url_for('animateur_groupe_voir', groupe_id=groupe.id) }}"
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i> Voir
+                                            </a>
+                                            <a href="{{ url_for('animateur_groupe_membres', groupe_id=groupe.id) }}"
+                                               class="btn btn-sm btn-outline-info">
+                                                <i class="fas fa-users"></i> Membres
+                                            </a>
+                                            <a href="{{ url_for('animateur_groupe_session_nouvelle', groupe_id=groupe.id) }}"
+                                               class="btn btn-sm btn-outline-success">
+                                                <i class="fas fa-plus"></i> Session
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-layer-group fa-4x text-muted mb-3"></i>
+                            <h5>Aucun groupe</h5>
+                            <p class="text-muted">Vous n'avez pas encore de groupes.</p>
+                            <a href="{{ url_for('animateur_groupe_creer') }}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Créer mon premier groupe
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- SESSIONS À VENIR -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt text-warning"></i> Sessions à venir</h5>
+                    <span class="badge badge-warning float-right">{{ sessions_a_venir|length or 0 }}</span>
+                </div>
+                <div class="card-body">
+                    {% if sessions_a_venir %}
+                        <div class="list-group">
+                            {% for session in sessions_a_venir %}
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-users text-primary"></i>
+                                        {{ session.groupe.nom }}
+                                    </h6>
+                                    <span class="badge badge-{{ 'success' if session.jours <= 3 else 'warning' if session.jours <= 7 else 'info' }}">
+                                        Dans {{ session.jours }} jours
+                                    </span>
+                                </div>
+                                <p class="mb-1 small">
+                                    <i class="fas fa-clock"></i> {{ session.date_debut.strftime('%d/%m/%Y %H:%M') }}
+                                    {% if session.date_fin %}
+                                        → {{ session.date_fin.strftime('%H:%M') }}
+                                    {% endif %}
+                                </p>
+                                <p class="mb-1 small text-muted">
+                                    <i class="fas fa-map-marker-alt"></i> {{ session.lieu or 'À définir' }}
+                                    <span class="badge badge-secondary float-right">
+                                        {{ session.nb_participants }}/{{ session.capacite }} participants
+                                    </span>
+                                </p>
+                                <div class="mt-2">
+                                    <a href="{{ url_for('animateur_groupe_session_voir', session_id=session.id) }}"
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i> Voir
+                                    </a>
+                                    <a href="{{ url_for('animateur_groupe_session_preparer', session_id=session.id) }}"
+                                       class="btn btn-sm btn-success">
+                                        <i class="fas fa-tasks"></i> Préparer
+                                    </a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-calendar-check fa-3x text-muted mb-2"></i>
+                            <p>Aucune session à venir</p>
+                            <a href="{{ url_for('animateur_groupe_session') }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Planifier une session
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================= -->
+        <!-- DERNIÈRES SESSIONS -->
+        <!-- ============================================= -->
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history text-info"></i> Dernières sessions</h5>
+                </div>
+                <div class="card-body">
+                    {% if dernieres_sessions %}
+                        <div class="list-group">
+                            {% for session in dernieres_sessions %}
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-users text-primary"></i>
+                                        {{ session.groupe.nom }}
+                                    </h6>
+                                    <small class="text-muted">{{ session.date_debut.strftime('%d/%m/%Y') }}</small>
+                                </div>
+                                <p class="mb-1 small">
+                                    <span class="badge badge-{{ 'success' if session.statut == 'terminee' else 'warning' if session.statut == 'en_cours' else 'secondary' }}">
+                                        {{ session.statut|capitalize }}
+                                    </span>
+                                    <span class="badge badge-info">
+                                        {{ session.nb_participants }} participants
+                                    </span>
+                                </p>
+                                <small class="text-muted">
+                                    <i class="fas fa-star"></i> Évaluation:
+                                    {% if session.evaluation %}
+                                        {{ session.evaluation }}/5
+                                    {% else %}
+                                        Non évaluée
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+                            <p>Aucune session enregistrée</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES DÉTAILLÉES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie text-primary"></i> Répartition des groupes</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="repartitionGroupes" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar text-success"></i> Sessions par mois</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="sessionsMois" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- INDICATEURS DE PERFORMANCE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar text-info"></i> Indicateurs de performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Moyenne membres/groupe</h6>
+                                <h3 class="text-primary">{{ moyenne_membres_par_groupe or 0 }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Sessions par groupe</h6>
+                                <h3 class="text-success">{{ sessions_par_groupe or 0 }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Taux de rétention</h6>
+                                <h3 class="text-info">{{ taux_retention or 0 }}%</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Satisfaction moyenne</h6>
+                                <h3 class="text-warning">{{ satisfaction_moyenne or 0 }}/5</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIVITÉ RÉCENTE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-clock text-muted"></i> Activité récente</h5>
+                </div>
+                <div class="card-body">
+                    {% if activites_recentes %}
+                        <ul class="list-unstyled">
+                            {% for activite in activites_recentes %}
+                            <li class="media mb-3">
+                                <div class="mr-3">
+                                    <span class="badge badge-{{ activite.couleur }} p-2">
+                                        <i class="fas fa-{{ activite.icone }}"></i>
+                                    </span>
+                                </div>
+                                <div class="media-body">
+                                    <h6 class="mt-0 mb-1">{{ activite.message }}</h6>
+                                    <small class="text-muted">{{ activite.date.strftime('%d/%m/%Y à %H:%M') }}</small>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+                            <p>Aucune activité récente</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    $(document).ready(function() {
+        // Graphique - Répartition des groupes
+        var ctx1 = document.getElementById('repartitionGroupes').getContext('2d');
+        new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                labels: ['Actifs', 'En attente', 'Terminés'],
+                datasets: [{
+                    data: [
+                        {{ groupes_actifs or 0 }},
+                        {{ groupes_attente or 0 }},
+                        {{ groupes_termines or 0 }}
+                    ],
+                    backgroundColor: ['#28a745', '#ffc107', '#6c757d'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Graphique - Sessions par mois
+        var ctx2 = document.getElementById('sessionsMois').getContext('2d');
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: {{ sessions_labels|tojson }},
+                datasets: [{
+                    label: 'Sessions',
+                    data: {{ sessions_donnees|tojson }},
+                    backgroundColor: '#007bff',
+                    borderColor: '#0056b3',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+
+        // Rafraîchir les statistiques toutes les 60 secondes
+        setInterval(function() {
+            location.reload();
+        }, 60000);
+    });
+</script>
+{% endblock %}
+
+
+
+
+

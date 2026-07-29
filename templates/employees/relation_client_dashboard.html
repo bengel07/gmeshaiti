@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Relation Client{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">
+                    <i class="fas fa-handshake"></i>
+                    Dashboard Relation Client
+                </h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard_redirect') }}">Accueil</a></li>
+                    <li class="breadcrumb-item active">Relation Client</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Clients actifs</h6>
+                            <h2 class="mb-0 text-white">{{ clients_actifs or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-user-check fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Nouveaux clients</h6>
+                            <h2 class="mb-0 text-white">{{ nouveaux_clients or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-user-plus fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-dark-50">Taux de fidélisation</h6>
+                            <h2 class="mb-0">{{ taux_fidelisation or 0 }}%</h2>
+                        </div>
+                        <i class="fas fa-heart fa-3x text-dark-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Satisfaction client</h6>
+                            <h2 class="mb-0 text-white">{{ satisfaction or 0 }}%</h2>
+                        </div>
+                        <i class="fas fa-star fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIONS RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Actions rapides</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('relation_client_ajouter') }}" class="btn btn-success btn-block">
+                                <i class="fas fa-user-plus"></i> Nouveau client
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('relation_client_liste') }}" class="btn btn-info btn-block">
+                                <i class="fas fa-users"></i> Liste des clients
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('relation_client_suivi') }}" class="btn btn-warning btn-block">
+                                <i class="fas fa-phone"></i> Suivi clients
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('relation_client_sondage') }}" class="btn btn-primary btn-block">
+                                <i class="fas fa-poll"></i> Sondages
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- DERNIERS CLIENTS AJOUTÉS -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-user-plus text-success"></i> Derniers clients ajoutés</h5>
+                </div>
+                <div class="card-body">
+                    {% if derniers_clients %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Contact</th>
+                                        <th>Date</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for client in derniers_clients %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ client.prenom }} {{ client.nom }}</strong>
+                                        </td>
+                                        <td>
+                                            <small>{{ client.telephone }}</small>
+                                            <br>
+                                            <small class="text-muted">{{ client.email or 'Aucun email' }}</small>
+                                        </td>
+                                        <td>
+                                            <small>{{ client.date_creation.strftime('%d/%m/%Y') }}</small>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('relation_client_voir', client_id=client.id) }}"
+                                               class="btn btn-sm btn-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('relation_client_contacter', client_id=client.id) }}"
+                                               class="btn btn-sm btn-success">
+                                                <i class="fas fa-phone"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-users fa-3x text-muted mb-2"></i>
+                            <p>Aucun client enregistré</p>
+                            <a href="{{ url_for('relation_client_ajouter') }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Ajouter un client
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================= -->
+        <!-- CLIENTS À CONTACTER -->
+        <!-- ============================================= -->
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-clock text-warning"></i> Clients à contacter</h5>
+                    <span class="badge badge-warning float-right">{{ clients_a_contacter|length or 0 }}</span>
+                </div>
+                <div class="card-body">
+                    {% if clients_a_contacter %}
+                        <div class="list-group">
+                            {% for client in clients_a_contacter %}
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-user text-primary"></i>
+                                        {{ client.prenom }} {{ client.nom }}
+                                    </h6>
+                                    <small class="text-{{ 'danger' if client.urgence == 'haute' else 'warning' }}">
+                                        {{ client.dernier_contact|timesince if client.dernier_contact else 'Jamais contacté' }}
+                                    </small>
+                                </div>
+                                <p class="mb-1 small">
+                                    <span class="badge badge-{{ 'danger' if client.urgence == 'haute' else 'warning' if client.urgence == 'moyenne' else 'info' }}">
+                                        {{ client.urgence|capitalize }}
+                                    </span>
+                                    <span class="badge badge-secondary">
+                                        {{ client.secteur_activite or 'Non défini' }}
+                                    </span>
+                                </p>
+                                <div class="mt-2">
+                                    <a href="{{ url_for('relation_client_contacter', client_id=client.id) }}"
+                                       class="btn btn-sm btn-success">
+                                        <i class="fas fa-phone"></i> Contacter
+                                    </a>
+                                    <a href="{{ url_for('relation_client_voir', client_id=client.id) }}"
+                                       class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i> Voir
+                                    </a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
+                            <p>Aucun client à contacter</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES DE FIDÉLISATION -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie text-primary"></i> Répartition clients</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="repartitionClients" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line text-success"></i> Évolution clients</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="evolutionClients" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-star text-warning"></i> Satisfaction</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <div class="display-4 mb-3">{{ satisfaction or 0 }}%</div>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-{{ 'success' if satisfaction >= 70 else 'warning' if satisfaction >= 50 else 'danger' }}"
+                                 role="progressbar"
+                                 style="width: {{ satisfaction or 0 }}%;"
+                                 aria-valuenow="{{ satisfaction or 0 }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                                {{ satisfaction or 0 }}%
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <span class="badge badge-success">
+                                <i class="fas fa-smile"></i> Satisfaits: {{ clients_satisfaits or 0 }}
+                            </span>
+                            <span class="badge badge-danger">
+                                <i class="fas fa-frown"></i> Insatisfaits: {{ clients_insatisfaits or 0 }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- SUIVI DES CLIENTS -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list text-info"></i> Suivi des clients</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="clientsTable">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Contact</th>
+                                    <th>Dernier contact</th>
+                                    <th>Statut</th>
+                                    <th>Notes</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for client in tous_clients %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ client.prenom }} {{ client.nom }}</strong>
+                                        <br>
+                                        <small class="text-muted">ID: {{ client.id }}</small>
+                                    </td>
+                                    <td>
+                                        <i class="fas fa-phone"></i> {{ client.telephone }}
+                                        <br>
+                                        <i class="fas fa-envelope"></i> {{ client.email or 'N/A' }}
+                                    </td>
+                                    <td>
+                                        <small>{{ client.dernier_contact.strftime('%d/%m/%Y') if client.dernier_contact else 'Jamais' }}</small>
+                                        <br>
+                                        <small class="text-muted">{{ client.dernier_contact|timesince if client.dernier_contact else '' }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-{{ 'success' if client.statut == 'actif' else 'warning' if client.statut == 'inactif' else 'danger' }}">
+                                            {{ client.statut or 'N/A' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ client.derniere_note|truncate(40) if client.derniere_note else 'Aucune note' }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{{ url_for('relation_client_voir', client_id=client.id) }}"
+                                               class="btn btn-sm btn-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('relation_client_contacter', client_id=client.id) }}"
+                                               class="btn btn-sm btn-success">
+                                                <i class="fas fa-phone"></i>
+                                            </a>
+                                            <a href="{{ url_for('relation_client_notes', client_id=client.id) }}"
+                                               class="btn btn-sm btn-info">
+                                                <i class="fas fa-sticky-note"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIVITÉ RÉCENTE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-clock text-muted"></i> Activité récente</h5>
+                </div>
+                <div class="card-body">
+                    {% if activites_recentes %}
+                        <ul class="list-unstyled">
+                            {% for activite in activites_recentes %}
+                            <li class="media mb-3">
+                                <div class="mr-3">
+                                    <span class="badge badge-{{ activite.couleur }} p-2">
+                                        <i class="fas fa-{{ activite.icone }}"></i>
+                                    </span>
+                                </div>
+                                <div class="media-body">
+                                    <h6 class="mt-0 mb-1">{{ activite.message }}</h6>
+                                    <small class="text-muted">{{ activite.date.strftime('%d/%m/%Y à %H:%M') }}</small>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+                            <p>Aucune activité récente</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    $(document).ready(function() {
+        // Graphique - Répartition des clients
+        var ctx1 = document.getElementById('repartitionClients').getContext('2d');
+        new Chart(ctx1, {
+            type: 'pie',
+            data: {
+                labels: ['Actifs', 'Inactifs', 'Nouveaux'],
+                datasets: [{
+                    data: [
+                        {{ clients_actifs or 0 }},
+                        {{ clients_inactifs or 0 }},
+                        {{ nouveaux_clients or 0 }}
+                    ],
+                    backgroundColor: ['#28a745', '#dc3545', '#17a2b8'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Graphique - Évolution des clients
+        var ctx2 = document.getElementById('evolutionClients').getContext('2d');
+        new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: {{ evolution_labels|tojson }},
+                datasets: [{
+                    label: 'Nouveaux clients',
+                    data: {{ evolution_donnees|tojson }},
+                    borderColor: '#17a2b8',
+                    backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+
+        // DataTable
+        $('#clientsTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.10.22/i18n/French.json'
+            },
+            order: [[2, 'desc']],
+            pageLength: 10
+        });
+
+        // Rafraîchir les statistiques toutes les 60 secondes
+        setInterval(function() {
+            location.reload();
+        }, 60000);
+    });
+</script>
+{% endblock %}

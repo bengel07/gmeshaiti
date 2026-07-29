@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Formateur{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    Dashboard Formateur
+                </h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard_redirect') }}">Accueil</a></li>
+                    <li class="breadcrumb-item active">Formateur</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Clients formés</h6>
+                            <h2 class="mb-0 text-white">{{ total_formes or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-user-graduate fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Formations en cours</h6>
+                            <h2 class="mb-0 text-white">{{ formations_en_cours or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-chalkboard fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-dark-50">Formations à venir</h6>
+                            <h2 class="mb-0">{{ formations_a_venir or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-calendar-plus fa-3x text-dark-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Taux de réussite</h6>
+                            <h2 class="mb-0 text-white">{{ taux_reussite or 0 }}%</h2>
+                        </div>
+                        <i class="fas fa-percentage fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIONS RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Actions rapides</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('creer_formation') }}" class="btn btn-primary btn-block">
+                                <i class="fas fa-plus-circle"></i> Nouvelle formation
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('liste_formations') }}" class="btn btn-info btn-block">
+                                <i class="fas fa-list"></i> Mes formations
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('formateurs_clients') }}" class="btn btn-success btn-block">
+                                <i class="fas fa-users"></i> Clients formés
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('rapports_formation') }}" class="btn btn-warning btn-block">
+                                <i class="fas fa-file-alt"></i> Rapports
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- FORMATIONS EN COURS -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-play-circle text-success"></i> Formations en cours</h5>
+                </div>
+                <div class="card-body">
+                    {% if formations_en_cours_liste %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Formation</th>
+                                        <th>Clients</th>
+                                        <th>Progression</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for formation in formations_en_cours_liste %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ formation.titre }}</strong>
+                                            <small class="d-block text-muted">{{ formation.description|truncate(50) }}</small>
+                                        </td>
+                                        <td>{{ formation.nb_clients }}</td>
+                                        <td>
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar bg-success"
+                                                     role="progressbar"
+                                                     style="width: {{ formation.progression }}%;"
+                                                     aria-valuenow="{{ formation.progression }}"
+                                                     aria-valuemin="0"
+                                                     aria-valuemax="100">
+                                                    {{ formation.progression }}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('voir_formation', formation_id=formation.id) }}"
+                                               class="btn btn-sm btn-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-info-circle fa-3x text-muted mb-2"></i>
+                            <p>Aucune formation en cours</p>
+                            <a href="{{ url_for('creer_formation') }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Créer une formation
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================= -->
+        <!-- PROCHAINES FORMATIONS -->
+        <!-- ============================================= -->
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt text-warning"></i> Prochaines formations</h5>
+                </div>
+                <div class="card-body">
+                    {% if formations_a_venir_liste %}
+                        <div class="list-group">
+                            {% for formation in formations_a_venir_liste %}
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ formation.titre }}</h6>
+                                    <small class="text-muted">{{ formation.date_debut.strftime('%d/%m/%Y') }}</small>
+                                </div>
+                                <p class="mb-1 small">{{ formation.description|truncate(60) }}</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-users"></i> {{ formation.nb_clients }} participants
+                                    <span class="badge badge-info float-right">{{ formation.duree }} jours</span>
+                                </small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-calendar-check fa-3x text-muted mb-2"></i>
+                            <p>Aucune formation planifiée</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES DÉTAILLÉES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar text-info"></i> Statistiques de formation</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h6>Formations totales</h6>
+                                <h3 class="text-primary">{{ total_formations or 0 }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h6>Clients formés</h6>
+                                <h3 class="text-success">{{ total_clients_formes or 0 }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h6>Moyenne par formation</h6>
+                                <h3 class="text-info">{{ moyenne_par_formation or 0 }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIVITÉ RÉCENTE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-clock text-muted"></i> Activité récente</h5>
+                </div>
+                <div class="card-body">
+                    {% if activites_recentes %}
+                        <ul class="list-unstyled">
+                            {% for activite in activites_recentes %}
+                            <li class="media mb-3">
+                                <div class="mr-3">
+                                    <span class="badge badge-{{ activite.couleur }} p-2">
+                                        <i class="fas fa-{{ activite.icone }}"></i>
+                                    </span>
+                                </div>
+                                <div class="media-body">
+                                    <h6 class="mt-0 mb-1">{{ activite.message }}</h6>
+                                    <small class="text-muted">{{ activite.date.strftime('%d/%m/%Y à %H:%M') }}</small>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+                            <p>Aucune activité récente</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Rafraîchir les statistiques toutes les 30 secondes
+        setInterval(function() {
+            location.reload();
+        }, 30000);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,476 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Chargé RH{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">
+                    <i class="fas fa-users-cog"></i>
+                    Dashboard Chargé RH
+                </h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard_redirect') }}">Accueil</a></li>
+                    <li class="breadcrumb-item active">Chargé RH</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Employés totaux</h6>
+                            <h2 class="mb-0 text-white">{{ employes_totaux or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-users fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Présents aujourd'hui</h6>
+                            <h2 class="mb-0 text-white">{{ presents_aujourdhui or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-user-check fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-dark-50">Absents aujourd'hui</h6>
+                            <h2 class="mb-0">{{ absents_aujourdhui or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-user-slash fa-3x text-dark-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">En attente</h6>
+                            <h2 class="mb-0 text-white">{{ en_attente or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-clock fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIONS RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Actions rapides</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2 col-sm-6 mb-2">
+                            <a href="{{ url_for('charge_rh_nouvel_employe') }}" class="btn btn-success btn-block">
+                                <i class="fas fa-user-plus"></i> Nouvel employé
+                            </a>
+                        </div>
+                        <div class="col-md-2 col-sm-6 mb-2">
+                            <a href="{{ url_for('charge_rh_pointage') }}" class="btn btn-primary btn-block">
+                                <i class="fas fa-fingerprint"></i> Pointage
+                            </a>
+                        </div>
+                        <div class="col-md-2 col-sm-6 mb-2">
+                            <a href="{{ url_for('charge_rh_conges') }}" class="btn btn-warning btn-block">
+                                <i class="fas fa-calendar-alt"></i> Congés
+                            </a>
+                        </div>
+                        <div class="col-md-2 col-sm-6 mb-2">
+                            <a href="{{ url_for('charge_rh_paie') }}" class="btn btn-info btn-block">
+                                <i class="fas fa-money-bill-wave"></i> Paie
+                            </a>
+                        </div>
+                        <div class="col-md-2 col-sm-6 mb-2">
+                            <a href="{{ url_for('charge_rh_formation') }}" class="btn btn-secondary btn-block">
+                                <i class="fas fa-chalkboard-teacher"></i> Formations
+                            </a>
+                        </div>
+                        <div class="col-md-2 col-sm-6 mb-2">
+                            <a href="{{ url_for('charge_rh_rapports') }}" class="btn btn-dark btn-block">
+                                <i class="fas fa-file-alt"></i> Rapports
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- PRÉSENCE DU JOUR -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-7">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list text-primary"></i> Présence du jour</h5>
+                    <span class="badge badge-success float-right">{{ presents_aujourdhui or 0 }} présent(s)</span>
+                </div>
+                <div class="card-body">
+                    {% if presence_jour_liste %}
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="presenceTable">
+                                <thead>
+                                    <tr>
+                                        <th>Employé</th>
+                                        <th>Fonction</th>
+                                        <th>Heure arrivée</th>
+                                        <th>Heure départ</th>
+                                        <th>Statut</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for presence in presence_jour_liste %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ presence.employe.prenom }} {{ presence.employe.nom }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ presence.employe.email }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-info">{{ presence.employe.fonction }}</span>
+                                        </td>
+                                        <td>
+                                            <small>{{ presence.heure_arrivee.strftime('%H:%M') if presence.heure_arrivee else '--:--' }}</small>
+                                        </td>
+                                        <td>
+                                            <small>{{ presence.heure_depart.strftime('%H:%M') if presence.heure_depart else '--:--' }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-{{ 'success' if presence.statut == 'present' else 'danger' if presence.statut == 'absent' else 'warning' if presence.statut == 'retard' else 'secondary' }}">
+                                                {{ presence.statut|capitalize }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('charge_rh_voir_employe', employe_id=presence.employe.id) }}"
+                                               class="btn btn-sm btn-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-user-check fa-4x text-muted mb-3"></i>
+                            <h5>Aucune présence enregistrée aujourd'hui</h5>
+                            <p class="text-muted">Le pointage n'a pas encore été effectué</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================= -->
+        <!-- STATISTIQUES PRÉSENCE -->
+        <!-- ============================================= -->
+        <div class="col-xl-5">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie text-success"></i> Répartition présence</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="repartitionPresence" height="200"></canvas>
+                </div>
+            </div>
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-flag text-warning"></i> Congés en cours</h5>
+                </div>
+                <div class="card-body">
+                    {% if conges_en_cours %}
+                        <div class="list-group">
+                            {% for conge in conges_en_cours %}
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-user text-primary"></i>
+                                        {{ conge.employe.prenom }} {{ conge.employe.nom }}
+                                    </h6>
+                                    <small class="text-muted">{{ conge.date_debut.strftime('%d/%m') }} - {{ conge.date_fin.strftime('%d/%m') }}</small>
+                                </div>
+                                <p class="mb-1 small">
+                                    <span class="badge badge-{{ 'success' if conge.type == 'paye' else 'warning' if conge.type == 'maladie' else 'info' }}">
+                                        {{ conge.type|capitalize }}
+                                    </span>
+                                    <span class="badge badge-secondary">{{ conge.jours_restants }} jours restants</span>
+                                </p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-2">
+                            <i class="fas fa-check-circle text-success"></i>
+                            <span>Aucun congé en cours</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES MENSUELLES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line text-info"></i> Évolution des effectifs</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="evolutionEffectifs" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar text-primary"></i> Répartition par fonction</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="repartitionFonctions" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- INDICATEURS DE PERFORMANCE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-tachometer-alt text-info"></i> Indicateurs RH</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <h6>Taux présence</h6>
+                                <h3 class="text-primary">{{ taux_presence or 0 }}%</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <h6>Taux d'absentéisme</h6>
+                                <h3 class="text-danger">{{ taux_absenteisme or 0 }}%</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <h6>Turnover</h6>
+                                <h3 class="text-warning">{{ turnover or 0 }}%</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <h6>Ancienneté moyenne</h6>
+                                <h3 class="text-success">{{ anciennete_moyenne or 0 }} mois</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <h6>Satisfaction</h6>
+                                <h3 class="text-info">{{ satisfaction or 0 }}%</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="text-center">
+                                <h6>Formations</h6>
+                                <h3 class="text-secondary">{{ formations_total or 0 }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIVITÉ RÉCENTE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-clock text-muted"></i> Activité récente</h5>
+                </div>
+                <div class="card-body">
+                    {% if activites_recentes %}
+                        <ul class="list-unstyled">
+                            {% for activite in activites_recentes %}
+                            <li class="media mb-3">
+                                <div class="mr-3">
+                                    <span class="badge badge-{{ activite.couleur }} p-2">
+                                        <i class="fas fa-{{ activite.icone }}"></i>
+                                    </span>
+                                </div>
+                                <div class="media-body">
+                                    <h6 class="mt-0 mb-1">{{ activite.message }}</h6>
+                                    <small class="text-muted">{{ activite.date.strftime('%d/%m/%Y à %H:%M') }}</small>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+                            <p>Aucune activité récente</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    $(document).ready(function() {
+        // DataTable
+        $('#presenceTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.10.22/i18n/French.json'
+            },
+            order: [[2, 'asc']],
+            pageLength: 10
+        });
+
+        // Graphique - Répartition présence
+        var ctx1 = document.getElementById('repartitionPresence').getContext('2d');
+        new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                labels: ['Présents', 'Absents', 'Retard'],
+                datasets: [{
+                    data: [
+                        {{ presents_aujourdhui or 0 }},
+                        {{ absents_aujourdhui or 0 }},
+                        {{ retards_aujourdhui or 0 }}
+                    ],
+                    backgroundColor: ['#28a745', '#dc3545', '#ffc107'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Graphique - Évolution des effectifs
+        var ctx2 = document.getElementById('evolutionEffectifs').getContext('2d');
+        new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: {{ mois_labels|tojson }},
+                datasets: [{
+                    label: 'Effectifs',
+                    data: {{ effectifs_donnees|tojson }},
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+
+        // Graphique - Répartition par fonction
+        var ctx3 = document.getElementById('repartitionFonctions').getContext('2d');
+        new Chart(ctx3, {
+            type: 'bar',
+            data: {
+                labels: {{ fonctions_labels|tojson }},
+                datasets: [{
+                    label: 'Nombre d\'employés',
+                    data: {{ fonctions_donnees|tojson }},
+                    backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6c757d'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+
+        // Rafraîchir les statistiques toutes les 60 secondes
+        setInterval(function() {
+            location.reload();
+        }, 60000);
+    });
+</script>
+{% endblock %}

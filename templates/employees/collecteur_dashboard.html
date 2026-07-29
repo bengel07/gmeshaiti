@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Collecteur{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">
+                    <i class="fas fa-boxes"></i>
+                    Dashboard Collecteur
+                </h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard_redirect') }}">Accueil</a></li>
+                    <li class="breadcrumb-item active">Collecteur</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Clients à visiter</h6>
+                            <h2 class="mb-0 text-white">{{ clients_a_visiter or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-users fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Collectes effectuées</h6>
+                            <h2 class="mb-0 text-white">{{ collectes_effectuees or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-check-circle fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-dark-50">Montant collecté</h6>
+                            <h2 class="mb-0">{{ "{:,.0f}".format(montant_collecte or 0) }} G</h2>
+                        </div>
+                        <i class="fas fa-money-bill-wave fa-3x text-dark-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">En retard</h6>
+                            <h2 class="mb-0 text-white">{{ en_retard or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIONS RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Actions rapides</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('collecteurs_visites') }}" class="btn btn-primary btn-block">
+                                <i class="fas fa-calendar-plus"></i> Planifier une visite
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('collecteurs_clients') }}" class="btn btn-info btn-block">
+                                <i class="fas fa-list"></i> Liste des clients
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('collecteurs_collectes') }}" class="btn btn-success btn-block">
+                                <i class="fas fa-hand-holding-usd"></i> Effectuer une collecte
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('collecteurs_rapports') }}" class="btn btn-warning btn-block">
+                                <i class="fas fa-file-alt"></i> Rapport de collecte
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- CLIENTS À VISITER -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-user-clock text-warning"></i> Clients à visiter aujourd'hui</h5>
+                </div>
+                <div class="card-body">
+                    {% if clients_a_visiter_liste %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Téléphone</th>
+                                        <th>Adresse</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for client in clients_a_visiter_liste %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ client.prenom }} {{ client.nom }}</strong>
+                                        </td>
+                                        <td>{{ client.telephone }}</td>
+                                        <td>
+                                            <small>{{ client.adresse|truncate(30) }}</small>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('collecteur_visiter_client', client_id=client.id) }}"
+                                               class="btn btn-sm btn-success">
+                                                <i class="fas fa-flag-checkered"></i> Visiter
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
+                            <p>Aucun client à visiter aujourd'hui</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================= -->
+        <!-- HISTORIQUE DES COLLECTES -->
+        <!-- ============================================= -->
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history text-info"></i> Dernières collectes</h5>
+                </div>
+                <div class="card-body">
+                    {% if dernieres_collectes %}
+                        <div class="list-group">
+                            {% for collecte in dernieres_collectes %}
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-user text-primary"></i>
+                                        {{ collecte.client.prenom }} {{ collecte.client.nom }}
+                                    </h6>
+                                    <small class="text-muted">{{ collecte.date_collecte.strftime('%d/%m/%Y') }}</small>
+                                </div>
+                                <p class="mb-1">
+                                    <span class="badge badge-success">
+                                        {{ "{:,.0f}".format(collecte.montant) }} G
+                                    </span>
+                                    <span class="badge badge-{{ 'info' if collecte.statut == 'effectuee' else 'warning' }}">
+                                        {{ collecte.statut }}
+                                    </span>
+                                </p>
+                                <small class="text-muted">
+                                    <i class="fas fa-map-marker-alt"></i> {{ collecte.adresse|truncate(40) }}
+                                </small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+                            <p>Aucune collecte enregistrée</p>
+                            <a href="{{ url_for('collecteurs_collectes') }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Effectuer une collecte
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES DÉTAILLÉES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar text-info"></i> Statistiques de collecte</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Total collectes</h6>
+                                <h3 class="text-primary">{{ total_collectes or 0 }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Collectes réussies</h6>
+                                <h3 class="text-success">{{ collectes_reussies or 0 }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Collectes échouées</h6>
+                                <h3 class="text-danger">{{ collectes_echouees or 0 }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Taux de réussite</h6>
+                                <h3 class="text-info">{{ taux_reussite or 0 }}%</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- CARTE DES VISITES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-map-marked-alt text-danger"></i> Visites du jour</h5>
+                </div>
+                <div class="card-body">
+                    <div id="map" style="height: 300px; background: #f8f9fa; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-map fa-3x mb-2"></i>
+                            <p>Carte des visites à venir</p>
+                            <small>Intégrez ici votre carte avec l'API Google Maps ou Leaflet</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIVITÉ RÉCENTE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-clock text-muted"></i> Activité récente</h5>
+                </div>
+                <div class="card-body">
+                    {% if activites_recentes %}
+                        <ul class="list-unstyled">
+                            {% for activite in activites_recentes %}
+                            <li class="media mb-3">
+                                <div class="mr-3">
+                                    <span class="badge badge-{{ activite.couleur }} p-2">
+                                        <i class="fas fa-{{ activite.icone }}"></i>
+                                    </span>
+                                </div>
+                                <div class="media-body">
+                                    <h6 class="mt-0 mb-1">{{ activite.message }}</h6>
+                                    <small class="text-muted">{{ activite.date.strftime('%d/%m/%Y à %H:%M') }}</small>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+                            <p>Aucune activité récente</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Rafraîchir les statistiques toutes les 30 secondes
+        setInterval(function() {
+            location.reload();
+        }, 30000);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,478 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Agent Conformité{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">
+                    <i class="fas fa-shield-alt"></i>
+                    Dashboard Agent Conformité
+                </h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard_redirect') }}">Accueil</a></li>
+                    <li class="breadcrumb-item active">Agent Conformité</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Vérifications en attente</h6>
+                            <h2 class="mb-0 text-white">{{ verifications_attente or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-clock fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Vérifiées aujourd'hui</h6>
+                            <h2 class="mb-0 text-white">{{ verifications_jour or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-check-circle fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Alertes critiques</h6>
+                            <h2 class="mb-0 text-white">{{ alertes_critiques or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-dark-50">Taux de conformité</h6>
+                            <h2 class="mb-0">{{ taux_conformite or 0 }}%</h2>
+                        </div>
+                        <i class="fas fa-chart-line fa-3x text-dark-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIONS RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Actions rapides</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('agent_conformite_verifier') }}" class="btn btn-success btn-block">
+                                <i class="fas fa-search"></i> Nouvelle vérification
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('agent_conformite_alertes') }}" class="btn btn-danger btn-block">
+                                <i class="fas fa-bell"></i> Voir les alertes
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('agent_conformite_historique') }}" class="btn btn-info btn-block">
+                                <i class="fas fa-history"></i> Historique
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('agent_conformite_rapports') }}" class="btn btn-primary btn-block">
+                                <i class="fas fa-file-alt"></i> Rapports
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- VÉRIFICATIONS EN ATTENTE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list text-primary"></i> Vérifications en attente</h5>
+                    <span class="badge badge-warning float-right">{{ verifications_attente or 0 }}</span>
+                </div>
+                <div class="card-body">
+                    {% if verifications_attente_liste %}
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="conformiteTable">
+                                <thead>
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Type</th>
+                                        <th>Niveau risque</th>
+                                        <th>Date demande</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for verif in verifications_attente_liste %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ verif.client.prenom }} {{ verif.client.nom }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ verif.client.telephone }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-{{ 'danger' if verif.type == 'aml' else 'warning' if verif.type == 'kyc' else 'info' }}">
+                                                {{ verif.type|upper }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-{{ 'danger' if verif.niveau_risque == 'eleve' else 'warning' if verif.niveau_risque == 'moyen' else 'success' }}">
+                                                {{ verif.niveau_risque|capitalize }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small>{{ verif.date_demande.strftime('%d/%m/%Y') }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{{ url_for('agent_conformite_voir', verification_id=verif.id) }}"
+                                                   class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-eye"></i> Voir
+                                                </a>
+                                                <a href="{{ url_for('agent_conformite_traiter', verification_id=verif.id) }}"
+                                                   class="btn btn-sm btn-success">
+                                                    <i class="fas fa-check"></i> Traiter
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                            <h5>Aucune vérification en attente</h5>
+                            <p class="text-muted">Tous les dossiers sont conformes</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ALERTES ET RISQUES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-circle"></i> Alertes critiques</h5>
+                    <span class="badge badge-light float-right">{{ alertes_critiques or 0 }}</span>
+                </div>
+                <div class="card-body">
+                    {% if alertes_critiques_liste %}
+                        <ul class="list-group">
+                            {% for alerte in alertes_critiques_liste %}
+                            <li class="list-group-item list-group-item-danger">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-user"></i> {{ alerte.client.prenom }} {{ alerte.client.nom }}
+                                    </h6>
+                                    <small>{{ alerte.date_alerte.strftime('%d/%m/%Y') }}</small>
+                                </div>
+                                <p class="mb-1">
+                                    <span class="badge badge-danger">Risque {{ alerte.niveau }}</span>
+                                    <span class="badge badge-warning">{{ alerte.type_alerte }}</span>
+                                </p>
+                                <p class="mb-1 small">{{ alerte.description|truncate(100) }}</p>
+                                <a href="{{ url_for('agent_conformite_alerte_traiter', alerte_id=alerte.id) }}"
+                                   class="btn btn-sm btn-warning mt-1">
+                                    <i class="fas fa-edit"></i> Traiter l'alerte
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
+                            <p>Aucune alerte critique</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie text-primary"></i> Répartition des risques</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="risqueChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES MENSUELLES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line text-success"></i> Évolution des vérifications</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="evolutionVerifications" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-flag text-warning"></i> Dossiers à risque par type</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="risqueTypeChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- INDICATEURS DE PERFORMANCE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar text-info"></i> Indicateurs de performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Temps de traitement</h6>
+                                <h3 class="text-primary">{{ temps_traitement or 0 }} h</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Dossiers conformes</h6>
+                                <h3 class="text-success">{{ dossiers_conformes or 0 }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Dossiers non conformes</h6>
+                                <h3 class="text-danger">{{ dossiers_non_conformes or 0 }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Ratio conformité</h6>
+                                <h3 class="text-info">{{ ratio_conformite or 0 }}:1</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIVITÉ RÉCENTE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-clock text-muted"></i> Activité récente</h5>
+                </div>
+                <div class="card-body">
+                    {% if activites_recentes %}
+                        <ul class="list-unstyled">
+                            {% for activite in activites_recentes %}
+                            <li class="media mb-3">
+                                <div class="mr-3">
+                                    <span class="badge badge-{{ activite.couleur }} p-2">
+                                        <i class="fas fa-{{ activite.icone }}"></i>
+                                    </span>
+                                </div>
+                                <div class="media-body">
+                                    <h6 class="mt-0 mb-1">{{ activite.message }}</h6>
+                                    <small class="text-muted">{{ activite.date.strftime('%d/%m/%Y à %H:%M') }}</small>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+                            <p>Aucune activité récente</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    $(document).ready(function() {
+        // DataTable
+        $('#conformiteTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.10.22/i18n/French.json'
+            },
+            order: [[3, 'asc']],
+            pageLength: 10
+        });
+
+        // Graphique - Répartition des risques
+        var ctx1 = document.getElementById('risqueChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'pie',
+            data: {
+                labels: ['Risque Élevé', 'Risque Moyen', 'Risque Faible'],
+                datasets: [{
+                    data: [
+                        {{ risque_eleve or 0 }},
+                        {{ risque_moyen or 0 }},
+                        {{ risque_faible or 0 }}
+                    ],
+                    backgroundColor: ['#dc3545', '#ffc107', '#28a745'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Graphique - Évolution des vérifications
+        var ctx2 = document.getElementById('evolutionVerifications').getContext('2d');
+        new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: {{ evolution_labels|tojson }},
+                datasets: [{
+                    label: 'Vérifications effectuées',
+                    data: {{ evolution_donnees|tojson }},
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Graphique - Risque par type
+        var ctx3 = document.getElementById('risqueTypeChart').getContext('2d');
+        new Chart(ctx3, {
+            type: 'bar',
+            data: {
+                labels: ['AML', 'KYC', 'Sanctions', 'Autres'],
+                datasets: [
+                    {
+                        label: 'Élevé',
+                        data: {{ risque_eleve_type|tojson }},
+                        backgroundColor: '#dc3545'
+                    },
+                    {
+                        label: 'Moyen',
+                        data: {{ risque_moyen_type|tojson }},
+                        backgroundColor: '#ffc107'
+                    },
+                    {
+                        label: 'Faible',
+                        data: {{ risque_faible_type|tojson }},
+                        backgroundColor: '#28a745'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+
+        // Rafraîchir les statistiques toutes les 60 secondes
+        setInterval(function() {
+            location.reload();
+        }, 60000);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Archiviste{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">
+                    <i class="fas fa-archive"></i>
+                    Dashboard Archiviste
+                </h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard_redirect') }}">Accueil</a></li>
+                    <li class="breadcrumb-item active">Archiviste</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Documents à archiver</h6>
+                            <h2 class="mb-0 text-white">{{ documents_a_archiver or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-file-archive fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Documents archivés</h6>
+                            <h2 class="mb-0 text-white">{{ documents_archives or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-check-double fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-dark-50">Catégories</h6>
+                            <h2 class="mb-0">{{ categories or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-tags fa-3x text-dark-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Espace utilisé</h6>
+                            <h2 class="mb-0 text-white">{{ espace_utilise or 0 }}%</h2>
+                        </div>
+                        <i class="fas fa-database fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIONS RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Actions rapides</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('archiviste_nouveau_document') }}" class="btn btn-success btn-block">
+                                <i class="fas fa-plus-circle"></i> Archiver un document
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('archiviste_recherche') }}" class="btn btn-primary btn-block">
+                                <i class="fas fa-search"></i> Rechercher
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('archiviste_categories') }}" class="btn btn-info btn-block">
+                                <i class="fas fa-tags"></i> Gérer catégories
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('archiviste_rapports') }}" class="btn btn-warning btn-block">
+                                <i class="fas fa-file-alt"></i> Rapports
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- DOCUMENTS À ARCHIVER -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list text-primary"></i> Documents à archiver</h5>
+                    <span class="badge badge-primary float-right">{{ documents_a_archiver or 0 }}</span>
+                </div>
+                <div class="card-body">
+                    {% if documents_a_archiver_liste %}
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="archiveTable">
+                                <thead>
+                                    <tr>
+                                        <th>Titre</th>
+                                        <th>Catégorie</th>
+                                        <th>Type</th>
+                                        <th>Date création</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for doc in documents_a_archiver_liste %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ doc.titre }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ doc.description|truncate(40) }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-info">{{ doc.categorie }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-{{ 'secondary' if doc.type == 'pdf' else 'success' if doc.type == 'word' else 'primary' if doc.type == 'excel' else 'warning' }}">
+                                                {{ doc.type|upper }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small>{{ doc.date_creation.strftime('%d/%m/%Y') }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{{ url_for('archiviste_voir_document', doc_id=doc.id) }}"
+                                                   class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-eye"></i> Voir
+                                                </a>
+                                                <a href="{{ url_for('archiviste_archiver', doc_id=doc.id) }}"
+                                                   class="btn btn-sm btn-success">
+                                                    <i class="fas fa-archive"></i> Archiver
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                            <h5>Aucun document à archiver</h5>
+                            <p class="text-muted">Tous les documents sont archivés</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES & GRAPHIQUES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie text-primary"></i> Répartition par catégorie</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="repartitionCategories" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar text-success"></i> Archives par mois</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="archivesMois" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- DERNIERS DOCUMENTS ARCHIVÉS -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history text-info"></i> Derniers documents archivés</h5>
+                </div>
+                <div class="card-body">
+                    {% if derniers_archives %}
+                        <div class="row">
+                            {% for doc in derniers_archives %}
+                            <div class="col-md-3 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <div class="text-center mb-2">
+                                            <i class="fas fa-{{ 'file-pdf' if doc.type == 'pdf' else 'file-word' if doc.type == 'word' else 'file-excel' if doc.type == 'excel' else 'file' }} fa-3x text-primary"></i>
+                                        </div>
+                                        <h6 class="card-title text-center">{{ doc.titre|truncate(20) }}</h6>
+                                        <p class="card-text small text-muted text-center">
+                                            <span class="badge badge-info">{{ doc.categorie }}</span>
+                                            <br>
+                                            <i class="fas fa-calendar"></i> {{ doc.date_archivage.strftime('%d/%m/%Y') }}
+                                        </p>
+                                    </div>
+                                    <div class="card-footer bg-transparent text-center">
+                                        <a href="{{ url_for('archiviste_voir_document', doc_id=doc.id) }}"
+                                           class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> Voir
+                                        </a>
+                                        <a href="{{ url_for('archiviste_telecharger', doc_id=doc.id) }}"
+                                           class="btn btn-sm btn-success">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+                            <p>Aucun document archivé</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- INDICATEURS DE PERFORMANCE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-tachometer-alt text-info"></i> Indicateurs de performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Documents archivés/jour</h6>
+                                <h3 class="text-primary">{{ docs_par_jour or 0 }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Délai moyen archivage</h6>
+                                <h3 class="text-success">{{ delai_moyen or 0 }} jours</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Taux d'archivage</h6>
+                                <h3 class="text-info">{{ taux_archivage or 0 }}%</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Espace disponible</h6>
+                                <h3 class="text-warning">{{ espace_disponible or 0 }}%</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- RECHERCHE RAPIDE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-search text-primary"></i> Recherche rapide</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('archiviste_recherche') }}" method="GET" class="row">
+                        <div class="col-md-4">
+                            <input type="text" name="query" class="form-control" placeholder="Rechercher un document...">
+                        </div>
+                        <div class="col-md-3">
+                            <select name="categorie" class="form-control">
+                                <option value="">Toutes catégories</option>
+                                {% for cat in categories_liste %}
+                                <option value="{{ cat }}">{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="type" class="form-control">
+                                <option value="">Tous types</option>
+                                <option value="pdf">PDF</option>
+                                <option value="word">Word</option>
+                                <option value="excel">Excel</option>
+                                <option value="image">Image</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fas fa-search"></i> Rechercher
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIVITÉ RÉCENTE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-clock text-muted"></i> Activité récente</h5>
+                </div>
+                <div class="card-body">
+                    {% if activites_recentes %}
+                        <ul class="list-unstyled">
+                            {% for activite in activites_recentes %}
+                            <li class="media mb-3">
+                                <div class="mr-3">
+                                    <span class="badge badge-{{ activite.couleur }} p-2">
+                                        <i class="fas fa-{{ activite.icone }}"></i>
+                                    </span>
+                                </div>
+                                <div class="media-body">
+                                    <h6 class="mt-0 mb-1">{{ activite.message }}</h6>
+                                    <small class="text-muted">{{ activite.date.strftime('%d/%m/%Y à %H:%M') }}</small>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+                            <p>Aucune activité récente</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    $(document).ready(function() {
+        // DataTable
+        $('#archiveTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.10.22/i18n/French.json'
+            },
+            order: [[3, 'asc']],
+            pageLength: 10
+        });
+
+        // Graphique - Répartition par catégorie
+        var ctx1 = document.getElementById('repartitionCategories').getContext('2d');
+        new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                labels: {{ categories_labels|tojson }},
+                datasets: [{
+                    data: {{ categories_donnees|tojson }},
+                    backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6c757d'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Graphique - Archives par mois
+        var ctx2 = document.getElementById('archivesMois').getContext('2d');
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: {{ mois_labels|tojson }},
+                datasets: [{
+                    label: 'Documents archivés',
+                    data: {{ mois_donnees|tojson }},
+                    backgroundColor: '#17a2b8',
+                    borderColor: '#0f7a8b',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+
+        // Rafraîchir les statistiques toutes les 60 secondes
+        setInterval(function() {
+            location.reload();
+        }, 60000);
+    });
+</script>
+{% endblock %}

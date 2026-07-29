@@ -1,0 +1,488 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Contrôleur Interne{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">
+                    <i class="fas fa-clipboard-check"></i>
+                    Dashboard Contrôleur Interne
+                </h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard_redirect') }}">Accueil</a></li>
+                    <li class="breadcrumb-item active">Contrôleur Interne</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Contrôles à réaliser</h6>
+                            <h2 class="mb-0 text-white">{{ controles_a_realiser or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-tasks fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Contrôles effectués</h6>
+                            <h2 class="mb-0 text-white">{{ controles_effectues or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-check-circle fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-dark-50">Non-conformités</h6>
+                            <h2 class="mb-0">{{ non_conformites or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-3x text-dark-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Taux de conformité</h6>
+                            <h2 class="mb-0 text-white">{{ taux_conformite or 0 }}%</h2>
+                        </div>
+                        <i class="fas fa-chart-line fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIONS RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Actions rapides</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('controlleur_interne_nouveau') }}" class="btn btn-success btn-block">
+                                <i class="fas fa-plus-circle"></i> Nouveau contrôle
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('controlleur_interne_audit') }}" class="btn btn-primary btn-block">
+                                <i class="fas fa-search"></i> Audit
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('controlleur_interne_non_conformites') }}" class="btn btn-warning btn-block">
+                                <i class="fas fa-exclamation-circle"></i> Non-conformités
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('controlleur_interne_rapports') }}" class="btn btn-info btn-block">
+                                <i class="fas fa-file-alt"></i> Rapports
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- CONTRÔLES À RÉALISER -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list text-primary"></i> Contrôles à réaliser</h5>
+                    <span class="badge badge-primary float-right">{{ controles_a_realiser or 0 }}</span>
+                </div>
+                <div class="card-body">
+                    {% if controles_a_realiser_liste %}
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="controlesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Objet</th>
+                                        <th>Priorité</th>
+                                        <th>Date limite</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for controle in controles_a_realiser_liste %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge badge-{{ 'danger' if controle.type == 'urgent' else 'warning' if controle.type == 'programme' else 'info' }}">
+                                                {{ controle.type|capitalize }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <strong>{{ controle.objet }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ controle.description|truncate(40) }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-{{ 'danger' if controle.priorite == 'haute' else 'warning' if controle.priorite == 'moyenne' else 'success' }}">
+                                                {{ controle.priorite|capitalize }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small>{{ controle.date_limite.strftime('%d/%m/%Y') }}</small>
+                                            {% if controle.jours_restants <= 3 %}
+                                                <span class="badge badge-danger">Urgent</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{{ url_for('controlleur_interne_voir', controle_id=controle.id) }}"
+                                                   class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-eye"></i> Voir
+                                                </a>
+                                                <a href="{{ url_for('controlleur_interne_realiser', controle_id=controle.id) }}"
+                                                   class="btn btn-sm btn-success">
+                                                    <i class="fas fa-check"></i> Réaliser
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                            <h5>Aucun contrôle à réaliser</h5>
+                            <p class="text-muted">Tous les contrôles sont à jour</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- NON-CONFORMITÉS & STATISTIQUES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-circle"></i> Non-conformités</h5>
+                    <span class="badge badge-dark float-right">{{ non_conformites or 0 }}</span>
+                </div>
+                <div class="card-body">
+                    {% if non_conformites_liste %}
+                        <ul class="list-group">
+                            {% for nc in non_conformites_liste %}
+                            <li class="list-group-item list-group-item-{{ 'danger' if nc.gravite == 'critique' else 'warning' if nc.gravite == 'elevee' else 'light' }}">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-{{ 'skull-crossbones' if nc.gravite == 'critique' else 'exclamation-triangle' }}"></i>
+                                        {{ nc.titre }}
+                                    </h6>
+                                    <small>{{ nc.date_decouverte.strftime('%d/%m/%Y') }}</small>
+                                </div>
+                                <p class="mb-1 small">{{ nc.description|truncate(80) }}</p>
+                                <div class="mt-1">
+                                    <span class="badge badge-{{ 'danger' if nc.gravite == 'critique' else 'warning' if nc.gravite == 'elevee' else 'info' }}">
+                                        {{ nc.gravite|capitalize }}
+                                    </span>
+                                    <span class="badge badge-{{ 'success' if nc.statut == 'corrige' else 'warning' if nc.statut == 'en_cours' else 'danger' }}">
+                                        {{ nc.statut|capitalize }}
+                                    </span>
+                                    <a href="{{ url_for('controlleur_interne_nc_voir', nc_id=nc.id) }}"
+                                       class="btn btn-sm btn-primary float-right">
+                                        <i class="fas fa-eye"></i> Voir
+                                    </a>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
+                            <p>Aucune non-conformité</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie text-primary"></i> Répartition des contrôles</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="repartitionControles" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES DÉTAILLÉES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line text-success"></i> Évolution des contrôles</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="evolutionControles" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar text-warning"></i> Non-conformités par service</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="ncParService" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- INDICATEURS DE PERFORMANCE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-tachometer-alt text-info"></i> Indicateurs de performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Délai moyen de traitement</h6>
+                                <h3 class="text-primary">{{ delai_moyen or 0 }} jours</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Taux de correction</h6>
+                                <h3 class="text-success">{{ taux_correction or 0 }}%</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Efficacité des contrôles</h6>
+                                <h3 class="text-info">{{ efficacite or 0 }}%</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Score de conformité</h6>
+                                <h3 class="text-{{ 'success' if score_conformite >= 80 else 'warning' if score_conformite >= 60 else 'danger' }}">
+                                    {{ score_conformite or 0 }}/100
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIVITÉ RÉCENTE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-clock text-muted"></i> Activité récente</h5>
+                </div>
+                <div class="card-body">
+                    {% if activites_recentes %}
+                        <ul class="list-unstyled">
+                            {% for activite in activites_recentes %}
+                            <li class="media mb-3">
+                                <div class="mr-3">
+                                    <span class="badge badge-{{ activite.couleur }} p-2">
+                                        <i class="fas fa-{{ activite.icone }}"></i>
+                                    </span>
+                                </div>
+                                <div class="media-body">
+                                    <h6 class="mt-0 mb-1">{{ activite.message }}</h6>
+                                    <small class="text-muted">{{ activite.date.strftime('%d/%m/%Y à %H:%M') }}</small>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+                            <p>Aucune activité récente</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    $(document).ready(function() {
+        // DataTable
+        $('#controlesTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.10.22/i18n/French.json'
+            },
+            order: [[3, 'asc']],
+            pageLength: 10
+        });
+
+        // Graphique - Répartition des contrôles
+        var ctx1 = document.getElementById('repartitionControles').getContext('2d');
+        new Chart(ctx1, {
+            type: 'pie',
+            data: {
+                labels: ['Financier', 'Opérationnel', 'Conformité', 'RH', 'IT'],
+                datasets: [{
+                    data: [
+                        {{ controles_financiers or 0 }},
+                        {{ controles_operationnels or 0 }},
+                        {{ controles_conformite or 0 }},
+                        {{ controles_rh or 0 }},
+                        {{ controles_it or 0 }}
+                    ],
+                    backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#17a2b8'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Graphique - Évolution des contrôles
+        var ctx2 = document.getElementById('evolutionControles').getContext('2d');
+        new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: {{ evolution_labels|tojson }},
+                datasets: [
+                    {
+                        label: 'Contrôles effectués',
+                        data: {{ evolution_effectues|tojson }},
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Non-conformités',
+                        data: {{ evolution_nc|tojson }},
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+
+        // Graphique - Non-conformités par service
+        var ctx3 = document.getElementById('ncParService').getContext('2d');
+        new Chart(ctx3, {
+            type: 'bar',
+            data: {
+                labels: {{ services_labels|tojson }},
+                datasets: [{
+                    label: 'Non-conformités',
+                    data: {{ services_donnees|tojson }},
+                    backgroundColor: ['#dc3545', '#ffc107', '#17a2b8', '#28a745', '#6c757d'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+
+        // Rafraîchir les statistiques toutes les 60 secondes
+        setInterval(function() {
+            location.reload();
+        }, 60000);
+    });
+</script>
+{% endblock %}

@@ -3102,7 +3102,7 @@ def accepter_conditions(token):
             flash("✅ Conditions acceptées ! Votre dossier est en attente de validation.", "success")
 
             # ✅ Rediriger vers le tableau de bord ou une page de confirmation
-            return render_template("confirmation_signature.html")
+            return render_template("confirmation_signature.html", client=client)
 
         except Exception as e:
             db.session.rollback()
@@ -5313,11 +5313,6 @@ def connexion():
             (User.username == identifiant) | (User.email == identifiant)
         ).first()
 
-        print("===== APRES CONNEXION =====")
-        print("Utilisateur :", user.username)
-        print("Role :", user.role)
-        print("Fonction :", user.fonction)
-        print("Succursale :", user.succursale.code if user.succursale else None)
 
         # 🔴 BLOQUAGE STATUT
         if user is None:
@@ -5336,15 +5331,15 @@ def connexion():
         if user and check_password_hash(user.password_hash, password):
             login_user(user)
 
-            # 🔥 AJOUTER CES 3 LIGNES ICI 🔥
-            session['user'] = f"{user.prenom} {user.nom}"
-            session['role'] = user.role
-            session['user_id'] = user.id
-
-            print("Premier connexion :", user.premier_connexion)
-            print("Mot de passe temporaire :",
-                  user.mot_de_passe_temporaire if hasattr(user, "mot_de_passe_temporaire") else "Champ absent")
-
+            # # 🔥 AJOUTER CES 3 LIGNES ICI 🔥
+            # session['user'] = f"{user.prenom} {user.nom}"
+            # session['role'] = user.role
+            # session['user_id'] = user.id
+            #
+            # print("Premier connexion :", user.premier_connexion)
+            # print("Mot de passe temporaire :",
+            #       user.mot_de_passe_temporaire if hasattr(user, "mot_de_passe_temporaire") else "Champ absent")
+            #
 
             # CAS 1: Première connexion - obliger le changement de MDP
             if user.premier_connexion:
@@ -5837,7 +5832,7 @@ def voir_dossiers(dossier_id):
 
 
 
-@app.route('/dossiers')
+@app.route('/dossiers/<int:dossier_id>')
 @login_required
 def liste_dossiers(dossier_id):
     """Voir la liste des dossiers"""
@@ -17079,7 +17074,19 @@ def historique_global():
         HistoriqueAction.date.desc()
     ).paginate(page=page, per_page=per_page)
 
-    return render_template('admin/historique_global.html', historique=historique)
+    # ✅ AJOUTEZ LES STATISTIQUES
+    stats = {
+        'utilisateres_actifs': User.query.filter_by(statut='actif').count(),
+        'total_utilisateurs': User.query.count(),
+        'total_clients': Client.query.count(),
+        'total_transactions': Transaction.query.count(),
+        'total_prets': Pret.query.count(),
+        'total_groupes': Groupe.query.count(),
+
+        # Ajoutez d'autres statistiques selon vos besoins
+    }
+
+    return render_template('admin/historique_global.html', historique=historique,  stats=stats)  # ← AJOUTEZ stats)
 
 
 @app.route('/admin/historique/utilisateur/<int:employe_id>')
@@ -20626,6 +20633,1895 @@ def creer_produit_epargne_defaut():
         print("✅ Produit épargne par défaut créé")
 
 
+
+
+# =============================================
+# 1. SUPERVISEUR CRÉDIT
+# =============================================
+@app.route('/employe/superviseur-credit')
+@login_required
+@role_required('employe', 'super_admin')
+def superviseur_credit_dashboard():
+    """Dashboard pour superviseur crédit"""
+
+    # Vérification que l'utilisateur est bien superviseur crédit
+    if current_user.role == 'employe' and current_user.fonction != 'superviseur_credit':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import Pret, User, db
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+
+    # Statistiques générales
+    prets_en_attente = Pret.query.filter_by(
+        statut='en_attente',
+        superviseur_id=current_user.id
+    ).count()
+
+    prets_approuves = Pret.query.filter_by(
+        statut='approuve',
+        superviseur_id=current_user.id
+    ).count()
+
+    prets_rejetes = Pret.query.filter_by(
+        statut='rejete',
+        superviseur_id=current_user.id
+    ).count()
+
+    montant_total = db.session.query(func.sum(Pret.montant)).filter(
+        Pret.superviseur_id == current_user.id,
+        Pret.statut == 'approuve'
+    ).scalar() or 0
+
+    # Listes
+    prets_en_attente_liste = Pret.query.filter_by(
+        statut='en_attente',
+        superviseur_id=current_user.id
+    ).order_by(Pret.date_creation.desc()).all()
+
+    derniers_prets_approuves = Pret.query.filter_by(
+        statut='approuve',
+        superviseur_id=current_user.id
+    ).order_by(Pret.date_approbation.desc()).limit(10).all()
+
+    # Performance des agents sous supervision
+    agents_sous_supervision = User.query.filter_by(
+        superviseur_id=current_user.id,
+        role='employe'
+    ).all()
+
+    agents_performance = []
+    for agent in agents_sous_supervision:
+        total = Pret.query.filter_by(agent_id=agent.id).count()
+        approuves = Pret.query.filter_by(agent_id=agent.id, statut='approuve').count()
+        rejetes = Pret.query.filter_by(agent_id=agent.id, statut='rejete').count()
+        montant = db.session.query(func.sum(Pret.montant)).filter(
+            Pret.agent_id == agent.id,
+            Pret.statut == 'approuve'
+        ).scalar() or 0
+
+        agents_performance.append({
+            'prenom': agent.prenom,
+            'nom': agent.nom,
+            'total_prets': total,
+            'approuves': approuves,
+            'rejetes': rejetes,
+            'taux_approbation': int((approuves / total * 100)) if total > 0 else 0,
+            'montant_total': montant
+        })
+
+    # Données pour les graphiques
+    mois_labels = []
+    evolution_approuves = []
+    evolution_attente = []
+
+    for i in range(6, 0, -1):
+        mois = datetime.now() - timedelta(days=30 * i)
+        mois_labels.append(mois.strftime('%b %Y'))
+
+        approuves_mois = Pret.query.filter(
+            Pret.superviseur_id == current_user.id,
+            Pret.statut == 'approuve',
+            func.extract('month', Pret.date_approbation) == mois.month,
+            func.extract('year', Pret.date_approbation) == mois.year
+        ).count()
+
+        attente_mois = Pret.query.filter(
+            Pret.superviseur_id == current_user.id,
+            Pret.statut == 'en_attente',
+            func.extract('month', Pret.date_creation) == mois.month,
+            func.extract('year', Pret.date_creation) == mois.year
+        ).count()
+
+        evolution_approuves.append(approuves_mois)
+        evolution_attente.append(attente_mois)
+
+    return render_template('employees/superviseur_credit_dashboard.html',
+                           prets_en_attente=prets_en_attente,
+                           prets_approuves=prets_approuves,
+                           prets_rejetes=prets_rejetes,
+                           montant_total=montant_total,
+                           prets_en_attente_liste=prets_en_attente_liste,
+                           derniers_prets_approuves=derniers_prets_approuves,
+                           agents_performance=agents_performance,
+                           mois_labels=mois_labels,
+                           evolution_approuves=evolution_approuves,
+                           evolution_attente=evolution_attente,
+                           activites_recentes=[])
+
+# =============================================
+# 2. GESTIONNAIRE PORTEFEUILLE
+# =============================================
+@app.route('/employe/gestionnaire-portefeuille')
+@login_required
+@role_required('employe', 'super_admin')
+def gestionnaire_portefeuille_dashboard():
+    """Dashboard pour gestionnaire portefeuille"""
+
+    # Vérification que l'utilisateur est bien gestionnaire portefeuille
+    if current_user.role == 'employe' and current_user.fonction != 'gestionnaire_portefeuille':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import Pret, Client, Remboursement, db
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+
+    # Statistiques générales
+    portefeuille_total = db.session.query(func.sum(Pret.montant)).filter(
+        Pret.gestionnaire_id == current_user.id,
+        Pret.statut.in_(['actif', 'a_jour', 'retard'])
+    ).scalar() or 0
+
+    prets_actifs = Pret.query.filter(
+        Pret.gestionnaire_id == current_user.id,
+        Pret.statut.in_(['actif', 'a_jour'])
+    ).count()
+
+    clients_actifs = db.session.query(Client).join(Pret).filter(
+        Pret.gestionnaire_id == current_user.id,
+        Pret.statut.in_(['actif', 'a_jour'])
+    ).distinct().count()
+
+    prets_en_retard = Pret.query.filter(
+        Pret.gestionnaire_id == current_user.id,
+        Pret.statut == 'retard'
+    ).count()
+
+    # Montants par statut
+    a_jour = db.session.query(func.sum(Pret.montant_restant)).filter(
+        Pret.gestionnaire_id == current_user.id,
+        Pret.statut == 'a_jour'
+    ).scalar() or 0
+
+    montant_retard = db.session.query(func.sum(Pret.montant_restant)).filter(
+        Pret.gestionnaire_id == current_user.id,
+        Pret.statut == 'retard'
+    ).scalar() or 0
+
+    montant_defaut = db.session.query(func.sum(Pret.montant_restant)).filter(
+        Pret.gestionnaire_id == current_user.id,
+        Pret.statut == 'defaut'
+    ).scalar() or 0
+
+    # Liste des prêts actifs
+    prets_actifs_liste = Pret.query.filter(
+        Pret.gestionnaire_id == current_user.id,
+        Pret.statut.in_(['actif', 'a_jour', 'retard'])
+    ).order_by(Pret.prochaine_echeance).all()
+
+    # Alertes critiques (prêts avec plus de 15 jours de retard)
+    seuil_retard = datetime.now() - timedelta(days=15)
+    alertes_critiques = Pret.query.filter(
+        Pret.gestionnaire_id == current_user.id,
+        Pret.statut == 'retard',
+        Pret.date_dernier_retard <= seuil_retard
+    ).all()
+
+    # Prochaines échéances (7 jours)
+    date_limit = datetime.now() + timedelta(days=7)
+    prochaines_echeances = Pret.query.filter(
+        Pret.gestionnaire_id == current_user.id,
+        Pret.statut.in_(['actif', 'a_jour']),
+        Pret.prochaine_echeance <= date_limit,
+        Pret.prochaine_echeance >= datetime.now()
+    ).order_by(Pret.prochaine_echeance).all()
+
+    # Indicateurs de performance
+    total_prets = Pret.query.filter_by(gestionnaire_id=current_user.id).count()
+    prets_rembourses = Pret.query.filter_by(gestionnaire_id=current_user.id, statut='rembourse').count()
+    taux_recouvrement = int((prets_rembourses / total_prets * 100)) if total_prets > 0 else 0
+
+    qualite_portefeuille = int((prets_actifs / total_prets * 100)) if total_prets > 0 else 0
+
+    # Panier moyen
+    clients_total = db.session.query(Client).join(Pret).filter(
+        Pret.gestionnaire_id == current_user.id
+    ).distinct().count()
+    panier_moyen = int(portefeuille_total / clients_total) if clients_total > 0 else 0
+
+    # Durée moyenne
+    duree_moyenne = db.session.query(func.avg(Pret.duree_mois)).filter(
+        Pret.gestionnaire_id == current_user.id
+    ).scalar() or 0
+    duree_moyenne = int(duree_moyenne)
+
+    # Données pour les graphiques
+    echeances_labels = []
+    echeances_donnees = []
+
+    for i in range(0, 6):
+        mois = datetime.now() + timedelta(days=30 * i)
+        echeances_labels.append(mois.strftime('%b %Y'))
+        count = Pret.query.filter(
+            Pret.gestionnaire_id == current_user.id,
+            Pret.prochaine_echeance >= mois.replace(day=1),
+            Pret.prochaine_echeance < (mois.replace(day=1) + timedelta(days=31))
+        ).count()
+        echeances_donnees.append(count)
+
+    return render_template('employees/gestionnaire_portefeuille_dashboard.html',
+                           portefeuille_total=portefeuille_total,
+                           prets_actifs=prets_actifs,
+                           clients_actifs=clients_actifs,
+                           prets_en_retard=prets_en_retard,
+                           a_jour=a_jour,
+                           montant_retard=montant_retard,
+                           montant_defaut=montant_defaut,
+                           prets_actifs_liste=prets_actifs_liste,
+                           alertes_critiques=alertes_critiques,
+                           prochaines_echeances=prochaines_echeances,
+                           taux_recouvrement=taux_recouvrement,
+                           qualite_portefeuille=qualite_portefeuille,
+                           panier_moyen=panier_moyen,
+                           duree_moyenne=duree_moyenne,
+                           echeances_labels=echeances_labels,
+                           echeances_donnees=echeances_donnees,
+                           activites_recentes=[])
+
+# =============================================
+# 3. RELATION CLIENT
+# =============================================
+@app.route('/employe/relation-client')
+@login_required
+@role_required('employe', 'super_admin')
+def relation_client_dashboard():
+    """Dashboard pour relation client"""
+
+    # Vérification que l'utilisateur est bien relation client
+    if current_user.role == 'employe' and current_user.fonction != 'relation_client':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import Client, Interaction, db
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+
+    # Statistiques
+    clients_actifs = Client.query.filter_by(
+        relation_client_id=current_user.id,
+        statut='actif'
+    ).count()
+
+    today = datetime.now().date()
+    start_of_month = today.replace(day=1)
+
+    nouveaux_clients = Client.query.filter(
+        Client.relation_client_id == current_user.id,
+        Client.date_creation >= start_of_month
+    ).count()
+
+    clients_inactifs = Client.query.filter_by(
+        relation_client_id=current_user.id,
+        statut='inactif'
+    ).count()
+
+    # Taux de fidélisation
+    total_clients = Client.query.filter_by(relation_client_id=current_user.id).count()
+    clients_fideles = Client.query.filter_by(
+        relation_client_id=current_user.id,
+        statut='actif',
+        est_fidele=True
+    ).count()
+    taux_fidelisation = int((clients_fideles / total_clients * 100)) if total_clients > 0 else 0
+
+    # Satisfaction (exemple)
+    satisfaction = 78  # À calculer selon vos données
+
+    # Liste des clients
+    derniers_clients = Client.query.filter_by(
+        relation_client_id=current_user.id
+    ).order_by(Client.date_creation.desc()).limit(10).all()
+
+    # Clients à contacter (pas de contact depuis 30 jours)
+    date_limit = datetime.now() - timedelta(days=30)
+    clients_a_contacter = Client.query.filter(
+        Client.relation_client_id == current_user.id,
+        Client.statut == 'actif',
+        (Client.dernier_contact <= date_limit) | (Client.dernier_contact.is_(None))
+    ).all()
+
+    tous_clients = Client.query.filter_by(
+        relation_client_id=current_user.id
+    ).all()
+
+    # Statistiques satisfaction
+    clients_satisfaits = Client.query.filter_by(
+        relation_client_id=current_user.id,
+        statut_satisfaction='satisfait'
+    ).count()
+    clients_insatisfaits = Client.query.filter_by(
+        relation_client_id=current_user.id,
+        statut_satisfaction='insatisfait'
+    ).count()
+
+    # Évolution des clients (6 derniers mois)
+    evolution_labels = []
+    evolution_donnees = []
+
+    for i in range(5, -1, -1):
+        mois = datetime.now() - timedelta(days=30 * i)
+        mois_label = mois.strftime('%b %Y')
+        evolution_labels.append(mois_label)
+
+        count = Client.query.filter(
+            Client.relation_client_id == current_user.id,
+            func.month(Client.date_creation) == mois.month,
+            func.year(Client.date_creation) == mois.year
+        ).count()
+        evolution_donnees.append(count)
+
+    return render_template('employees/relation_client_dashboard.html',
+                           clients_actifs=clients_actifs,
+                           nouveaux_clients=nouveaux_clients,
+                           clients_inactifs=clients_inactifs,
+                           taux_fidelisation=taux_fidelisation,
+                           satisfaction=satisfaction,
+                           derniers_clients=derniers_clients,
+                           clients_a_contacter=clients_a_contacter,
+                           tous_clients=tous_clients,
+                           clients_satisfaits=clients_satisfaits,
+                           clients_insatisfaits=clients_insatisfaits,
+                           evolution_labels=evolution_labels,
+                           evolution_donnees=evolution_donnees,
+                           activites_recentes=[])
+
+
+
+# =============================================
+# 5. CAISSIER PRINCIPAL
+# =============================================
+@app.route('/employe/animateur-groupe')
+@login_required
+@role_required('employe', 'super_admin')
+def animateur_groupe_dashboard():
+    """Dashboard pour animateur de groupe"""
+
+    # Vérification que l'utilisateur est bien animateur groupe
+    if current_user.role == 'employe' and current_user.fonction != 'animateur_groupe':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import Groupe, SessionGroupe, MembreGroupe, db
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+
+    # Statistiques générales
+    groupes_actifs = Groupe.query.filter_by(
+        animateur_id=current_user.id,
+        statut='actif'
+    ).count()
+
+    groupes_attente = Groupe.query.filter_by(
+        animateur_id=current_user.id,
+        statut='en_attente'
+    ).count()
+
+    groupes_termines = Groupe.query.filter_by(
+        animateur_id=current_user.id,
+        statut='termine'
+    ).count()
+
+    # Membres
+    membres_totaux = db.session.query(func.sum(Groupe.nb_membres)).filter(
+        Groupe.animateur_id == current_user.id,
+        Groupe.statut == 'actif'
+    ).scalar() or 0
+
+    # Sessions
+    sessions_animees = SessionGroupe.query.filter_by(
+        animateur_id=current_user.id
+    ).count()
+
+    # Taux de participation (exemple)
+    taux_participation = 75  # À calculer selon vos données
+
+    # Liste des groupes
+    groupes = Groupe.query.filter_by(
+        animateur_id=current_user.id
+    ).all()
+
+    # Ajouter des attributs calculés
+    for groupe in groupes:
+        groupe.nb_membres = MembreGroupe.query.filter_by(groupe_id=groupe.id).count()
+        groupe.nb_sessions = SessionGroupe.query.filter_by(groupe_id=groupe.id).count()
+        groupe.taux_participation = 70  # À calculer
+
+    # Sessions à venir (7 jours)
+    date_limit = datetime.now() + timedelta(days=7)
+    sessions_a_venir = SessionGroupe.query.filter(
+        SessionGroupe.animateur_id == current_user.id,
+        SessionGroupe.date_debut >= datetime.now(),
+        SessionGroupe.date_debut <= date_limit,
+        SessionGroupe.statut == 'planifiee'
+    ).order_by(SessionGroupe.date_debut).all()
+
+    # Ajouter jours restants
+    for session in sessions_a_venir:
+        session.jours = (session.date_debut.date() - datetime.now().date()).days
+
+    # Dernières sessions
+    dernieres_sessions = SessionGroupe.query.filter_by(
+        animateur_id=current_user.id
+    ).order_by(SessionGroupe.date_debut.desc()).limit(10).all()
+
+    # Statistiques de performance
+    total_groupes = Groupe.query.filter_by(animateur_id=current_user.id).count()
+    moyenne_membres_par_groupe = int(membres_totaux / total_groupes) if total_groupes > 0 else 0
+
+    total_sessions = SessionGroupe.query.filter_by(animateur_id=current_user.id).count()
+    sessions_par_groupe = int(total_sessions / total_groupes) if total_groupes > 0 else 0
+
+    taux_retention = 80  # À calculer
+    satisfaction_moyenne = 4.2  # À calculer
+
+    # Graphique - Sessions par mois (6 derniers mois)
+    sessions_labels = []
+    sessions_donnees = []
+
+    for i in range(5, -1, -1):
+        mois = datetime.now() - timedelta(days=30 * i)
+        sessions_labels.append(mois.strftime('%b %Y'))
+        count = SessionGroupe.query.filter(
+            SessionGroupe.animateur_id == current_user.id,
+            func.month(SessionGroupe.date_debut) == mois.month,
+            func.year(SessionGroupe.date_debut) == mois.year
+        ).count()
+        sessions_donnees.append(count)
+
+    return render_template('employees/animateur_groupe_dashboard.html',
+                           groupes_actifs=groupes_actifs,
+                           groupes_attente=groupes_attente,
+                           groupes_termines=groupes_termines,
+                           membres_totaux=membres_totaux,
+                           sessions_animees=sessions_animees,
+                           taux_participation=taux_participation,
+                           groupes=groupes,
+                           sessions_a_venir=sessions_a_venir,
+                           dernieres_sessions=dernieres_sessions,
+                           moyenne_membres_par_groupe=moyenne_membres_par_groupe,
+                           sessions_par_groupe=sessions_par_groupe,
+                           taux_retention=taux_retention,
+                           satisfaction_moyenne=satisfaction_moyenne,
+                           sessions_labels=sessions_labels,
+                           sessions_donnees=sessions_donnees,
+                           activites_recentes=[])
+
+# =============================================
+# 6. AGENT REMBOURSEMENT
+# =============================================
+@app.route('/employe/agent-remboursement')
+@login_required
+@role_required('employe', 'super_admin')
+def agent_remboursement_dashboard():
+    """Dashboard pour agent remboursement"""
+
+    # Vérification que l'utilisateur est bien agent remboursement
+    if current_user.role == 'employe' and current_user.fonction != 'agent_remboursement':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import Remboursement, Echeance, Client, Pret, db
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+
+    today = datetime.now().date()
+
+    # Statistiques du jour
+    remboursements_jour = Remboursement.query.filter(
+        Remboursement.agent_id == current_user.id,
+        func.date(Remboursement.date_remboursement) == today
+    ).count()
+
+    montant_collecte_jour = db.session.query(func.sum(Remboursement.montant)).filter(
+        Remboursement.agent_id == current_user.id,
+        func.date(Remboursement.date_remboursement) == today
+    ).scalar() or 0
+
+    echeances_jour = Echeance.query.filter(
+        Echeance.agent_id == current_user.id,
+        func.date(Echeance.date_echeance) == today,
+        Echeance.est_rembourse == False
+    ).count()
+
+    en_retard = Echeance.query.filter(
+        Echeance.agent_id == current_user.id,
+        Echeance.date_echeance < today,
+        Echeance.est_rembourse == False
+    ).count()
+
+    # Listes
+    remboursements_jour_liste = Remboursement.query.filter(
+        Remboursement.agent_id == current_user.id,
+        func.date(Remboursement.date_remboursement) == today
+    ).order_by(Remboursement.date_remboursement.desc()).all()
+
+    echeances_jour_liste = Echeance.query.filter(
+        Echeance.agent_id == current_user.id,
+        func.date(Echeance.date_echeance) == today
+    ).order_by(Echeance.date_echeance).all()
+
+    # Clients en retard
+    clients_en_retard = Client.query.join(Pret).join(Echeance).filter(
+        Echeance.agent_id == current_user.id,
+        Echeance.date_echeance < today,
+        Echeance.est_rembourse == False
+    ).distinct().all()
+
+    # Ajouter des attributs calculés
+    for client in clients_en_retard:
+        client.montant_du = db.session.query(func.sum(Echeance.montant)).filter(
+            Echeance.client_id == client.id,
+            Echeance.est_rembourse == False
+        ).scalar() or 0
+
+        # Calculer les jours de retard
+        dernier_echeance = Echeance.query.filter(
+            Echeance.client_id == client.id,
+            Echeance.est_rembourse == False
+        ).order_by(Echeance.date_echeance.desc()).first()
+
+        client.jours_retard = (today - dernier_echeance.date_echeance).days if dernier_echeance else 0
+        client.dernier_paiement = Remboursement.query.filter_by(client_id=client.id).order_by(
+            Remboursement.date_remboursement.desc()
+        ).first()
+
+    # Statistiques mensuelles (6 derniers mois)
+    mois_labels = []
+    remboursements_donnees = []
+
+    for i in range(5, -1, -1):
+        mois = datetime.now() - timedelta(days=30 * i)
+        mois_labels.append(mois.strftime('%b %Y'))
+
+        total = db.session.query(func.sum(Remboursement.montant)).filter(
+            Remboursement.agent_id == current_user.id,
+            func.month(Remboursement.date_remboursement) == mois.month,
+            func.year(Remboursement.date_remboursement) == mois.year
+        ).scalar() or 0
+        remboursements_donnees.append(float(total))
+
+    # Répartition des paiements
+    paiements_especes = Remboursement.query.filter_by(
+        agent_id=current_user.id,
+        methode='especes'
+    ).count()
+
+    paiements_virement = Remboursement.query.filter_by(
+        agent_id=current_user.id,
+        methode='virement'
+    ).count()
+
+    paiements_mobile = Remboursement.query.filter_by(
+        agent_id=current_user.id,
+        methode='mobile_money'
+    ).count()
+
+    # Objectifs
+    objectif_mensuel = 5000000  # À définir selon votre logique
+    collecte_mois = db.session.query(func.sum(Remboursement.montant)).filter(
+        Remboursement.agent_id == current_user.id,
+        func.month(Remboursement.date_remboursement) == datetime.now().month,
+        func.year(Remboursement.date_remboursement) == datetime.now().year
+    ).scalar() or 0
+
+    progression = int((collecte_mois / objectif_mensuel * 100)) if objectif_mensuel > 0 else 0
+
+    return render_template('employees/agent_remboursement_dashboard.html',
+                           remboursements_jour=remboursements_jour,
+                           montant_collecte_jour=montant_collecte_jour,
+                           echeances_jour=echeances_jour,
+                           en_retard=en_retard,
+                           remboursements_jour_liste=remboursements_jour_liste,
+                           echeances_jour_liste=echeances_jour_liste,
+                           clients_en_retard=clients_en_retard,
+                           mois_labels=mois_labels,
+                           remboursements_donnees=remboursements_donnees,
+                           paiements_especes=paiements_especes,
+                           paiements_virement=paiements_virement,
+                           paiements_mobile=paiements_mobile,
+                           objectif_mensuel=objectif_mensuel,
+                           collecte_mois=collecte_mois,
+                           progression=progression,
+                           activites_recentes=[])
+
+# =============================================
+# 7. AGENT SAISIE
+# =============================================
+@app.route('/employe/agent-saisie')
+@login_required
+@role_required('employe', 'super_admin')
+def agent_saisie_dashboard():
+    """Dashboard pour agent saisie"""
+
+    # Vérification que l'utilisateur est bien agent saisie
+    if current_user.role == 'employe' and current_user.fonction != 'agent_saisie':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import DossierSaisie, Client, db
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+
+    today = datetime.now().date()
+
+    # Statistiques
+    dossiers_a_saisir = DossierSaisie.query.filter_by(
+        agent_saisie_id=current_user.id,
+        statut='a_saisir'
+    ).count()
+
+    saisies_jour = DossierSaisie.query.filter(
+        DossierSaisie.agent_saisie_id == current_user.id,
+        func.date(DossierSaisie.date_saisie) == today,
+        DossierSaisie.statut == 'saisi'
+    ).count()
+
+    en_attente_validation = DossierSaisie.query.filter_by(
+        agent_saisie_id=current_user.id,
+        statut='en_attente_validation'
+    ).count()
+
+    # Taux de saisie
+    total_dossiers = DossierSaisie.query.filter_by(agent_saisie_id=current_user.id).count()
+    dossiers_traites = DossierSaisie.query.filter(
+        DossierSaisie.agent_saisie_id == current_user.id,
+        DossierSaisie.statut.in_(['saisi', 'valide'])
+    ).count()
+    taux_saisie = int((dossiers_traites / total_dossiers * 100)) if total_dossiers > 0 else 0
+
+    # Listes
+    dossiers_a_saisir_liste = DossierSaisie.query.filter_by(
+        agent_saisie_id=current_user.id,
+        statut='a_saisir'
+    ).order_by(DossierSaisie.priorite.desc()).all()
+
+    saisies_recentes = DossierSaisie.query.filter(
+        DossierSaisie.agent_saisie_id == current_user.id,
+        DossierSaisie.statut.in_(['saisi', 'valide'])
+    ).order_by(DossierSaisie.date_saisie.desc()).limit(10).all()
+
+    # Statistiques par type
+    saisies_formulaires = DossierSaisie.query.filter_by(
+        agent_saisie_id=current_user.id,
+        type_document='formulaire'
+    ).count()
+
+    saisies_contrats = DossierSaisie.query.filter_by(
+        agent_saisie_id=current_user.id,
+        type_document='contrat'
+    ).count()
+
+    saisies_documents = DossierSaisie.query.filter_by(
+        agent_saisie_id=current_user.id,
+        type_document='document'
+    ).count()
+
+    # Performance
+    temps_moyen = 12  # À calculer selon vos données (en minutes)
+    precision = 95  # À calculer selon vos données
+
+    # Saisies par jour (7 derniers jours)
+    jours_labels = []
+    saisies_par_jour = []
+
+    for i in range(6, -1, -1):
+        jour = datetime.now() - timedelta(days=i)
+        jours_labels.append(jour.strftime('%a %d'))
+
+        count = DossierSaisie.query.filter(
+            DossierSaisie.agent_saisie_id == current_user.id,
+            func.date(DossierSaisie.date_saisie) == jour.date(),
+            DossierSaisie.statut == 'saisi'
+        ).count()
+        saisies_par_jour.append(count)
+
+    # Objectifs
+    objectif_jour = 15  # À définir selon votre logique
+    progression_jour = int((saisies_jour / objectif_jour * 100)) if objectif_jour > 0 else 0
+
+    return render_template('employees/agent_saisie_dashboard.html',
+                           dossiers_a_saisir=dossiers_a_saisir,
+                           saisies_jour=saisies_jour,
+                           taux_saisie=taux_saisie,
+                           en_attente_validation=en_attente_validation,
+                           dossiers_a_saisir_liste=dossiers_a_saisir_liste,
+                           saisies_recentes=saisies_recentes,
+                           saisies_formulaires=saisies_formulaires,
+                           saisies_contrats=saisies_contrats,
+                           saisies_documents=saisies_documents,
+                           temps_moyen=temps_moyen,
+                           precision=precision,
+                           jours_labels=jours_labels,
+                           saisies_par_jour=saisies_par_jour,
+                           objectif_jour=objectif_jour,
+                           progression_jour=progression_jour,
+                           activites_recentes=[])
+
+# =============================================
+# 8. AGENT CONFORMITÉ
+# =============================================
+@app.route('/employe/agent-conformite')
+@login_required
+@role_required('employe', 'super_admin')
+def agent_conformite_dashboard():
+    """Dashboard pour agent conformité"""
+
+    # Vérification que l'utilisateur est bien agent conformité
+    if current_user.role == 'employe' and current_user.fonction != 'agent_conformite':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import VerificationConformite, AlerteConformite, Client, db
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+
+    today = datetime.now().date()
+
+    # Statistiques générales
+    verifications_attente = VerificationConformite.query.filter_by(
+        agent_conformite_id=current_user.id,
+        statut='en_attente'
+    ).count()
+
+    verifications_jour = VerificationConformite.query.filter(
+        VerificationConformite.agent_conformite_id == current_user.id,
+        func.date(VerificationConformite.date_verification) == today,
+        VerificationConformite.statut == 'terminee'
+    ).count()
+
+    alertes_critiques = AlerteConformite.query.filter_by(
+        agent_conformite_id=current_user.id,
+        niveau='critique',
+        traitee=False
+    ).count()
+
+    # Taux de conformité
+    total_verifications = VerificationConformite.query.filter_by(
+        agent_conformite_id=current_user.id
+    ).count()
+    verifications_conformes = VerificationConformite.query.filter_by(
+        agent_conformite_id=current_user.id,
+        statut='terminee',
+        conforme=True
+    ).count()
+    taux_conformite = int((verifications_conformes / total_verifications * 100)) if total_verifications > 0 else 0
+
+    # Listes
+    verifications_attente_liste = VerificationConformite.query.filter_by(
+        agent_conformite_id=current_user.id,
+        statut='en_attente'
+    ).order_by(VerificationConformite.niveau_risque.desc()).all()
+
+    alertes_critiques_liste = AlerteConformite.query.filter_by(
+        agent_conformite_id=current_user.id,
+        niveau='critique',
+        traitee=False
+    ).order_by(AlerteConformite.date_alerte.desc()).all()
+
+    # Répartition des risques
+    risque_eleve = VerificationConformite.query.filter_by(
+        agent_conformite_id=current_user.id,
+        niveau_risque='eleve'
+    ).count()
+    risque_moyen = VerificationConformite.query.filter_by(
+        agent_conformite_id=current_user.id,
+        niveau_risque='moyen'
+    ).count()
+    risque_faible = VerificationConformite.query.filter_by(
+        agent_conformite_id=current_user.id,
+        niveau_risque='faible'
+    ).count()
+
+    # Évolution (6 derniers mois)
+    evolution_labels = []
+    evolution_donnees = []
+
+    for i in range(5, -1, -1):
+        mois = datetime.now() - timedelta(days=30 * i)
+        evolution_labels.append(mois.strftime('%b %Y'))
+        count = VerificationConformite.query.filter(
+            VerificationConformite.agent_conformite_id == current_user.id,
+            func.month(VerificationConformite.date_verification) == mois.month,
+            func.year(VerificationConformite.date_verification) == mois.year,
+            VerificationConformite.statut == 'terminee'
+        ).count()
+        evolution_donnees.append(count)
+
+    # Risque par type
+    risque_eleve_type = []
+    risque_moyen_type = []
+    risque_faible_type = []
+
+    types = ['aml', 'kyc', 'sanctions', 'autres']
+    for type_verif in types:
+        risque_eleve_type.append(VerificationConformite.query.filter_by(
+            agent_conformite_id=current_user.id,
+            type=type_verif,
+            niveau_risque='eleve'
+        ).count())
+        risque_moyen_type.append(VerificationConformite.query.filter_by(
+            agent_conformite_id=current_user.id,
+            type=type_verif,
+            niveau_risque='moyen'
+        ).count())
+        risque_faible_type.append(VerificationConformite.query.filter_by(
+            agent_conformite_id=current_user.id,
+            type=type_verif,
+            niveau_risque='faible'
+        ).count())
+
+    # Indicateurs de performance
+    temps_traitement = 4  # À calculer en heures
+    dossiers_conformes = verifications_conformes
+    dossiers_non_conformes = total_verifications - verifications_conformes
+    ratio_conformite = int(
+        dossiers_conformes / dossiers_non_conformes) if dossiers_non_conformes > 0 else dossiers_conformes
+
+    return render_template('employees/agent_conformite_dashboard.html',
+                           verifications_attente=verifications_attente,
+                           verifications_jour=verifications_jour,
+                           alertes_critiques=alertes_critiques,
+                           taux_conformite=taux_conformite,
+                           verifications_attente_liste=verifications_attente_liste,
+                           alertes_critiques_liste=alertes_critiques_liste,
+                           risque_eleve=risque_eleve,
+                           risque_moyen=risque_moyen,
+                           risque_faible=risque_faible,
+                           evolution_labels=evolution_labels,
+                           evolution_donnees=evolution_donnees,
+                           risque_eleve_type=risque_eleve_type,
+                           risque_moyen_type=risque_moyen_type,
+                           risque_faible_type=risque_faible_type,
+                           temps_traitement=temps_traitement,
+                           dossiers_conformes=dossiers_conformes,
+                           dossiers_non_conformes=dossiers_non_conformes,
+                           ratio_conformite=ratio_conformite,
+                           activites_recentes=[])
+
+# =============================================
+# 9. AGENT RISQUE
+# =============================================
+@app.route('/employe/agent-risque')
+@login_required
+@role_required('employe', 'super_admin')
+def agent_risque_dashboard():
+    """Dashboard pour agent risque"""
+
+    # Vérification que l'utilisateur est bien agent risque
+    if current_user.role == 'employe' and current_user.fonction != 'agent_risque':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import Risque, EvaluationRisque, Client, db
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+
+    today = datetime.now().date()
+
+    # Statistiques
+    risques_critiques = Risque.query.filter_by(
+        agent_risque_id=current_user.id,
+        niveau='critique',
+        statut='actif'
+    ).count()
+
+    risques_eleves = Risque.query.filter_by(
+        agent_risque_id=current_user.id,
+        niveau='eleve',
+        statut='actif'
+    ).count()
+
+    risques_moyens = Risque.query.filter_by(
+        agent_risque_id=current_user.id,
+        niveau='moyen',
+        statut='actif'
+    ).count()
+
+    risques_faibles = Risque.query.filter_by(
+        agent_risque_id=current_user.id,
+        niveau='faible',
+        statut='actif'
+    ).count()
+
+    risques_maitrises = Risque.query.filter_by(
+        agent_risque_id=current_user.id,
+        statut='maitrise'
+    ).count()
+
+    evaluations_jour = EvaluationRisque.query.filter(
+        EvaluationRisque.agent_risque_id == current_user.id,
+        func.date(EvaluationRisque.date_evaluation) == today
+    ).count()
+
+    # Risques atténués
+    risques_atténués = Risque.query.filter_by(
+        agent_risque_id=current_user.id,
+        statut='atténue'
+    ).count()
+
+    # Liste des risques critiques
+    risques_critiques_liste = Risque.query.filter_by(
+        agent_risque_id=current_user.id,
+        niveau='critique',
+        statut='actif'
+    ).all()
+
+    # Matrice des risques (pour le bubble chart)
+    matrice_risques = []
+    for risque in risques_critiques_liste:
+        matrice_risques.append({
+            'impact': risque.impact or 3,
+            'probabilite': risque.probabilite or 3,
+            'taille': risque.score or 10,
+            'couleur': '#343a40'
+        })
+
+    # Taux de détection
+    total_risques = Risque.query.filter_by(agent_risque_id=current_user.id).count()
+    risques_detectes = Risque.query.filter_by(agent_risque_id=current_user.id, statut='actif').count()
+    taux_detection = int((risques_detectes / total_risques * 100)) if total_risques > 0 else 0
+
+    # Temps de réponse moyen (en heures)
+    temps_reponse = 8  # À calculer selon vos données
+
+    # Niveau de risque global
+    niveau_global = 2  # À calculer selon vos données
+
+    # Évolution (6 mois)
+    evolution_labels = []
+    evolution_detectes = []
+    evolution_traites = []
+
+    for i in range(5, -1, -1):
+        mois = datetime.now() - timedelta(days=30 * i)
+        evolution_labels.append(mois.strftime('%b %Y'))
+
+        detectes = Risque.query.filter(
+            Risque.agent_risque_id == current_user.id,
+            func.month(Risque.date_creation) == mois.month,
+            func.year(Risque.date_creation) == mois.year
+        ).count()
+        evolution_detectes.append(detectes)
+
+        traites = Risque.query.filter(
+            Risque.agent_risque_id == current_user.id,
+            func.month(Risque.date_traitement) == mois.month,
+            func.year(Risque.date_traitement) == mois.year,
+            Risque.statut.in_(['maitrise', 'atténue'])
+        ).count()
+        evolution_traites.append(traites)
+
+    # Top catégories de risques
+    categories_data = Risque.query.filter_by(agent_risque_id=current_user.id).with_entities(
+        Risque.categorie, func.count(Risque.id)
+    ).group_by(Risque.categorie).order_by(func.count(Risque.id).desc()).limit(5).all()
+
+    categories_labels = [cat[0] for cat in categories_data]
+    categories_donnees = [cat[1] for cat in categories_data]
+
+    return render_template('employees/agent_risque_dashboard.html',
+                           risques_critiques=risques_critiques,
+                           risques_eleves=risques_eleves,
+                           risques_moyens=risques_moyens,
+                           risques_faibles=risques_faibles,
+                           risques_maitrises=risques_maitrises,
+                           evaluations_jour=evaluations_jour,
+                           risques_critiques_liste=risques_critiques_liste,
+                           matrice_risques=matrice_risques,
+                           taux_detection=taux_detection,
+                           temps_reponse=temps_reponse,
+                           risques_atténués=risques_atténués,
+                           niveau_global=niveau_global,
+                           evolution_labels=evolution_labels,
+                           evolution_detectes=evolution_detectes,
+                           evolution_traites=evolution_traites,
+                           categories_labels=categories_labels,
+                           categories_donnees=categories_donnees,
+                           activites_recentes=[])
+
+# =============================================
+# 10. CONTRÔLEUR INTERNE
+# =============================================
+@app.route('/employe/controlleur-interne')
+@login_required
+@role_required('employe', 'super_admin')
+def controlleur_interne_dashboard():
+    """Dashboard pour contrôleur interne"""
+
+    # Vérification que l'utilisateur est bien contrôleur interne
+    if current_user.role == 'employe' and current_user.fonction != 'controlleur_interne':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import Controle, NonConformite, db
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+
+    today = datetime.now().date()
+
+    # Statistiques
+    controles_a_realiser = Controle.query.filter_by(
+        controleur_id=current_user.id,
+        statut='a_realiser'
+    ).count()
+
+    controles_effectues = Controle.query.filter_by(
+        controleur_id=current_user.id,
+        statut='effectue'
+    ).count()
+
+    non_conformites = NonConformite.query.filter_by(
+        controleur_id=current_user.id,
+        statut = 'corrige'
+    ).count()
+
+    total_controles = Controle.query.filter_by(controleur_id=current_user.id).count()
+    controles_ok = Controle.query.filter_by(controleur_id=current_user.id, conforme=True).count()
+    taux_conformite = int((controles_ok / total_controles * 100)) if total_controles > 0 else 0
+
+    # Listes
+    controles_a_realiser_liste = Controle.query.filter_by(
+        controleur_id=current_user.id,
+        statut='a_realiser'
+    ).order_by(Controle.priorite.desc(), Controle.date_limite).all()
+
+    # Ajouter jours restants
+    for controle in controles_a_realiser_liste:
+        controle.jours_restants = (controle.date_limite - today).days
+
+    non_conformites_liste = NonConformite.query.filter_by(
+        controleur_id=current_user.id
+    ).order_by(NonConformite.gravite.desc()).limit(10).all()
+
+    # Répartition par type
+    controles_financiers = Controle.query.filter_by(
+        controleur_id=current_user.id,
+        type='financier'
+    ).count()
+    controles_operationnels = Controle.query.filter_by(
+        controleur_id=current_user.id,
+        type='operationnel'
+    ).count()
+    controles_conformite = Controle.query.filter_by(
+        controleur_id=current_user.id,
+        type='conformite'
+    ).count()
+    controles_rh = Controle.query.filter_by(
+        controleur_id=current_user.id,
+        type='rh'
+    ).count()
+    controles_it = Controle.query.filter_by(
+        controleur_id=current_user.id,
+        type='it'
+    ).count()
+
+    # Évolution (6 mois)
+    evolution_labels = []
+    evolution_effectues = []
+    evolution_nc = []
+
+    for i in range(5, -1, -1):
+        mois = datetime.now() - timedelta(days=30 * i)
+        evolution_labels.append(mois.strftime('%b %Y'))
+
+        effectues = Controle.query.filter(
+            Controle.controleur_id == current_user.id,
+            func.month(Controle.date_controle) == mois.month,
+            func.year(Controle.date_controle) == mois.year
+        ).count()
+        evolution_effectues.append(effectues)
+
+        nc = NonConformite.query.filter(
+            NonConformite.controleur_id == current_user.id,
+            func.month(NonConformite.date_decouverte) == mois.month,
+            func.year(NonConformite.date_decouverte) == mois.year
+        ).count()
+        evolution_nc.append(nc)
+
+    # Non-conformités par service
+    services_data = NonConformite.query.filter_by(controleur_id=current_user.id).with_entities(
+        NonConformite.service, func.count(NonConformite.id)
+    ).group_by(NonConformite.service).order_by(func.count(NonConformite.id).desc()).limit(5).all()
+
+    services_labels = [s[0] for s in services_data]
+    services_donnees = [s[1] for s in services_data]
+
+    # Indicateurs de performance
+    delai_moyen = 5  # À calculer selon vos données
+    nc_corrigees = NonConformite.query.filter_by(controleur_id=current_user.id, statut='corrige').count()
+    taux_correction = int((nc_corrigees / non_conformites * 100)) if non_conformites > 0 else 100
+    efficacite = 85  # À calculer selon vos données
+    score_conformite = 72  # À calculer selon vos données
+
+    return render_template('employees/controlleur_interne_dashboard.html',
+                           controles_a_realiser=controles_a_realiser,
+                           controles_effectues=controles_effectues,
+                           non_conformites=non_conformites,
+                           taux_conformite=taux_conformite,
+                           controles_a_realiser_liste=controles_a_realiser_liste,
+                           non_conformites_liste=non_conformites_liste,
+                           controles_financiers=controles_financiers,
+                           controles_operationnels=controles_operationnels,
+                           controles_conformite=controles_conformite,
+                           controles_rh=controles_rh,
+                           controles_it=controles_it,
+                           evolution_labels=evolution_labels,
+                           evolution_effectues=evolution_effectues,
+                           evolution_nc=evolution_nc,
+                           services_labels=services_labels,
+                           services_donnees=services_donnees,
+                           delai_moyen=delai_moyen,
+                           taux_correction=taux_correction,
+                           efficacite=efficacite,
+                           score_conformite=score_conformite,
+                           activites_recentes=[])
+
+# =============================================
+# 11. SECRÉTAIRE
+# =============================================
+@app.route('/employe/secretaire')
+@login_required
+@role_required('employe', 'super_admin')
+def secretaire_dashboard():
+    """Dashboard pour secrétaire"""
+
+    # Vérification que l'utilisateur est bien secrétaire
+    if current_user.role == 'employe' and current_user.fonction != 'secretaire':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import Document, RendezVous, db
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+
+    today = datetime.now().date()
+
+    # Statistiques
+    documents_a_traiter = Document.query.filter_by(
+        secretaire_id=current_user.id,
+        statut='a_traiter'
+    ).count()
+
+    documents_traites = Document.query.filter_by(
+        secretaire_id=current_user.id,
+        statut='traite'
+    ).count()
+
+    rendez_vous_jour = RendezVous.query.filter(
+        RendezVous.secretaire_id == current_user.id,
+        func.date(RendezVous.date_debut) == today
+    ).count()
+
+    archives = Document.query.filter_by(
+        secretaire_id=current_user.id,
+        statut='archive'
+    ).count()
+
+    # Listes
+    documents_a_traiter_liste = Document.query.filter_by(
+        secretaire_id=current_user.id,
+        statut='a_traiter'
+    ).order_by(Document.urgence.desc(), Document.date_reception).all()
+
+    rendez_vous_jour_liste = RendezVous.query.filter(
+        RendezVous.secretaire_id == current_user.id,
+        func.date(RendezVous.date_debut) == today
+    ).order_by(RendezVous.heure_debut).all()
+
+    # Répartition des documents
+    doc_courrier = Document.query.filter_by(
+        secretaire_id=current_user.id,
+        type='courrier'
+    ).count()
+    doc_contrat = Document.query.filter_by(
+        secretaire_id=current_user.id,
+        type='contrat'
+    ).count()
+    doc_facture = Document.query.filter_by(
+        secretaire_id=current_user.id,
+        type='facture'
+    ).count()
+    doc_autres = Document.query.filter_by(
+        secretaire_id=current_user.id,
+        type='autres'
+    ).count()
+
+    # Activité mensuelle (6 mois)
+    mois_labels = []
+    mois_documents = []
+    mois_rendez_vous = []
+
+    for i in range(5, -1, -1):
+        mois = datetime.now() - timedelta(days=30 * i)
+        mois_labels.append(mois.strftime('%b %Y'))
+
+        docs = Document.query.filter(
+            Document.secretaire_id == current_user.id,
+            func.month(Document.date_creation) == mois.month,
+            func.year(Document.date_creation) == mois.year
+        ).count()
+        mois_documents.append(docs)
+
+        rdvs = RendezVous.query.filter(
+            RendezVous.secretaire_id == current_user.id,
+            func.month(RendezVous.date_debut) == mois.month,
+            func.year(RendezVous.date_debut) == mois.year
+        ).count()
+        mois_rendez_vous.append(rdvs)
+
+    # Statistiques supplémentaires
+    documents_par_mois = int(sum(mois_documents) / 6) if mois_documents else 0
+    rendez_vous_par_mois = int(sum(mois_rendez_vous) / 6) if mois_rendez_vous else 0
+    delai_moyen = 3  # À calculer selon vos données
+    taux_traitement = 85  # À calculer selon vos données
+
+    # Rappels
+    rappels = [
+        {'titre': 'Réunion direction', 'description': 'Préparer les documents pour la réunion de demain',
+         'date': datetime.now() + timedelta(days=1), 'urgence': True},
+        {'titre': 'Courrier important', 'description': 'Traiter le courrier du directeur avant vendredi',
+         'date': datetime.now() + timedelta(days=2), 'urgence': False}
+    ]
+
+    return render_template('employees/secretaire_dashboard.html',
+                           documents_a_traiter=documents_a_traiter,
+                           documents_traites=documents_traites,
+                           rendez_vous_jour=rendez_vous_jour,
+                           archives=archives,
+                           documents_a_traiter_liste=documents_a_traiter_liste,
+                           rendez_vous_jour_liste=rendez_vous_jour_liste,
+                           doc_courrier=doc_courrier,
+                           doc_contrat=doc_contrat,
+                           doc_facture=doc_facture,
+                           doc_autres=doc_autres,
+                           mois_labels=mois_labels,
+                           mois_documents=mois_documents,
+                           mois_rendez_vous=mois_rendez_vous,
+                           documents_par_mois=documents_par_mois,
+                           rendez_vous_par_mois=rendez_vous_par_mois,
+                           delai_moyen=delai_moyen,
+                           taux_traitement=taux_traitement,
+                           rappels=rappels,
+                           activites_recentes=[])@app.route('/employe/secretaire')
+
+
+
+# =============================================
+# 12. ARCHIVISTE
+# =============================================
+@app.route('/employe/archiviste')
+@login_required
+@role_required('employe', 'super_admin')
+def archiviste_dashboard():
+    """Dashboard pour archiviste"""
+
+    # Vérification que l'utilisateur est bien archiviste
+    if current_user.role == 'employe' and current_user.fonction != 'archiviste':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import DocumentArchive, db
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+
+    today = datetime.now().date()
+
+    # Statistiques
+    documents_a_archiver = DocumentArchive.query.filter_by(
+        archiviste_id=current_user.id,
+        statut='en_attente'
+    ).count()
+
+    documents_archives = DocumentArchive.query.filter_by(
+        archiviste_id=current_user.id,
+        statut='archive'
+    ).count()
+
+    categories = db.session.query(DocumentArchive.categorie).filter_by(
+        archiviste_id=current_user.id
+    ).distinct().count()
+
+    espace_utilise = 45  # À calculer selon vos données
+
+    # Listes
+    documents_a_archiver_liste = DocumentArchive.query.filter_by(
+        archiviste_id=current_user.id,
+        statut='en_attente'
+    ).order_by(DocumentArchive.date_creation).all()
+
+    derniers_archives = DocumentArchive.query.filter_by(
+        archiviste_id=current_user.id,
+        statut='archive'
+    ).order_by(DocumentArchive.date_archivage.desc()).limit(8).all()
+
+    # Répartition par catégorie
+    categories_data = DocumentArchive.query.filter_by(archiviste_id=current_user.id).with_entities(
+        DocumentArchive.categorie, func.count(DocumentArchive.id)
+    ).group_by(DocumentArchive.categorie).all()
+
+    categories_labels = [cat[0] for cat in categories_data]
+    categories_donnees = [cat[1] for cat in categories_data]
+
+    # Archives par mois (6 mois)
+    mois_labels = []
+    mois_donnees = []
+
+    for i in range(5, -1, -1):
+        mois = datetime.now() - timedelta(days=30 * i)
+        mois_labels.append(mois.strftime('%b %Y'))
+
+        count = DocumentArchive.query.filter(
+            DocumentArchive.archiviste_id == current_user.id,
+            func.month(DocumentArchive.date_archivage) == mois.month,
+            func.year(DocumentArchive.date_archivage) == mois.year
+        ).count()
+        mois_donnees.append(count)
+
+    # Indicateurs de performance
+    total_docs = DocumentArchive.query.filter_by(archiviste_id=current_user.id).count()
+    docs_par_jour = int(total_docs / 30) if total_docs > 0 else 0
+    delai_moyen = 5  # À calculer selon vos données
+    taux_archivage = 85  # À calculer selon vos données
+    espace_disponible = 55  # À calculer selon vos données
+
+    # Liste des catégories pour recherche
+    categories_liste = [cat[0] for cat in categories_data]
+
+    return render_template('employees/archiviste_dashboard.html',
+                           documents_a_archiver=documents_a_archiver,
+                           documents_archives=documents_archives,
+                           categories=categories,
+                           espace_utilise=espace_utilise,
+                           documents_a_archiver_liste=documents_a_archiver_liste,
+                           derniers_archives=derniers_archives,
+                           categories_labels=categories_labels,
+                           categories_donnees=categories_donnees,
+                           mois_labels=mois_labels,
+                           mois_donnees=mois_donnees,
+                           docs_par_jour=docs_par_jour,
+                           delai_moyen=delai_moyen,
+                           taux_archivage=taux_archivage,
+                           espace_disponible=espace_disponible,
+                           categories_liste=categories_liste,
+                           activites_recentes=[])@app.route('/employe/archiviste')
+
+
+
+# =============================================
+# 13. CHARGÉ RH
+# =============================================
+@app.route('/employe/charge-rh')
+@login_required
+@role_required('employe', 'super_admin')
+def charge_rh_dashboard():
+    """Dashboard pour chargé RH"""
+
+    # Vérification que l'utilisateur est bien chargé RH
+    if current_user.role == 'employe' and current_user.fonction != 'charge_rh':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import User, Presence, Conge, db
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+
+    today = datetime.now().date()
+
+    # Statistiques
+    employes_totaux = User.query.filter_by(
+        rh_id=current_user.id,
+        role='employe'
+    ).count()
+
+    presents_aujourdhui = Presence.query.filter(
+        Presence.user_id.in_(
+            db.session.query(User.id).filter_by(rh_id=current_user.id, role='employe')
+        ),
+        func.date(Presence.date) == today,
+        Presence.statut == 'present'
+    ).count()
+
+    absents_aujourdhui = Presence.query.filter(
+        Presence.user_id.in_(
+            db.session.query(User.id).filter_by(rh_id=current_user.id, role='employe')
+        ),
+        func.date(Presence.date) == today,
+        Presence.statut == 'absent'
+    ).count()
+
+    retards_aujourdhui = Presence.query.filter(
+        Presence.user_id.in_(
+            db.session.query(User.id).filter_by(rh_id=current_user.id, role='employe')
+        ),
+        func.date(Presence.date) == today,
+        Presence.statut == 'retard'
+    ).count()
+
+    en_attente = User.query.filter_by(
+        rh_id=current_user.id,
+        role='employe',
+        statut='en_attente'
+    ).count()
+
+    # Présence du jour
+    presence_jour_liste = Presence.query.filter(
+        Presence.user_id.in_(
+            db.session.query(User.id).filter_by(rh_id=current_user.id, role='employe')
+        ),
+        func.date(Presence.date) == today
+    ).all()
+
+    # Congés en cours
+    conges_en_cours = Conge.query.filter(
+        Conge.user_id.in_(
+            db.session.query(User.id).filter_by(rh_id=current_user.id, role='employe')
+        ),
+        Conge.date_debut <= today,
+        Conge.date_fin >= today
+    ).all()
+
+    # Ajouter jours restants
+    for conge in conges_en_cours:
+        conge.jours_restants = (conge.date_fin - today).days
+
+    # Répartition des fonctions
+    fonctions_data = User.query.filter_by(
+        rh_id=current_user.id,
+        role='employe'
+    ).with_entities(
+        User.fonction, func.count(User.id)
+    ).group_by(User.fonction).all()
+
+    fonctions_labels = [f[0] for f in fonctions_data]
+    fonctions_donnees = [f[1] for f in fonctions_data]
+
+    # Évolution des effectifs (6 mois)
+    mois_labels = []
+    effectifs_donnees = []
+
+    for i in range(5, -1, -1):
+        mois = datetime.now() - timedelta(days=30 * i)
+        mois_labels.append(mois.strftime('%b %Y'))
+
+        count = User.query.filter(
+            User.rh_id == current_user.id,
+            User.role == 'employe',
+            func.month(User.date_embauche) <= mois.month,
+            func.year(User.date_embauche) <= mois.year
+        ).count()
+        effectifs_donnees.append(count)
+
+    # Indicateurs RH
+    total_presences = Presence.query.filter(
+        Presence.user_id.in_(
+            db.session.query(User.id).filter_by(rh_id=current_user.id, role='employe')
+        )
+    ).count()
+
+    if total_presences > 0:
+        total_presents = Presence.query.filter(
+            Presence.user_id.in_(
+                db.session.query(User.id).filter_by(rh_id=current_user.id, role='employe')
+            ),
+            Presence.statut == 'present'
+        ).count()
+        taux_presence = int((total_presents / total_presences * 100))
+        taux_absenteisme = 100 - taux_presence
+    else:
+        taux_presence = 0
+        taux_absenteisme = 0
+
+    # Turnover (à calculer selon vos données)
+    turnover = 12
+
+    # Ancienneté moyenne
+    anciennete_moyenne = 24  # À calculer en mois
+
+    # Satisfaction (exemple)
+    satisfaction = 78
+
+    # Formations totales
+    formations_total = 15  # À adapter selon votre modèle
+
+    return render_template('employees/charge_rh_dashboard.html',
+                           employes_totaux=employes_totaux,
+                           presents_aujourdhui=presents_aujourdhui,
+                           absents_aujourdhui=absents_aujourdhui,
+                           retards_aujourdhui=retards_aujourdhui,
+                           en_attente=en_attente,
+                           presence_jour_liste=presence_jour_liste,
+                           conges_en_cours=conges_en_cours,
+                           fonctions_labels=fonctions_labels,
+                           fonctions_donnees=fonctions_donnees,
+                           mois_labels=mois_labels,
+                           effectifs_donnees=effectifs_donnees,
+                           taux_presence=taux_presence,
+                           taux_absenteisme=taux_absenteisme,
+                           turnover=turnover,
+                           anciennete_moyenne=anciennete_moyenne,
+                           satisfaction=satisfaction,
+                           formations_total=formations_total,
+                           activites_recentes=[])
+
+# =============================================
+# 14. INFORMATICIEN
+# =============================================
+@app.route('/employe/informaticien')
+@login_required
+@role_required('employe', 'super_admin')
+def informaticien_dashboard():
+    """Dashboard pour informaticien"""
+
+    # Vérification que l'utilisateur est bien informaticien
+    if current_user.role == 'employe' and current_user.fonction != 'informaticien':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import TicketSupport, Equipement, db
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+
+    today = datetime.now().date()
+
+    # Statistiques
+    tickets_en_cours = TicketSupport.query.filter_by(
+        informaticien_id=current_user.id,
+        statut='en_cours'
+    ).count()
+
+    tickets_urgents = TicketSupport.query.filter(
+        TicketSupport.informaticien_id == current_user.id,
+        TicketSupport.statut != 'resolu',
+        TicketSupport.priorite.in_(['critique', 'haute'])
+    ).count()
+
+    tickets_resolus = TicketSupport.query.filter_by(
+        informaticien_id=current_user.id,
+        statut='resolu'
+    ).count()
+
+    # Satisfaction (exemple)
+    satisfaction = 92
+
+    # Listes
+    tickets_en_cours_liste = TicketSupport.query.filter_by(
+        informaticien_id=current_user.id,
+        statut='en_cours'
+    ).order_by(TicketSupport.priorite.desc()).all()
+
+    # Répartition par priorité
+    tickets_critiques = TicketSupport.query.filter_by(
+        informaticien_id=current_user.id,
+        priorite='critique'
+    ).count()
+    tickets_haute = TicketSupport.query.filter_by(
+        informaticien_id=current_user.id,
+        priorite='haute'
+    ).count()
+    tickets_moyenne = TicketSupport.query.filter_by(
+        informaticien_id=current_user.id,
+        priorite='moyenne'
+    ).count()
+    tickets_basse = TicketSupport.query.filter_by(
+        informaticien_id=current_user.id,
+        priorite='basse'
+    ).count()
+
+    # Évolution (6 mois)
+    mois_labels = []
+    nouveaux_tickets = []
+    tickets_resolus_mois = []
+
+    for i in range(5, -1, -1):
+        mois = datetime.now() - timedelta(days=30 * i)
+        mois_labels.append(mois.strftime('%b %Y'))
+
+        nouveaux = TicketSupport.query.filter(
+            TicketSupport.informaticien_id == current_user.id,
+            func.month(TicketSupport.date_creation) == mois.month,
+            func.year(TicketSupport.date_creation) == mois.year
+        ).count()
+        nouveaux_tickets.append(nouveaux)
+
+        resolus = TicketSupport.query.filter(
+            TicketSupport.informaticien_id == current_user.id,
+            func.month(TicketSupport.date_resolution) == mois.month,
+            func.year(TicketSupport.date_resolution) == mois.year
+        ).count()
+        tickets_resolus_mois.append(resolus)
+
+    # Équipements
+    equipements = Equipement.query.filter_by(
+        informaticien_id=current_user.id
+    ).all()
+
+    # Statistiques techniques
+    total_tickets = TicketSupport.query.filter_by(informaticien_id=current_user.id).count()
+    tickets_par_jour = int(total_tickets / 30) if total_tickets > 0 else 0
+
+    # Temps moyen de résolution (exemple)
+    temps_moyen_resolution = 8  # heures
+
+    # Taux de résolution
+    taux_resolution = int((tickets_resolus / total_tickets * 100)) if total_tickets > 0 else 0
+
+    # Uptime système
+    uptime = 99.9
+
+    # Systèmes opérationnels
+    systemes_operationnels = 95
+
+    return render_template('employees/informaticien_dashboard.html',
+                           tickets_en_cours=tickets_en_cours,
+                           tickets_urgents=tickets_urgents,
+                           tickets_resolus=tickets_resolus,
+                           satisfaction=satisfaction,
+                           tickets_en_cours_liste=tickets_en_cours_liste,
+                           tickets_critiques=tickets_critiques,
+                           tickets_haute=tickets_haute,
+                           tickets_moyenne=tickets_moyenne,
+                           tickets_basse=tickets_basse,
+                           mois_labels=mois_labels,
+                           nouveaux_tickets=nouveaux_tickets,
+                           tickets_resolus_mois=tickets_resolus_mois,
+                           equipements=equipements,
+                           temps_moyen_resolution=temps_moyen_resolution,
+                           tickets_par_jour=tickets_par_jour,
+                           taux_resolution=taux_resolution,
+                           uptime=uptime,
+                           systemes_operationnels=systemes_operationnels,
+                           activites_recentes=[])
+
+
+@app.route('/employe/agent-terrain')
+@login_required
+@role_required('employe', 'super_admin')
+def agent_terrain_dashboard():
+    """Dashboard pour agent terrain"""
+
+    # Vérification que l'utilisateur est bien agent terrain
+    if current_user.role == 'employe' and current_user.fonction != 'agent_terrain':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import Visite, Client, db
+    from datetime import datetime, date
+
+    today = date.today()
+
+    # Statistiques du jour
+    visites_aujourdhui = Visite.query.filter_by(
+        agent_terrain_id=current_user.id,
+        date_visite=today
+    ).count()
+
+    visites_effectuees = Visite.query.filter_by(
+        agent_terrain_id=current_user.id,
+        statut='effectuee'
+    ).count()
+
+    clients_rencontres = db.session.query(Client).join(Visite).filter(
+        Visite.agent_terrain_id == current_user.id,
+        Visite.statut == 'effectuee'
+    ).distinct().count()
+
+    # Calcul du taux de présence (exemple)
+    total_visites = Visite.query.filter_by(agent_terrain_id=current_user.id).count()
+    visites_realisees = Visite.query.filter_by(
+        agent_terrain_id=current_user.id,
+        statut='effectuee'
+    ).count()
+    taux_presence = int((visites_realisees / total_visites * 100)) if total_visites > 0 else 0
+
+    # Listes
+    visites_aujourdhui_liste = Visite.query.filter_by(
+        agent_terrain_id=current_user.id,
+        date_visite=today
+    ).order_by(Visite.heure_debut).all()
+
+    dernieres_visites = Visite.query.filter_by(
+        agent_terrain_id=current_user.id
+    ).order_by(Visite.date_visite.desc()).limit(10).all()
+
+    # Statistiques du mois
+    mois_courant = date.today().replace(day=1)
+    total_visites_mois = Visite.query.filter(
+        Visite.agent_terrain_id == current_user.id,
+        Visite.date_visite >= mois_courant
+    ).count()
+
+    visites_effectuees_mois = Visite.query.filter(
+        Visite.agent_terrain_id == current_user.id,
+        Visite.date_visite >= mois_courant,
+        Visite.statut == 'effectuee'
+    ).count()
+
+    visites_annulees_mois = Visite.query.filter(
+        Visite.agent_terrain_id == current_user.id,
+        Visite.date_visite >= mois_courant,
+        Visite.statut == 'annulee'
+    ).count()
+
+    clients_rencontres_mois = db.session.query(Client).join(Visite).filter(
+        Visite.agent_terrain_id == current_user.id,
+        Visite.date_visite >= mois_courant,
+        Visite.statut == 'effectuee'
+    ).distinct().count()
+
+    # Secteurs couverts (à adapter selon votre logique)
+    secteurs_couverts = ['Centre-ville', 'Delmas', 'Pétion-Ville', 'Tabarre', 'Carrefour']
+
+    return render_template('employees/agent_terrain_dashboard.html',
+                           visites_aujourdhui=visites_aujourdhui,
+                           visites_effectuees=visites_effectuees,
+                           clients_rencontres=clients_rencontres,
+                           taux_presence=taux_presence,
+                           visites_aujourdhui_liste=visites_aujourdhui_liste,
+                           dernieres_visites=dernieres_visites,
+                           total_visites_mois=total_visites_mois,
+                           visites_effectuees_mois=visites_effectuees_mois,
+                           visites_annulees_mois=visites_annulees_mois,
+                           clients_rencontres_mois=clients_rencontres_mois,
+                           secteurs_couverts=secteurs_couverts,
+                           activites_recentes=[])
+
+
+@app.route('/employe/collecteur')
+@login_required
+@role_required('employe', 'super_admin')
+def collecteur_dashboard():
+    """Dashboard pour collecteur"""
+
+    # Vérification que l'utilisateur est bien collecteur
+    if current_user.role == 'employe' and current_user.fonction != 'collecteur':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import Client, Collecte, db
+
+    # Statistiques
+    clients_a_visiter = Client.query.filter_by(
+        collecteur_id=current_user.id,
+        statut_visite='a_visiter'
+    ).count()
+
+    collectes_effectuees = Collecte.query.filter_by(
+        collecteur_id=current_user.id,
+        statut='effectuee'
+    ).count()
+
+    montant_collecte = db.session.query(db.func.sum(Collecte.montant)).filter_by(
+        collecteur_id=current_user.id,
+        statut='effectuee'
+    ).scalar() or 0
+
+    en_retard = Client.query.filter_by(
+        collecteur_id=current_user.id,
+        statut='en_retard'
+    ).count()
+
+    # Listes
+    clients_a_visiter_liste = Client.query.filter_by(
+        collecteur_id=current_user.id,
+        statut_visite='a_visiter'
+    ).all()
+
+    dernieres_collectes = Collecte.query.filter_by(
+        collecteur_id=current_user.id
+    ).order_by(Collecte.date_collecte.desc()).limit(10).all()
+
+    # Statistiques détaillées
+    total_collectes = Collecte.query.filter_by(collecteur_id=current_user.id).count()
+    collectes_reussies = Collecte.query.filter_by(
+        collecteur_id=current_user.id,
+        statut='effectuee'
+    ).count()
+    collectes_echouees = Collecte.query.filter_by(
+        collecteur_id=current_user.id,
+        statut='echouee'
+    ).count()
+
+    taux_reussite = int((collectes_reussies / total_collectes * 100)) if total_collectes > 0 else 0
+
+    return render_template('employees/collecteur_dashboard.html',
+                           clients_a_visiter=clients_a_visiter,
+                           collectes_effectuees=collectes_effectuees,
+                           montant_collecte=montant_collecte,
+                           en_retard=en_retard,
+                           clients_a_visiter_liste=clients_a_visiter_liste,
+                           dernieres_collectes=dernieres_collectes,
+                           total_collectes=total_collectes,
+                           collectes_reussies=collectes_reussies,
+                           collectes_echouees=collectes_echouees,
+                           taux_reussite=taux_reussite,
+                           activites_recentes=[])
+
+
+@app.route('/employe/formateur')
+@login_required
+@role_required('employe', 'super_admin')
+def formateur_dashboard():
+    """Dashboard pour formateur"""
+
+    # Vérification que l'utilisateur est bien formateur
+    if current_user.role == 'employe' and current_user.fonction != 'formateur':
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupération des données (à adapter selon votre modèle)
+    from models import Formation, Client, db
+
+    # Statistiques
+    total_formations = Formation.query.filter_by(formateur_id=current_user.id).count()
+    formations_en_cours = Formation.query.filter_by(formateur_id=current_user.id, statut='en_cours').count()
+    formations_a_venir = Formation.query.filter_by(formateur_id=current_user.id, statut='planifiee').count()
+
+    # Clients formés
+    total_clients_formes = db.session.query(Client).join(Formation.clients).filter(
+        Formation.formateur_id == current_user.id
+    ).count()
+
+    # Taux de réussite (exemple)
+    taux_reussite = 85  # À calculer selon vos données
+
+    # Listes
+    formations_en_cours_liste = Formation.query.filter_by(
+        formateur_id=current_user.id,
+        statut='en_cours'
+    ).all()
+
+    formations_a_venir_liste = Formation.query.filter_by(
+        formateur_id=current_user.id,
+        statut='planifiee'
+    ).all()
+
+    return render_template('employees/formateur_dashboard.html',
+                           total_formations=total_formations,
+                           formations_en_cours=formations_en_cours,
+                           formations_a_venir=formations_a_venir,
+                           total_clients_formes=total_clients_formes,
+                           taux_reussite=taux_reussite,
+                           formations_en_cours_liste=formations_en_cours_liste,
+                           formations_a_venir_liste=formations_a_venir_liste,
+                           total_formes=total_clients_formes,
+                           moyenne_par_formation=0)
 # from views import super_admin_switcher, super_admin_go, super_admin_quick_access, PAGES
 
 # === CRÉATION DES TABLES ET ADMIN AU DÉMARRAGE ===

@@ -1,0 +1,482 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Agent Remboursement{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    Dashboard Agent Remboursement
+                </h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard_redirect') }}">Accueil</a></li>
+                    <li class="breadcrumb-item active">Agent Remboursement</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Remboursements du jour</h6>
+                            <h2 class="mb-0 text-white">{{ remboursements_jour or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-calendar-day fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Montant collecté</h6>
+                            <h2 class="mb-0 text-white">{{ "{:,.0f}".format(montant_collecte_jour or 0) }} G</h2>
+                        </div>
+                        <i class="fas fa-money-bill-wave fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-dark-50">Échéances du jour</h6>
+                            <h2 class="mb-0">{{ echeances_jour or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-clock fa-3x text-dark-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">En retard</h6>
+                            <h2 class="mb-0 text-white">{{ en_retard or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIONS RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Actions rapides</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('agent_remboursement_nouveau') }}" class="btn btn-success btn-block">
+                                <i class="fas fa-plus-circle"></i> Nouveau remboursement
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('agent_remboursement_echeances') }}" class="btn btn-warning btn-block">
+                                <i class="fas fa-calendar-alt"></i> Échéances du jour
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('agent_remboursement_retards') }}" class="btn btn-danger btn-block">
+                                <i class="fas fa-exclamation-circle"></i> Gérer les retards
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('agent_remboursement_historique') }}" class="btn btn-info btn-block">
+                                <i class="fas fa-history"></i> Historique
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- REMBOURSEMENTS DU JOUR -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-check-circle text-success"></i> Remboursements du jour</h5>
+                    <span class="badge badge-success float-right">{{ remboursements_jour or 0 }}</span>
+                </div>
+                <div class="card-body">
+                    {% if remboursements_jour_liste %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Montant</th>
+                                        <th>Méthode</th>
+                                        <th>Heure</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for remb in remboursements_jour_liste %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ remb.client.prenom }} {{ remb.client.nom }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ remb.client.telephone }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="font-weight-bold text-success">
+                                                {{ "{:,.0f}".format(remb.montant) }} G
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-{{ 'success' if remb.methode == 'especes' else 'info' if remb.methode == 'virement' else 'warning' }}">
+                                                {{ remb.methode|capitalize }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small>{{ remb.date_remboursement.strftime('%H:%M') }}</small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="font-weight-bold">
+                                        <td>Total</td>
+                                        <td>{{ "{:,.0f}".format(montant_collecte_jour or 0) }} G</td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-check-circle fa-3x text-muted mb-2"></i>
+                            <p>Aucun remboursement aujourd'hui</p>
+                            <a href="{{ url_for('agent_remboursement_nouveau') }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Effectuer un remboursement
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================= -->
+        <!-- ÉCHÉANCES DU JOUR -->
+        <!-- ============================================= -->
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-clock text-warning"></i> Échéances du jour</h5>
+                    <span class="badge badge-warning float-right">{{ echeances_jour or 0 }}</span>
+                </div>
+                <div class="card-body">
+                    {% if echeances_jour_liste %}
+                        <div class="list-group">
+                            {% for echeance in echeances_jour_liste %}
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-user text-primary"></i>
+                                        {{ echeance.client.prenom }} {{ echeance.client.nom }}
+                                    </h6>
+                                    <span class="badge badge-{{ 'success' if echeance.est_rembourse else 'danger' }}">
+                                        {{ 'Payé' if echeance.est_rembourse else 'En attente' }}
+                                    </span>
+                                </div>
+                                <p class="mb-1">
+                                    <span class="font-weight-bold">{{ "{:,.0f}".format(echeance.montant) }} G</span>
+                                    <span class="badge badge-info">{{ echeance.pret.duree_mois }} mois</span>
+                                    <small class="text-muted">Échéance {{ echeance.numero }}/{{ echeance.total_echeances }}</small>
+                                </p>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar"></i>
+                                    {{ echeance.date_echeance.strftime('%d/%m/%Y') }}
+                                    {% if not echeance.est_rembourse %}
+                                        <a href="{{ url_for('agent_remboursement_effectuer', echeance_id=echeance.id) }}"
+                                           class="btn btn-sm btn-success float-right">
+                                            <i class="fas fa-check"></i> Encaisser
+                                        </a>
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-calendar-check fa-3x text-success mb-2"></i>
+                            <p>Toutes les échéances du jour sont réglées</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- CLIENTS EN RETARD -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Clients en retard</h5>
+                    <span class="badge badge-light float-right">{{ en_retard or 0 }}</span>
+                </div>
+                <div class="card-body">
+                    {% if clients_en_retard %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Montant dû</th>
+                                        <th>Jours de retard</th>
+                                        <th>Dernier paiement</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for client in clients_en_retard %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ client.prenom }} {{ client.nom }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ client.telephone }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="text-danger font-weight-bold">
+                                                {{ "{:,.0f}".format(client.montant_du) }} G
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-{{ 'danger' if client.jours_retard > 30 else 'warning' }}">
+                                                {{ client.jours_retard }} jours
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small>{{ client.dernier_paiement.strftime('%d/%m/%Y') if client.dernier_paiement else 'Jamais' }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{{ url_for('agent_remboursement_voir_client', client_id=client.id) }}"
+                                                   class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{{ url_for('agent_remboursement_contacter', client_id=client.id) }}"
+                                                   class="btn btn-sm btn-warning">
+                                                    <i class="fas fa-phone"></i>
+                                                </a>
+                                                <a href="{{ url_for('agent_remboursement_effectuer', client_id=client.id) }}"
+                                                   class="btn btn-sm btn-success">
+                                                    <i class="fas fa-hand-holding-usd"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
+                            <h5>Aucun client en retard</h5>
+                            <p class="text-muted">Tous les remboursements sont à jour</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES MENSUELLES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line text-primary"></i> Remboursements mensuels</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="remboursementsMois" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie text-success"></i> Répartition des paiements</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="repartitionPaiements" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-tachometer-alt text-info"></i> Objectifs</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <div class="mb-3">
+                            <h6>Objectif mensuel</h6>
+                            <h4>{{ "{:,.0f}".format(objectif_mensuel or 0) }} G</h4>
+                        </div>
+                        <div class="mb-2">
+                            <h6>Collecté</h6>
+                            <h4 class="text-success">{{ "{:,.0f}".format(collecte_mois or 0) }} G</h4>
+                        </div>
+                        <div class="progress" style="height: 30px;">
+                            <div class="progress-bar bg-{{ 'success' if progression >= 100 else 'warning' if progression >= 70 else 'danger' }}"
+                                 role="progressbar"
+                                 style="width: {{ progression }}%;"
+                                 aria-valuenow="{{ progression }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                                {{ progression }}%
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <span class="text-muted">{{ progression }}% de l'objectif</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIVITÉ RÉCENTE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-clock text-muted"></i> Activité récente</h5>
+                </div>
+                <div class="card-body">
+                    {% if activites_recentes %}
+                        <ul class="list-unstyled">
+                            {% for activite in activites_recentes %}
+                            <li class="media mb-3">
+                                <div class="mr-3">
+                                    <span class="badge badge-{{ activite.couleur }} p-2">
+                                        <i class="fas fa-{{ activite.icone }}"></i>
+                                    </span>
+                                </div>
+                                <div class="media-body">
+                                    <h6 class="mt-0 mb-1">{{ activite.message }}</h6>
+                                    <small class="text-muted">{{ activite.date.strftime('%d/%m/%Y à %H:%M') }}</small>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+                            <p>Aucune activité récente</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    $(document).ready(function() {
+        // Graphique - Remboursements mensuels
+        var ctx1 = document.getElementById('remboursementsMois').getContext('2d');
+        new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels: {{ mois_labels|tojson }},
+                datasets: [{
+                    label: 'Montant collecté',
+                    data: {{ remboursements_donnees|tojson }},
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Graphique - Répartition des paiements
+        var ctx2 = document.getElementById('repartitionPaiements').getContext('2d');
+        new Chart(ctx2, {
+            type: 'pie',
+            data: {
+                labels: ['Espèces', 'Virement', 'Mobile Money'],
+                datasets: [{
+                    data: [
+                        {{ paiements_especes or 0 }},
+                        {{ paiements_virement or 0 }},
+                        {{ paiements_mobile or 0 }}
+                    ],
+                    backgroundColor: ['#28a745', '#007bff', '#17a2b8'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Rafraîchir les statistiques toutes les 60 secondes
+        setInterval(function() {
+            location.reload();
+        }, 60000);
+    });
+</script>
+{% endblock %}

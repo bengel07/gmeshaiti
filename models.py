@@ -318,7 +318,3324 @@ class User(UserMixin, db.Model):
 
 
 
+# =============================================
+# CONSTANTES POUR LES INTERACTIONS
+# =============================================
 
+TYPES_INTERACTION = {
+    'appel_telephonique': 'Appel téléphonique',
+    'email': 'Email',
+    'visite': 'Visite physique',
+    'reunion': 'Réunion',
+    'message': 'Message (WhatsApp/SMS)',
+    'autre': 'Autre'
+}
+
+RESULTATS_INTERACTION = {
+    'positif': 'Positif',
+    'negatif': 'Négatif',
+    'neutre': 'Neutre',
+    'en_attente': 'En attente'
+}
+
+STATUTS_INTERACTION = {
+    'actif': 'Actif',
+    'archive': 'Archivé',
+    'supprime': 'Supprimé'
+}
+
+PRIORITES_INTERACTION = {
+    'basse': 'Basse',
+    'normale': 'Normale',
+    'haute': 'Haute',
+    'urgente': 'Urgente'
+}
+
+
+class Interaction(db.Model):
+    """Modèle pour les interactions avec les clients"""
+
+    __tablename__ = 'interactions'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
+    agent_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    relation_client_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    # Type d'interaction
+    type_interaction = db.Column(db.String(50), nullable=False)
+    # Options: 'appel_telephonique', 'email', 'visite', 'reunion', 'message', 'autre'
+
+    # Contenu
+    sujet = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+
+    # Résultat
+    resultat = db.Column(db.String(50), nullable=True)
+    # Options: 'positif', 'negatif', 'neutre', 'en_attente'
+
+    # Satisfaction (1-5)
+    satisfaction = db.Column(db.Integer, nullable=True)
+
+    # Suivi
+    suivi_necessaire = db.Column(db.Boolean, default=False)
+    suivi_date = db.Column(db.DateTime, nullable=True)
+    suivi_effectue = db.Column(db.Boolean, default=False)
+
+    # Dates
+    date_interaction = db.Column(db.DateTime, default=datetime.utcnow)
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Statut
+    statut = db.Column(db.String(50), default='actif')
+    # Options: 'actif', 'archive', 'supprime'
+
+    # Métadonnées
+    duree = db.Column(db.Integer, nullable=True)  # Durée en minutes
+    priorite = db.Column(db.String(20), default='normale')
+    # Options: 'basse', 'normale', 'haute', 'urgente'
+
+    # Relations inverses
+    client = db.relationship('Client', backref='interactions', lazy=True)
+    agent = db.relationship('User', foreign_keys=[agent_id], backref='interactions_agent', lazy=True)
+    relation_client = db.relationship('User', foreign_keys=[relation_client_id], backref='interactions_relation',
+                                      lazy=True)
+
+    def __init__(self, client_id, agent_id, type_interaction, sujet, **kwargs):
+        self.client_id = client_id
+        self.agent_id = agent_id
+        self.type_interaction = type_interaction
+        self.sujet = sujet
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def __repr__(self):
+        return f'<Interaction {self.id} - {self.client.prenom} {self.client.nom} - {self.type_interaction}>'
+
+    @staticmethod
+    def get_interactions_client(client_id, limit=None):
+        """Récupère toutes les interactions d'un client"""
+        query = Interaction.query.filter_by(client_id=client_id, statut='actif').order_by(
+            Interaction.date_interaction.desc()
+        )
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_interactions_agent(agent_id, limit=None):
+        """Récupère toutes les interactions d'un agent"""
+        query = Interaction.query.filter_by(agent_id=agent_id, statut='actif').order_by(
+            Interaction.date_interaction.desc()
+        )
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_suivi_necessaire():
+        """Récupère les interactions nécessitant un suivi"""
+        return Interaction.query.filter_by(
+            suivi_necessaire=True,
+            suivi_effectue=False,
+            statut='actif'
+        ).order_by(Interaction.suivi_date.asc()).all()
+
+    @staticmethod
+    def get_statistiques_agent(agent_id, date_debut=None, date_fin=None):
+        """Statistiques des interactions d'un agent"""
+        query = Interaction.query.filter_by(agent_id=agent_id, statut='actif')
+
+        if date_debut:
+            query = query.filter(Interaction.date_interaction >= date_debut)
+        if date_fin:
+            query = query.filter(Interaction.date_interaction <= date_fin)
+
+        interactions = query.all()
+
+        total = len(interactions)
+        positives = len([i for i in interactions if i.resultat == 'positif'])
+        negatives = len([i for i in interactions if i.resultat == 'negatif'])
+        neutres = len([i for i in interactions if i.resultat == 'neutre'])
+
+        satisfaction = [i.satisfaction for i in interactions if i.satisfaction]
+        satisfaction_moyenne = sum(satisfaction) / len(satisfaction) if satisfaction else 0
+
+        return {
+            'total': total,
+            'positives': positives,
+            'negatives': negatives,
+            'neutres': neutres,
+            'satisfaction_moyenne': round(satisfaction_moyenne, 2),
+            'taux_positif': round((positives / total * 100), 2) if total > 0 else 0,
+            'taux_negatif': round((negatives / total * 100), 2) if total > 0 else 0
+        }
+
+    @staticmethod
+    def get_activite_recente(agent_id, limit=10):
+        """Récupère l'activité récente d'un agent"""
+        return Interaction.query.filter_by(
+            agent_id=agent_id,
+            statut='actif'
+        ).order_by(Interaction.date_interaction.desc()).limit(limit).all()
+
+    def to_dict(self):
+        """Convertit l'interaction en dictionnaire"""
+        return {
+            'id': self.id,
+            'client_id': self.client_id,
+            'client_nom': f"{self.client.prenom} {self.client.nom}" if self.client else None,
+            'agent_id': self.agent_id,
+            'agent_nom': f"{self.agent.prenom} {self.agent.nom}" if self.agent else None,
+            'type_interaction': self.type_interaction,
+            'sujet': self.sujet,
+            'description': self.description,
+            'notes': self.notes,
+            'resultat': self.resultat,
+            'satisfaction': self.satisfaction,
+            'suivi_necessaire': self.suivi_necessaire,
+            'suivi_date': self.suivi_date.isoformat() if self.suivi_date else None,
+            'suivi_effectue': self.suivi_effectue,
+            'date_interaction': self.date_interaction.isoformat(),
+            'duree': self.duree,
+            'priorite': self.priorite,
+            'statut': self.statut
+        }
+
+
+class MembreGroupe(db.Model):
+    """Modèle pour les membres d'un groupe"""
+
+    __tablename__ = 'membres_groupes'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    groupe_id = db.Column(db.Integer, db.ForeignKey('groupes.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
+    ajoute_par_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    # Rôle dans le groupe
+    role = db.Column(db.String(50), default='membre')
+    # Options: 'membre', 'chef_groupe', 'secretaire', 'tresorier', 'animateur_adjoint'
+
+    # Date d'adhésion
+    date_adhesion = db.Column(db.DateTime, default=datetime.utcnow)
+    date_sortie = db.Column(db.DateTime, nullable=True)
+
+    # Statut
+    statut = db.Column(db.String(20), default='actif')
+    # Options: 'actif', 'inactif', 'suspendu', 'sorti'
+
+    # Métadonnées
+    notes = db.Column(db.Text, nullable=True)
+
+    # Relations inverses
+    groupe = db.relationship('Groupe', backref='membres', lazy=True)
+    client = db.relationship('Client', backref='groupes_membres', lazy=True)
+    ajoute_par = db.relationship('User', foreign_keys=[ajoute_par_id], backref='membres_ajoutes', lazy=True)
+
+    def __repr__(self):
+        return f'<MembreGroupe {self.id} - {self.client.prenom} {self.client.nom} - {self.groupe.nom}>'
+
+    @staticmethod
+    def get_membres_groupe(groupe_id):
+        """Récupère tous les membres d'un groupe"""
+        return MembreGroupe.query.filter_by(groupe_id=groupe_id, statut='actif').all()
+
+    @staticmethod
+    def get_groupes_client(client_id):
+        """Récupère tous les groupes d'un client"""
+        return MembreGroupe.query.filter_by(client_id=client_id, statut='actif').all()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'groupe_id': self.groupe_id,
+            'groupe_nom': self.groupe.nom if self.groupe else None,
+            'client_id': self.client_id,
+            'client_nom': f"{self.client.prenom} {self.client.nom}" if self.client else None,
+            'role': self.role,
+            'date_adhesion': self.date_adhesion.isoformat(),
+            'statut': self.statut,
+            'notes': self.notes
+        }
+
+
+# =============================================
+# MODÈLE POUR LES SESSIONS DE GROUPES
+# =============================================
+
+class SessionGroupe(db.Model):
+    """Modèle pour les sessions d'un groupe"""
+
+    __tablename__ = 'sessions_groupes'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    groupe_id = db.Column(db.Integer, db.ForeignKey('groupes.id'), nullable=False)
+    animateur_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    # Informations
+    titre = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    objectif = db.Column(db.Text, nullable=True)
+
+    # Dates
+    date_debut = db.Column(db.DateTime, nullable=False)
+    date_fin = db.Column(db.DateTime, nullable=True)
+
+    # Lieu
+    lieu = db.Column(db.String(200), nullable=True)
+    adresse = db.Column(db.String(300), nullable=True)
+
+    # Participants
+    nb_participants = db.Column(db.Integer, default=0)
+    capacite = db.Column(db.Integer, default=20)
+    taux_participation = db.Column(db.Float, default=0.0)
+
+    # Évaluation
+    evaluation = db.Column(db.Float, nullable=True)  # Note sur 5
+    commentaires = db.Column(db.Text, nullable=True)
+
+    # Statut
+    statut = db.Column(db.String(20), default='planifiee')
+    # Options: 'planifiee', 'en_cours', 'terminee', 'annulee', 'reportee'
+
+    # Métadonnées
+    materiel_necessaire = db.Column(db.Text, nullable=True)
+    notes_preparation = db.Column(db.Text, nullable=True)
+
+    # Dates système
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations inverses
+    groupe = db.relationship('Groupe', backref='sessions', lazy=True)
+    animateur = db.relationship('User', foreign_keys=[animateur_id], backref='sessions_animees', lazy=True)
+
+    def __repr__(self):
+        return f'<SessionGroupe {self.id} - {self.titre} - {self.groupe.nom}>'
+
+    def get_participants(self):
+        """Récupère les participants à la session"""
+        return ParticipationSession.query.filter_by(session_id=self.id, statut='confirme').all()
+
+    def get_nb_participants(self):
+        """Retourne le nombre de participants"""
+        return ParticipationSession.query.filter_by(session_id=self.id, statut='confirme').count()
+
+    def update_taux_participation(self):
+        """Met à jour le taux de participation"""
+        total_membres = self.groupe.nb_membres or 1
+        self.taux_participation = round((self.nb_participants / total_membres * 100), 2) if total_membres > 0 else 0
+        db.session.commit()
+
+    def peut_ajouter_participant(self):
+        """Vérifie si la session peut accueillir un participant supplémentaire"""
+        return self.nb_participants < self.capacite
+
+    def ajouter_participant(self, client_id):
+        """Ajoute un participant à la session"""
+        if not self.peut_ajouter_participant():
+            return False, "Capacité maximale atteinte"
+
+        # Vérifier si déjà inscrit
+        existing = ParticipationSession.query.filter_by(
+            session_id=self.id,
+            client_id=client_id
+        ).first()
+        if existing:
+            return False, "Déjà inscrit"
+
+        participation = ParticipationSession(
+            session_id=self.id,
+            client_id=client_id,
+            statut='confirme'
+        )
+        db.session.add(participation)
+        self.nb_participants += 1
+        self.update_taux_participation()
+        db.session.commit()
+        return True, "Participant ajouté"
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'groupe_id': self.groupe_id,
+            'groupe_nom': self.groupe.nom if self.groupe else None,
+            'animateur_id': self.animateur_id,
+            'animateur_nom': f"{self.animateur.prenom} {self.animateur.nom}" if self.animateur else None,
+            'titre': self.titre,
+            'description': self.description,
+            'objectif': self.objectif,
+            'date_debut': self.date_debut.isoformat(),
+            'date_fin': self.date_fin.isoformat() if self.date_fin else None,
+            'lieu': self.lieu,
+            'nb_participants': self.nb_participants,
+            'capacite': self.capacite,
+            'taux_participation': self.taux_participation,
+            'evaluation': self.evaluation,
+            'statut': self.statut
+        }
+
+
+# =============================================
+# MODÈLE POUR LES PARTICIPATIONS AUX SESSIONS
+# =============================================
+
+class ParticipationSession(db.Model):
+    """Modèle pour les participations aux sessions de groupe"""
+
+    __tablename__ = 'participations_sessions'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    session_id = db.Column(db.Integer, db.ForeignKey('sessions_groupes.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
+
+    # Dates
+    date_inscription = db.Column(db.DateTime, default=datetime.utcnow)
+    date_presence = db.Column(db.DateTime, nullable=True)
+
+    # Statut
+    statut = db.Column(db.String(20), default='confirme')
+    # Options: 'confirme', 'present', 'absent', 'annule'
+
+    # Évaluation individuelle
+    evaluation = db.Column(db.Float, nullable=True)  # Note sur 5
+    commentaire = db.Column(db.Text, nullable=True)
+
+    # Métadonnées
+    a_ponctuel = db.Column(db.Boolean, default=True)
+
+    # Relations inverses
+    session = db.relationship('SessionGroupe', backref='participations', lazy=True)
+    client = db.relationship('Client', backref='participations_sessions', lazy=True)
+
+    def __repr__(self):
+        return f'<ParticipationSession {self.id} - {self.client.prenom} {self.client.nom} - {self.session.titre}>'
+
+    def marquer_present(self):
+        """Marque le participant comme présent"""
+        self.statut = 'present'
+        self.date_presence = datetime.utcnow()
+        db.session.commit()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'session_id': self.session_id,
+            'client_id': self.client_id,
+            'client_nom': f"{self.client.prenom} {self.client.nom}" if self.client else None,
+            'statut': self.statut,
+            'date_inscription': self.date_inscription.isoformat(),
+            'evaluation': self.evaluation,
+            'commentaire': self.commentaire
+        }
+
+
+class DossierSaisie(db.Model):
+    """Modèle pour les dossiers à saisir par l'agent saisie"""
+
+    __tablename__ = 'dossiers_saisie'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
+    agent_saisie_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    superviseur_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    # Informations du dossier
+    titre = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+
+    # Type de document
+    type_document = db.Column(db.String(50), nullable=False)
+    # Options: 'formulaire', 'contrat', 'facture', 'document_identite', 'justificatif', 'autre'
+
+    # Priorité
+    priorite = db.Column(db.String(20), default='normale')
+    # Options: 'basse', 'normale', 'haute', 'urgente'
+
+    # Dates
+    date_reception = db.Column(db.DateTime, default=datetime.utcnow)
+    date_saisie = db.Column(db.DateTime, nullable=True)
+    date_validation = db.Column(db.DateTime, nullable=True)
+    date_limite = db.Column(db.DateTime, nullable=True)
+
+    # Statut
+    statut = db.Column(db.String(50), default='a_saisir')
+    # Options: 'a_saisir', 'en_cours', 'saisi', 'en_attente_validation', 'valide', 'rejete', 'archive'
+
+    # Métadonnées
+    fichier_original = db.Column(db.String(255), nullable=True)
+    fichier_saisie = db.Column(db.String(255), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    commentaires_validation = db.Column(db.Text, nullable=True)
+
+    # Temps passé
+    temps_saisie = db.Column(db.Integer, nullable=True)  # en minutes
+    temps_validation = db.Column(db.Integer, nullable=True)  # en minutes
+
+    # Dates système
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations inverses
+    client = db.relationship('Client', backref='dossiers_saisie', lazy=True)
+    agent_saisie = db.relationship('User', foreign_keys=[agent_saisie_id], backref='dossiers_a_saisir', lazy=True)
+    superviseur = db.relationship('User', foreign_keys=[superviseur_id], backref='dossiers_a_valider', lazy=True)
+
+    def __repr__(self):
+        return f'<DossierSaisie {self.id} - {self.titre} - {self.statut}>'
+
+    @staticmethod
+    def get_a_saisir(agent_id, limit=None):
+        """Récupère les dossiers à saisir pour un agent"""
+        query = DossierSaisie.query.filter_by(
+            agent_saisie_id=agent_id,
+            statut='a_saisir'
+        ).order_by(DossierSaisie.priorite.desc(), DossierSaisie.date_limite.asc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_en_cours(agent_id, limit=None):
+        """Récupère les dossiers en cours de saisie"""
+        query = DossierSaisie.query.filter_by(
+            agent_saisie_id=agent_id,
+            statut='en_cours'
+        ).order_by(DossierSaisie.date_modification.desc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_en_attente_validation(agent_id, limit=None):
+        """Récupère les dossiers en attente de validation"""
+        query = DossierSaisie.query.filter_by(
+            agent_saisie_id=agent_id,
+            statut='en_attente_validation'
+        ).order_by(DossierSaisie.date_saisie.desc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_statistiques_agent(agent_id):
+        """Statistiques des dossiers d'un agent"""
+        total = DossierSaisie.query.filter_by(agent_saisie_id=agent_id).count()
+        a_saisir = DossierSaisie.query.filter_by(agent_saisie_id=agent_id, statut='a_saisir').count()
+        en_cours = DossierSaisie.query.filter_by(agent_saisie_id=agent_id, statut='en_cours').count()
+        saisis = DossierSaisie.query.filter_by(agent_saisie_id=agent_id, statut='saisi').count()
+        en_attente = DossierSaisie.query.filter_by(agent_saisie_id=agent_id, statut='en_attente_validation').count()
+        valides = DossierSaisie.query.filter_by(agent_saisie_id=agent_id, statut='valide').count()
+        rejetes = DossierSaisie.query.filter_by(agent_saisie_id=agent_id, statut='rejete').count()
+
+        # Taux de saisie
+        traites = saisis + valides
+        taux_saisie = round((traites / total * 100), 2) if total > 0 else 0
+
+        # Temps moyen de saisie
+        temps_total = db.session.query(db.func.sum(DossierSaisie.temps_saisie)).filter(
+            DossierSaisie.agent_saisie_id == agent_id,
+            DossierSaisie.temps_saisie.isnot(None)
+        ).scalar() or 0
+        nb_avec_temps = DossierSaisie.query.filter(
+            DossierSaisie.agent_saisie_id == agent_id,
+            DossierSaisie.temps_saisie.isnot(None)
+        ).count()
+        temps_moyen = round(temps_total / nb_avec_temps, 2) if nb_avec_temps > 0 else 0
+
+        return {
+            'total': total,
+            'a_saisir': a_saisir,
+            'en_cours': en_cours,
+            'saisis': saisis,
+            'en_attente': en_attente,
+            'valides': valides,
+            'rejetes': rejetes,
+            'taux_saisie': taux_saisie,
+            'temps_moyen_saisie': temps_moyen
+        }
+
+    @staticmethod
+    def get_urgents(agent_id):
+        """Récupère les dossiers urgents à saisir"""
+        return DossierSaisie.query.filter(
+            DossierSaisie.agent_saisie_id == agent_id,
+            DossierSaisie.statut.in_(['a_saisir', 'en_cours']),
+            DossierSaisie.priorite.in_(['haute', 'urgente'])
+        ).order_by(DossierSaisie.priorite.desc(), DossierSaisie.date_limite.asc()).all()
+
+    def commencer_saisie(self):
+        """Démarre la saisie du dossier"""
+        self.statut = 'en_cours'
+        db.session.commit()
+
+    def terminer_saisie(self, temps=None):
+        """Termine la saisie du dossier"""
+        self.statut = 'saisi'
+        self.date_saisie = datetime.utcnow()
+        if temps:
+            self.temps_saisie = temps
+        db.session.commit()
+
+    def soumettre_validation(self):
+        """Soumet le dossier pour validation"""
+        self.statut = 'en_attente_validation'
+        db.session.commit()
+
+    def valider(self, superviseur_id, commentaires=None):
+        """Valide le dossier"""
+        self.statut = 'valide'
+        self.superviseur_id = superviseur_id
+        self.date_validation = datetime.utcnow()
+        if commentaires:
+            self.commentaires_validation = commentaires
+        db.session.commit()
+
+    def rejeter(self, superviseur_id, commentaires=None):
+        """Rejette le dossier"""
+        self.statut = 'rejete'
+        self.superviseur_id = superviseur_id
+        if commentaires:
+            self.commentaires_validation = commentaires
+        db.session.commit()
+
+    def to_dict(self):
+        """Convertit le dossier en dictionnaire"""
+        return {
+            'id': self.id,
+            'client_id': self.client_id,
+            'client_nom': f"{self.client.prenom} {self.client.nom}" if self.client else None,
+            'agent_saisie_id': self.agent_saisie_id,
+            'agent_nom': f"{self.agent_saisie.prenom} {self.agent_saisie.nom}" if self.agent_saisie else None,
+            'titre': self.titre,
+            'description': self.description,
+            'type_document': self.type_document,
+            'priorite': self.priorite,
+            'date_reception': self.date_reception.isoformat(),
+            'date_saisie': self.date_saisie.isoformat() if self.date_saisie else None,
+            'date_validation': self.date_validation.isoformat() if self.date_validation else None,
+            'date_limite': self.date_limite.isoformat() if self.date_limite else None,
+            'statut': self.statut,
+            'temps_saisie': self.temps_saisie,
+            'notes': self.notes,
+            'commentaires_validation': self.commentaires_validation
+        }
+
+
+# =============================================
+# CONSTANTES POUR LES DOSSIERS DE SAISIE
+# =============================================
+
+TYPES_DOCUMENT = {
+    'formulaire': 'Formulaire',
+    'contrat': 'Contrat',
+    'facture': 'Facture',
+    'document_identite': 'Document d\'identité',
+    'justificatif': 'Justificatif',
+    'autre': 'Autre'
+}
+
+PRIORITES_DOSSIER = {
+    'basse': 'Basse',
+    'normale': 'Normale',
+    'haute': 'Haute',
+    'urgente': 'Urgente'
+}
+
+STATUTS_DOSSIER = {
+    'a_saisir': 'À saisir',
+    'en_cours': 'En cours',
+    'saisi': 'Saisi',
+    'en_attente_validation': 'En attente de validation',
+    'valide': 'Validé',
+    'rejete': 'Rejeté',
+    'archive': 'Archivé'
+}
+
+
+class VerificationConformite(db.Model):
+    """Modèle pour les vérifications de conformité"""
+
+    __tablename__ = 'verifications_conformite'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
+    agent_conformite_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    superviseur_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    # Type de vérification
+    type_verification = db.Column(db.String(50), nullable=False)
+    # Options: 'aml', 'kyc', 'sanctions', 'pep', 'fraude', 'reglementaire', 'autre'
+
+    # Niveau de risque
+    niveau_risque = db.Column(db.String(20), default='moyen')
+    # Options: 'faible', 'moyen', 'eleve', 'critique'
+
+    # Informations
+    description = db.Column(db.Text, nullable=True)
+    motifs = db.Column(db.Text, nullable=True)
+
+    # Documents vérifiés
+    documents_verifies = db.Column(db.Text, nullable=True)  # JSON ou liste séparée par virgules
+
+    # Résultats
+    conforme = db.Column(db.Boolean, default=False)
+    resultat = db.Column(db.Text, nullable=True)
+    recommandations = db.Column(db.Text, nullable=True)
+
+    # Dates
+    date_demande = db.Column(db.DateTime, default=datetime.utcnow)
+    date_verification = db.Column(db.DateTime, nullable=True)
+    date_validation = db.Column(db.DateTime, nullable=True)
+    date_limite = db.Column(db.DateTime, nullable=True)
+
+    # Statut
+    statut = db.Column(db.String(50), default='en_attente')
+    # Options: 'en_attente', 'en_cours', 'terminee', 'validee', 'rejetee', 'archivee'
+
+    # Métadonnées
+    priorite = db.Column(db.String(20), default='normale')
+    # Options: 'basse', 'normale', 'haute', 'urgente'
+
+    notes = db.Column(db.Text, nullable=True)
+    commentaires = db.Column(db.Text, nullable=True)
+
+    # Temps passé
+    temps_verification = db.Column(db.Integer, nullable=True)  # en minutes
+
+    # Dates système
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations inverses
+    client = db.relationship('Client', backref='verifications_conformite', lazy=True)
+    agent_conformite = db.relationship('User', foreign_keys=[agent_conformite_id], backref='verifications_agent',
+                                       lazy=True)
+    superviseur = db.relationship('User', foreign_keys=[superviseur_id], backref='verifications_superviseur', lazy=True)
+
+    def __repr__(self):
+        return f'<VerificationConformite {self.id} - {self.client.prenom} {self.client.nom} - {self.type_verification}>'
+
+    @staticmethod
+    def get_en_attente(agent_id, limit=None):
+        """Récupère les vérifications en attente"""
+        query = VerificationConformite.query.filter_by(
+            agent_conformite_id=agent_id,
+            statut='en_attente'
+        ).order_by(
+            VerificationConformite.priorite.desc(),
+            VerificationConformite.niveau_risque.desc(),
+            VerificationConformite.date_limite.asc()
+        )
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_en_cours(agent_id, limit=None):
+        """Récupère les vérifications en cours"""
+        query = VerificationConformite.query.filter_by(
+            agent_conformite_id=agent_id,
+            statut='en_cours'
+        ).order_by(VerificationConformite.date_modification.desc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_terminees(agent_id, limit=None):
+        """Récupère les vérifications terminées"""
+        query = VerificationConformite.query.filter_by(
+            agent_conformite_id=agent_id,
+            statut='terminee'
+        ).order_by(VerificationConformite.date_verification.desc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_critiques(agent_id):
+        """Récupère les vérifications critiques"""
+        return VerificationConformite.query.filter(
+            VerificationConformite.agent_conformite_id == agent_id,
+            VerificationConformite.statut.in_(['en_attente', 'en_cours']),
+            VerificationConformite.niveau_risque == 'critique'
+        ).order_by(VerificationConformite.priorite.desc()).all()
+
+    @staticmethod
+    def get_statistiques(agent_id):
+        """Statistiques des vérifications d'un agent"""
+        total = VerificationConformite.query.filter_by(agent_conformite_id=agent_id).count()
+        en_attente = VerificationConformite.query.filter_by(agent_conformite_id=agent_id, statut='en_attente').count()
+        en_cours = VerificationConformite.query.filter_by(agent_conformite_id=agent_id, statut='en_cours').count()
+        terminees = VerificationConformite.query.filter_by(agent_conformite_id=agent_id, statut='terminee').count()
+        validees = VerificationConformite.query.filter_by(agent_conformite_id=agent_id, statut='validee').count()
+        rejetees = VerificationConformite.query.filter_by(agent_conformite_id=agent_id, statut='rejetee').count()
+
+        # Conformité
+        conformes = VerificationConformite.query.filter_by(
+            agent_conformite_id=agent_id,
+            conforme=True
+        ).count()
+        taux_conformite = round((conformes / total * 100), 2) if total > 0 else 0
+
+        # Répartition des risques
+        risque_faible = VerificationConformite.query.filter_by(
+            agent_conformite_id=agent_id,
+            niveau_risque='faible'
+        ).count()
+        risque_moyen = VerificationConformite.query.filter_by(
+            agent_conformite_id=agent_id,
+            niveau_risque='moyen'
+        ).count()
+        risque_eleve = VerificationConformite.query.filter_by(
+            agent_conformite_id=agent_id,
+            niveau_risque='eleve'
+        ).count()
+        risque_critique = VerificationConformite.query.filter_by(
+            agent_conformite_id=agent_id,
+            niveau_risque='critique'
+        ).count()
+
+        return {
+            'total': total,
+            'en_attente': en_attente,
+            'en_cours': en_cours,
+            'terminees': terminees,
+            'validees': validees,
+            'rejetees': rejetees,
+            'conformes': conformes,
+            'taux_conformite': taux_conformite,
+            'risque_faible': risque_faible,
+            'risque_moyen': risque_moyen,
+            'risque_eleve': risque_eleve,
+            'risque_critique': risque_critique
+        }
+
+    @staticmethod
+    def get_par_type(agent_id):
+        """Récupère le nombre de vérifications par type"""
+        types = ['aml', 'kyc', 'sanctions', 'pep', 'fraude', 'reglementaire', 'autre']
+        result = {}
+        for t in types:
+            count = VerificationConformite.query.filter_by(
+                agent_conformite_id=agent_id,
+                type_verification=t
+            ).count()
+            result[t] = count
+        return result
+
+    def commencer_verification(self):
+        """Démarre la vérification"""
+        self.statut = 'en_cours'
+        db.session.commit()
+
+    def terminer_verification(self, conforme, resultat=None, recommandations=None, temps=None):
+        """Termine la vérification"""
+        self.statut = 'terminee'
+        self.conforme = conforme
+        self.date_verification = datetime.utcnow()
+        if resultat:
+            self.resultat = resultat
+        if recommandations:
+            self.recommandations = recommandations
+        if temps:
+            self.temps_verification = temps
+        db.session.commit()
+
+    def valider(self, superviseur_id, commentaires=None):
+        """Valide la vérification"""
+        self.statut = 'validee'
+        self.superviseur_id = superviseur_id
+        self.date_validation = datetime.utcnow()
+        if commentaires:
+            self.commentaires = commentaires
+        db.session.commit()
+
+    def rejeter(self, superviseur_id, commentaires=None):
+        """Rejette la vérification"""
+        self.statut = 'rejetee'
+        self.superviseur_id = superviseur_id
+        if commentaires:
+            self.commentaires = commentaires
+        db.session.commit()
+
+    def to_dict(self):
+        """Convertit la vérification en dictionnaire"""
+        return {
+            'id': self.id,
+            'client_id': self.client_id,
+            'client_nom': f"{self.client.prenom} {self.client.nom}" if self.client else None,
+            'agent_conformite_id': self.agent_conformite_id,
+            'agent_nom': f"{self.agent_conformite.prenom} {self.agent_conformite.nom}" if self.agent_conformite else None,
+            'type_verification': self.type_verification,
+            'niveau_risque': self.niveau_risque,
+            'description': self.description,
+            'motifs': self.motifs,
+            'conforme': self.conforme,
+            'resultat': self.resultat,
+            'recommandations': self.recommandations,
+            'date_demande': self.date_demande.isoformat(),
+            'date_verification': self.date_verification.isoformat() if self.date_verification else None,
+            'date_validation': self.date_validation.isoformat() if self.date_validation else None,
+            'date_limite': self.date_limite.isoformat() if self.date_limite else None,
+            'statut': self.statut,
+            'priorite': self.priorite,
+            'temps_verification': self.temps_verification,
+            'notes': self.notes,
+            'commentaires': self.commentaires
+        }
+
+
+# =============================================
+# MODÈLE POUR LES ALERTES CONFORMITÉ
+# =============================================
+
+class AlerteConformite(db.Model):
+    """Modèle pour les alertes de conformité"""
+
+    __tablename__ = 'alertes_conformite'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    verification_id = db.Column(db.Integer, db.ForeignKey('verifications_conformite.id'), nullable=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=True)
+    agent_conformite_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    # Informations
+    titre = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+
+    # Niveau
+    niveau = db.Column(db.String(20), default='moyen')
+    # Options: 'faible', 'moyen', 'eleve', 'critique'
+
+    # Type d'alerte
+    type_alerte = db.Column(db.String(50), nullable=False)
+    # Options: 'risque_aml', 'kyc_manquant', 'sanction', 'pep', 'transaction_suspecte', 'autre'
+
+    # Statut
+    statut = db.Column(db.String(20), default='active')
+    # Options: 'active', 'en_cours', 'traitee', 'ignoree'
+
+    # Dates
+    date_alerte = db.Column(db.DateTime, default=datetime.utcnow)
+    date_traitement = db.Column(db.DateTime, nullable=True)
+    date_limite = db.Column(db.DateTime, nullable=True)
+
+    # Métadonnées
+    actions_recommandees = db.Column(db.Text, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+
+    # Relations inverses
+    verification = db.relationship('VerificationConformite', backref='alertes', lazy=True)
+    client = db.relationship('Client', backref='alertes_conformite', lazy=True)
+    agent_conformite = db.relationship('User', foreign_keys=[agent_conformite_id], backref='alertes_agent', lazy=True)
+
+    def __repr__(self):
+        return f'<AlerteConformite {self.id} - {self.titre} - {self.niveau}>'
+
+    def traiter(self):
+        """Marque l'alerte comme traitée"""
+        self.statut = 'traitee'
+        self.date_traitement = datetime.utcnow()
+        db.session.commit()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'titre': self.titre,
+            'description': self.description,
+            'niveau': self.niveau,
+            'type_alerte': self.type_alerte,
+            'statut': self.statut,
+            'date_alerte': self.date_alerte.isoformat(),
+            'date_traitement': self.date_traitement.isoformat() if self.date_traitement else None,
+            'date_limite': self.date_limite.isoformat() if self.date_limite else None
+        }
+
+
+# =============================================
+# CONSTANTES POUR LA CONFORMITÉ
+# =============================================
+
+TYPES_VERIFICATION = {
+    'aml': 'Anti-blanchiment (AML)',
+    'kyc': 'Know Your Customer (KYC)',
+    'sanctions': 'Sanctions internationales',
+    'pep': 'Personnes Politiquement Exposées (PEP)',
+    'fraude': 'Détection de fraude',
+    'reglementaire': 'Conformité réglementaire',
+    'autre': 'Autre'
+}
+
+NIVEAUX_RISQUE = {
+    'faible': 'Faible',
+    'moyen': 'Moyen',
+    'eleve': 'Élevé',
+    'critique': 'Critique'
+}
+
+STATUTS_VERIFICATION = {
+    'en_attente': 'En attente',
+    'en_cours': 'En cours',
+    'terminee': 'Terminée',
+    'validee': 'Validée',
+    'rejetee': 'Rejetée',
+    'archivee': 'Archivée'
+}
+
+PRIORITES_VERIFICATION = {
+    'basse': 'Basse',
+    'normale': 'Normale',
+    'haute': 'Haute',
+    'urgente': 'Urgente'
+}
+
+TYPES_ALERTE = {
+    'risque_aml': 'Risque AML détecté',
+    'kyc_manquant': 'KYC manquant',
+    'sanction': 'Correspondance avec liste de sanctions',
+    'pep': 'Personne Politiquement Exposée',
+    'transaction_suspecte': 'Transaction suspecte',
+    'autre': 'Autre'
+}
+
+NIVEAUX_ALERTE = {
+    'faible': 'Faible',
+    'moyen': 'Moyen',
+    'eleve': 'Élevé',
+    'critique': 'Critique'
+}
+
+STATUTS_ALERTE = {
+    'active': 'Active',
+    'en_cours': 'En cours de traitement',
+    'traitee': 'Traitée',
+    'ignoree': 'Ignorée'
+}
+
+
+# =============================================
+# MODÈLE POUR LES RISQUES
+# =============================================
+
+class Risque(db.Model):
+    """Modèle pour les risques"""
+
+    __tablename__ = 'risques'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    agent_risque_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=True)
+
+
+    # Informations
+    nom = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    categorie = db.Column(db.String(50), nullable=False)
+    # Options: 'credit', 'operationnel', 'marche', 'juridique', 'conformite', 'strategique', 'autre'
+
+    # Type de risque
+    type_risque = db.Column(db.String(50), nullable=False)
+    # Options: 'interne', 'externe', 'systemique', 'individuel', 'collectif'
+
+    # Évaluation
+    probabilite = db.Column(db.Integer, default=3)  # 1-5
+    impact = db.Column(db.Integer, default=3)  # 1-5
+    score = db.Column(db.Integer, default=9)  # probabilite * impact
+
+    # Niveau de risque
+    niveau = db.Column(db.String(20), default='moyen')
+    # Options: 'faible', 'moyen', 'eleve', 'critique'
+
+    # Détection
+    date_detection = db.Column(db.DateTime, default=datetime.utcnow)
+    detecte_par = db.Column(db.String(100), nullable=True)
+    methode_detection = db.Column(db.String(100), nullable=True)
+
+    # Traitement
+    date_traitement = db.Column(db.DateTime, nullable=True)
+    plan_atténuation = db.Column(db.Text, nullable=True)
+    mesures_correctives = db.Column(db.Text, nullable=True)
+
+    # Suivi
+    responsable = db.Column(db.String(100), nullable=True)
+    date_echeance = db.Column(db.DateTime, nullable=True)
+
+    # Statut
+    statut = db.Column(db.String(20), default='actif')
+    # Options: 'actif', 'en_cours', 'maitrise', 'atténue', 'termine', 'archive'
+
+    # Métadonnées
+    priorite = db.Column(db.String(20), default='normale')
+    notes = db.Column(db.Text, nullable=True)
+
+    # Dates système
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations inverses
+    agent_risque = db.relationship('User', foreign_keys=[agent_risque_id], backref='risques_agent', lazy=True)
+    client = db.relationship('Client', backref='risques', lazy=True)
+
+
+    def __repr__(self):
+        return f'<Risque {self.id} - {self.nom} - {self.niveau}>'
+
+    def calculer_score(self):
+        """Calcule le score du risque (probabilite * impact)"""
+        self.score = self.probabilite * self.impact
+        self._determiner_niveau()
+        return self.score
+
+    def _determiner_niveau(self):
+        """Détermine le niveau de risque basé sur le score"""
+        if self.score >= 20:
+            self.niveau = 'critique'
+        elif self.score >= 15:
+            self.niveau = 'eleve'
+        elif self.score >= 8:
+            self.niveau = 'moyen'
+        else:
+            self.niveau = 'faible'
+
+    @staticmethod
+    def get_actifs(agent_id, limit=None):
+        """Récupère les risques actifs"""
+        query = Risque.query.filter_by(
+            agent_risque_id=agent_id,
+            statut='actif'
+        ).order_by(Risque.score.desc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_critiques(agent_id):
+        """Récupère les risques critiques"""
+        return Risque.query.filter_by(
+            agent_risque_id=agent_id,
+            niveau='critique',
+            statut='actif'
+        ).order_by(Risque.score.desc()).all()
+
+    @staticmethod
+    def get_statistiques(agent_id):
+        """Statistiques des risques"""
+        total = Risque.query.filter_by(agent_risque_id=agent_id).count()
+        actifs = Risque.query.filter_by(agent_risque_id=agent_id, statut='actif').count()
+        en_cours = Risque.query.filter_by(agent_risque_id=agent_id, statut='en_cours').count()
+        maitrises = Risque.query.filter_by(agent_risque_id=agent_id, statut='maitrise').count()
+        attenues = Risque.query.filter_by(agent_risque_id=agent_id, statut='atténue').count()
+        termines = Risque.query.filter_by(agent_risque_id=agent_id, statut='termine').count()
+
+        # Niveaux
+        faible = Risque.query.filter_by(agent_risque_id=agent_id, niveau='faible').count()
+        moyen = Risque.query.filter_by(agent_risque_id=agent_id, niveau='moyen').count()
+        eleve = Risque.query.filter_by(agent_risque_id=agent_id, niveau='eleve').count()
+        critique = Risque.query.filter_by(agent_risque_id=agent_id, niveau='critique').count()
+
+        # Score moyen
+        scores = db.session.query(db.func.avg(Risque.score)).filter_by(agent_risque_id=agent_id).scalar() or 0
+
+        return {
+            'total': total,
+            'actifs': actifs,
+            'en_cours': en_cours,
+            'maitrises': maitrises,
+            'attenues': attenues,
+            'termines': termines,
+            'faible': faible,
+            'moyen': moyen,
+            'eleve': eleve,
+            'critique': critique,
+            'score_moyen': round(scores, 2)
+        }
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nom': self.nom,
+            'description': self.description,
+            'categorie': self.categorie,
+            'type_risque': self.type_risque,
+            'probabilite': self.probabilite,
+            'impact': self.impact,
+            'score': self.score,
+            'niveau': self.niveau,
+            'date_detection': self.date_detection.isoformat(),
+            'plan_atténuation': self.plan_atténuation,
+            'statut': self.statut,
+            'priorite': self.priorite
+        }
+
+
+# =============================================
+# MODÈLE POUR LES ÉVALUATIONS DE RISQUES
+# =============================================
+
+class EvaluationRisque(db.Model):
+    """Modèle pour les évaluations de risques"""
+
+    __tablename__ = 'evaluations_risques'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    risque_id = db.Column(db.Integer, db.ForeignKey('risques.id'), nullable=False)
+    agent_risque_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    evaluateur_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    # Évaluation
+    probabilite_evaluee = db.Column(db.Integer, nullable=True)  # 1-5
+    impact_evalue = db.Column(db.Integer, nullable=True)  # 1-5
+    score_evalue = db.Column(db.Integer, nullable=True)
+    niveau_evalue = db.Column(db.String(20), nullable=True)
+
+    # Facteurs de risque
+    facteurs = db.Column(db.Text, nullable=True)
+    vulnerabilites = db.Column(db.Text, nullable=True)
+    capacites_controle = db.Column(db.Text, nullable=True)
+
+    # Résultats
+    resultat = db.Column(db.Text, nullable=True)
+    recommandations = db.Column(db.Text, nullable=True)
+
+    # Dates
+    date_evaluation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_prochaine_evaluation = db.Column(db.DateTime, nullable=True)
+
+    # Statut
+    statut = db.Column(db.String(20), default='en_cours')
+    # Options: 'en_cours', 'terminee', 'validee', 'annulee'
+
+    # Métadonnées
+    notes = db.Column(db.Text, nullable=True)
+
+    # Dates système
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations inverses
+    risque = db.relationship('Risque', backref='evaluations', lazy=True)
+    agent_risque = db.relationship('User', foreign_keys=[agent_risque_id], backref='evaluations_agent', lazy=True)
+    evaluateur = db.relationship('User', foreign_keys=[evaluateur_id], backref='evaluations_effectuees', lazy=True)
+
+    def __repr__(self):
+        return f'<EvaluationRisque {self.id} - Risque {self.risque_id}>'
+
+    def calculer_score(self):
+        """Calcule le score évalué"""
+        if self.probabilite_evaluee and self.impact_evalue:
+            self.score_evalue = self.probabilite_evaluee * self.impact_evalue
+            self._determiner_niveau()
+        return self.score_evalue
+
+    def _determiner_niveau(self):
+        """Détermine le niveau basé sur le score"""
+        if self.score_evalue >= 20:
+            self.niveau_evalue = 'critique'
+        elif self.score_evalue >= 15:
+            self.niveau_evalue = 'eleve'
+        elif self.score_evalue >= 8:
+            self.niveau_evalue = 'moyen'
+        else:
+            self.niveau_evalue = 'faible'
+
+    def terminer(self):
+        """Termine l'évaluation"""
+        self.statut = 'terminee'
+        self.date_evaluation = datetime.utcnow()
+        db.session.commit()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'risque_id': self.risque_id,
+            'risque_nom': self.risque.nom if self.risque else None,
+            'probabilite_evaluee': self.probabilite_evaluee,
+            'impact_evalue': self.impact_evalue,
+            'score_evalue': self.score_evalue,
+            'niveau_evalue': self.niveau_evalue,
+            'resultat': self.resultat,
+            'recommandations': self.recommandations,
+            'date_evaluation': self.date_evaluation.isoformat(),
+            'statut': self.statut
+        }
+
+
+# =============================================
+# MODÈLE POUR LES CONTRÔLES
+# =============================================
+
+class Controle(db.Model):
+    """Modèle pour les contrôles internes"""
+
+    __tablename__ = 'controles'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    controleur_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    superviseur_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    # Informations
+    titre = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    objet = db.Column(db.String(200), nullable=False)
+
+    # Type de contrôle
+    type_controle = db.Column(db.String(50), nullable=False)
+    # Options: 'financier', 'operationnel', 'conformite', 'rh', 'it', 'qualite', 'autre'
+
+    # Priorité
+    priorite = db.Column(db.String(20), default='normale')
+    # Options: 'basse', 'normale', 'haute', 'urgente'
+
+    # Dates
+    date_debut = db.Column(db.DateTime, nullable=False)
+    date_fin = db.Column(db.DateTime, nullable=True)
+    date_limite = db.Column(db.DateTime, nullable=False)
+    date_controle = db.Column(db.DateTime, nullable=True)
+
+    # Résultats
+    conforme = db.Column(db.Boolean, default=False)
+    resultat = db.Column(db.Text, nullable=True)
+    constats = db.Column(db.Text, nullable=True)
+    recommandations = db.Column(db.Text, nullable=True)
+
+    # Statut
+    statut = db.Column(db.String(20), default='planifie')
+    # Options: 'planifie', 'en_cours', 'effectue', 'valide', 'rejete', 'annule'
+
+    # Métadonnées
+    equipe = db.Column(db.String(200), nullable=True)
+    methode = db.Column(db.String(100), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+
+    # Dates système
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations inverses
+    controleur = db.relationship('User', foreign_keys=[controleur_id], backref='controles_effectues', lazy=True)
+    superviseur = db.relationship('User', foreign_keys=[superviseur_id], backref='controles_supervises', lazy=True)
+    non_conformites = db.relationship('NonConformite', backref='controle', lazy=True)
+
+    def __repr__(self):
+        return f'<Controle {self.id} - {self.titre} - {self.statut}>'
+
+    @staticmethod
+    def get_a_realiser(controleur_id, limit=None):
+        """Récupère les contrôles à réaliser"""
+        query = Controle.query.filter_by(
+            controleur_id=controleur_id,
+            statut='planifie'
+        ).order_by(Controle.priorite.desc(), Controle.date_limite.asc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_en_cours(controleur_id, limit=None):
+        """Récupère les contrôles en cours"""
+        query = Controle.query.filter_by(
+            controleur_id=controleur_id,
+            statut='en_cours'
+        ).order_by(Controle.date_modification.desc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_statistiques(controleur_id):
+        """Statistiques des contrôles"""
+        total = Controle.query.filter_by(controleur_id=controleur_id).count()
+        planifies = Controle.query.filter_by(controleur_id=controleur_id, statut='planifie').count()
+        en_cours = Controle.query.filter_by(controleur_id=controleur_id, statut='en_cours').count()
+        effectues = Controle.query.filter_by(controleur_id=controleur_id, statut='effectue').count()
+        valides = Controle.query.filter_by(controleur_id=controleur_id, statut='valide').count()
+        rejetes = Controle.query.filter_by(controleur_id=controleur_id, statut='rejete').count()
+
+        # Taux de conformité
+        conformes = Controle.query.filter_by(controleur_id=controleur_id, conforme=True).count()
+        taux_conformite = round((conformes / total * 100), 2) if total > 0 else 0
+
+        return {
+            'total': total,
+            'planifies': planifies,
+            'en_cours': en_cours,
+            'effectues': effectues,
+            'valides': valides,
+            'rejetes': rejetes,
+            'conformes': conformes,
+            'taux_conformite': taux_conformite
+        }
+
+    def commencer(self):
+        """Démarre le contrôle"""
+        self.statut = 'en_cours'
+        self.date_debut = datetime.utcnow()
+        db.session.commit()
+
+    def terminer(self, conforme, resultat=None, constats=None, recommandations=None):
+        """Termine le contrôle"""
+        self.statut = 'effectue'
+        self.conforme = conforme
+        self.date_controle = datetime.utcnow()
+        if resultat:
+            self.resultat = resultat
+        if constats:
+            self.constats = constats
+        if recommandations:
+            self.recommandations = recommandations
+        db.session.commit()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'titre': self.titre,
+            'description': self.description,
+            'objet': self.objet,
+            'type_controle': self.type_controle,
+            'priorite': self.priorite,
+            'date_debut': self.date_debut.isoformat(),
+            'date_limite': self.date_limite.isoformat(),
+            'date_controle': self.date_controle.isoformat() if self.date_controle else None,
+            'conforme': self.conforme,
+            'resultat': self.resultat,
+            'statut': self.statut
+        }
+
+
+# =============================================
+# MODÈLE POUR LES NON-CONFORMITÉS
+# =============================================
+
+class NonConformite(db.Model):
+    """Modèle pour les non-conformités"""
+
+    __tablename__ = 'non_conformites'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    controle_id = db.Column(db.Integer, db.ForeignKey('controles.id'), nullable=True)
+    controleur_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    responsable_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    # Informations
+    titre = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    cause = db.Column(db.Text, nullable=True)
+
+    # Type
+    type_non_conformite = db.Column(db.String(50), nullable=False)
+    # Options: 'critique', 'majeure', 'mineure', 'observation'
+
+    # Gravité
+    gravite = db.Column(db.String(20), default='moyenne')
+    # Options: 'faible', 'moyenne', 'elevee', 'critique'
+
+    # Dates
+    date_decouverte = db.Column(db.DateTime, default=datetime.utcnow)
+    date_correction = db.Column(db.DateTime, nullable=True)
+    date_verification = db.Column(db.DateTime, nullable=True)
+    date_echeance = db.Column(db.DateTime, nullable=True)
+
+    # Statut
+    statut = db.Column(db.String(20), default='ouverte')
+    # Options: 'ouverte', 'en_cours', 'corrigee', 'verifiee', 'fermee', 'ignoree'
+
+    # Actions
+    actions_correctives = db.Column(db.Text, nullable=True)
+    actions_preventives = db.Column(db.Text, nullable=True)
+    commentaires = db.Column(db.Text, nullable=True)
+
+    # Métadonnées
+    priorite = db.Column(db.String(20), default='normale')
+    notes = db.Column(db.Text, nullable=True)
+
+    # Dates système
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations inverses
+    controleur = db.relationship('User', foreign_keys=[controleur_id], backref='non_conformites_decouvertes', lazy=True)
+    responsable = db.relationship('User', foreign_keys=[responsable_id], backref='non_conformites_responsables',
+                                  lazy=True)
+
+    def __repr__(self):
+        return f'<NonConformite {self.id} - {self.titre} - {self.gravite}>'
+
+    @staticmethod
+    def get_ouvertes(controleur_id, limit=None):
+        """Récupère les non-conformités ouvertes"""
+        query = NonConformite.query.filter(
+            NonConformite.controleur_id == controleur_id,
+            NonConformite.statut.in_(['ouverte', 'en_cours'])
+        ).order_by(NonConformite.gravite.desc(), NonConformite.date_echeance.asc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_critiques(controleur_id):
+        """Récupère les non-conformités critiques"""
+        return NonConformite.query.filter(
+            NonConformite.controleur_id == controleur_id,
+            NonConformite.gravite.in_(['elevee', 'critique']),
+            NonConformite.statut.in_(['ouverte', 'en_cours'])
+        ).order_by(NonConformite.gravite.desc()).all()
+
+    @staticmethod
+    def get_statistiques(controleur_id):
+        """Statistiques des non-conformités"""
+        total = NonConformite.query.filter_by(controleur_id=controleur_id).count()
+        ouvertes = NonConformite.query.filter_by(controleur_id=controleur_id, statut='ouverte').count()
+        en_cours = NonConformite.query.filter_by(controleur_id=controleur_id, statut='en_cours').count()
+        corrigees = NonConformite.query.filter_by(controleur_id=controleur_id, statut='corrigee').count()
+        verifiees = NonConformite.query.filter_by(controleur_id=controleur_id, statut='verifiee').count()
+        fermees = NonConformite.query.filter_by(controleur_id=controleur_id, statut='fermee').count()
+
+        # Par gravité
+        faible = NonConformite.query.filter_by(controleur_id=controleur_id, gravite='faible').count()
+        moyenne = NonConformite.query.filter_by(controleur_id=controleur_id, gravite='moyenne').count()
+        elevee = NonConformite.query.filter_by(controleur_id=controleur_id, gravite='elevee').count()
+        critique = NonConformite.query.filter_by(controleur_id=controleur_id, gravite='critique').count()
+
+        # Taux de correction
+        corrigees_fermees = corrigees + verifiees + fermees
+        taux_correction = round((corrigees_fermees / total * 100), 2) if total > 0 else 0
+
+        return {
+            'total': total,
+            'ouvertes': ouvertes,
+            'en_cours': en_cours,
+            'corrigees': corrigees,
+            'verifiees': verifiees,
+            'fermees': fermees,
+            'faible': faible,
+            'moyenne': moyenne,
+            'elevee': elevee,
+            'critique': critique,
+            'taux_correction': taux_correction
+        }
+
+    def corriger(self, actions_correctives=None):
+        """Marque comme corrigée"""
+        self.statut = 'corrigee'
+        self.date_correction = datetime.utcnow()
+        if actions_correctives:
+            self.actions_correctives = actions_correctives
+        db.session.commit()
+
+    def verifier(self):
+        """Marque comme vérifiée"""
+        self.statut = 'verifiee'
+        self.date_verification = datetime.utcnow()
+        db.session.commit()
+
+    def fermer(self):
+        """Ferme la non-conformité"""
+        self.statut = 'fermee'
+        db.session.commit()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'titre': self.titre,
+            'description': self.description,
+            'cause': self.cause,
+            'type_non_conformite': self.type_non_conformite,
+            'gravite': self.gravite,
+            'date_decouverte': self.date_decouverte.isoformat(),
+            'date_correction': self.date_correction.isoformat() if self.date_correction else None,
+            'date_echeance': self.date_echeance.isoformat() if self.date_echeance else None,
+            'statut': self.statut,
+            'actions_correctives': self.actions_correctives,
+            'priorite': self.priorite,
+            'controle_id': self.controle_id
+        }
+
+
+# =============================================
+# CONSTANTES
+# =============================================
+
+CATEGORIES_RISQUE = {
+    'credit': 'Risque de crédit',
+    'operationnel': 'Risque opérationnel',
+    'marche': 'Risque de marché',
+    'juridique': 'Risque juridique',
+    'conformite': 'Risque de conformité',
+    'strategique': 'Risque stratégique',
+    'autre': 'Autre'
+}
+
+TYPES_RISQUE = {
+    'interne': 'Interne',
+    'externe': 'Externe',
+    'systemique': 'Systémique',
+    'individuel': 'Individuel',
+    'collectif': 'Collectif'
+}
+
+NIVEAUX_RISQUE_GLOBAL = {
+    'faible': 'Faible (1-8)',
+    'moyen': 'Moyen (9-15)',
+    'eleve': 'Élevé (16-19)',
+    'critique': 'Critique (20-25)'
+}
+
+STATUTS_RISQUE = {
+    'actif': 'Actif',
+    'en_cours': 'En cours de traitement',
+    'maitrise': 'Maîtrisé',
+    'atténue': 'Atténué',
+    'termine': 'Terminé',
+    'archive': 'Archivé'
+}
+
+TYPES_CONTROLE = {
+    'financier': 'Contrôle financier',
+    'operationnel': 'Contrôle opérationnel',
+    'conformite': 'Contrôle de conformité',
+    'rh': 'Contrôle RH',
+    'it': 'Contrôle IT',
+    'qualite': 'Contrôle qualité',
+    'autre': 'Autre'
+}
+
+STATUTS_CONTROLE = {
+    'planifie': 'Planifié',
+    'en_cours': 'En cours',
+    'effectue': 'Effectué',
+    'valide': 'Validé',
+    'rejete': 'Rejeté',
+    'annule': 'Annulé'
+}
+
+TYPES_NON_CONFORMITE = {
+    'critique': 'Non-conformité critique',
+    'majeure': 'Non-conformité majeure',
+    'mineure': 'Non-conformité mineure',
+    'observation': 'Observation'
+}
+
+GRAVITES_NON_CONFORMITE = {
+    'faible': 'Faible',
+    'moyenne': 'Moyenne',
+    'elevee': 'Élevée',
+    'critique': 'Critique'
+}
+
+STATUTS_NON_CONFORMITE = {
+    'ouverte': 'Ouverte',
+    'en_cours': 'En cours de correction',
+    'corrigee': 'Corrigée',
+    'verifiee': 'Vérifiée',
+    'fermee': 'Fermée',
+    'ignoree': 'Ignorée'
+}
+
+
+# =============================================
+# MODÈLE POUR LES RENDEZ-VOUS
+# =============================================
+
+class RendezVous(db.Model):
+    """Modèle pour les rendez-vous"""
+
+    __tablename__ = 'rendez_vous'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
+    secretaire_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    agent_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # L'agent concerné
+    lieu_id = db.Column(db.Integer, db.ForeignKey('lieux.id'), nullable=True)
+
+    # Informations
+    titre = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    objectif = db.Column(db.Text, nullable=True)
+
+    # Dates et heures
+    date_debut = db.Column(db.DateTime, nullable=False)
+    date_fin = db.Column(db.DateTime, nullable=True)
+    duree = db.Column(db.Integer, default=30)  # Durée en minutes
+
+    # Lieu
+    lieu = db.Column(db.String(200), nullable=True)
+    adresse = db.Column(db.String(300), nullable=True)
+    notes_lieu = db.Column(db.Text, nullable=True)
+
+    # Participants
+    participants = db.Column(db.Text, nullable=True)  # JSON ou liste séparée par virgules
+    nb_participants = db.Column(db.Integer, default=1)
+
+    # Statut
+    statut = db.Column(db.String(20), default='planifie')
+    # Options: 'planifie', 'confirme', 'en_cours', 'termine', 'annule', 'reporte'
+
+    # Résultats
+    resultat = db.Column(db.Text, nullable=True)
+    compte_rendu = db.Column(db.Text, nullable=True)
+    notes_suivi = db.Column(db.Text, nullable=True)
+
+    # Métadonnées
+    priorite = db.Column(db.String(20), default='normale')
+    # Options: 'basse', 'normale', 'haute', 'urgente'
+
+    type_rendez_vous = db.Column(db.String(50), default='physique')
+    # Options: 'physique', 'telephonique', 'visioconference', 'terrain'
+
+    # Rappels
+    rappel_envoye = db.Column(db.Boolean, default=False)
+    date_rappel = db.Column(db.DateTime, nullable=True)
+    rappel_commentaire = db.Column(db.Text, nullable=True)
+
+    # Dates système
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations inverses
+    client = db.relationship('Client', backref='rendez_vous', lazy=True)
+    secretaire = db.relationship('User', foreign_keys=[secretaire_id], backref='rendez_vous_secretaires', lazy=True)
+    agent = db.relationship('User', foreign_keys=[agent_id], backref='rendez_vous_agents', lazy=True)
+    lieu = db.relationship('Lieu', backref='rendez_vous', lazy=True)
+
+    def __repr__(self):
+        return f'<RendezVous {self.id} - {self.client.prenom} {self.client.nom} - {self.date_debut.strftime("%d/%m/%Y %H:%M")}>'
+
+    @staticmethod
+    def get_aujourdhui(secretaire_id):
+        """Récupère les rendez-vous du jour"""
+        today = datetime.utcnow().date()
+        return RendezVous.query.filter(
+            RendezVous.secretaire_id == secretaire_id,
+            func.date(RendezVous.date_debut) == today
+        ).order_by(RendezVous.date_debut.asc()).all()
+
+    @staticmethod
+    def get_a_venir(secretaire_id, limit=None):
+        """Récupère les rendez-vous à venir"""
+        query = RendezVous.query.filter(
+            RendezVous.secretaire_id == secretaire_id,
+            RendezVous.date_debut >= datetime.utcnow(),
+            RendezVous.statut.in_(['planifie', 'confirme'])
+        ).order_by(RendezVous.date_debut.asc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_passes(secretaire_id, limit=None):
+        """Récupère les rendez-vous passés"""
+        query = RendezVous.query.filter(
+            RendezVous.secretaire_id == secretaire_id,
+            RendezVous.date_debut < datetime.utcnow(),
+            RendezVous.statut.in_(['termine', 'annule', 'reporte'])
+        ).order_by(RendezVous.date_debut.desc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_par_client(client_id, limit=None):
+        """Récupère les rendez-vous d'un client"""
+        query = RendezVous.query.filter_by(client_id=client_id).order_by(
+            RendezVous.date_debut.desc()
+        )
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_statistiques(secretaire_id, date_debut=None, date_fin=None):
+        """Statistiques des rendez-vous"""
+        query = RendezVous.query.filter_by(secretaire_id=secretaire_id)
+
+        if date_debut:
+            query = query.filter(RendezVous.date_debut >= date_debut)
+        if date_fin:
+            query = query.filter(RendezVous.date_debut <= date_fin)
+
+        rendez_vous = query.all()
+        total = len(rendez_vous)
+
+        # Par statut
+        planifies = len([r for r in rendez_vous if r.statut == 'planifie'])
+        confirmes = len([r for r in rendez_vous if r.statut == 'confirme'])
+        en_cours = len([r for r in rendez_vous if r.statut == 'en_cours'])
+        termines = len([r for r in rendez_vous if r.statut == 'termine'])
+        annules = len([r for r in rendez_vous if r.statut == 'annule'])
+        reportes = len([r for r in rendez_vous if r.statut == 'reporte'])
+
+        # Par type
+        physiques = len([r for r in rendez_vous if r.type_rendez_vous == 'physique'])
+        telephoniques = len([r for r in rendez_vous if r.type_rendez_vous == 'telephonique'])
+        visios = len([r for r in rendez_vous if r.type_rendez_vous == 'visioconference'])
+        terrains = len([r for r in rendez_vous if r.type_rendez_vous == 'terrain'])
+
+        # Taux de réalisation
+        realises = termines
+        taux_realisation = round((realises / total * 100), 2) if total > 0 else 0
+
+        # Durée moyenne
+        durees = [r.duree for r in rendez_vous if r.duree]
+        duree_moyenne = round(sum(durees) / len(durees), 2) if durees else 0
+
+        return {
+            'total': total,
+            'planifies': planifies,
+            'confirmes': confirmes,
+            'en_cours': en_cours,
+            'termines': termines,
+            'annules': annules,
+            'reportes': reportes,
+            'physiques': physiques,
+            'telephoniques': telephoniques,
+            'visios': visios,
+            'terrains': terrains,
+            'taux_realisation': taux_realisation,
+            'duree_moyenne': duree_moyenne
+        }
+
+    def confirmer(self):
+        """Confirme le rendez-vous"""
+        self.statut = 'confirme'
+        db.session.commit()
+
+    def commencer(self):
+        """Démarre le rendez-vous"""
+        self.statut = 'en_cours'
+        db.session.commit()
+
+    def terminer(self, resultat=None, compte_rendu=None):
+        """Termine le rendez-vous"""
+        self.statut = 'termine'
+        if resultat:
+            self.resultat = resultat
+        if compte_rendu:
+            self.compte_rendu = compte_rendu
+        db.session.commit()
+
+    def annuler(self, notes=None):
+        """Annule le rendez-vous"""
+        self.statut = 'annule'
+        if notes:
+            self.notes_suivi = notes
+        db.session.commit()
+
+    def reporter(self, nouvelle_date, notes=None):
+        """Reporte le rendez-vous"""
+        self.statut = 'reporte'
+        self.date_debut = nouvelle_date
+        if notes:
+            self.notes_suivi = notes
+        db.session.commit()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'client_id': self.client_id,
+            'client_nom': f"{self.client.prenom} {self.client.nom}" if self.client else None,
+            'client_telephone': self.client.telephone if self.client else None,
+            'secretaire_id': self.secretaire_id,
+            'agent_id': self.agent_id,
+            'agent_nom': f"{self.agent.prenom} {self.agent.nom}" if self.agent else None,
+            'titre': self.titre,
+            'description': self.description,
+            'objectif': self.objectif,
+            'date_debut': self.date_debut.isoformat(),
+            'date_fin': self.date_fin.isoformat() if self.date_fin else None,
+            'duree': self.duree,
+            'lieu': self.lieu,
+            'adresse': self.adresse,
+            'statut': self.statut,
+            'type_rendez_vous': self.type_rendez_vous,
+            'priorite': self.priorite,
+            'resultat': self.resultat,
+            'compte_rendu': self.compte_rendu
+        }
+
+
+# =============================================
+# MODÈLE POUR LES DOCUMENTS ARCHIVÉS
+# =============================================
+
+class DocumentArchive(db.Model):
+    """Modèle pour les documents archivés"""
+
+    __tablename__ = 'documents_archives'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    archiviste_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=True)
+    dossier_id = db.Column(db.Integer, db.ForeignKey('dossiers.id'), nullable=True)
+
+    # Informations
+    titre = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+
+    # Catégorie et type
+    categorie = db.Column(db.String(50), nullable=False)
+    # Options: 'contrat', 'facture', 'identite', 'justificatif', 'comptable', 'rh', 'autre'
+
+    type_document = db.Column(db.String(20), nullable=False)
+    # Options: 'pdf', 'word', 'excel', 'image', 'scan', 'autre'
+
+    # Fichier
+    nom_fichier = db.Column(db.String(255), nullable=False)
+    chemin_fichier = db.Column(db.String(500), nullable=False)
+    taille_fichier = db.Column(db.Integer, nullable=True)  # En octets
+
+    # Métadonnées
+    mots_cles = db.Column(db.String(500), nullable=True)
+    version = db.Column(db.String(20), default='1.0')
+
+    # Dates
+    date_creation = db.Column(db.DateTime, nullable=False)
+    date_archivage = db.Column(db.DateTime, default=datetime.utcnow)
+    date_expiration = db.Column(db.DateTime, nullable=True)
+    date_dernier_acces = db.Column(db.DateTime, nullable=True)
+
+    # Statut
+    statut = db.Column(db.String(20), default='actif')
+    # Options: 'actif', 'archive', 'expire', 'supprime'
+
+    # Métadonnées
+    confidentialite = db.Column(db.String(20), default='normal')
+    # Options: 'public', 'normal', 'confidentiel', 'tres_confidentiel'
+
+    notes = db.Column(db.Text, nullable=True)
+    tags = db.Column(db.String(500), nullable=True)
+
+    # Relations inverses
+    archiviste = db.relationship('User', foreign_keys=[archiviste_id], backref='documents_archives', lazy=True)
+    client = db.relationship('Client', backref='documents_archives', lazy=True)
+    dossier = db.relationship('Dossier', backref='documents_archives', lazy=True)
+
+    def __repr__(self):
+        return f'<DocumentArchive {self.id} - {self.titre} - {self.categorie}>'
+
+    @staticmethod
+    def get_par_categorie(archiviste_id, categorie, limit=None):
+        """Récupère les documents par catégorie"""
+        query = DocumentArchive.query.filter_by(
+            archiviste_id=archiviste_id,
+            categorie=categorie,
+            statut='actif'
+        ).order_by(DocumentArchive.date_archivage.desc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_recherche(archiviste_id, query_string):
+        """Recherche des documents"""
+        return DocumentArchive.query.filter(
+            DocumentArchive.archiviste_id == archiviste_id,
+            DocumentArchive.statut == 'actif',
+            db.or_(
+                DocumentArchive.titre.ilike(f'%{query_string}%'),
+                DocumentArchive.description.ilike(f'%{query_string}%'),
+                DocumentArchive.mots_cles.ilike(f'%{query_string}%'),
+                DocumentArchive.tags.ilike(f'%{query_string}%')
+            )
+        ).order_by(DocumentArchive.date_archivage.desc()).all()
+
+    @staticmethod
+    def get_recents(archiviste_id, limit=10):
+        """Récupère les documents récemment archivés"""
+        return DocumentArchive.query.filter_by(
+            archiviste_id=archiviste_id,
+            statut='actif'
+        ).order_by(DocumentArchive.date_archivage.desc()).limit(limit).all()
+
+    @staticmethod
+    def get_statistiques(archiviste_id):
+        """Statistiques des documents archivés"""
+        total = DocumentArchive.query.filter_by(
+            archiviste_id=archiviste_id,
+            statut='actif'
+        ).count()
+
+        # Par catégorie
+        categories = {}
+        for cat in ['contrat', 'facture', 'identite', 'justificatif', 'comptable', 'rh', 'autre']:
+            count = DocumentArchive.query.filter_by(
+                archiviste_id=archiviste_id,
+                categorie=cat,
+                statut='actif'
+            ).count()
+            categories[cat] = count
+
+        # Taille totale
+        taille_totale = db.session.query(db.func.sum(DocumentArchive.taille_fichier)).filter(
+            DocumentArchive.archiviste_id == archiviste_id,
+            DocumentArchive.statut == 'actif'
+        ).scalar() or 0
+
+        # Par type
+        types = {}
+        for t in ['pdf', 'word', 'excel', 'image', 'scan', 'autre']:
+            count = DocumentArchive.query.filter_by(
+                archiviste_id=archiviste_id,
+                type_document=t,
+                statut='actif'
+            ).count()
+            types[t] = count
+
+        return {
+            'total': total,
+            'categories': categories,
+            'types': types,
+            'taille_totale': taille_totale,
+            'taille_totale_mb': round(taille_totale / (1024 * 1024), 2) if taille_totale > 0 else 0
+        }
+
+    def enregistrer_acces(self):
+        """Enregistre un accès au document"""
+        self.date_dernier_acces = datetime.utcnow()
+        db.session.commit()
+
+    def archiver(self):
+        """Marque le document comme archivé"""
+        self.statut = 'archive'
+        db.session.commit()
+
+    def supprimer(self):
+        """Supprime le document (logique)"""
+        self.statut = 'supprime'
+        db.session.commit()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'titre': self.titre,
+            'description': self.description,
+            'categorie': self.categorie,
+            'type_document': self.type_document,
+            'nom_fichier': self.nom_fichier,
+            'chemin_fichier': self.chemin_fichier,
+            'taille_fichier': self.taille_fichier,
+            'mots_cles': self.mots_cles,
+            'version': self.version,
+            'date_creation': self.date_creation.isoformat(),
+            'date_archivage': self.date_archivage.isoformat(),
+            'date_expiration': self.date_expiration.isoformat() if self.date_expiration else None,
+            'statut': self.statut,
+            'confidentialite': self.confidentialite,
+            'tags': self.tags
+        }
+
+
+# =============================================
+# MODÈLE POUR LES LIEUX (pour les rendez-vous)
+# =============================================
+
+class Lieu(db.Model):
+    """Modèle pour les lieux"""
+
+    __tablename__ = 'lieux'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    nom = db.Column(db.String(100), nullable=False)
+    adresse = db.Column(db.String(300), nullable=False)
+    complement = db.Column(db.String(200), nullable=True)
+
+    # Coordonnées
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
+
+    # Contact
+    telephone = db.Column(db.String(20), nullable=True)
+    email = db.Column(db.String(100), nullable=True)
+    site_web = db.Column(db.String(200), nullable=True)
+
+    # Capacité
+    capacite_max = db.Column(db.Integer, nullable=True)
+    nb_salles = db.Column(db.Integer, default=0)
+
+    # Métadonnées
+    type_lieu = db.Column(db.String(50), default='bureau')
+    # Options: 'bureau', 'agence', 'externe', 'domicile', 'autre'
+
+    description = db.Column(db.Text, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+
+    # Statut
+    statut = db.Column(db.String(20), default='actif')
+
+    # Dates système
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Lieu {self.id} - {self.nom}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nom': self.nom,
+            'adresse': self.adresse,
+            'complement': self.complement,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
+            'telephone': self.telephone,
+            'email': self.email,
+            'type_lieu': self.type_lieu,
+            'capacite_max': self.capacite_max,
+            'description': self.description,
+            'statut': self.statut
+        }
+
+
+# =============================================
+# CONSTANTES
+# =============================================
+
+STATUTS_RENDEZ_VOUS = {
+    'planifie': 'Planifié',
+    'confirme': 'Confirmé',
+    'en_cours': 'En cours',
+    'termine': 'Terminé',
+    'annule': 'Annulé',
+    'reporte': 'Reporté'
+}
+
+TYPES_RENDEZ_VOUS = {
+    'physique': 'Physique',
+    'telephonique': 'Téléphonique',
+    'visioconference': 'Visioconférence',
+    'terrain': 'Terrain'
+}
+
+PRIORITES_RENDEZ_VOUS = {
+    'basse': 'Basse',
+    'normale': 'Normale',
+    'haute': 'Haute',
+    'urgente': 'Urgente'
+}
+
+CATEGORIES_DOCUMENT = {
+    'contrat': 'Contrat',
+    'facture': 'Facture',
+    'identite': 'Document d\'identité',
+    'justificatif': 'Justificatif',
+    'comptable': 'Document comptable',
+    'rh': 'Document RH',
+    'autre': 'Autre'
+}
+
+TYPES_DOCUMENT_ARCHIVE = {
+    'pdf': 'PDF',
+    'word': 'Word',
+    'excel': 'Excel',
+    'image': 'Image',
+    'scan': 'Scan',
+    'autre': 'Autre'
+}
+
+CONFIDENTIALITE_DOCUMENT = {
+    'public': 'Public',
+    'normal': 'Normal',
+    'confidentiel': 'Confidentiel',
+    'tres_confidentiel': 'Très confidentiel'
+}
+
+STATUTS_DOCUMENT_ARCHIVE = {
+    'actif': 'Actif',
+    'archive': 'Archivé',
+    'expire': 'Expiré',
+    'supprime': 'Supprimé'
+}
+
+STATUTS_LIEU = {
+    'actif': 'Actif',
+    'inactif': 'Inactif',
+    'supprime': 'Supprimé'
+}
+
+TYPES_LIEU = {
+    'bureau': 'Bureau',
+    'agence': 'Agence',
+    'externe': 'Externe',
+    'domicile': 'Domicile',
+    'autre': 'Autre'
+}
+
+
+# =============================================
+# MODÈLE POUR LA PRÉSENCE (POINTAGE)
+# =============================================
+
+class Presence(db.Model):
+    """Modèle pour la présence/pointage des employés"""
+
+    __tablename__ = 'presences'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    rh_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Chargé RH qui a validé
+
+    # Dates et heures
+    date = db.Column(db.DateTime, default=datetime.utcnow)
+    date_pointage = db.Column(db.Date, nullable=False)
+
+    heure_arrivee = db.Column(db.DateTime, nullable=True)
+    heure_depart = db.Column(db.DateTime, nullable=True)
+
+    # Temps de travail
+    duree_travail = db.Column(db.Integer, nullable=True)  # en minutes
+    heures_supplementaires = db.Column(db.Integer, default=0)  # en minutes
+
+    # Statut
+    statut = db.Column(db.String(20), default='present')
+    # Options: 'present', 'absent', 'retard', 'excusé', 'congé', 'formation', 'mission'
+
+    # Retard
+    retard_minutes = db.Column(db.Integer, default=0)
+    motif_retard = db.Column(db.String(200), nullable=True)
+
+    # Départ anticipé
+    depart_anticipe_minutes = db.Column(db.Integer, default=0)
+    motif_depart_anticipe = db.Column(db.String(200), nullable=True)
+
+    # Validation
+    valide = db.Column(db.Boolean, default=False)
+    date_validation = db.Column(db.DateTime, nullable=True)
+    commentaires_validation = db.Column(db.Text, nullable=True)
+
+    # Métadonnées
+    methode_pointage = db.Column(db.String(50), default='manuel')
+    # Options: 'manuel', 'qr_code', 'biometrique', 'mobile'
+
+    notes = db.Column(db.Text, nullable=True)
+    lieu_pointage = db.Column(db.String(200), nullable=True)
+
+    # Dates système
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations inverses
+    user = db.relationship('User', foreign_keys=[user_id], backref='presences', lazy=True)
+    rh = db.relationship('User', foreign_keys=[rh_id], backref='presences_validees', lazy=True)
+
+    def __repr__(self):
+        return f'<Presence {self.id} - {self.user.prenom} {self.user.nom} - {self.date_pointage}>'
+
+    @staticmethod
+    def get_aujourdhui(user_id):
+        """Récupère la présence d'aujourd'hui pour un utilisateur"""
+        today = datetime.utcnow().date()
+        return Presence.query.filter_by(
+            user_id=user_id,
+            date_pointage=today
+        ).first()
+
+    @staticmethod
+    def get_presences_jour(user_id, date=None):
+        """Récupère les présences d'un jour spécifique"""
+        if date is None:
+            date = datetime.utcnow().date()
+        return Presence.query.filter_by(
+            user_id=user_id,
+            date_pointage=date
+        ).all()
+
+    @staticmethod
+    def get_presences_mois(user_id, annee=None, mois=None):
+        """Récupère les présences d'un mois"""
+        if annee is None:
+            annee = datetime.utcnow().year
+        if mois is None:
+            mois = datetime.utcnow().month
+
+        start_date = datetime(annee, mois, 1).date()
+        if mois == 12:
+            end_date = datetime(annee + 1, 1, 1).date()
+        else:
+            end_date = datetime(annee, mois + 1, 1).date()
+
+        return Presence.query.filter(
+            Presence.user_id == user_id,
+            Presence.date_pointage >= start_date,
+            Presence.date_pointage < end_date
+        ).order_by(Presence.date_pointage.asc()).all()
+
+    @staticmethod
+    def get_statistiques_mois(user_id, annee=None, mois=None):
+        """Statistiques de présence pour un mois"""
+        presences = Presence.get_presences_mois(user_id, annee, mois)
+
+        total_jours = len(presences)
+        presents = len([p for p in presences if p.statut == 'present'])
+        absents = len([p for p in presences if p.statut == 'absent'])
+        retards = len([p for p in presences if p.statut == 'retard'])
+        excuses = len([p for p in presences if p.statut == 'excusé'])
+        conges = len([p for p in presences if p.statut == 'congé'])
+        formations = len([p for p in presences if p.statut == 'formation'])
+        missions = len([p for p in presences if p.statut == 'mission'])
+
+        # Temps de travail total
+        temps_total = sum([p.duree_travail or 0 for p in presences])
+        heures_total = temps_total // 60
+        minutes_total = temps_total % 60
+
+        # Retards totaux
+        retards_total = sum([p.retard_minutes or 0 for p in presences])
+        retards_heures = retards_total // 60
+        retards_minutes = retards_total % 60
+
+        # Taux de présence
+        taux_presence = round((presents / total_jours * 100), 2) if total_jours > 0 else 0
+
+        return {
+            'total_jours': total_jours,
+            'presents': presents,
+            'absents': absents,
+            'retards': retards,
+            'excuses': excuses,
+            'conges': conges,
+            'formations': formations,
+            'missions': missions,
+            'taux_presence': taux_presence,
+            'temps_total': temps_total,
+            'heures_total': heures_total,
+            'minutes_total': minutes_total,
+            'retards_total': retards_total,
+            'retards_heures': retards_heures,
+            'retards_minutes': retards_minutes
+        }
+
+    @staticmethod
+    def get_absents_aujourdhui(rh_id=None):
+        """Récupère les employés absents aujourd'hui"""
+        today = datetime.utcnow().date()
+        query = Presence.query.filter(
+            Presence.date_pointage == today,
+            Presence.statut == 'absent'
+        )
+        if rh_id:
+            query = query.join(User).filter(User.rh_id == rh_id)
+        return query.all()
+
+    @staticmethod
+    def get_retards_aujourdhui(rh_id=None):
+        """Récupère les employés en retard aujourd'hui"""
+        today = datetime.utcnow().date()
+        query = Presence.query.filter(
+            Presence.date_pointage == today,
+            Presence.statut == 'retard'
+        )
+        if rh_id:
+            query = query.join(User).filter(User.rh_id == rh_id)
+        return query.all()
+
+    def pointer_arrivee(self, heure=None, methode='manuel', lieu=None):
+        """Enregistre l'heure d'arrivée"""
+        if heure is None:
+            heure = datetime.utcnow()
+        self.heure_arrivee = heure
+        self.date_pointage = heure.date()
+        self.methode_pointage = methode
+        if lieu:
+            self.lieu_pointage = lieu
+
+        # Vérifier si c'est un retard (heure d'arrivée > 8h30)
+        heure_limite = heure.replace(hour=8, minute=30, second=0, microsecond=0)
+        if heure > heure_limite:
+            self.statut = 'retard'
+            self.retard_minutes = int((heure - heure_limite).total_seconds() / 60)
+
+        db.session.commit()
+
+    def pointer_depart(self, heure=None):
+        """Enregistre l'heure de départ"""
+        if heure is None:
+            heure = datetime.utcnow()
+        self.heure_depart = heure
+
+        # Calculer la durée de travail
+        if self.heure_arrivee:
+            duree = (heure - self.heure_arrivee).total_seconds() / 60
+            self.duree_travail = int(duree)
+
+        db.session.commit()
+
+    def valider(self, rh_id, commentaires=None):
+        """Valide la présence"""
+        self.valide = True
+        self.rh_id = rh_id
+        self.date_validation = datetime.utcnow()
+        if commentaires:
+            self.commentaires_validation = commentaires
+        db.session.commit()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'user_nom': f"{self.user.prenom} {self.user.nom}" if self.user else None,
+            'date_pointage': self.date_pointage.isoformat(),
+            'heure_arrivee': self.heure_arrivee.isoformat() if self.heure_arrivee else None,
+            'heure_depart': self.heure_depart.isoformat() if self.heure_depart else None,
+            'duree_travail': self.duree_travail,
+            'statut': self.statut,
+            'retard_minutes': self.retard_minutes,
+            'valide': self.valide,
+            'methode_pointage': self.methode_pointage,
+            'lieu_pointage': self.lieu_pointage
+        }
+
+
+# =============================================
+# MODÈLE POUR LES CONGÉS
+# =============================================
+
+class Conge(db.Model):
+    """Modèle pour les congés des employés"""
+
+    __tablename__ = 'conges'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    rh_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Chargé RH qui a approuvé
+    remplacant_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Qui remplace
+
+    # Informations
+    type_conge = db.Column(db.String(50), nullable=False)
+    # Options: 'annuel', 'maladie', 'maternite', 'paternite', 'sans_solde', 'formation', 'exceptionnel'
+
+    motif = db.Column(db.String(200), nullable=True)
+    description = db.Column(db.Text, nullable=True)
+
+    # Dates
+    date_debut = db.Column(db.DateTime, nullable=False)
+    date_fin = db.Column(db.DateTime, nullable=False)
+    date_reprise = db.Column(db.DateTime, nullable=True)
+
+    # Durée
+    duree_jours = db.Column(db.Integer, nullable=False)
+    duree_ouvrables = db.Column(db.Integer, nullable=True)  # Jours ouvrés
+
+    # Solde
+    solde_utilise = db.Column(db.Integer, default=0)  # Jours utilisés
+    solde_restant = db.Column(db.Integer, default=0)  # Jours restants
+
+    # Statut
+    statut = db.Column(db.String(20), default='en_attente')
+    # Options: 'en_attente', 'approuve', 'refuse', 'annule', 'termine'
+
+    # Approbations
+    approbateur_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    date_approbation = db.Column(db.DateTime, nullable=True)
+    commentaires_approbation = db.Column(db.Text, nullable=True)
+
+    # Métadonnées
+    urgent = db.Column(db.Boolean, default=False)
+    notes = db.Column(db.Text, nullable=True)
+    pieces_jointes = db.Column(db.Text, nullable=True)  # Chemin des fichiers
+
+    # Dates système
+    date_demande = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations inverses
+    user = db.relationship('User', foreign_keys=[user_id], backref='conges', lazy=True)
+    rh = db.relationship('User', foreign_keys=[rh_id], backref='conges_approuves', lazy=True)
+    remplacant = db.relationship('User', foreign_keys=[remplacant_id], backref='conges_remplacements', lazy=True)
+    approbateur = db.relationship('User', foreign_keys=[approbateur_id], backref='conges_approbations', lazy=True)
+
+    def __repr__(self):
+        return f'<Conge {self.id} - {self.user.prenom} {self.user.nom} - {self.type_conge}>'
+
+    @staticmethod
+    def get_en_cours(user_id=None):
+        """Récupère les congés en cours"""
+        today = datetime.utcnow().date()
+        query = Conge.query.filter(
+            Conge.date_debut <= today,
+            Conge.date_fin >= today,
+            Conge.statut.in_(['approuve', 'termine'])
+        )
+        if user_id:
+            query = query.filter(Conge.user_id == user_id)
+        return query.all()
+
+    @staticmethod
+    def get_a_venir(user_id=None, limit=None):
+        """Récupère les congés à venir"""
+        today = datetime.utcnow().date()
+        query = Conge.query.filter(
+            Conge.date_debut > today,
+            Conge.statut.in_(['en_attente', 'approuve'])
+        ).order_by(Conge.date_debut.asc())
+        if user_id:
+            query = query.filter(Conge.user_id == user_id)
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_en_attente(rh_id=None, limit=None):
+        """Récupère les congés en attente d'approbation"""
+        query = Conge.query.filter_by(statut='en_attente').order_by(Conge.date_demande.asc())
+        if rh_id:
+            query = query.join(User).filter(User.rh_id == rh_id)
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_par_employe(user_id, limit=None):
+        """Récupère les congés d'un employé"""
+        query = Conge.query.filter_by(user_id=user_id).order_by(Conge.date_debut.desc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_statistiques(rh_id=None, annee=None):
+        """Statistiques des congés"""
+        if annee is None:
+            annee = datetime.utcnow().year
+
+        start_date = datetime(annee, 1, 1)
+        end_date = datetime(annee + 1, 1, 1)
+
+        query = Conge.query.filter(
+            Conge.date_debut >= start_date,
+            Conge.date_debut < end_date
+        )
+        if rh_id:
+            query = query.join(User).filter(User.rh_id == rh_id)
+
+        conges = query.all()
+
+        total = len(conges)
+        en_attente = len([c for c in conges if c.statut == 'en_attente'])
+        approuves = len([c for c in conges if c.statut == 'approuve'])
+        refuses = len([c for c in conges if c.statut == 'refuse'])
+        annules = len([c for c in conges if c.statut == 'annule'])
+        termines = len([c for c in conges if c.statut == 'termine'])
+
+        # Par type
+        types = {}
+        for t in ['annuel', 'maladie', 'maternite', 'paternite', 'sans_solde', 'formation', 'exceptionnel']:
+            count = len([c for c in conges if c.type_conge == t])
+            types[t] = count
+
+        # Jours de congé totaux
+        jours_totaux = sum([c.duree_jours for c in conges if c.statut in ['approuve', 'termine']])
+
+        return {
+            'total': total,
+            'en_attente': en_attente,
+            'approuves': approuves,
+            'refuses': refuses,
+            'annules': annules,
+            'termines': termines,
+            'types': types,
+            'jours_totaux': jours_totaux
+        }
+
+    def approuver(self, rh_id, commentaires=None):
+        """Approuve le congé"""
+        self.statut = 'approuve'
+        self.rh_id = rh_id
+        self.approbateur_id = rh_id
+        self.date_approbation = datetime.utcnow()
+        if commentaires:
+            self.commentaires_approbation = commentaires
+        db.session.commit()
+
+    def refuser(self, rh_id, commentaires=None):
+        """Refuse le congé"""
+        self.statut = 'refuse'
+        self.rh_id = rh_id
+        self.approbateur_id = rh_id
+        self.date_approbation = datetime.utcnow()
+        if commentaires:
+            self.commentaires_approbation = commentaires
+        db.session.commit()
+
+    def annuler(self, notes=None):
+        """Annule le congé"""
+        self.statut = 'annule'
+        if notes:
+            self.notes = notes
+        db.session.commit()
+
+    def terminer(self):
+        """Marque le congé comme terminé"""
+        self.statut = 'termine'
+        self.date_reprise = datetime.utcnow()
+        db.session.commit()
+
+    def calculer_duree(self):
+        """Calcule la durée en jours"""
+        delta = self.date_fin - self.date_debut
+        self.duree_jours = delta.days + 1
+        return self.duree_jours
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'user_nom': f"{self.user.prenom} {self.user.nom}" if self.user else None,
+            'type_conge': self.type_conge,
+            'motif': self.motif,
+            'description': self.description,
+            'date_debut': self.date_debut.isoformat(),
+            'date_fin': self.date_fin.isoformat(),
+            'date_reprise': self.date_reprise.isoformat() if self.date_reprise else None,
+            'duree_jours': self.duree_jours,
+            'solde_utilise': self.solde_utilise,
+            'solde_restant': self.solde_restant,
+            'statut': self.statut,
+            'date_demande': self.date_demande.isoformat(),
+            'date_approbation': self.date_approbation.isoformat() if self.date_approbation else None,
+            'urgent': self.urgent,
+            'notes': self.notes
+        }
+
+
+# =============================================
+# MODÈLE POUR LE SOLDE DE CONGÉS
+# =============================================
+
+class SoldeConge(db.Model):
+    """Modèle pour le solde de congés des employés"""
+
+    __tablename__ = 'soldes_conges'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+
+    # Soldes
+    total_annuel = db.Column(db.Integer, default=30)  # Jours de congé par an
+    restant_annuel = db.Column(db.Integer, default=30)
+    utilise_annuel = db.Column(db.Integer, default=0)
+
+    # Maladie
+    total_maladie = db.Column(db.Integer, default=10)
+    restant_maladie = db.Column(db.Integer, default=10)
+    utilise_maladie = db.Column(db.Integer, default=0)
+
+    # Autres
+    total_exceptionnel = db.Column(db.Integer, default=0)
+    restant_exceptionnel = db.Column(db.Integer, default=0)
+    utilise_exceptionnel = db.Column(db.Integer, default=0)
+
+    # Congés non pris (report)
+    report_annee = db.Column(db.Integer, default=0)
+    report_jours = db.Column(db.Integer, default=0)
+
+    # Année de référence
+    annee_reference = db.Column(db.Integer, default=lambda: datetime.utcnow().year)
+
+    # Dates
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations inverses
+    user = db.relationship('User', backref='solde_conges', lazy=True)
+
+    def __repr__(self):
+        return f'<SoldeConge {self.id} - {self.user.prenom} {self.user.nom}>'
+
+    def utiliser_jours(self, type_conge, jours):
+        """Utilise des jours de congé"""
+        if type_conge == 'annuel':
+            if self.restant_annuel >= jours:
+                self.restant_annuel -= jours
+                self.utilise_annuel += jours
+                return True, f"{jours} jours de congé annuel utilisés"
+        elif type_conge == 'maladie':
+            if self.restant_maladie >= jours:
+                self.restant_maladie -= jours
+                self.utilise_maladie += jours
+                return True, f"{jours} jours de congé maladie utilisés"
+        elif type_conge == 'exceptionnel':
+            if self.restant_exceptionnel >= jours:
+                self.restant_exceptionnel -= jours
+                self.utilise_exceptionnel += jours
+                return True, f"{jours} jours de congé exceptionnel utilisés"
+        return False, "Solde insuffisant"
+
+    def ajouter_jours(self, type_conge, jours):
+        """Ajoute des jours de congé"""
+        if type_conge == 'annuel':
+            self.total_annuel += jours
+            self.restant_annuel += jours
+        elif type_conge == 'maladie':
+            self.total_maladie += jours
+            self.restant_maladie += jours
+        elif type_conge == 'exceptionnel':
+            self.total_exceptionnel += jours
+            self.restant_exceptionnel += jours
+        db.session.commit()
+
+    def to_dict(self):
+        return {
+            'user_id': self.user_id,
+            'user_nom': f"{self.user.prenom} {self.user.nom}" if self.user else None,
+            'annuel': {
+                'total': self.total_annuel,
+                'utilise': self.utilise_annuel,
+                'restant': self.restant_annuel
+            },
+            'maladie': {
+                'total': self.total_maladie,
+                'utilise': self.utilise_maladie,
+                'restant': self.restant_maladie
+            },
+            'exceptionnel': {
+                'total': self.total_exceptionnel,
+                'utilise': self.utilise_exceptionnel,
+                'restant': self.restant_exceptionnel
+            },
+            'report_jours': self.report_jours,
+            'annee_reference': self.annee_reference
+        }
+
+
+# =============================================
+# CONSTANTES
+# =============================================
+
+STATUTS_PRESENCE = {
+    'present': 'Présent',
+    'absent': 'Absent',
+    'retard': 'En retard',
+    'excusé': 'Excusé',
+    'congé': 'En congé',
+    'formation': 'En formation',
+    'mission': 'En mission'
+}
+
+METHODES_POINTAGE = {
+    'manuel': 'Manuel',
+    'qr_code': 'QR Code',
+    'biometrique': 'Biométrique',
+    'mobile': 'Application mobile'
+}
+
+TYPES_CONGE = {
+    'annuel': 'Congé annuel',
+    'maladie': 'Congé maladie',
+    'maternite': 'Congé maternité',
+    'paternite': 'Congé paternité',
+    'sans_solde': 'Congé sans solde',
+    'formation': 'Congé formation',
+    'exceptionnel': 'Congé exceptionnel'
+}
+
+STATUTS_CONGE = {
+    'en_attente': 'En attente',
+    'approuve': 'Approuvé',
+    'refuse': 'Refusé',
+    'annule': 'Annulé',
+    'termine': 'Terminé'
+}
+
+
+# =============================================
+# MODÈLE POUR LES TICKETS DE SUPPORT
+# =============================================
+
+class TicketSupport(db.Model):
+    """Modèle pour les tickets de support informatique"""
+
+    __tablename__ = 'tickets_support'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    demandeur_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    informaticien_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    equipement_id = db.Column(db.Integer, db.ForeignKey('equipements.id'), nullable=True)
+
+    # Informations
+    titre = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    etapes = db.Column(db.Text, nullable=True)  # Étapes de résolution
+
+    # Catégorie
+    categorie = db.Column(db.String(50), nullable=False)
+    # Options: 'materiel', 'logiciel', 'reseau', 'securite', 'telephonie', 'acces', 'autre'
+
+    # Sous-catégorie
+    sous_categorie = db.Column(db.String(50), nullable=True)
+
+    # Priorité
+    priorite = db.Column(db.String(20), default='moyenne')
+    # Options: 'basse', 'moyenne', 'haute', 'critique'
+
+    # Urgence
+    urgence = db.Column(db.Boolean, default=False)
+
+    # Statut
+    statut = db.Column(db.String(20), default='nouveau')
+    # Options: 'nouveau', 'en_cours', 'en_attente', 'resolu', 'ferme', 'annule'
+
+    # Dates
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_attribution = db.Column(db.DateTime, nullable=True)
+    date_debut_traitement = db.Column(db.DateTime, nullable=True)
+    date_resolution = db.Column(db.DateTime, nullable=True)
+    date_fermeture = db.Column(db.DateTime, nullable=True)
+    date_echeance = db.Column(db.DateTime, nullable=True)
+
+    # Résolution
+    solution = db.Column(db.Text, nullable=True)
+    commentaires = db.Column(db.Text, nullable=True)
+
+    # Satisfaction
+    satisfaction = db.Column(db.Integer, nullable=True)  # 1-5
+    commentaire_satisfaction = db.Column(db.Text, nullable=True)
+
+    # Temps
+    temps_estime = db.Column(db.Integer, nullable=True)  # en minutes
+    temps_reel = db.Column(db.Integer, nullable=True)  # en minutes
+
+    # Métadonnées
+    pieces_jointes = db.Column(db.Text, nullable=True)  # Chemins des fichiers
+    version_os = db.Column(db.String(50), nullable=True)
+    navigateur = db.Column(db.String(50), nullable=True)
+    capture_ecran = db.Column(db.Text, nullable=True)
+
+    # Relations inverses
+    demandeur = db.relationship('User', foreign_keys=[demandeur_id], backref='tickets_demandes', lazy=True)
+    informaticien = db.relationship('User', foreign_keys=[informaticien_id], backref='tickets_assignes', lazy=True)
+    equipement = db.relationship('Equipement', backref='tickets', lazy=True)
+
+    def __repr__(self):
+        return f'<TicketSupport {self.id} - {self.titre} - {self.statut}>'
+
+    @staticmethod
+    def get_nouveaux(informaticien_id=None, limit=None):
+        """Récupère les tickets nouveaux"""
+        query = TicketSupport.query.filter_by(statut='nouveau').order_by(
+            TicketSupport.priorite.desc(),
+            TicketSupport.date_creation.asc()
+        )
+        if informaticien_id:
+            query = query.filter_by(informaticien_id=informaticien_id)
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_en_cours(informaticien_id=None, limit=None):
+        """Récupère les tickets en cours"""
+        query = TicketSupport.query.filter(
+            TicketSupport.statut.in_(['en_cours', 'en_attente'])
+        ).order_by(TicketSupport.priorite.desc(), TicketSupport.date_modification.desc())
+        if informaticien_id:
+            query = query.filter_by(informaticien_id=informaticien_id)
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_urgents(informaticien_id=None):
+        """Récupère les tickets urgents"""
+        query = TicketSupport.query.filter(
+            TicketSupport.priorite.in_(['haute', 'critique']),
+            TicketSupport.statut.in_(['nouveau', 'en_cours', 'en_attente'])
+        ).order_by(TicketSupport.priorite.desc(), TicketSupport.date_creation.asc())
+        if informaticien_id:
+            query = query.filter_by(informaticien_id=informaticien_id)
+        return query.all()
+
+    @staticmethod
+    def get_par_demandeur(demandeur_id, limit=None):
+        """Récupère les tickets d'un demandeur"""
+        query = TicketSupport.query.filter_by(demandeur_id=demandeur_id).order_by(
+            TicketSupport.date_creation.desc()
+        )
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_statistiques(informaticien_id=None):
+        """Statistiques des tickets"""
+        query = TicketSupport.query
+        if informaticien_id:
+            query = query.filter_by(informaticien_id=informaticien_id)
+
+        total = query.count()
+        nouveaux = query.filter_by(statut='nouveau').count()
+        en_cours = query.filter_by(statut='en_cours').count()
+        en_attente = query.filter_by(statut='en_attente').count()
+        resolus = query.filter_by(statut='resolu').count()
+        fermes = query.filter_by(statut='ferme').count()
+        annules = query.filter_by(statut='annule').count()
+
+        # Par priorité
+        critiques = query.filter_by(priorite='critique').count()
+        hautes = query.filter_by(priorite='haute').count()
+        moyennes = query.filter_by(priorite='moyenne').count()
+        basses = query.filter_by(priorite='basse').count()
+
+        # Par catégorie
+        categories = {}
+        for cat in ['materiel', 'logiciel', 'reseau', 'securite', 'telephonie', 'acces', 'autre']:
+            count = query.filter_by(categorie=cat).count()
+            categories[cat] = count
+
+        # Temps moyen de résolution
+        temps_total = db.session.query(db.func.sum(TicketSupport.temps_reel)).filter(
+            TicketSupport.statut.in_(['resolu', 'ferme'])
+        )
+        if informaticien_id:
+            temps_total = temps_total.filter_by(informaticien_id=informaticien_id)
+        temps_total = temps_total.scalar() or 0
+
+        nb_resolus = resolus + fermes
+        temps_moyen = round(temps_total / nb_resolus, 2) if nb_resolus > 0 else 0
+
+        # Taux de résolution
+        taux_resolution = round(((resolus + fermes) / total * 100), 2) if total > 0 else 0
+
+        # Satisfaction moyenne
+        satisfaction = query.filter(TicketSupport.satisfaction.isnot(None))
+        satisfaction_moyenne = db.session.query(db.func.avg(TicketSupport.satisfaction)).filter(
+            TicketSupport.statut.in_(['resolu', 'ferme'])
+        )
+        if informaticien_id:
+            satisfaction_moyenne = satisfaction_moyenne.filter_by(informaticien_id=informaticien_id)
+        satisfaction_moyenne = satisfaction_moyenne.scalar() or 0
+
+        return {
+            'total': total,
+            'nouveaux': nouveaux,
+            'en_cours': en_cours,
+            'en_attente': en_attente,
+            'resolus': resolus,
+            'fermes': fermes,
+            'annules': annules,
+            'critiques': critiques,
+            'hautes': hautes,
+            'moyennes': moyennes,
+            'basses': basses,
+            'categories': categories,
+            'temps_moyen': temps_moyen,
+            'taux_resolution': taux_resolution,
+            'satisfaction_moyenne': round(satisfaction_moyenne, 2)
+        }
+
+    def attribuer(self, informaticien_id):
+        """Attribue le ticket à un informaticien"""
+        self.informaticien_id = informaticien_id
+        self.statut = 'en_cours'
+        self.date_attribution = datetime.utcnow()
+        self.date_debut_traitement = datetime.utcnow()
+        db.session.commit()
+
+    def resoudre(self, solution=None, temps=None):
+        """Résout le ticket"""
+        self.statut = 'resolu'
+        self.date_resolution = datetime.utcnow()
+        if solution:
+            self.solution = solution
+        if temps:
+            self.temps_reel = temps
+        db.session.commit()
+
+    def fermer(self, commentaires=None):
+        """Ferme le ticket"""
+        self.statut = 'ferme'
+        self.date_fermeture = datetime.utcnow()
+        if commentaires:
+            self.commentaires = commentaires
+        db.session.commit()
+
+    def annuler(self, motif=None):
+        """Annule le ticket"""
+        self.statut = 'annule'
+        if motif:
+            self.commentaires = motif
+        db.session.commit()
+
+    def mettre_en_attente(self, motif=None):
+        """Met le ticket en attente"""
+        self.statut = 'en_attente'
+        if motif:
+            self.commentaires = motif
+        db.session.commit()
+
+    def noter_satisfaction(self, note, commentaire=None):
+        """Note la satisfaction"""
+        self.satisfaction = note
+        if commentaire:
+            self.commentaire_satisfaction = commentaire
+        db.session.commit()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'titre': self.titre,
+            'description': self.description,
+            'categorie': self.categorie,
+            'priorite': self.priorite,
+            'statut': self.statut,
+            'demandeur_id': self.demandeur_id,
+            'demandeur_nom': f"{self.demandeur.prenom} {self.demandeur.nom}" if self.demandeur else None,
+            'informaticien_id': self.informaticien_id,
+            'informaticien_nom': f"{self.informaticien.prenom} {self.informaticien.nom}" if self.informaticien else None,
+            'date_creation': self.date_creation.isoformat(),
+            'date_resolution': self.date_resolution.isoformat() if self.date_resolution else None,
+            'solution': self.solution,
+            'satisfaction': self.satisfaction,
+            'temps_estime': self.temps_estime,
+            'temps_reel': self.temps_reel
+        }
+
+
+# =============================================
+# MODÈLE POUR LES ÉQUIPEMENTS
+# =============================================
+
+class Equipement(db.Model):
+    """Modèle pour les équipements informatiques"""
+
+    __tablename__ = 'equipements'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Relations
+    informaticien_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    utilisateur_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Utilisateur assigné
+
+    # Informations générales
+    nom = db.Column(db.String(100), nullable=False)
+    marque = db.Column(db.String(50), nullable=True)
+    modele = db.Column(db.String(50), nullable=True)
+
+    # Type d'équipement
+    type_equipement = db.Column(db.String(50), nullable=False)
+    # Options: 'pc', 'serveur', 'imprimante', 'reseau', 'telephonie', 'accessoire', 'autre'
+
+    # Identification
+    numero_serie = db.Column(db.String(100), unique=True, nullable=True)
+    code_inventaire = db.Column(db.String(50), unique=True, nullable=True)
+    mac_adresse = db.Column(db.String(50), nullable=True)
+    ip_adresse = db.Column(db.String(50), nullable=True)
+
+    # Caractéristiques
+    processeur = db.Column(db.String(100), nullable=True)
+    ram = db.Column(db.String(20), nullable=True)  # ex: "8 Go"
+    stockage = db.Column(db.String(50), nullable=True)  # ex: "256 Go SSD"
+    systeme_exploitation = db.Column(db.String(50), nullable=True)
+
+    # Localisation
+    localisation = db.Column(db.String(200), nullable=True)
+    batiment = db.Column(db.String(50), nullable=True)
+    bureau = db.Column(db.String(50), nullable=True)
+
+    # Statut
+    statut = db.Column(db.String(20), default='operationnel')
+    # Options: 'operationnel', 'maintenance', 'panne', 'reforme', 'reserve'
+
+    # Dates
+    date_acquisition = db.Column(db.DateTime, nullable=True)
+    date_mise_en_service = db.Column(db.DateTime, nullable=True)
+    date_derniere_maintenance = db.Column(db.DateTime, nullable=True)
+    date_prochaine_maintenance = db.Column(db.DateTime, nullable=True)
+    date_garantie_fin = db.Column(db.DateTime, nullable=True)
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Métadonnées
+    fournisseur = db.Column(db.String(100), nullable=True)
+    prix_achat = db.Column(db.Float, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+
+    # Relations inverses
+    informaticien = db.relationship('User', foreign_keys=[informaticien_id], backref='equipements_gere', lazy=True)
+    utilisateur = db.relationship('User', foreign_keys=[utilisateur_id], backref='equipements_assignes', lazy=True)
+
+    def __repr__(self):
+        return f'<Equipement {self.id} - {self.nom} - {self.type_equipement}>'
+
+    @staticmethod
+    def get_operationnels(informaticien_id=None, limit=None):
+        """Récupère les équipements opérationnels"""
+        query = Equipement.query.filter_by(statut='operationnel')
+        if informaticien_id:
+            query = query.filter_by(informaticien_id=informaticien_id)
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def get_en_maintenance(informaticien_id=None):
+        """Récupère les équipements en maintenance"""
+        query = Equipement.query.filter_by(statut='maintenance')
+        if informaticien_id:
+            query = query.filter_by(informaticien_id=informaticien_id)
+        return query.all()
+
+    @staticmethod
+    def get_par_type(informaticien_id=None, type_equipement=None):
+        """Récupère les équipements par type"""
+        query = Equipement.query
+        if informaticien_id:
+            query = query.filter_by(informaticien_id=informaticien_id)
+        if type_equipement:
+            query = query.filter_by(type_equipement=type_equipement)
+        return query.all()
+
+    @staticmethod
+    def get_par_utilisateur(utilisateur_id):
+        """Récupère les équipements assignés à un utilisateur"""
+        return Equipement.query.filter_by(utilisateur_id=utilisateur_id).all()
+
+    @staticmethod
+    def get_statistiques(informaticien_id=None):
+        """Statistiques des équipements"""
+        query = Equipement.query
+        if informaticien_id:
+            query = query.filter_by(informaticien_id=informaticien_id)
+
+        total = query.count()
+        operationnels = query.filter_by(statut='operationnel').count()
+        maintenance = query.filter_by(statut='maintenance').count()
+        panne = query.filter_by(statut='panne').count()
+        reforme = query.filter_by(statut='reforme').count()
+        reserve = query.filter_by(statut='reserve').count()
+
+        # Par type
+        types = {}
+        for t in ['pc', 'serveur', 'imprimante', 'reseau', 'telephonie', 'accessoire', 'autre']:
+            count = query.filter_by(type_equipement=t).count()
+            types[t] = count
+
+        # Par localisation
+        localisations = {}
+        for equip in query.all():
+            if equip.localisation:
+                localisations[equip.localisation] = localisations.get(equip.localisation, 0) + 1
+
+        # Âge moyen
+        ages = []
+        for equip in query.filter(Equipement.date_acquisition.isnot(None)).all():
+            age = (datetime.utcnow() - equip.date_acquisition).days
+            ages.append(age)
+        age_moyen = round(sum(ages) / len(ages), 2) if ages else 0
+
+        return {
+            'total': total,
+            'operationnels': operationnels,
+            'maintenance': maintenance,
+            'panne': panne,
+            'reforme': reforme,
+            'reserve': reserve,
+            'types': types,
+            'localisations': localisations,
+            'age_moyen_jours': age_moyen,
+            'age_moyen_ans': round(age_moyen / 365, 2) if age_moyen > 0 else 0
+        }
+
+    def assigner(self, utilisateur_id):
+        """Assigne l'équipement à un utilisateur"""
+        self.utilisateur_id = utilisateur_id
+        db.session.commit()
+
+    def liberer(self):
+        """Libère l'équipement"""
+        self.utilisateur_id = None
+        db.session.commit()
+
+    def changer_statut(self, statut, notes=None):
+        """Change le statut de l'équipement"""
+        self.statut = statut
+        if notes:
+            self.notes = notes
+        db.session.commit()
+
+    def planifier_maintenance(self, date_maintenance):
+        """Planifie une maintenance"""
+        self.date_prochaine_maintenance = date_maintenance
+        if self.statut == 'operationnel':
+            self.statut = 'maintenance'
+        db.session.commit()
+
+    def effectuer_maintenance(self):
+        """Effectue la maintenance"""
+        self.date_derniere_maintenance = datetime.utcnow()
+        self.date_prochaine_maintenance = None
+        if self.statut == 'maintenance':
+            self.statut = 'operationnel'
+        db.session.commit()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nom': self.nom,
+            'marque': self.marque,
+            'modele': self.modele,
+            'type_equipement': self.type_equipement,
+            'numero_serie': self.numero_serie,
+            'code_inventaire': self.code_inventaire,
+            'mac_adresse': self.mac_adresse,
+            'ip_adresse': self.ip_adresse,
+            'processeur': self.processeur,
+            'ram': self.ram,
+            'stockage': self.stockage,
+            'systeme_exploitation': self.systeme_exploitation,
+            'localisation': self.localisation,
+            'statut': self.statut,
+            'date_acquisition': self.date_acquisition.isoformat() if self.date_acquisition else None,
+            'date_mise_en_service': self.date_mise_en_service.isoformat() if self.date_mise_en_service else None,
+            'date_garantie_fin': self.date_garantie_fin.isoformat() if self.date_garantie_fin else None,
+            'fournisseur': self.fournisseur,
+            'prix_achat': self.prix_achat,
+            'utilisateur_id': self.utilisateur_id,
+            'utilisateur_nom': f"{self.utilisateur.prenom} {self.utilisateur.nom}" if self.utilisateur else None
+        }
+
+
+# =============================================
+# MODÈLE POUR L'HISTORIQUE DES TICKETS
+# =============================================
+
+class HistoriqueTicket(db.Model):
+    """Modèle pour l'historique des tickets de support"""
+
+    __tablename__ = 'historique_tickets'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    ticket_id = db.Column(db.Integer, db.ForeignKey('tickets_support.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    action = db.Column(db.String(50), nullable=False)
+    # Options: 'creation', 'attribution', 'debut_traitement', 'mise_en_attente', 'resolution', 'fermeture', 'annulation', 'commentaire'
+
+    ancien_statut = db.Column(db.String(20), nullable=True)
+    nouveau_statut = db.Column(db.String(20), nullable=True)
+
+    commentaire = db.Column(db.Text, nullable=True)
+
+    date_action = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relations
+    ticket = db.relationship('TicketSupport', backref='historique', lazy=True)
+    user = db.relationship('User', backref='historique_tickets', lazy=True)
+
+    def __repr__(self):
+        return f'<HistoriqueTicket {self.id} - Ticket {self.ticket_id} - {self.action}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'ticket_id': self.ticket_id,
+            'user_id': self.user_id,
+            'user_nom': f"{self.user.prenom} {self.user.nom}" if self.user else None,
+            'action': self.action,
+            'ancien_statut': self.ancien_statut,
+            'nouveau_statut': self.nouveau_statut,
+            'commentaire': self.commentaire,
+            'date_action': self.date_action.isoformat()
+        }
+
+
+# =============================================
+# CONSTANTES
+# =============================================
+
+CATEGORIES_TICKET = {
+    'materiel': 'Matériel',
+    'logiciel': 'Logiciel',
+    'reseau': 'Réseau',
+    'securite': 'Sécurité',
+    'telephonie': 'Téléphonie',
+    'acces': 'Accès',
+    'autre': 'Autre'
+}
+
+PRIORITES_TICKET = {
+    'basse': 'Basse',
+    'moyenne': 'Moyenne',
+    'haute': 'Haute',
+    'critique': 'Critique'
+}
+
+STATUTS_TICKET = {
+    'nouveau': 'Nouveau',
+    'en_cours': 'En cours',
+    'en_attente': 'En attente',
+    'resolu': 'Résolu',
+    'ferme': 'Fermé',
+    'annule': 'Annulé'
+}
+
+TYPES_EQUIPEMENT = {
+    'pc': 'Poste de travail',
+    'serveur': 'Serveur',
+    'imprimante': 'Imprimante',
+    'reseau': 'Équipement réseau',
+    'telephonie': 'Téléphonie',
+    'accessoire': 'Accessoire',
+    'autre': 'Autre'
+}
+
+STATUTS_EQUIPEMENT = {
+    'operationnel': 'Opérationnel',
+    'maintenance': 'En maintenance',
+    'panne': 'En panne',
+    'reforme': 'Réformé',
+    'reserve': 'En réserve'
+}
+
+ACTIONS_HISTORIQUE_TICKET = {
+    'creation': 'Création',
+    'attribution': 'Attribution',
+    'debut_traitement': 'Début traitement',
+    'mise_en_attente': 'Mise en attente',
+    'resolution': 'Résolution',
+    'fermeture': 'Fermeture',
+    'annulation': 'Annulation',
+    'commentaire': 'Commentaire'
+}
 
 class Permission(db.Model):
     __tablename__ = 'permissions'
@@ -1777,7 +5094,7 @@ class Formation(db.Model):
 
     # Lieu
     lieu = db.Column(db.String(200), nullable=True)
-    formateur = db.Column(db.String(100), nullable=True)
+    formateur = db.Column(db.String(100), nullable=True)  # Gardez ce champ pour l'affichage
 
     # Capacité
     capacite_max = db.Column(db.Integer, default=20)
@@ -1793,8 +5110,15 @@ class Formation(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
 
+    # ⚠️ AJOUTEZ D'ABORD CETTE COLONNE ICI ⚠️
+    formateur_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # <-- À AJOUTER
+
     # Relations
     participants = db.relationship('FormationParticipant', backref='formation', lazy='dynamic')
+
+    # ENSUITE, ajoutez les relations (après avoir défini toutes les colonnes)
+    formateur_user = db.relationship('User', foreign_keys=[formateur_id], backref='formations_enseignees')
+    created_by_user = db.relationship('User', foreign_keys=[created_by], backref='formations_crees')
 
     def __repr__(self):
         return f'<Formation {self.id}: {self.titre}>'
@@ -1835,7 +5159,6 @@ class Formation(db.Model):
             db.session.commit()
             return True
         return False
-
 
 class Produit(db.Model):
     __tablename__ = 'produits'
@@ -5059,30 +8382,6 @@ class Reunion(db.Model):
 
 
 
-
-class AlerteConformite(db.Model):
-    __tablename__ = "alertes_conformite"
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=True)
-    pret_id = db.Column(db.Integer, db.ForeignKey("prets.id"), nullable=True)
-    transaction_id = db.Column(db.Integer, db.ForeignKey("transactions.id"), nullable=True)
-
-    type_alerte = db.Column(db.String(100), nullable=False)
-    message = db.Column(db.Text, nullable=False)
-
-    niveau_risque = db.Column(db.String(50), default="moyen")
-    statut = db.Column(db.String(50), default="non_traitee")
-
-    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
-    traite_par = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
-    date_traitement = db.Column(db.DateTime, nullable=True)
-
-    # Relations (optionnel mais recommandé)
-    client = db.relationship("Client", backref="alertes")
-    pret = db.relationship("Pret", backref="alertes")
-    transaction = db.relationship("Transaction", backref="alertes")
 
 
 ## ✅ **Classe Action**

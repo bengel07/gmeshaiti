@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Superviseur Crédit{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">
+                    <i class="fas fa-user-tie"></i>
+                    Dashboard Superviseur Crédit
+                </h4>
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard_redirect') }}">Accueil</a></li>
+                    <li class="breadcrumb-item active">Superviseur Crédit</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- STATISTIQUES RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Prêts en attente</h6>
+                            <h2 class="mb-0 text-white">{{ prets_en_attente or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-clock fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Prêts approuvés</h6>
+                            <h2 class="mb-0 text-white">{{ prets_approuves or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-check-circle fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50">Prêts rejetés</h6>
+                            <h2 class="mb-0 text-white">{{ prets_rejetes or 0 }}</h2>
+                        </div>
+                        <i class="fas fa-times-circle fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-dark-50">Montant total</h6>
+                            <h2 class="mb-0">{{ "{:,.0f}".format(montant_total or 0) }} G</h2>
+                        </div>
+                        <i class="fas fa-money-bill-wave fa-3x text-dark-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIONS RAPIDES -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt"></i> Actions rapides</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('superviseur_credit_attentes') }}" class="btn btn-warning btn-block">
+                                <i class="fas fa-hourglass-half"></i> Prêts en attente
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('superviseur_credit_approuver') }}" class="btn btn-success btn-block">
+                                <i class="fas fa-check"></i> Approuver un prêt
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('superviseur_credit_agents') }}" class="btn btn-info btn-block">
+                                <i class="fas fa-users"></i> Agents sous supervision
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <a href="{{ url_for('superviseur_credit_rapports') }}" class="btn btn-primary btn-block">
+                                <i class="fas fa-file-alt"></i> Rapports
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- PRÊTS EN ATTENTE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-hourglass-half text-warning"></i> Prêts en attente de validation</h5>
+                    <span class="badge badge-warning float-right">{{ prets_en_attente or 0 }}</span>
+                </div>
+                <div class="card-body">
+                    {% if prets_en_attente_liste %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Montant</th>
+                                        <th>Durée</th>
+                                        <th>Agent</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for pret in prets_en_attente_liste %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ pret.client.prenom }} {{ pret.client.nom }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ pret.client.telephone }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="font-weight-bold">{{ "{:,.0f}".format(pret.montant) }} G</span>
+                                        </td>
+                                        <td>{{ pret.duree_mois }} mois</td>
+                                        <td>
+                                            <small>{{ pret.agent.prenom }} {{ pret.agent.nom }}</small>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('superviseur_credit_voir_pret', pret_id=pret.id) }}"
+                                               class="btn btn-sm btn-primary">
+                                                <i class="fas fa-eye"></i> Voir
+                                            </a>
+                                            <a href="{{ url_for('superviseur_credit_approuver_pret', pret_id=pret.id) }}"
+                                               class="btn btn-sm btn-success">
+                                                <i class="fas fa-check"></i>
+                                            </a>
+                                            <a href="{{ url_for('superviseur_credit_rejeter_pret', pret_id=pret.id) }}"
+                                               class="btn btn-sm btn-danger">
+                                                <i class="fas fa-times"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
+                            <p>Aucun prêt en attente</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================= -->
+        <!-- DERNIERS PRÊTS APPROUVÉS -->
+        <!-- ============================================= -->
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history text-info"></i> Derniers prêts approuvés</h5>
+                </div>
+                <div class="card-body">
+                    {% if derniers_prets_approuves %}
+                        <div class="list-group">
+                            {% for pret in derniers_prets_approuves %}
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-user text-primary"></i>
+                                        {{ pret.client.prenom }} {{ pret.client.nom }}
+                                    </h6>
+                                    <small class="text-muted">{{ pret.date_approbation.strftime('%d/%m/%Y') }}</small>
+                                </div>
+                                <p class="mb-1">
+                                    <span class="badge badge-success">
+                                        {{ "{:,.0f}".format(pret.montant) }} G
+                                    </span>
+                                    <span class="badge badge-info">
+                                        {{ pret.duree_mois }} mois
+                                    </span>
+                                    <span class="badge badge-secondary">
+                                        {{ pret.taux_interet }}%
+                                    </span>
+                                </p>
+                                <small class="text-muted">
+                                    <i class="fas fa-user-tie"></i> Agent: {{ pret.agent.prenom }} {{ pret.agent.nom }}
+                                </small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+                            <p>Aucun prêt approuvé récemment</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- PERFORMANCE DES AGENTS -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar text-info"></i> Performance des agents de crédit</h5>
+                </div>
+                <div class="card-body">
+                    {% if agents_performance %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Agent</th>
+                                        <th>Prêts traités</th>
+                                        <th>Approuvés</th>
+                                        <th>Rejetés</th>
+                                        <th>Taux d'approbation</th>
+                                        <th>Montant total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for agent in agents_performance %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ agent.prenom }} {{ agent.nom }}</strong>
+                                        </td>
+                                        <td>{{ agent.total_prets }}</td>
+                                        <td class="text-success">{{ agent.approuves }}</td>
+                                        <td class="text-danger">{{ agent.rejetes }}</td>
+                                        <td>
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar bg-{{ 'success' if agent.taux_approbation >= 70 else 'warning' if agent.taux_approbation >= 50 else 'danger' }}"
+                                                     role="progressbar"
+                                                     style="width: {{ agent.taux_approbation }}%;"
+                                                     aria-valuenow="{{ agent.taux_approbation }}"
+                                                     aria-valuemin="0"
+                                                     aria-valuemax="100">
+                                                    {{ agent.taux_approbation }}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ "{:,.0f}".format(agent.montant_total) }} G</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-users fa-3x text-muted mb-2"></i>
+                            <p>Aucun agent sous votre supervision</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ANALYSE CRÉDIT -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie text-primary"></i> Répartition des prêts</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="repartitionPrets" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-line text-success"></i> Évolution mensuelle</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="evolutionPrets" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- ACTIVITÉ RÉCENTE -->
+    <!-- ============================================= -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-clock text-muted"></i> Activité récente</h5>
+                </div>
+                <div class="card-body">
+                    {% if activites_recentes %}
+                        <ul class="list-unstyled">
+                            {% for activite in activites_recentes %}
+                            <li class="media mb-3">
+                                <div class="mr-3">
+                                    <span class="badge badge-{{ activite.couleur }} p-2">
+                                        <i class="fas fa-{{ activite.icone }}"></i>
+                                    </span>
+                                </div>
+                                <div class="media-body">
+                                    <h6 class="mt-0 mb-1">{{ activite.message }}</h6>
+                                    <small class="text-muted">{{ activite.date.strftime('%d/%m/%Y à %H:%M') }}</small>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-3x text-muted mb-2"></i>
+                            <p>Aucune activité récente</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    $(document).ready(function() {
+        // Graphique - Répartition des prêts
+        var ctx1 = document.getElementById('repartitionPrets').getContext('2d');
+        new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                labels: ['Approuvés', 'En attente', 'Rejetés'],
+                datasets: [{
+                    data: [
+                        {{ prets_approuves or 0 }},
+                        {{ prets_en_attente or 0 }},
+                        {{ prets_rejetes or 0 }}
+                    ],
+                    backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Graphique - Évolution mensuelle
+        var ctx2 = document.getElementById('evolutionPrets').getContext('2d');
+        new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: {{ mois_labels|tojson }},
+                datasets: [
+                    {
+                        label: 'Approuvés',
+                        data: {{ evolution_approuves|tojson }},
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        fill: true
+                    },
+                    {
+                        label: 'En attente',
+                        data: {{ evolution_attente|tojson }},
+                        borderColor: '#ffc107',
+                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Rafraîchir les statistiques toutes les 60 secondes
+        setInterval(function() {
+            location.reload();
+        }, 60000);
+    });
+</script>
+{% endblock %}
