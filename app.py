@@ -9818,62 +9818,7 @@ def calcul_pret():
     })
 
 
-@app.route('/admin/dashboard')
-@login_required
-def admin_dashboard():
 
-    from views import PAGES
-
-    if current_user.role not in ['super_admin', 'admin_succursale', 'admin_central']:
-        flash("Accès refusé", "danger")
-        return redirect(url_for('tableau_de_bord'))
-
-    # 📍 Succursales visibles
-    if current_user.role == 'super_admin':
-        succursales = Succursale.query.all()
-    else:
-        succursales = Succursale.query.filter_by(
-            id=current_user.succursale_id
-        ).all()
-
-    stats_par_succursale = {}
-
-    for s in succursales:
-        stats_par_succursale[s.id] = {
-            "clients": Client.query.filter_by(succursale_id=s.id).count(),
-            "prets_actifs": Pret.query.filter_by(
-                succursale_id=s.id, statut='actif'
-            ).count(),
-            "remboursements": Remboursement.query.filter_by(
-                succursale_id=s.id
-            ).count()
-        }
-
-    # 👥 UTILISATEURS (calcul global, PAS dans la boucle)
-    total_admins = User.query.filter(
-        User.role.in_(["super_admin", "admin_succursale"])
-    ).count()
-
-    total_agents = User.query.filter_by(role="agent").count()
-
-    total_clients = Client.query.count()
-
-    comptes_en_attente = User.query.filter_by(
-        statut="en_attente"
-    ).all()
-
-    return render_template(
-        'admin_central/dashboard.html',
-        succursales=succursales,
-        stats_par_succursale=stats_par_succursale,
-        total_admins=total_admins,
-        total_agents=total_agents,
-        total_clients=total_clients,
-        pages=PAGES,
-        role=session.get('role'),  # 👈 AJOUTE CECI
-        username=session.get('user'),  # 👈 AJOUTE CECI
-        comptes_en_attente=comptes_en_attente
-    )
 
 
 @app.route('/admin/succursales')
@@ -16155,6 +16100,63 @@ def admin_succursale_dashboard():
         stats=stats
     )
 
+
+@app.route('/admin/dashboard')
+@login_required
+def admin_dashboard():
+
+    from views import PAGES
+
+    if current_user.role not in ['super_admin', 'admin_succursale', 'admin_central']:
+        flash("Accès refusé", "danger")
+        return redirect(url_for('tableau_de_bord'))
+
+    # 📍 Succursales visibles
+    if current_user.role == 'super_admin':
+        succursales = Succursale.query.all()
+    else:
+        succursales = Succursale.query.filter_by(
+            id=current_user.succursale_id
+        ).all()
+
+    stats_par_succursale = {}
+
+    for s in succursales:
+        stats_par_succursale[s.id] = {
+            "clients": Client.query.filter_by(succursale_id=s.id).count(),
+            "prets_actifs": Pret.query.filter_by(
+                succursale_id=s.id, statut='actif'
+            ).count(),
+            "remboursements": Remboursement.query.filter_by(
+                succursale_id=s.id
+            ).count()
+        }
+
+    # 👥 UTILISATEURS (calcul global, PAS dans la boucle)
+    total_admins = User.query.filter(
+        User.role.in_(["super_admin", "admin_succursale"])
+    ).count()
+
+    total_agents = User.query.filter_by(role="agent").count()
+
+    total_clients = Client.query.count()
+
+    comptes_en_attente = User.query.filter_by(
+        statut="en_attente"
+    ).all()
+
+    return render_template(
+        'admin_central/dashboard.html',
+        succursales=succursales,
+        stats_par_succursale=stats_par_succursale,
+        total_admins=total_admins,
+        total_agents=total_agents,
+        total_clients=total_clients,
+        pages=PAGES,
+        role=session.get('role'),  # 👈 AJOUTE CECI
+        username=session.get('user'),  # 👈 AJOUTE CECI
+        comptes_en_attente=comptes_en_attente
+    )
 
 @app.route('/synchroniser-donnees')
 @login_required

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block content %}
 
+{% block content %}
 <div class="container-fluid py-4">
 
-    <!-- 🏦 HEADER avec photo de profil du responsable -->
+    <!-- 🏦 HEADER avec photo de profil et NOTIFICATIONS -->
     <div class="profile-header mb-4"
          style="background: linear-gradient(135deg, {{ succursale.couleur|default('#0b3b4f') }}, #1a566e);
                 padding: 2rem;
@@ -24,28 +24,32 @@
         </div>
 
         <div style="flex: 1;">
-            <h1 style="font-size: 2.2rem; margin-bottom: 0.5rem;">
-                <i class="fas fa-store-alt"></i> {{ succursale.nom }} ({{ succursale.code }})
-            </h1>
-            <p style="margin: 0; opacity: 0.9; display: flex; gap: 1.5rem; flex-wrap: wrap;">
-                <span><i class="fas fa-map-marker-alt"></i> {{ succursale.ville }} | {{ succursale.adresse }}</span>
-                <span><i class="fas fa-user"></i> {{ current_user.prenom }} {{ current_user.nom }} - {{ current_user.role }}- {{ current_user.fonction }}</span>
-            </p>
-        </div>
-    </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 style="font-size: 2.2rem; margin-bottom: 0.5rem;">
+                        <i class="fas fa-store-alt"></i> {{ succursale.nom }} ({{ succursale.code }})
+                    </h1>
+                    <p style="margin: 0; opacity: 0.9; display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                        <span><i class="fas fa-map-marker-alt"></i> {{ succursale.ville }} | {{ succursale.adresse }}</span>
+                        <span><i class="fas fa-user"></i> {{ current_user.prenom }} {{ current_user.nom }} - {{ current_user.role }}</span>
+                    </p>
+                </div>
 
-    <!-- Icône de notification avec badge -->
-    <div class="notification-icon" id="notificationBell"
-         style="position: relative; cursor: pointer; background: rgba(255,255,255,0.2); padding: 12px 20px; border-radius: 50px; display: flex; align-items: center; gap: 10px;">
-        <i class="fas fa-bell" style="font-size: 1.5rem;"></i>
-        <span class="notification-badge" id="notificationBadge"
-              style="position: absolute; top: -5px; right: -5px;
-                     background: #dc3545; color: white; border-radius: 50%;
-                     padding: 3px 8px; font-size: 12px; min-width: 20px; text-align: center;
-                     display: none;">
-            0
-        </span>
-        <span>Notifications</span>
+                <!-- 🔔 NOTIFICATIONS BADGE -->
+                <div class="notification-icon" id="notificationBell"
+                     style="position: relative; cursor: pointer; background: rgba(255,255,255,0.2); padding: 12px 20px; border-radius: 50px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-bell" style="font-size: 1.5rem;"></i>
+                    <span class="notification-badge" id="notificationBadge"
+                          style="position: absolute; top: -5px; right: -5px;
+                                 background: #dc3545; color: white; border-radius: 50%;
+                                 padding: 3px 8px; font-size: 12px; min-width: 20px; text-align: center;
+                                 display: none;">
+                        0
+                    </span>
+                    <span>Notifications</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- 📊 STATISTIQUES -->
@@ -60,7 +64,7 @@
         <div class="stat-card green">
             <div class="stat-icon"><i class="fas fa-user-tie fa-2x"></i></div>
             <div>
-                <h3>{{ stats.employes }}</h3>
+                <h3>{{ stats.employees }}</h3>
                 <p>Employés</p>
             </div>
         </div>
@@ -74,7 +78,7 @@
         <div class="stat-card purple">
             <div class="stat-icon"><i class="fas fa-coins fa-2x"></i></div>
             <div>
-                <h3>{{ stats.remboursements }} HTG</h3>
+                <h3>{{ stats.remboursements }} GDES</h3>
                 <p>Remboursements</p>
             </div>
         </div>
@@ -91,7 +95,7 @@
             <i class="fas fa-user-tie"></i> Gérer employés
         </a>
 
-        <a href="{{ url_for('liste_clients', succursale_code=succursale.code) }}" class="btn-action success">
+        <a href="{{ url_for('liste_clients'}}" class="btn-action success">
             <i class="fas fa-users"></i> Gérer clients
         </a>
 
@@ -107,11 +111,6 @@
             <i class="fas fa-folder-open"></i> Tous les dossiers
         </a>
 
-        <!-- Dans dashboard_succursale.html, corrigez le lien : -->
-        <a href="{{ url_for('directeur_tous_les_dossiers') }}" class="btn-action dark">
-            <i class="fas fa-folder-open"></i> Dossiers de la succursale
-        </a>
-
         {% if current_user.role == 'super_admin' %}
         <a href="{{ url_for('edit_succursale', succ_id=succursale.id) }}" class="btn-action danger">
             <i class="fas fa-edit"></i> Modifier succursale
@@ -119,9 +118,7 @@
         {% endif %}
     </div>
 
-</div>
-
- <!-- 📂 DERNIERS DOSSIERS -->
+    <!-- 📂 DERNIERS DOSSIERS -->
     <h3 style="color: #0b3b4f; margin: 40px 0 20px;">
         <i class="fas fa-clock"></i> Derniers dossiers
     </h3>
@@ -144,7 +141,7 @@
                     <td>#{{ dossier.id }}</td>
                     <td>{{ dossier.nom }}</td>
                     <td>{{ dossier.type }}</td>
-                    <td>{{ dossier.date_creation.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ dossier.date_inscription.strftime('%d/%m/%Y') }}</td>
                     <td>
                         <span class="badge bg-{{ dossier.statut_couleur }}">
                             {{ dossier.statut }}
@@ -161,105 +158,8 @@
             </tbody>
         </table>
     </div>
+
 </div>
-
-<!-- Toastr CSS & JS -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-
-<script>
-// Configuration de Toastr
-toastr.options = {
-    "closeButton": true,
-    "progressBar": true,
-    "positionClass": "toast-top-right",
-    "showDuration": "300",
-    "hideDuration": "1000",
-    "timeOut": "10000",
-    "extendedTimeOut": "1000",
-    "showEasing": "swing",
-    "hideEasing": "linear",
-    "showMethod": "fadeIn",
-    "hideMethod": "fadeOut",
-    "preventDuplicates": true,
-    "newestOnTop": true
-};
-
-// Variable pour le compteur
-let unreadCount = 0;
-const badge = document.getElementById('notificationBadge');
-
-// Fonction pour mettre à jour le badge
-function updateBadge(count) {
-    unreadCount = count;
-    if (count > 0) {
-        badge.textContent = count;
-        badge.style.display = 'inline';
-        document.title = `(${count}) {{ succursale.nom }} - Dashboard`;
-    } else {
-        badge.style.display = 'none';
-        document.title = '{{ succursale.nom }} - Dashboard';
-    }
-}
-
-// Fonction pour vérifier les nouvelles notifications
-function checkNotifications() {
-    fetch('/api/notifications/unread')
-        .then(response => response.json())
-        .then(notifications => {
-            if (notifications.length > 0) {
-                updateBadge(notifications.length);
-
-                notifications.forEach(notif => {
-                    // Déterminer l'icône selon le niveau
-                    let icon = '🔔';
-                    let level = 'info';
-
-                    if (notif.level === 'error') {
-                        icon = '🚨';
-                        level = 'error';
-                    } else if (notif.level === 'warning') {
-                        icon = '⚠️';
-                        level = 'warning';
-                    } else if (notif.level === 'success') {
-                        icon = '✅';
-                        level = 'success';
-                    }
-
-                    // Message avec lien direct
-                    const message = `
-                        <div style="cursor: pointer;" onclick="window.location.href='${notif.lien}'">
-                            <strong>${notif.titre}</strong><br>
-                            ${notif.message}<br>
-                            <small>${notif.time}</small>
-                        </div>
-                    `;
-
-                    // Afficher Toastr
-                    toastr[level](message, `${icon} Notification`);
-
-                    // Auto-mark as read après 10 secondes
-                    setTimeout(() => {
-                        fetch(`/api/notifications/mark-read/${notif.id}`, {
-                            method: 'POST'
-                        });
-                    }, 10000);
-                });
-            }
-        });
-}
-
-// Vérifier les notifications toutes les 15 secondes
-setInterval(checkNotifications, 15000);
-
-// Vérifier au chargement
-document.addEventListener('DOMContentLoaded', checkNotifications);
-
-// Ajouter un gestionnaire de clic sur l'icône
-document.getElementById('notificationBell')?.addEventListener('click', function() {
-    window.location.href = '/admin/notifications';
-});
-</script>
 
 <style>
 .stats-grid {
@@ -379,4 +279,7 @@ document.getElementById('notificationBell')?.addEventListener('click', function(
     }
 }
 </style>
-{% endblock %}
+
+<!-- 🔔 AJOUTEZ LE SCRIPT DES NOTIFICATIONS ICI SI NÉCESSAIRE -->
+
+{% endblock %}  <!-- ← C'EST CETTE LIGNE QUI MANQUAIT -->
