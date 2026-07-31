@@ -22528,11 +22528,11 @@ def formateur_dashboard():
 
 @app.route('/api/client/recherche/<derniers_chiffres>')
 def rechercher_client_par_compte(derniers_chiffres):
-    """Recherche un client par les 5 derniers chiffres du compte"""
+    """Recherche un client par les 10 derniers chiffres du compte"""
     try:
-        # Valider que c'est bien 5 chiffres
+        # Valider que c'est bien 10 chiffres
         if not derniers_chiffres.isdigit() or len(derniers_chiffres) != 10:
-            return jsonify({'error': 'Format invalide. Entrez 5 chiffres'}), 400
+            return jsonify({'error': 'Format invalide. Entrez 10 chiffres'}), 400
 
         # Rechercher un client dont le numéro de compte se termine par ces chiffres
         # Adaptez selon votre modèle de données
