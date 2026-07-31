@@ -63,8 +63,8 @@
                             <span class="input-group-text bg-light">7-12519-</span>
                             <input type="text" class="form-control" id="compteInput"
                                    placeholder="Entrez le numéro de compte"
-                                   maxlength="5"
-                                   pattern="[0-9]{5}"
+                                   maxlength="10"
+                                   pattern="[0-9]{10}"
                                    autocomplete="off" required>
                             <button class="btn btn-primary" type="button" onclick="rechercherClientParCompte()">
                                 <i class="fas fa-search"></i> Rechercher
@@ -72,7 +72,7 @@
                         </div>
                        <small class="form-text text-muted">
                             <i class="fas fa-info-circle"></i>
-                            Format : 7-12519-XXXXX (entrez uniquement les 5 derniers chiffres)
+                            Format : 7-12519-XXXXX-XXXXX (entrez uniquement les 10 derniers chiffres)
                         </small>
                         <div id="messageErreur" class="text-danger mt-1" style="display:none;"></div>
                         <input type="hidden" name="client_id" id="clientIdHidden">
@@ -942,15 +942,15 @@
 
         // Validation : exactement 5 chiffres
         if (!derniersChiffres) {
-            messageErreur.textContent = 'Veuillez entrer les 5 derniers chiffres du compte';
+            messageErreur.textContent = 'Veuillez entrer les 10 derniers chiffres du compte';
             messageErreur.style.display = 'block';
             compteInput.focus();
             compteInput.style.borderColor = 'red';
             return;
         }
 
-        if (!/^\d{5}$/.test(derniersChiffres)) {
-            messageErreur.textContent = 'Veuillez entrer exactement 5 chiffres (ex: 12345)';
+        if (!/^\d{10}$/.test(derniersChiffres)) {
+            messageErreur.textContent = 'Veuillez entrer exactement 10 chiffres (ex: 0112345)';
             messageErreur.style.display = 'block';
             compteInput.focus();
             compteInput.style.borderColor = 'red';
@@ -1133,7 +1133,7 @@
 
             // Auto-recherche quand 5 chiffres sont saisis
             compteInput.addEventListener('input', function(e) {
-                if (this.value.length === 5) {
+                if (this.value.length === 10) {
                     // Optionnel : recherche automatique
                     // rechercherClientParCompte();
                 }
