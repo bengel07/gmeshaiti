@@ -22524,6 +22524,36 @@ def formateur_dashboard():
                            formations_a_venir_liste=formations_a_venir_liste,
                            total_formes=total_clients_formes,
                            moyenne_par_formation=0)
+
+
+@app.route('/api/client/compte/<num_compte>')
+def get_client_by_compte(num_compte):
+    """Récupère un client par son numéro de compte"""
+    try:
+        # Recherche du client par numéro de compte
+        # Adaptez selon votre modèle de données
+        client = Client.query.filter_by(numero_compte=num_compte).first()
+
+        if not client:
+            return jsonify({'error': 'Client non trouvé'}), 404
+
+        return jsonify({
+            'id': client.id,
+            'nom': client.nom,
+            'prenom': client.prenom,
+            'telephone': client.telephone,
+            'email': client.email,
+            'adresse': client.adresse,
+            'nationalite': client.nationalite,
+            'numero_compte': client.numero_compte,
+            'date_naissance': client.date_naissance.strftime('%Y-%m-%d') if client.date_naissance else None
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
 # from views import super_admin_switcher, super_admin_go, super_admin_quick_access, PAGES
 
 # === CRÉATION DES TABLES ET ADMIN AU DÉMARRAGE ===

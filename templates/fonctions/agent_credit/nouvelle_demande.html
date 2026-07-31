@@ -45,6 +45,73 @@
     </div>
 
     <form method="POST" id="formPret" class="needs-validation" novalidate enctype="multipart/form-data">
+
+        <!-- 6️⃣ Informations du client -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <span class="badge bg-white text-info me-2">6</span>
+                    <i class="fas fa-user me-2"></i>
+                    Informations du client
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label required">Numéro de compte</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="compteInput"
+                                   placeholder="Entrez le numéro de compte"
+                                   autocomplete="off" required>
+                            <button class="btn btn-primary" type="button" onclick="rechercherClientParCompte()">
+                                <i class="fas fa-search"></i> Rechercher
+                            </button>
+                        </div>
+                        <div id="messageErreur" class="text-danger mt-1" style="display:none;"></div>
+                        <input type="hidden" name="client_id" id="clientIdHidden">
+                    </div>
+                </div>
+
+                <!-- Informations du client (remplies automatiquement) -->
+                <div id="infosClient" style="display:none;" class="mt-3">
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> Client trouvé !
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <label class="form-label fw-bold">Nom :</label>
+                                <span id="clientNom"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label fw-bold">Prénom :</label>
+                                <span id="clientPrenom"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label fw-bold">Téléphone :</label>
+                                <span id="clientTelephone"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <label class="form-label fw-bold">Email :</label>
+                                <span id="clientEmail"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label fw-bold">Adresse :</label>
+                                <span id="clientAdresse"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label fw-bold">Nationalité :</label>
+                                <span id="clientNationalite"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
         <!-- 1️⃣ Informations personnelles -->
         <div class="card shadow mb-4">
             <div class="card-header bg-primary text-white">
@@ -786,6 +853,131 @@
 </style>
 
 <script>
+
+    // Fonction pour rechercher un client par son numéro de compte
+    function rechercherClientParCompte() {
+        const compteInput = document.getElementById('compteInput');
+        const numCompte = compteInput.value.trim();
+        const messageErreur = document.getElementById('messageErreur');
+        const infosClient = document.getElementById('infosClient');
+
+        // Validation
+        if (!numCompte) {
+            messageErreur.textContent = 'Veuillez entrer un numéro de compte';
+            messageErreur.style.display = 'block';
+            compteInput.focus();
+            return;
+        }
+
+        // Cacher les messages précédents
+        messageErreur.style.display = 'none';
+        infosClient.style.display = 'none';
+
+        // Désactiver le bouton pendant la recherche
+        const btn = document.querySelector('#infosClient .btn-primary');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recherche...';
+        }
+
+        // Appel API pour récupérer les infos du client
+        fetch(`/api/client/compte/${encodeURIComponent(numCompte)}`)
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('Aucun client trouvé avec ce numéro de compte');
+                    }
+                    throw new Error('Erreur lors de la recherche');
+                }
+                return response.json();
+            })
+            .then(client => {
+                // Remplir les informations dans le formulaire
+                remplirFormulaireClient(client);
+
+                // Afficher les informations
+                document.getElementById('clientNom').textContent = client.nom || 'N/A';
+                document.getElementById('clientPrenom').textContent = client.prenom || 'N/A';
+                document.getElementById('clientTelephone').textContent = client.telephone || 'N/A';
+                document.getElementById('clientEmail').textContent = client.email || 'N/A';
+                document.getElementById('clientAdresse').textContent = client.adresse || 'N/A';
+                document.getElementById('clientNationalite').textContent = client.nationalite || 'N/A';
+
+                // Stocker l'ID du client
+                document.getElementById('clientIdHidden').value = client.id;
+
+                // Afficher le bloc des informations
+                infosClient.style.display = 'block';
+                messageErreur.style.display = 'none';
+
+                // Mettre à jour la déclaration
+                const displayNom = document.getElementById('displayNom');
+                const displayPrenom = document.getElementById('displayPrenom');
+                if (displayNom) displayNom.textContent = client.nom || '[Nom]';
+                if (displayPrenom) displayPrenom.textContent = client.prenom || '[Prénom]';
+            })
+            .catch(error => {
+                messageErreur.textContent = error.message || 'Erreur lors de la recherche';
+                messageErreur.style.display = 'block';
+                infosClient.style.display = 'none';
+                document.getElementById('clientIdHidden').value = '';
+            })
+            .finally(() => {
+                // Réactiver le bouton
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-search"></i> Rechercher';
+                }
+            });
+    }
+
+    // Fonction pour remplir automatiquement le formulaire
+    function remplirFormulaireClient(client) {
+        // Liste des champs à remplir avec les données du client
+        const mapping = {
+            'nom': 'nom',
+            'prenom': 'prenom',
+            'telephone': 'telephone',
+            'email': 'email',
+            'adresse': 'adresse',
+            'nationalite': 'nationalite'
+        };
+
+        for (const [field, value] of Object.entries(mapping)) {
+            const input = document.querySelector(`[name="${field}"]`);
+            if (input && client[value] !== undefined) {
+                input.value = client[value] || '';
+                // Déclencher l'événement input pour les mises à jour
+                input.dispatchEvent(new Event('input'));
+            }
+        }
+
+        // Si le client a une nationalité, mettre à jour le select
+        if (client.nationalite) {
+            const nationaliteSelect = document.querySelector('select[name="nationalite"]');
+            if (nationaliteSelect) {
+                nationaliteSelect.value = client.nationalite;
+                nationaliteSelect.dispatchEvent(new Event('change'));
+            }
+        }
+    }
+
+    // Permettre la recherche avec la touche Entrée
+    document.addEventListener('DOMContentLoaded', function() {
+        const compteInput = document.getElementById('compteInput');
+        if (compteInput) {
+            compteInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    rechercherClientParCompte();
+                }
+            });
+        }
+    });
+
+
+
+
     document.addEventListener('DOMContentLoaded', function() {
         // Gestion de la nationalité
         const nationaliteSelect = document.querySelector('select[name="nationalite"]');
