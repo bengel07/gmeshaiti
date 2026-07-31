@@ -22526,16 +22526,22 @@ def formateur_dashboard():
                            moyenne_par_formation=0)
 
 
-@app.route('/api/client/compte/<num_compte>')
-def get_client_by_compte(num_compte):
-    """Récupère un client par son numéro de compte"""
+@app.route('/api/client/recherche/<derniers_chiffres>')
+def rechercher_client_par_compte(derniers_chiffres):
+    """Recherche un client par les 5 derniers chiffres du compte"""
     try:
-        # Recherche du client par numéro de compte
+        # Valider que c'est bien 5 chiffres
+        if not derniers_chiffres.isdigit() or len(derniers_chiffres) != 5:
+            return jsonify({'error': 'Format invalide. Entrez 5 chiffres'}), 400
+
+        # Rechercher un client dont le numéro de compte se termine par ces chiffres
         # Adaptez selon votre modèle de données
-        client = Client.query.filter_by(numero_compte=num_compte).first()
+        client = Client.query.filter(
+            Client.numero_compte.like(f'%{derniers_chiffres}')
+        ).first()
 
         if not client:
-            return jsonify({'error': 'Client non trouvé'}), 404
+            return jsonify({'error': 'Aucun client trouvé'}), 404
 
         return jsonify({
             'id': client.id,
@@ -22551,7 +22557,6 @@ def get_client_by_compte(num_compte):
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 
 
 # from views import super_admin_switcher, super_admin_go, super_admin_quick_access, PAGES
