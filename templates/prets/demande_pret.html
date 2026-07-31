@@ -73,6 +73,8 @@
                        <small class="form-text text-muted">
                             <i class="fas fa-info-circle"></i>
                             Format : 7-12519-XXXXX-XXXXX (entrez uniquement les 10 derniers chiffres)
+                            <br>
+                            Exemple: pour le compte <strong>7-12519-00001-98786</strong>, entrez <strong>0000198786</strong>
                         </small>
                         <div id="messageErreur" class="text-danger mt-1" style="display:none;"></div>
                         <input type="hidden" name="client_id" id="clientIdHidden">
@@ -974,7 +976,7 @@
             .then(response => {
                 if (!response.ok) {
                     if (response.status === 404) {
-                        throw new Error('Aucun client trouvé avec ces 5 derniers chiffres');
+                        throw new Error('Aucun client trouvé avec ces 10 derniers chiffres');
                     }
                     throw new Error('Erreur lors de la recherche');
                 }

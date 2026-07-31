@@ -22534,14 +22534,25 @@ def rechercher_client_par_compte(derniers_chiffres):
         if not derniers_chiffres.isdigit() or len(derniers_chiffres) != 10:
             return jsonify({'error': 'Format invalide. Entrez 10 chiffres'}), 400
 
-        # Rechercher un client dont le numéro de compte se termine par ces chiffres
-        # Adaptez selon votre modèle de données
-        client = Client.query.filter(
-            Client.numero_compte.like(f'%{derniers_chiffres}')
-        ).first()
+        # Extraire le branch_code (5 premiers chiffres) et le suffix (5 derniers)
+        branch_code = derniers_chiffres[:5]  # Ex: "00001"
+        suffix = derniers_chiffres[5:]  # Ex: "98786"
+
+        # Construire le numéro de compte complet
+        # Format: 7-12519-{branch_code}-{suffix}
+        numero_compte = f"7-12519-{branch_code}-{suffix}"
+
+        # Rechercher le client par le numéro de compte complet
+        client = Client.query.filter_by(numero_compte=numero_compte).first()
+
+        # Si pas trouvé, recherche par fin du compte
+        if not client:
+            client = Client.query.filter(
+                Client.numero_compte.endswith(derniers_chiffres)
+            ).first()
 
         if not client:
-            return jsonify({'error': 'Aucun client trouvé'}), 404
+            return jsonify({'error': f'Aucun client trouvé avec le compte {numero_compte}'}), 404
 
         return jsonify({
             'id': client.id,
