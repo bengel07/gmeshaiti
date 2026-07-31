@@ -858,38 +858,146 @@
             calculerMensualite();
         }
 
-        // Signature canvas
+        // Signature canvas - VERSION CORRIGÉE
         const canvas = document.getElementById('signatureCanvas');
         if (canvas) {
             const ctx = canvas.getContext('2d');
             let drawing = false;
+            let lastX = 0;
+            let lastY = 0;
 
-            canvas.addEventListener('mousedown', () => drawing = true);
-            canvas.addEventListener('mouseup', () => {
-                drawing = false;
+            // Fonction pour obtenir les coordonnées précises
+            function getCanvasCoords(e) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+
+                let clientX, clientY;
+
+                if (e.touches) {
+                    // Pour les événements tactiles
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else {
+                    // Pour la souris
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+
+                return {
+                    x: (clientX - rect.left) * scaleX,
+                    y: (clientY - rect.top) * scaleY
+                };
+            }
+
+            function startDrawing(e) {
+                e.preventDefault();
+                drawing = true;
+                const coords = getCanvasCoords(e);
+                lastX = coords.x;
+                lastY = coords.y;
+
+                // Commencer le tracé
                 ctx.beginPath();
-                document.getElementById('signatureInput').value = canvas.toDataURL();
-            });
-            canvas.addEventListener('mousemove', draw);
+                ctx.moveTo(lastX, lastY);
+            }
 
             function draw(e) {
+                e.preventDefault();
                 if (!drawing) return;
+
+                const coords = getCanvasCoords(e);
+                const x = coords.x;
+                const y = coords.y;
+
                 ctx.lineWidth = 2;
                 ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
                 ctx.strokeStyle = '#000';
-                ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+
+                ctx.lineTo(x, y);
                 ctx.stroke();
                 ctx.beginPath();
-                ctx.moveTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+                ctx.moveTo(x, y);
+
+                lastX = x;
+                lastY = y;
             }
 
+            function stopDrawing(e) {
+                if (drawing) {
+                    drawing = false;
+                    ctx.beginPath();
+
+                    // Sauvegarder la signature
+                    const signatureInput = document.getElementById('signatureInput');
+                    if (signatureInput) {
+                        signatureInput.value = canvas.toDataURL('image/png');
+                    }
+                }
+            }
+
+            // Événements souris
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseleave', stopDrawing);
+
+            // Événements tactiles (pour mobile)
+            canvas.addEventListener('touchstart', startDrawing);
+            canvas.addEventListener('touchmove', draw);
+            canvas.addEventListener('touchend', stopDrawing);
+            canvas.addEventListener('touchcancel', stopDrawing);
+
+            // Empêcher le comportement par défaut sur mobile
+            canvas.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+            }, { passive: false });
+
+            // Bouton effacer
             const clearBtn = document.getElementById('clearSignature');
             if (clearBtn) {
-                clearBtn.addEventListener('click', () => {
+                clearBtn.addEventListener('click', function() {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    document.getElementById('signatureInput').value = '';
+                    const signatureInput = document.getElementById('signatureInput');
+                    if (signatureInput) {
+                        signatureInput.value = '';
+                    }
+                    // Redessiner une grille légère si souhaité
+                    drawGrid();
                 });
             }
+
+            // Fonction optionnelle pour une grille de fond
+            function drawGrid() {
+                ctx.strokeStyle = '#f0f0f0';
+                ctx.lineWidth = 0.5;
+                for (let i = 0; i <= canvas.width; i += 20) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, canvas.height);
+                    ctx.stroke();
+                }
+                for (let i = 0; i <= canvas.height; i += 20) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i);
+                    ctx.lineTo(canvas.width, i);
+                    ctx.stroke();
+                }
+            }
+
+            // Restaurer une signature existante
+            const signatureInput = document.getElementById('signatureInput');
+            if (signatureInput && signatureInput.value) {
+                const img = new Image();
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                };
+                img.src = signatureInput.value;
+            }
+
+            // Optionnel : dessiner une grille
+            drawGrid();
         }
 
         // Barre de progression
