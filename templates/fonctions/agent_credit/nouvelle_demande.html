@@ -60,15 +60,23 @@
                     <div class="col-md-12 mb-3">
                         <label class="form-label required">Numéro de compte</label>
                         <div class="input-group">
+                            <span class="input-group-text bg-light">7-12519-</span>
                             <input type="text" class="form-control" id="compteInput"
                                    placeholder="Entrez le numéro de compte"
+                                   maxlength="5"
+                                   pattern="[0-9]{5}"
                                    autocomplete="off" required>
                             <button class="btn btn-primary" type="button" onclick="rechercherClientParCompte()">
                                 <i class="fas fa-search"></i> Rechercher
                             </button>
                         </div>
+                       <small class="form-text text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Format : 7-12519-XXXXX (entrez uniquement les 5 derniers chiffres)
+                        </small>
                         <div id="messageErreur" class="text-danger mt-1" style="display:none;"></div>
                         <input type="hidden" name="client_id" id="clientIdHidden">
+                        <input type="hidden" name="numero_compte" id="numeroCompteHidden">
                     </div>
                 </div>
 
@@ -850,42 +858,123 @@
         opacity: 1;
         pointer-events: all;
     }
+
+    /* Animation pour l'affichage des informations */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    #infosClient {
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    /* Style pour le champ de recherche */
+    #compteInput {
+        font-size: 1.2rem;
+        font-weight: bold;
+        letter-spacing: 2px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    #compteInput:focus {
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+        border-color: #0d6efd;
+    }
+
+    #compteInput.success {
+        border-color: #198754;
+        background-color: #f0fff0;
+    }
+
+    #compteInput.error {
+        border-color: #dc3545;
+        background-color: #fff0f0;
+    }
+
+    /* Style pour le préfixe du compte */
+    .input-group-text {
+        font-weight: bold;
+        background-color: #f8f9fa;
+        border-right: none;
+        font-family: monospace;
+        font-size: 1.1rem;
+    }
+
+    .input-group-text + #compteInput {
+        border-left: none;
+    }
+
+    /* Style pour les informations du client */
+    #infosClient .row {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #198754;
+    }
+
+    #infosClient .form-label {
+        min-width: 100px;
+        color: #495057;
+    }
+
+    #clientCompte {
+        font-size: 1rem;
+        padding: 5px 15px;
+    }
 </style>
 
 <script>
 
-    // Fonction pour rechercher un client par son numéro de compte
+    // Fonction pour rechercher un client par les 5 derniers chiffres du compte
     function rechercherClientParCompte() {
         const compteInput = document.getElementById('compteInput');
-        const numCompte = compteInput.value.trim();
+        const derniersChiffres = compteInput.value.trim();
         const messageErreur = document.getElementById('messageErreur');
         const infosClient = document.getElementById('infosClient');
 
-        // Validation
-        if (!numCompte) {
-            messageErreur.textContent = 'Veuillez entrer un numéro de compte';
+        // Validation : exactement 5 chiffres
+        if (!derniersChiffres) {
+            messageErreur.textContent = 'Veuillez entrer les 5 derniers chiffres du compte';
             messageErreur.style.display = 'block';
             compteInput.focus();
+            compteInput.style.borderColor = 'red';
             return;
         }
 
-        // Cacher les messages précédents
+        if (!/^\d{5}$/.test(derniersChiffres)) {
+            messageErreur.textContent = 'Veuillez entrer exactement 5 chiffres (ex: 12345)';
+            messageErreur.style.display = 'block';
+            compteInput.focus();
+            compteInput.style.borderColor = 'red';
+            return;
+        }
+
+        // Réinitialiser les styles
+        compteInput.style.borderColor = '';
         messageErreur.style.display = 'none';
         infosClient.style.display = 'none';
 
         // Désactiver le bouton pendant la recherche
-        const btn = document.querySelector('#infosClient .btn-primary');
+        const btn = document.querySelector('.input-group .btn-primary');
         if (btn) {
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recherche...';
         }
 
         // Appel API pour récupérer les infos du client
-        fetch(`/api/client/compte/${encodeURIComponent(numCompte)}`)
+        fetch(`/api/client/recherche/${derniersChiffres}`)
             .then(response => {
                 if (!response.ok) {
                     if (response.status === 404) {
-                        throw new Error('Aucun client trouvé avec ce numéro de compte');
+                        throw new Error('Aucun client trouvé avec ces 5 derniers chiffres');
                     }
                     throw new Error('Erreur lors de la recherche');
                 }
@@ -901,13 +990,15 @@
                 document.getElementById('clientTelephone').textContent = client.telephone || 'N/A';
                 document.getElementById('clientEmail').textContent = client.email || 'N/A';
                 document.getElementById('clientAdresse').textContent = client.adresse || 'N/A';
-                document.getElementById('clientNationalite').textContent = client.nationalite || 'N/A';
+                document.getElementById('clientCompte').textContent = client.numero_compte || 'N/A';
 
-                // Stocker l'ID du client
+                // Stocker l'ID et le numéro de compte complet
                 document.getElementById('clientIdHidden').value = client.id;
+                document.getElementById('numeroCompteHidden').value = client.numero_compte;
 
-                // Afficher le bloc des informations
+                // Afficher le bloc des informations avec animation
                 infosClient.style.display = 'block';
+                infosClient.style.animation = 'fadeIn 0.5s';
                 messageErreur.style.display = 'none';
 
                 // Mettre à jour la déclaration
@@ -915,12 +1006,40 @@
                 const displayPrenom = document.getElementById('displayPrenom');
                 if (displayNom) displayNom.textContent = client.nom || '[Nom]';
                 if (displayPrenom) displayPrenom.textContent = client.prenom || '[Prénom]';
+
+                // Feedback visuel positif
+                compteInput.style.borderColor = 'green';
+                compteInput.style.backgroundColor = '#f0fff0';
+
+                // Afficher un message de succès
+                const successMsg = document.createElement('div');
+                successMsg.className = 'alert alert-success mt-2';
+                successMsg.innerHTML = '<i class="fas fa-check-circle"></i> Client trouvé avec succès !';
+                successMsg.id = 'successMessage';
+
+                // Supprimer l'ancien message si existe
+                const oldMsg = document.getElementById('successMessage');
+                if (oldMsg) oldMsg.remove();
+
+                compteInput.parentNode.parentNode.appendChild(successMsg);
+                setTimeout(() => {
+                    if (successMsg) successMsg.remove();
+                }, 3000);
             })
             .catch(error => {
-                messageErreur.textContent = error.message || 'Erreur lors de la recherche';
+                messageErreur.textContent = error.message;
                 messageErreur.style.display = 'block';
                 infosClient.style.display = 'none';
                 document.getElementById('clientIdHidden').value = '';
+                document.getElementById('numeroCompteHidden').value = '';
+                compteInput.style.borderColor = 'red';
+                compteInput.style.backgroundColor = '#fff0f0';
+
+                // Effacer après 3 secondes
+                setTimeout(() => {
+                    compteInput.style.borderColor = '';
+                    compteInput.style.backgroundColor = '';
+                }, 3000);
             })
             .finally(() => {
                 // Réactiver le bouton
@@ -949,6 +1068,7 @@
                 input.value = client[value] || '';
                 // Déclencher l'événement input pour les mises à jour
                 input.dispatchEvent(new Event('input'));
+                input.dispatchEvent(new Event('change'));
             }
         }
 
@@ -956,7 +1076,29 @@
         if (client.nationalite) {
             const nationaliteSelect = document.querySelector('select[name="nationalite"]');
             if (nationaliteSelect) {
-                nationaliteSelect.value = client.nationalite;
+                // Chercher si la valeur existe dans les options
+                let found = false;
+                for (let option of nationaliteSelect.options) {
+                    if (option.value === client.nationalite) {
+                        nationaliteSelect.value = client.nationalite;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    // Si "Autre" existe, le sélectionner
+                    const autreOption = Array.from(nationaliteSelect.options).find(opt => opt.value === 'Autre');
+                    if (autreOption) {
+                        nationaliteSelect.value = 'Autre';
+                        // Afficher le champ autre nationalité
+                        const autreNationalite = document.getElementById('autreNationalite');
+                        if (autreNationalite) {
+                            autreNationalite.style.display = 'block';
+                            const autreInput = document.querySelector('[name="autre_nationalite"]');
+                            if (autreInput) autreInput.value = client.nationalite;
+                        }
+                    }
+                }
                 nationaliteSelect.dispatchEvent(new Event('change'));
             }
         }
@@ -966,10 +1108,34 @@
     document.addEventListener('DOMContentLoaded', function() {
         const compteInput = document.getElementById('compteInput');
         if (compteInput) {
+            // Formatage automatique : uniquement des chiffres
+            compteInput.addEventListener('input', function(e) {
+                this.value = this.value.replace(/\D/g, '').slice(0, 5);
+
+                // Réinitialiser les styles quand l'utilisateur modifie
+                this.style.borderColor = '';
+                this.style.backgroundColor = '';
+                document.getElementById('messageErreur').style.display = 'none';
+                document.getElementById('infosClient').style.display = 'none';
+
+                // Supprimer le message de succès
+                const successMsg = document.getElementById('successMessage');
+                if (successMsg) successMsg.remove();
+            });
+
+            // Recherche avec Entrée
             compteInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     rechercherClientParCompte();
+                }
+            });
+
+            // Auto-recherche quand 5 chiffres sont saisis
+            compteInput.addEventListener('input', function(e) {
+                if (this.value.length === 5) {
+                    // Optionnel : recherche automatique
+                    // rechercherClientParCompte();
                 }
             });
         }
