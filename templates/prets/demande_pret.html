@@ -74,7 +74,7 @@
                             <i class="fas fa-info-circle"></i>
                             Format : 7-12519-XXXXX-XXXXX (entrez uniquement les 10 derniers chiffres)
                             <br>
-                            Exemple: pour le compte <strong>7-12519-00001-98786</strong>, entrez <strong>0000198786</strong>
+                            Exemple: pour le compte <strong>7-12519-00000-98086</strong>, entrez <strong>0000098086</strong>
                         </small>
                         <div id="messageErreur" class="text-danger mt-1" style="display:none;"></div>
                         <input type="hidden" name="client_id" id="clientIdHidden">
@@ -110,6 +110,10 @@
                             <div class="mb-2">
                                 <label class="form-label fw-bold">Adresse :</label>
                                 <span id="clientAdresse"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label fw-bold">Compte :</label>
+                                <span id="clientCompte" class="badge bg-info" style="font-size: 1rem;"></span>  <!-- ✅ AJOUTER -->
                             </div>
                             <div class="mb-2">
                                 <label class="form-label fw-bold">Nationalité :</label>
