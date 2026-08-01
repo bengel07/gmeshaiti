@@ -1118,6 +1118,8 @@ def demande_pret():
             db.session.add(nouveau_pret)
             db.session.flush()  # Pour obtenir l'ID
 
+            envoyer_email_demande_pret(client, nouveau_pret)
+
             print("3,1. création prêt")
 
             # Suspendre le compte du client
@@ -1135,7 +1137,7 @@ def demande_pret():
                 pret_id=nouveau_pret.id
             )
             db.session.add(journal_entry)
-            email_envoye =envoyer_email_demande_pret(client, nouveau_pret)
+
             db.session.commit()
 
             session['pret_data'] = request.form.to_dict()
@@ -1151,7 +1153,7 @@ def demande_pret():
             print("EMAIL:", os.getenv("MAIL_USERNAME"))
             print("PASSWORD:", os.getenv("MAIL_PASSWORD"))
 
-            if email_envoye:
+            if envoyer_email_demande_pret(client, nouveau_pret):
                 flash(
                     "✅ Demande de prêt créée avec succès. Un email de confirmation a été envoyé au client.",
                     "success"

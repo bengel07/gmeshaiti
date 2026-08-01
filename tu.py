@@ -1,188 +1,81 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-Script de test pour créer un prêt et envoyer les notifications via Brevo
-Exécution: python tu.py
-"""
+import requests
 
-import sys
-import os
+BASE_URL = "http://127.0.0.1:5000"
+# BASE_URL = "https://gmeshaiti-aeo3.onrender.com"
 
-# Ajouter le chemin du projet
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+EMAIL_CLIENT = "contactbegingeler@gmail.com"
+MOT_DE_PASSE = "Admin123$"
+CLIENT_ID = 15
 
-from app import app, db
-from models import Client, Pret, User, Notification, Journal
-from datetime import datetime
+session = requests.Session()
 
+# ----------------------------
+# Connexion
+# ----------------------------
 
-def test_creer_pret_et_notifications():
-    """Test complet: création d'un prêt + envoi des notifications"""
+login_data = {
+    "email": EMAIL_CLIENT,
+    "password": MOT_DE_PASSE
+}
 
-    # ✅ CRUCIAL: Utiliser le contexte d'application
-    with app.app_context():
-        print("=" * 50)
-        print("🧪 TEST CRÉATION PRÊT + NOTIFICATIONS BREVO")
-        print("=" * 50)
+r = session.post(
+    f"{BASE_URL}/login",
+    data=login_data,
+    allow_redirects=True
+)
 
-        try:
-            # 1. Récupérer un client existant
-            client = Client.query.first()
-            if not client:
-                print("❌ Aucun client trouvé!")
-                return False
-            print(f"✅ Client: {client.prenom} {client.nom} (ID: {client.id})")
-            print(f"   Email: {client.email}")
+print("Connexion :", r.status_code)
 
-            # 2. Récupérer un agent
-            agent = User.query.filter(User.role.in_(['direction', 'admin', 'admin_succursale'])).first()
-            if not agent:
-                agent = User.query.first()
+# ----------------------------
+# Demande de prêt
+# ----------------------------
 
-            if not agent:
-                print("❌ Aucun agent trouvé!")
-                return False
-            print(f"✅ Agent: {agent.prenom} {agent.nom} (ID: {agent.id})")
+payload = {
+    "client_id": CLIENT_ID,
 
-            # 3. Créer le prêt
-            montant = 100000
-            duree = 12
-            taux = 12
+    "nom": "Jean",
+    "prenom": "Pierre",
+    "sexe": "M",
+    "date_naissance": "1990-05-12",
+    "lieu_naissance": "Jacmel",
+    "nationalite": "Haïtienne",
+    "cin_nif": "1234567890",
 
-            montant_interet = montant * (taux / 100) * (duree / 12)
-            montant_total = montant + montant_interet
-            mensualite = montant_total / duree if duree > 0 else montant_total
+    "telephone": "34567890",
+    "email": EMAIL_CLIENT,
 
-            nouveau_pret = Pret(
-                client_id=client.id,
-                agent_id=agent.id,
-                montant=montant,
-                duree_mois=duree,
-                motif="Test automatique",
-                type_pret="personnel",
-                statut='en_attente',
-                taux_interet=taux,
-                mensualite=round(mensualite, 2),
-                montant_interet=round(montant_interet, 2),
-                montant_total=round(montant_total, 2),
-                numero_dossier=f"TEST-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            )
+    "adresse": "Jacmel",
+    "commune": "Jacmel",
+    "departement": "Sud-Est",
+    "duree_adresse": "5",
 
-            db.session.add(nouveau_pret)
-            db.session.flush()
-            print(f"✅ Prêt créé (ID: {nouveau_pret.id})")
+    "etat_civil": "celibataire",
+    "nb_enfants": "0",
 
-            # 4. Journal
-            journal = Journal(
-                employe_id=agent.id,
-                action='CREATION_PRET',
-                details=f"Test prêt #{nouveau_pret.id}",
-                client_id=client.id,
-                pret_id=nouveau_pret.id
-            )
-            db.session.add(journal)
-            db.session.commit()
-            print("✅ Commit effectué")
+    "profession": "Commerçant",
+    "entreprise": "GMES",
+    "adresse_travail": "Jacmel",
+    "revenu_mensuel": "80000",
 
-            # 5. Envoyer notifications via Brevo
-            print("\n📧 Envoi des notifications via Brevo...")
+    "montant_demande": "250000",
+    "duree": "24",
+    "taux_interet": "12",
 
-            from app import envoyer_notification_pret, notifier_directeurs_demande_pret
+    "objet": "Commerce",
 
-            # Notification au client
-            email_result = envoyer_notification_pret(client, nouveau_pret)
-            print(f"   Email client: {'✅ ENVOYÉ' if email_result else '❌ ÉCHEC'}")
+    "type_pret": "commerce",
 
-            # Notification aux directeurs
-            try:
-                notifier_directeurs_demande_pret(nouveau_pret)
-                print("   ✅ Notifications directeurs: ENVOYÉES")
-            except Exception as e:
-                print(f"   ❌ Erreur directeurs: {str(e)}")
+    "date_demande": "2026-08-01",
 
-            # 6. Résumé
-            print("\n" + "=" * 50)
-            print("📋 RÉSUMÉ")
-            print(f"   Prêt ID: {nouveau_pret.id}")
-            print(f"   Client: {client.prenom} {client.nom}")
-            print(f"   Email: {client.email}")
-            print(f"   Montant: {montant:,.0f} Gdes")
-            print(f"   Statut: {nouveau_pret.statut}")
-            print("=" * 50)
+    "signature": "TEST_SIGNATURE"
+}
 
-            return True
+r = session.post(
+    f"{BASE_URL}/prets/demande-pret",
+    data=payload,
+    allow_redirects=True
+)
 
-        except Exception as e:
-            db.session.rollback()
-            print(f"❌ ERREUR: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return False
-
-
-def test_email_brevo():
-    """Test spécifique pour l'envoi d'email via Brevo"""
-
-    with app.app_context():
-        print("=" * 50)
-        print("📧 TEST EMAIL BREVO")
-        print("=" * 50)
-
-        try:
-            from emails import send_email
-
-            client = Client.query.first()
-            if not client:
-                print("❌ Aucun client trouvé!")
-                return False
-
-            print(f"✅ Client: {client.email}")
-
-            # Tester l'email
-            sujet = "GMES - Test Brevo"
-            html = f"""
-            <div style="font-family: Arial, sans-serif;">
-                <h2>Bonjour {client.prenom} {client.nom},</h2>
-                <p>Ceci est un test d'envoi d'email via Brevo.</p>
-                <p>Si vous recevez cet email, la configuration est correcte !</p>
-                <hr>
-                <p style="color: #999; font-size: 12px;">GMES Microcrédit</p>
-            </div>
-            """
-
-            result = send_email_brevo(
-                to_email=client.email,
-                to_name=f"{client.prenom} {client.nom}",
-                subject=sujet,
-                html_content=html
-            )
-
-            if result:
-                print(f"✅ Email envoyé à {client.email}")
-            else:
-                print(f"❌ Échec d'envoi à {client.email}")
-
-            return result
-
-        except Exception as e:
-            print(f"❌ ERREUR: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return False
-
-
-if __name__ == "__main__":
-    print("\n🔧 SCRIPT DE TEST GMES + BREVO")
-    print("=" * 50)
-
-    # Test 1: Email
-    print("\n1️⃣ Test d'envoi d'email Brevo")
-    test_email_brevo()
-
-    # Test 2: Création de prêt
-    print("\n" + "-" * 50)
-    print("2️⃣ Test création de prêt + notifications")
-    test_creer_pret_et_notifications()
-
-    print("\n" + "=" * 50)
-    print("✅ Tests terminés!")
+print("Status :", r.status_code)
+print("----------------------------------")
+print(r.text[:5000])
