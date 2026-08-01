@@ -120,7 +120,7 @@ class User(UserMixin, db.Model):
 
     # Dans models.py, classe User
     cree_par_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    token_signature = db.Column(db.String(100), unique=True, nullable=True)
+    token_signature = db.Column(db.String(110101), unique=True, nullable=True)
     date_envoi_terms = db.Column(db.DateTime, nullable=True)
     date_signature = db.Column(db.DateTime, nullable=True)
     sexe = db.Column(db.String(1), nullable=True)  # 'M' ou 'F'
@@ -4111,7 +4111,7 @@ class Pret(db.Model):
     decision = db.Column(db.String(50), nullable=True)  # approuve, refuse, en_attente
     montant_demande = db.Column(db.Float, nullable=True)
     montant_accorde = db.Column(db.Float, nullable=True)
-    signature_responsable = db.Column(db.String(255), nullable=True)
+    signature_responsable = db.Column(db.String(25500), nullable=True)
     motif_refus = db.Column(db.Text, nullable=True)
     numero_pret = db.Column(db.VARCHAR(50), unique=True)  # ou db.VARCHAR(50)
     date_echeance = db.Column(db.DateTime)  # ← Ajouter cette ligne
