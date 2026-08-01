@@ -90,7 +90,7 @@ from emails import (
     send_password_reset_confirmation_email,
     send_transfer_notification_email,
     send_email_async,
-    send_email
+    send_email, envoyer_email_demande_pret
 )
 
 # ==================== MODELS ====================
@@ -1135,13 +1135,14 @@ def demande_pret():
                 pret_id=nouveau_pret.id
             )
             db.session.add(journal_entry)
+            email_envoye =envoyer_email_demande_pret(client, nouveau_pret)
             db.session.commit()
 
             session['pret_data'] = request.form.to_dict()
 
             print(f"✅ Commit effectué - Prêt #{nouveau_pret.id} créé")
 
-            email_envoye = envoyer_notification_pret(client, nouveau_pret)
+            envoyer_notification_pret(client, nouveau_pret)
             notifier_directeurs_demande_pret(nouveau_pret)
 
             print("🔔 Notifications envoyées aux directeurs")
