@@ -1141,7 +1141,7 @@ def demande_pret():
 
             print(f"✅ Commit effectué - Prêt #{nouveau_pret.id} créé")
 
-            envoyer_notification_pret(client, nouveau_pret)
+            email_envoye = envoyer_notification_pret(client, nouveau_pret)
             notifier_directeurs_demande_pret(nouveau_pret)
 
             print("🔔 Notifications envoyées aux directeurs")
@@ -1150,12 +1150,16 @@ def demande_pret():
             print("EMAIL:", os.getenv("MAIL_USERNAME"))
             print("PASSWORD:", os.getenv("MAIL_PASSWORD"))
 
-            flash(
-                "✅ Demande de prêt créée avec succès ! "
-                "Le compte du client a été suspendu pour les opérations de retrait/transfert. "
-                "Un email de confirmation a été envoyé au client.",
-                "success"
-            )
+            if email_envoye:
+                flash(
+                    "✅ Demande de prêt créée avec succès. Un email de confirmation a été envoyé au client.",
+                    "success"
+                )
+            else:
+                flash(
+                    "⚠️ Demande de prêt créée, mais l'email de confirmation n'a pas pu être envoyé.",
+                    "warning"
+                )
 
             # Redirection selon le rôle
             if est_agent:
@@ -2701,76 +2705,157 @@ def calculate_age(date_naissance):
 
 
 def envoyer_notification_pret(client, pret):
-    """Envoie une notification au client pour sa demande de prêt"""
-    try:
-        from models import Action
-        from datetime import datetime
-        from flask import url_for
+    """
+    Crée une notification et envoie un email de confirmation
+    au client après une demande de prêt.
+    """
+    from datetime import datetime
+    from flask import url_for
+    from models import Action, Notification
 
-        # 1. CRÉER L'ACTION D'ABORD
+    try:
+        print("📧 Début envoyer_notification_pret")
+
+        # ============================
+        # Date de demande
+        # ============================
+        if pret.date_demande:
+            date_demande = pret.date_demande.strftime("%d/%m/%Y")
+        else:
+            date_demande = datetime.now().strftime("%d/%m/%Y")
+
+        # ============================
+        # Création de l'action
+        # ============================
         action = Action(
             pret_id=pret.id,
-            type_action='pret_demande',
+            type_action="pret_demande",
             titre="Demande de prêt",
             description=f"Demande de prêt de {pret.montant:,.0f} GDES",
             date_creation=datetime.now(),
-            date_echeance=datetime.now(),  # obligatoire
-            assignee_a_id=current_user.id,  # ← OBLIGATOIRE
-            creee_par_id=current_user.id,  # ← OBLIGATOIRE
-            statut='terminee'  # pour éviter 'a_faire' par défaut
+            date_echeance=datetime.now(),
+            assignee_a_id=current_user.id,
+            creee_par_id=current_user.id,
+            statut="terminee"
         )
-        db.session.add(action)
-        db.session.flush()  # Pour obtenir action.id
 
-        # 2. CRÉER LA NOTIFICATION
+        db.session.add(action)
+        db.session.flush()
+
+        print(f"✅ Action créée : {action.id}")
+
+        # ============================
+        # Notification
+        # ============================
         notification = Notification(
             employe_id=pret.agent_id,
             destinataire_id=pret.agent_id,
-            action_id=action.id,  # OBLIGATOIRE
-            type_notification='pret_demande',
-            titre='📝 Demande de prêt enregistrée',
-            message=f"Votre demande de prêt de {pret.montant:,.0f} GDES a été soumise avec succès.",
-            niveau='info',
+            acteur_id=current_user.id,
+            client_id=client.id,
+            action_id=action.id,
+            titre="📝 Demande de prêt enregistrée",
+            message=f"Votre demande de prêt de {pret.montant:,.0f} GDES a été enregistrée.",
+            type_notification="pret_demande",
+            type="info",
+            niveau="info",
+            level="info",
             lue=False,
+            is_read=False,
             date_creation=datetime.now(),
-            lien=url_for('client_voir_pret', pret_id=pret.id, _external=True)
+            date_envoi=datetime.now(),
+            lien=url_for("client_voir_pret", pret_id=pret.id, _external=True)
         )
+
         db.session.add(notification)
 
-        # 3. ENVOI EMAIL AU CLIENT
+        print("✅ Notification créée")
+
+        # ============================
+        # Email HTML
+        # ============================
         sujet = "📝 Confirmation de votre demande de prêt"
-        message = f"""
-Bonjour {client.prenom} {client.nom},
 
-Votre demande de prêt a bien été enregistrée.
+        html = f"""
+        <html>
+        <body style="font-family:Arial,sans-serif">
 
-📋 Récapitulatif :
-• Montant demandé : {pret.montant:,.0f} GDES
-• Durée : {pret.duree_mois} mois
-• Date de la demande : {pret.date_demande.strftime('%d/%m/%Y')}
+            <h2>Bonjour {client.prenom} {client.nom},</h2>
 
-Votre dossier est en cours d'examen par notre équipe.
-Vous serez notifié dès qu'une décision sera prise.
+            <p>Votre demande de prêt a bien été enregistrée.</p>
 
-Merci de votre confiance,
-L'équipe GMES Microcrédit
-"""
+            <table border="1" cellpadding="8" cellspacing="0">
+                <tr>
+                    <td><b>Montant demandé</b></td>
+                    <td>{pret.montant:,.0f} GDES</td>
+                </tr>
+                <tr>
+                    <td><b>Durée</b></td>
+                    <td>{pret.duree_mois} mois</td>
+                </tr>
+                <tr>
+                    <td><b>Date</b></td>
+                    <td>{date_demande}</td>
+                </tr>
+            </table>
 
-        send_email(client.email, sujet, message)
+            <br>
 
-        # 4. VALIDER TOUT
+            <p>
+                Votre dossier est actuellement en cours d'analyse.
+                Vous recevrez une nouvelle notification dès qu'une décision sera prise.
+            </p>
+
+            <p>
+                Merci de votre confiance.
+            </p>
+
+            <p>
+                <strong>GMES Microcrédit</strong>
+            </p>
+
+        </body>
+        </html>
+        """
+
+        print(f"📧 Envoi email vers : {client.email}")
+
+        email_envoye = send_email(
+            to_email=client.email,
+            subject=sujet,
+            html_content=html
+        )
+
+        if email_envoye:
+            print("✅ Email envoyé avec succès")
+        else:
+            print("❌ L'email n'a pas pu être envoyé")
+
+        # ============================
+        # Sauvegarde
+        # ============================
         db.session.commit()
 
-        # 5. NOTIFIER LES DIRECTEURS
-        notifier_directeurs_demande_pret(pret)  # ← CORRIGÉ: 'pret' au lieu de 'demande_pret'
+        print("✅ Notification enregistrée")
 
-        print(f"✅ Notification et email envoyés pour le prêt {pret.id}")
+        # ============================
+        # Notification des directeurs
+        # ============================
+        try:
+            notifier_directeurs_demande_pret(pret)
+        except Exception as e:
+            print(f"⚠️ Erreur notification directeurs : {e}")
+
+        return email_envoye
 
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Erreur envoi notification client {client.id}: {e}")
+
         import traceback
         traceback.print_exc()
+
+        print(f"❌ Erreur envoyer_notification_pret : {e}")
+
+        return False
 
 
 def verifier_token_conditions(token):

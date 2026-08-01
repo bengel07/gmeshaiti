@@ -53,6 +53,12 @@ def send_email(to_email, subject, html_content, from_email=None, from_name=None)
 
         response = requests.post(url, json=data, headers=headers, timeout=30)
 
+        print("=" * 60)
+        print("DESTINATAIRE :", to_email)
+        print("STATUS :", response.status_code)
+        print("REPONSE :", response.text)
+        print("=" * 60)
+
         if response.status_code == 201:
             print(f"✅ Email envoyé à {to_email}")
             return True

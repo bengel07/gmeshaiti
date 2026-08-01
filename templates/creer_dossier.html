@@ -865,7 +865,7 @@ function verifierTelephone(tel) {
     dateNaissance.addEventListener('change', updateUI);
 
     customerSuffix.addEventListener('input', function () {
-        this.value = this.value.replace(/\D/g, '').slice(0, 5);
+        this.value = this.value.replace(/\D/g, '').slice(0, 10);
         updateUI();
     });
 
