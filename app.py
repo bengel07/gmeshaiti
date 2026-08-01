@@ -1118,7 +1118,7 @@ def demande_pret():
             db.session.add(nouveau_pret)
             db.session.flush()  # Pour obtenir l'ID
 
-            envoyer_email_demande_pret(client, nouveau_pret)
+            # envoyer_email_demande_pret(client, nouveau_pret)
 
             print("3,1. création prêt")
 
