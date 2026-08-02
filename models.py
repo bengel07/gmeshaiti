@@ -3931,7 +3931,7 @@ class Client(db.Model):
     capacite_remboursement = db.Column(db.Float, default=0)
 
     # Gestion des tokens
-    token_signature = db.Column(db.Column(db.Text), nullable=True)
+    token_signature = db.Column(db.Text, nullable=True)
     date_expiration_token = db.Column(db.DateTime, nullable=True)
 
     # ✅ Ajoute ces champs si nécessaire
