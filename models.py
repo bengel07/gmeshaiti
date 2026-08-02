@@ -4098,7 +4098,7 @@ class Pret(db.Model):
     reference2 = db.Column(db.String(255), nullable=True)
     telephone_reference1 = db.Column(db.String(50), nullable=True)
     telephone_reference2 = db.Column(db.String(50), nullable=True)
-    signature = db.Column(db.Column(db.Text), nullable=True)
+    signature = db.Column(db.Text, nullable=True)
 
     numero_dossier = db.Column(db.VARCHAR(250), unique=True)
 
