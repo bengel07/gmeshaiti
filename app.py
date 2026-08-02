@@ -4198,6 +4198,11 @@ def directeur_approuver_dossier(client_id):
         client.date_approbation = datetime.now()
         client.approuve_par_id = current_user.id
 
+        # Activation de tous les comptes d'épargne du client
+        Epargne.query.filter_by(client_id=client.id).update({
+            "statut": "actif"
+        })
+
         message_client = f"✅ Félicitations {client.prenom}! Votre dossier a été approuvé. Vous pouvez maintenant accéder à votre compte."
         message_agent = f"✅ Le dossier de {client.prenom} {client.nom} a été approuvé."
         sujet_email = "✅ Votre dossier a été approuvé - GMES"
