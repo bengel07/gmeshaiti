@@ -120,7 +120,7 @@ class User(UserMixin, db.Model):
 
     # Dans models.py, classe User
     cree_par_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    token_signature = db.Column(db.String(110101), unique=True, nullable=True)
+    token_signature = db.Column(db.Column(db.Text), unique=True, nullable=True)
     date_envoi_terms = db.Column(db.DateTime, nullable=True)
     date_signature = db.Column(db.DateTime, nullable=True)
     sexe = db.Column(db.String(1), nullable=True)  # 'M' ou 'F'
@@ -3931,7 +3931,7 @@ class Client(db.Model):
     capacite_remboursement = db.Column(db.Float, default=0)
 
     # Gestion des tokens
-    token_signature = db.Column(db.String(256), nullable=True)
+    token_signature = db.Column(db.Column(db.Text), nullable=True)
     date_expiration_token = db.Column(db.DateTime, nullable=True)
 
     # ✅ Ajoute ces champs si nécessaire
@@ -4098,7 +4098,7 @@ class Pret(db.Model):
     reference2 = db.Column(db.String(255), nullable=True)
     telephone_reference1 = db.Column(db.String(50), nullable=True)
     telephone_reference2 = db.Column(db.String(50), nullable=True)
-    signature = db.Column(db.String(255), nullable=True)
+    signature = db.Column(db.Column(db.Text), nullable=True)
 
     numero_dossier = db.Column(db.VARCHAR(250), unique=True)
 
