@@ -234,9 +234,18 @@
                         <label class="form-label required">Téléphone</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                            <input type="tel" class="form-control" name="telephone"
-                                   value="{{ form_data.telephone if form_data else '' }}"
-                                   placeholder="+509 XX XX XXXX" {% if not show_for_director %}required{% endif %}>
+                           <input type="tel"
+                               class="form-control"
+                               name="telephone"
+                               id="telephone"
+                               value="{{ form_data.telephone if form_data else '' }}"
+                               placeholder="+1 617 555 1234"
+                               autocomplete="tel"
+                               maxlength="20"
+                               required>
+                        <div class="invalid-feedback">
+                            Veuillez entrer un numéro de téléphone valide.
+                        </div>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
@@ -379,8 +388,17 @@
                         <label class="form-label">Téléphone travail</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-phone-alt"></i></span>
-                            <input type="tel" class="form-control" name="tel_travail"
-                                   value="{{ form_data.tel_travail if form_data else '' }}">
+                            <input type="tel" class="form-control"
+                               name="telephone"
+                               id="telephone"
+                               value="{{ form_data.telephone if form_data else '' }}"
+                               placeholder="+1 617 555 1234"
+                               autocomplete="tel"
+                               maxlength="20"
+                               required>
+                        <div class="invalid-feedback">
+                            Veuillez entrer un numéro de téléphone valide.
+                        </div>
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
@@ -576,8 +594,17 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Téléphone</label>
-                            <input type="tel" class="form-control" name="tel_garant"
-                                   value="{{ form_data.tel_garant if form_data else '' }}">
+                            <input type="tel" class="form-control"
+                               name="telephone"
+                               id="telephone"
+                               value="{{ form_data.telephone if form_data else '' }}"
+                               placeholder="+1 617 555 1234"
+                               autocomplete="tel"
+                               maxlength="20"
+                               required>
+                        <div class="invalid-feedback">
+                            Veuillez entrer un numéro de téléphone valide.
+                        </div>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -1146,6 +1173,40 @@
             });
         }
     });
+
+
+    // ===== Validation téléphone international =====
+const telephone = document.getElementById('telephone');
+
+if (telephone) {
+
+    telephone.addEventListener('input', function () {
+
+        // Autoriser uniquement chiffres, +, espaces, -, parenthèses
+        this.value = this.value.replace(/[^0-9+\-()\s]/g, '');
+
+    });
+
+    telephone.addEventListener('blur', function () {
+
+        const numero = this.value
+            .replace(/\s/g, '')
+            .replace(/-/g, '')
+            .replace(/\(/g, '')
+            .replace(/\)/g, '');
+
+        // Format E.164
+        const regex = /^\+?[1-9]\d{6,14}$/;
+
+        if (numero && !regex.test(numero)) {
+            this.setCustomValidity("Numéro de téléphone invalide");
+        } else {
+            this.setCustomValidity("");
+        }
+
+    });
+
+}
 
 
 
