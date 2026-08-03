@@ -1,37 +1,47 @@
 from sqlalchemy import text
+from app import app
 from database import db
 
+
 def update_prets_signature():
-    try:
-        requetes = [
 
-            """
-            ALTER TABLE prets
-            ADD COLUMN IF NOT EXISTS conditions_acceptees BOOLEAN DEFAULT FALSE;
-            """,
+    with app.app_context():
 
-            """
-            ALTER TABLE prets
-            ADD COLUMN IF NOT EXISTS date_signature TIMESTAMP;
-            """,
+        try:
+            requetes = [
 
-            """
-            ALTER TABLE prets
-            ADD COLUMN IF NOT EXISTS signature_client TEXT;
-            """,
+                """
+                ALTER TABLE prets
+                ADD COLUMN IF NOT EXISTS conditions_acceptees BOOLEAN DEFAULT FALSE;
+                """,
 
-            """
-            ALTER TABLE prets
-            ADD COLUMN IF NOT EXISTS ip_signature VARCHAR(100);
-            """
-        ]
+                """
+                ALTER TABLE prets
+                ADD COLUMN IF NOT EXISTS date_signature TIMESTAMP;
+                """,
 
-        for req in requetes:
-            db.session.execute(text(req))
+                """
+                ALTER TABLE prets
+                ADD COLUMN IF NOT EXISTS signature_client TEXT;
+                """,
 
-        db.session.commit()
-        print("✅ Colonnes de signature ajoutées.")
+                """
+                ALTER TABLE prets
+                ADD COLUMN IF NOT EXISTS ip_signature VARCHAR(100);
+                """
+            ]
 
-    except Exception as e:
-        db.session.rollback()
-        print(e)
+            for req in requetes:
+                db.session.execute(text(req))
+                print("✅ OK")
+
+            db.session.commit()
+
+            print("🎉 Migration signature prêt terminée")
+
+        except Exception as e:
+            db.session.rollback()
+            print("❌ Erreur :", e)
+
+
+update_prets_signature()
