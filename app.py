@@ -1013,6 +1013,8 @@ def demande_pret():
                 print("✅ Client existant mis à jour")
 
                 print("1,1. Avant creation client")
+
+                flash("✅ Client existant mis à jour")
             else:
                 # ========== CRÉATION NOUVEAU CLIENT ==========
                 client = Client(
@@ -1064,6 +1066,7 @@ def demande_pret():
                 return redirect(url_for('demande_pret', client_id=client.id))
 
             print("3. Avant création prêt")
+            flash("3. Avant création prêt")
 
 
             # ========== CRÉATION DE LA DEMANDE DE PRÊT ==========
@@ -1121,6 +1124,7 @@ def demande_pret():
             # envoyer_email_demande_pret(client, nouveau_pret)
 
             print("3,1. création prêt")
+            flash("3,1. création prêt")
 
             # Suspendre le compte du client
             if hasattr(client, 'suspendre_compte_pret'):
@@ -1140,9 +1144,10 @@ def demande_pret():
 
             db.session.commit()
 
-            session['pret_data'] = request.form.to_dict()
+            # session['pret_data'] = request.form.to_dict()
 
             print(f"✅ Commit effectué - Prêt #{nouveau_pret.id} créé")
+            flash(f"✅ Commit effectué - Prêt #{nouveau_pret.id} créé")
 
             envoyer_notification_pret(client, nouveau_pret)
             notifier_directeurs_demande_pret(nouveau_pret)
@@ -1152,6 +1157,8 @@ def demande_pret():
             print("🔔 ENVOI NOTIFICATION AU DIRECTEUR")
             print("EMAIL:", os.getenv("MAIL_USERNAME"))
             print("PASSWORD:", os.getenv("MAIL_PASSWORD"))
+            flash("🔔 ENVOI NOTIFICATION AU DIRECTEUR")
+
 
             if envoyer_email_demande_pret(client, nouveau_pret):
                 flash(
@@ -1164,11 +1171,14 @@ def demande_pret():
                     "warning"
                 )
 
+
             # Redirection selon le rôle
             if est_agent:
                 return redirect(url_for('agent_credit_dashboard', succursale_code=current_user.succursale.code))
             else:
                 return redirect(url_for('client_dashboard'))
+
+            flash("redirection")
 
         except Exception as e:
             db.session.rollback()
@@ -1180,6 +1190,7 @@ def demande_pret():
 
 
     print("❌ booummm :")
+    flash("attent ")
 
     # ========== REQUÊTE GET ==========
     # Préparer la liste des clients pour les agents
@@ -1251,6 +1262,7 @@ def demande_pret():
         clients_paginated = None
 
     print("❌ bawww :")
+    flash("nou bon :")
 
     # ⬇️⬇️⬇️ CES 3 LIGNES SORTIES DU elif ⬇️⬇️⬇️
     form_data = {}
