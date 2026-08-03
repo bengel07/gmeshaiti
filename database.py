@@ -1,43 +1,107 @@
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
+from database import db
 
-db = SQLAlchemy()
+def update_table_prets_signature():
+    """Ajoute les colonnes nécessaires à la signature des prêts."""
 
-def corriger_colonnes_prets():
-    """Corrige les colonnes VARCHAR(255) qui doivent être en TEXT."""
     try:
-        print("🔧 Vérification des colonnes de la table prets...")
+        print("🔄 Mise à jour de la table prets...")
 
         requetes = [
-            "ALTER TABLE prets ALTER COLUMN signature TYPE TEXT;",
-            "ALTER TABLE prets ALTER COLUMN reference1 TYPE TEXT;",
-            "ALTER TABLE prets ALTER COLUMN reference2 TYPE TEXT;",
-            "ALTER TABLE prets ALTER COLUMN info_garant TYPE TEXT;",
-            "ALTER TABLE prets ALTER COLUMN motif TYPE TEXT;",
-            "ALTER TABLE prets ALTER COLUMN motif_refus TYPE TEXT;",
-            "ALTER TABLE prets ALTER COLUMN signature_responsable TYPE TEXT;",
-            "ALTER TABLE prets ALTER COLUMN autre_type_pret TYPE TEXT;",
-            "ALTER TABLE prets ALTER COLUMN numero_dossier TYPE TEXT;",
-            "ALTER TABLE prets ALTER COLUMN code_pret TYPE TEXT;"
+
+            # Le client a accepté les conditions
+            """
+            ALTER TABLE prets
+            ADD COLUMN IF NOT EXISTS conditions_acceptees BOOLEAN DEFAULT FALSE;
+            """,
+
+            # Date de signature
+            """
+            ALTER TABLE prets
+            ADD COLUMN IF NOT EXISTS date_signature_conditions TIMESTAMP;
+            """,
+
+            # Token utilisé (optionnel mais pratique)
+            """
+            ALTER TABLE prets
+            ADD COLUMN IF NOT EXISTS token_signature TEXT;
+            """,
+
+            # Adresse IP
+            """
+            ALTER TABLE prets
+            ADD COLUMN IF NOT EXISTS ip_signature VARCHAR(100);
+            """,
+
+            # Navigateur
+            """
+            ALTER TABLE prets
+            ADD COLUMN IF NOT EXISTS user_agent_signature TEXT;
+            """,
+
+            # Signature du client
+            """
+            ALTER TABLE prets
+            ALTER COLUMN signature TYPE TEXT;
+            """,
+
+            # Références
+            """
+            ALTER TABLE prets
+            ALTER COLUMN reference1 TYPE TEXT;
+            """,
+
+            """
+            ALTER TABLE prets
+            ALTER COLUMN reference2 TYPE TEXT;
+            """,
+
+            """
+            ALTER TABLE prets
+            ALTER COLUMN info_garant TYPE TEXT;
+            """,
+
+            """
+            ALTER TABLE prets
+            ALTER COLUMN motif TYPE TEXT;
+            """,
+
+            """
+            ALTER TABLE prets
+            ALTER COLUMN autre_type_pret TYPE TEXT;
+            """,
+
+            """
+            ALTER TABLE prets
+            ALTER COLUMN numero_dossier TYPE TEXT;
+            """,
+
+            """
+            ALTER TABLE prets
+            ALTER COLUMN code_pret TYPE TEXT;
+            """,
+
+            """
+            ALTER TABLE prets
+            ALTER COLUMN signature_responsable TYPE TEXT;
+            """,
+
+            """
+            ALTER TABLE prets
+            ALTER COLUMN motif_refus TYPE TEXT;
+            """
         ]
 
-        for req in requetes:
+        for sql in requetes:
             try:
-                db.session.execute(text(req))
-                print(f"✅ {req}")
+                db.session.execute(text(sql))
+                print("✅ OK")
             except Exception as e:
-                print(f"⚠️ {e}")
+                print("⚠️", e)
 
         db.session.commit()
-        print("🎉 Correction terminée.")
+        print("🎉 Table prets mise à jour avec succès.")
 
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Erreur : {e}")
-
-
-def init_db(app):
-    db.init_app(app)
-
-    with app.app_context():
-        corriger_colonnes_prets()
+        print("❌ Erreur :", e)

@@ -624,6 +624,75 @@ def envoyer_email_conditions(client):
         return jsonify({'success': False, 'message': f'❌ Erreur: {str(e)}'}), 500
 
 
+@app.route('/accepter-conditions-pret/<token>', methods=['GET'])
+def accepter_conditions_pret(token):
+    """Validation des conditions du prêt"""
+
+    import jwt
+    from datetime import datetime
+    from flask import render_template, current_app, flash, redirect, url_for
+
+    from models import Pret, Client
+
+    try:
+        # Vérifier le token
+        data = jwt.decode(
+            token,
+            current_app.config["SECRET_KEY"],
+            algorithms=["HS256"]
+        )
+
+        # Vérifier le type
+        if data.get("type") != "conditions_pret":
+            flash("Lien invalide.", "danger")
+            return redirect(url_for("login"))
+
+        client = Client.query.get(data["client_id"])
+        pret = Pret.query.get(data["pret_id"])
+
+        if not client or not pret:
+            flash("Client ou prêt introuvable.", "danger")
+            return redirect(url_for("login"))
+
+        # Déjà signé ?
+        if getattr(pret, "conditions_acceptees", False):
+            flash("Les conditions de ce prêt ont déjà été acceptées.", "info")
+            return render_template(
+                "prets/conditions_deja_acceptees.html",
+                client=client,
+                pret=pret
+            )
+
+        # Enregistrer l'acceptation
+        pret.conditions_acceptees = True
+        pret.date_signature = datetime.utcnow()
+
+        db.session.commit()
+
+        flash("Les conditions du prêt ont été acceptées avec succès.", "success")
+
+        return render_template(
+            "prets/pret_signe.html",
+            client=client,
+            pret=pret
+        )
+
+    except jwt.ExpiredSignatureError:
+        flash("Ce lien a expiré.", "danger")
+        return render_template("erreurs/lien_expire.html")
+
+    except jwt.InvalidTokenError:
+        flash("Lien invalide.", "danger")
+        return render_template("erreurs/lien_invalide.html")
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception(e)
+
+        flash("Une erreur est survenue.", "danger")
+        return render_template("erreurs/500.html")
+
+
 @app.route("/resend-conditions-email/<int:client_id>", methods=["POST"])
 @login_required
 def resend_conditions_email(client_id):

@@ -4117,6 +4117,11 @@ class Pret(db.Model):
     date_echeance = db.Column(db.DateTime)  # ← Ajouter cette ligne
     date_decaissement = db.Column(db.DateTime, nullable=True)  # ← ADD THIS LINE
 
+    conditions_acceptees = db.Column(db.Boolean, default=False, nullable=False)
+    date_signature = db.Column(db.DateTime, nullable=True)
+    signature_client = db.Column(db.Text, nullable=True)
+    ip_signature = db.Column(db.String(250), nullable=True)
+
 
     client = db.relationship('Client', foreign_keys=[client_id], backref='prets_contractes')
 
