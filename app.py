@@ -1199,7 +1199,7 @@ def demande_pret():
             db.session.add(nouveau_pret)
             db.session.flush()  # Pour obtenir l'ID
 
-            # envoyer_email_demande_pret(client, nouveau_pret)
+            envoyer_email_demande_pret(client, nouveau_pret)
 
             print("3,1. création prêt")
             flash("3,1. création prêt")
@@ -1238,16 +1238,16 @@ def demande_pret():
             flash("🔔 ENVOI NOTIFICATION AU DIRECTEUR")
 
 
-            if envoyer_email_demande_pret(client, nouveau_pret):
-                flash(
-                    "✅ Demande de prêt créée avec succès. Un email de confirmation a été envoyé au client.",
-                    "success"
-                )
-            else:
-                flash(
-                    "⚠️ Demande de prêt créée, mais l'email de confirmation n'a pas pu être envoyé.",
-                    "warning"
-                )
+            # if envoyer_email_demande_pret(client, nouveau_pret):
+            #     flash(
+            #         "✅ Demande de prêt créée avec succès. Un email de confirmation a été envoyé au client.",
+            #         "success"
+            #     )
+            # else:
+            #     flash(
+            #         "⚠️ Demande de prêt créée, mais l'email de confirmation n'a pas pu être envoyé.",
+            #         "warning"
+            #     )
 
 
             # Redirection selon le rôle
