@@ -835,6 +835,7 @@ def demande_pret():
 
         try:
             print("1. Avant validation")
+            flash("1. Avant validation")
 
             # Protection CSRF (si vous utilisez Flask-WTF)
             # csrf.protect()
@@ -849,8 +850,16 @@ def demande_pret():
                 'date_demande'
             ]
 
+            # ✅ AJOUTEZ CE LOG POUR VOIR TOUS LES CHAMPS REÇUS
+            print("📋 Tous les champs reçus :")
+            for field in required_fields:
+                value = request.form.get(field)
+                print(f"  {field}: {value if value else '❌ MANQUANT'}")
+
+
             for field in required_fields:
                 if not request.form.get(field):
+                    print(f"❌ Champ manquant : {field}")
                     flash(f'⛔ Le champ {field} est requis', 'danger')
                     return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
