@@ -390,8 +390,8 @@
                             <span class="input-group-text"><i class="fas fa-phone-alt"></i></span>
                             <input type="tel" class="form-control"
                                name="telephone_travail"
-                               id="telephoneTravail">
-                               value="{{ form_data.telephone if form_data else '' }}"
+                               id="telephoneTravail"
+                               value="{{ form_data.telephone_travail if form_data else '' }}"
                                placeholder="+1 617 555 1234"
                                autocomplete="tel"
                                maxlength="20"
@@ -597,7 +597,7 @@
                             <input type="tel" class="form-control"
                                name="telephone_garant"
                                id="telephoneGarant">
-                               value="{{ form_data.telephone if form_data else '' }}"
+                               value="{{ form_data.telephone_garant if form_data else '' }}"
                                placeholder="+1 617 555 1234"
                                autocomplete="tel"
                                maxlength="20"
