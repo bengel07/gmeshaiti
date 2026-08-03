@@ -120,7 +120,7 @@ class User(UserMixin, db.Model):
 
     # Dans models.py, classe User
     cree_par_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    token_signature = db.Columndb(db.Text, unique=True, nullable=True)
+    token_signature = db.Column(db.Text, unique=True, nullable=True)
     date_envoi_terms = db.Column(db.DateTime, nullable=True)
     date_signature = db.Column(db.DateTime, nullable=True)
     sexe = db.Column(db.String(1), nullable=True)  # 'M' ou 'F'
