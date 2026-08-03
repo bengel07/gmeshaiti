@@ -8,12 +8,11 @@ def init_db(app):
 
     db.init_app(app)
 
-    def corriger_colonnes_prets():
+    with app.app_context():
 
         try:
-            print("🔧 Vérification colonnes prêts")
+            migrations = [
 
-            requetes = [
                 """
                 ALTER TABLE prets
                 ADD COLUMN IF NOT EXISTS conditions_acceptees BOOLEAN DEFAULT FALSE;
@@ -35,21 +34,13 @@ def init_db(app):
                 """
             ]
 
-            with app.app_context():
+            for sql in migrations:
+                db.session.execute(text(sql))
 
-                for req in requetes:
-                    try:
-                        db.session.execute(text(req))
-                        print("✅ Migration OK")
-                    except Exception as e:
-                        print("⚠️ Déjà existant :", e)
+            db.session.commit()
 
-                db.session.commit()
+            print("✅ Migration signature prêt terminée")
 
         except Exception as e:
             db.session.rollback()
-            print("❌ Migration erreur :", e)
-
-
-    # si tu veux lancer automatiquement
-    # corriger_colonnes_prets()
+            print("⚠️ Erreur migration signature prêt :", e)
