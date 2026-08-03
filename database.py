@@ -1,15 +1,19 @@
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
-from app import app
-from database import db
+
+db = SQLAlchemy()
 
 
-def update_prets_signature():
+def init_db(app):
 
-    with app.app_context():
+    db.init_app(app)
+
+    def corriger_colonnes_prets():
 
         try:
-            requetes = [
+            print("🔧 Vérification colonnes prêts")
 
+            requetes = [
                 """
                 ALTER TABLE prets
                 ADD COLUMN IF NOT EXISTS conditions_acceptees BOOLEAN DEFAULT FALSE;
@@ -31,17 +35,21 @@ def update_prets_signature():
                 """
             ]
 
-            for req in requetes:
-                db.session.execute(text(req))
-                print("✅ OK")
+            with app.app_context():
 
-            db.session.commit()
+                for req in requetes:
+                    try:
+                        db.session.execute(text(req))
+                        print("✅ Migration OK")
+                    except Exception as e:
+                        print("⚠️ Déjà existant :", e)
 
-            print("🎉 Migration signature prêt terminée")
+                db.session.commit()
 
         except Exception as e:
             db.session.rollback()
-            print("❌ Erreur :", e)
+            print("❌ Migration erreur :", e)
 
 
-update_prets_signature()
+    # si tu veux lancer automatiquement
+    # corriger_colonnes_prets()
