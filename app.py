@@ -13023,9 +13023,9 @@ def gerer_employes():
 
 # ✅ APPROUVER un employé
 @app.route('/admin/approuver-employe/<int:employe_id>')
-@login_required
+@login_required('admin_succursale', 'super_admin','direction')
 def approuver_employe(employe_id):
-    if current_user.role != 'admin':
+    if current_user.role != 'admin_succursale':
         abort(403)
 
     employe = User.query.get_or_404(employe_id)
@@ -13436,9 +13436,9 @@ def gestionnaire_dashboard():
 
 # ✅ APPROUVER un employé/superviseur
 @app.route('/admin/approver-utilisateur/<int:employe_id>')
-@role_required('employe', 'super_admin')
+@role_required('employe', 'super_admin','direction')
 def approver_utilisateur(employe_id):
-    if current_user.role != 'admin':
+    if current_user.role != 'admin_succursale':
         return redirect(url_for('tableau_de_bord'))
 
     utilisateur = User.query.get_or_404(employe_id)
@@ -13451,7 +13451,7 @@ def approver_utilisateur(employe_id):
     utilisateur.approuve_par = current_user.id
     utilisateur.date_approbation = datetime.utcnow()
 
-    session.commit()
+    db.session.commit()
 
     print(f"✅ {utilisateur.role} {utilisateur.prenom} {utilisateur.nom} approuvé par {current_user.prenom}")
     return redirect(url_for('gerer_employes'))
