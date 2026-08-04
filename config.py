@@ -5,6 +5,7 @@ import requests
 from flask import current_app
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
 # ==================== CONSTANTES GLOBALES ====================
@@ -17,6 +18,8 @@ def allowed_file(filename):
     """Vérifie si l'extension du fichier est autorisée"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
+print("DATABASE_URL =", os.environ.get("DATABASE_URL"))
 
 # ==================== CONFIGURATION DE BASE ====================
 class Config:
@@ -69,59 +72,80 @@ class ProductionConfig(Config):
     SQLALCHEMY_ECHO = False
 
 
-# ==================== FONCTION D'ENVOI D'EMAIL ====================
+
+# ==================== FONCTION D'ENVOI D'EMAIL BREVO ====================
 def send_email(recipient, subject, body_html=None, body_text=None):
     """
-    Envoie un email avec support HTML et texte
+    Envoie un email via l'API Brevo.
 
     Args:
-        recipient (str): Adresse email du destinataire
-        subject (str): Sujet de l'email
-        body_html (str): Corps HTML de l'email (optionnel)
-        body_text (str): Corps texte de l'email (optionnel)
+        recipient (str): Adresse email du destinataire.
+        subject (str): Sujet de l'email.
+        body_html (str): Corps HTML (optionnel).
+        body_text (str): Corps texte (optionnel).
 
     Returns:
-        bool: True si l'envoi a réussi, False sinon
+        bool: True si l'envoi a réussi, False sinon.
     """
-    try:
-        # Configuration depuis les variables d'environnement
-        smtp_server = current_app.config.get('MAIL_SERVER', 'smtp.gmail.com')
-        smtp_port = current_app.config.get('MAIL_PORT', 587)
-        smtp_username = current_app.config.get('MAIL_USERNAME')
-        smtp_password = current_app.config.get('MAIL_PASSWORD')
-        sender = current_app.config.get('MAIL_DEFAULT_SENDER', smtp_username)
 
-        if not smtp_username or not smtp_password:
-            current_app.logger.error("Configuration email manquante")
+    try:
+        api_key = current_app.config.get("BREVO_API_KEY")
+        sender_email = current_app.config.get("FROM_EMAIL")
+        sender_name = current_app.config.get("FROM_NAME", "GMES Microcrédit")
+
+        if not api_key:
+            current_app.logger.error("BREVO_API_KEY manquante.")
             return False
 
-        # Créer le message
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = sender
-        msg['To'] = recipient
+        if not sender_email:
+            current_app.logger.error("FROM_EMAIL manquant.")
+            return False
 
-        # Ajouter la version texte si fournie
+        # Si aucun HTML n'est fourni, utiliser le texte
+        if not body_html:
+            body_html = f"<pre>{body_text or ''}</pre>"
+
+        payload = {
+            "sender": {
+                "name": sender_name,
+                "email": sender_email
+            },
+            "to": [
+                {
+                    "email": recipient
+                }
+            ],
+            "subject": subject,
+            "htmlContent": body_html
+        }
+
         if body_text:
-            part_text = MIMEText(body_text, 'plain')
-            msg.attach(part_text)
+            payload["textContent"] = body_text
 
-        # Ajouter la version HTML si fournie
-        if body_html:
-            part_html = MIMEText(body_html, 'html')
-            msg.attach(part_html)
+        headers = {
+            "accept": "application/json",
+            "api-key": api_key,
+            "content-type": "application/json"
+        }
 
-        # Envoyer l'email
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_username, smtp_password)
-            server.send_message(msg)
+        response = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            json=payload,
+            headers=headers,
+            timeout=30
+        )
 
-        current_app.logger.info(f"Email envoyé à {recipient}")
-        return True
+        if response.status_code in (200, 201):
+            current_app.logger.info(f"✅ Email envoyé à {recipient}")
+            return True
+
+        current_app.logger.error(
+            f"❌ Erreur Brevo {response.status_code}: {response.text}"
+        )
+        return False
 
     except Exception as e:
-        current_app.logger.error(f"Erreur envoi email à {recipient}: {e}")
+        current_app.logger.exception(f"❌ Exception lors de l'envoi de l'email : {e}")
         return False
 
 
