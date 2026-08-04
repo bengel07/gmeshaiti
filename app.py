@@ -13023,7 +13023,9 @@ def gerer_employes():
 
 # ✅ APPROUVER un employé
 @app.route('/admin/approuver-employe/<int:employe_id>')
-@login_required('admin_succursale', 'super_admin','direction')
+@login_required('admin_succursale')
+@login_required('super_admin')
+@login_required('direction')
 def approuver_employe(employe_id):
     if current_user.role != 'admin_succursale':
         abort(403)
@@ -13436,7 +13438,9 @@ def gestionnaire_dashboard():
 
 # ✅ APPROUVER un employé/superviseur
 @app.route('/admin/approver-utilisateur/<int:employe_id>')
-@role_required('employe', 'super_admin','direction')
+@role_required('employe',)
+@role_required('super_admin')
+@role_required('direction')
 def approver_utilisateur(employe_id):
     if current_user.role != 'admin_succursale':
         return redirect(url_for('tableau_de_bord'))
