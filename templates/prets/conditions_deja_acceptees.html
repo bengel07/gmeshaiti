@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Conditions déjà acceptées - GMES Microcrédit</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            width: 90%;
+            max-width: 600px;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            text-align: center;
+        }
+
+        .icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+
+        p {
+            color: #555;
+            font-size: 17px;
+            line-height: 1.6;
+        }
+
+        .info {
+            background: #f8f9fa;
+            border-left: 5px solid #28a745;
+            padding: 15px;
+            margin: 25px 0;
+            text-align: left;
+            border-radius: 5px;
+        }
+
+        .btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 25px;
+            background: #4361ee;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            background: #3046c9;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: bold;
+            color: #3a0ca3;
+            margin-bottom: 15px;
+        }
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="logo">
+        🏦 GMES Microcrédit
+    </div>
+
+    <div class="icon">
+        ✅
+    </div>
+
+    <h1>Conditions déjà acceptées</h1>
+
+    <p>
+        Les conditions générales de ce prêt ont déjà été acceptées.
+    </p>
+
+    <div class="info">
+
+        <p>
+            Votre signature électronique a bien été enregistrée.
+        </p>
+
+        {% if pret %}
+        <p>
+            <strong>Numéro du prêt :</strong>
+            {{ pret.numero_dossier or pret.id }}
+        </p>
+
+        <p>
+            <strong>Montant :</strong>
+            {{ "{:,.2f}".format(pret.montant) }} HTG
+        </p>
+
+        {% endif %}
+
+        <p>
+            Le dossier continue son traitement auprès de GMES Microcrédit.
+        </p>
+
+    </div>
+
+
+    {% if current_user.is_authenticated %}
+
+        {% if current_user.role in ['admin', 'super_admin', 'direction', 'employe'] %}
+
+            <a class="btn" href="{{ url_for('dashboard') }}">
+                Retour au tableau de bord
+            </a>
+
+        {% else %}
+
+            <a class="btn" href="{{ url_for('client_dashboard') }}">
+                Retour à mon espace
+            </a>
+
+        {% endif %}
+
+    {% else %}
+
+        <a class="btn" href="{{ url_for('main.accueil') }}">
+            Retour à l'accueil
+        </a>
+
+    {% endif %}
+
+
+</div>
+
+</body>
+</html>
