@@ -661,3 +661,37 @@ GMES Microcrédit
             "message": str(e)
         }), 500
 
+
+def envoyer_email_confirmation_demande(client, pret):
+    """
+    Envoie une confirmation de demande de prêt au client
+    """
+
+    sujet = f"Confirmation demande de prêt #{pret.id}"
+
+    html = f"""
+    <h2>Bonjour {client.prenom} {client.nom}</h2>
+
+    <p>
+    Votre demande de prêt a été enregistrée avec succès.
+    </p>
+
+    <p>
+    Montant demandé : <strong>{pret.montant:,.2f} HTG</strong>
+    </p>
+
+    <p>
+    Durée : <strong>{pret.duree_mois} mois</strong>
+    </p>
+
+    <p>
+    GMES Microcrédit
+    </p>
+    """
+
+    return send_email(
+        to_email=client.email,
+        subject=sujet,
+        html_content=html
+    )
+
