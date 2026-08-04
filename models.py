@@ -4121,6 +4121,7 @@ class Pret(db.Model):
     date_signature = db.Column(db.DateTime, nullable=True)
     signature_client = db.Column(db.Text, nullable=True)
     ip_signature = db.Column(db.String(250), nullable=True)
+    prochaine_echeance = db.Column(db.Date, nullable=True)
 
 
     client = db.relationship('Client', foreign_keys=[client_id], backref='prets_contractes')

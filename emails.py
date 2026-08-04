@@ -634,6 +634,8 @@ GMES Microcrédit
 
         db.session.commit()
 
+
+
         if email_envoye:
 
             return jsonify({

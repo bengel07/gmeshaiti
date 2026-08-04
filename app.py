@@ -90,7 +90,8 @@ from emails import (
     send_password_reset_confirmation_email,
     send_transfer_notification_email,
     send_email_async,
-    send_email, envoyer_email_demande_pret
+    send_email, envoyer_email_demande_pret,
+    envoyer_email_confirmation_demande
 )
 
 # ==================== MODELS ====================
@@ -669,6 +670,13 @@ def accepter_conditions_pret(token):
 
         db.session.commit()
 
+        # Envoyer confirmation seulement après signature
+        try:
+            envoyer_email_confirmation_demande(client, pret)
+            print("✅ Email confirmation après signature envoyé")
+        except Exception as e:
+            print("❌ Erreur email confirmation :", e)
+
         flash("Les conditions du prêt ont été acceptées avec succès.", "success")
 
         return render_template(
@@ -1227,7 +1235,7 @@ def demande_pret():
             print(f"✅ Commit effectué - Prêt #{nouveau_pret.id} créé")
             flash(f"✅ Commit effectué - Prêt #{nouveau_pret.id} créé")
 
-            envoyer_notification_pret(client, nouveau_pret)
+            # envoyer_notification_pret(client, nouveau_pret)
             notifier_directeurs_demande_pret(nouveau_pret)
 
             print("🔔 Notifications envoyées aux directeurs")
