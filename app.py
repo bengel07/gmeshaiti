@@ -13047,6 +13047,83 @@ def approuver_employe(employe_id):
     return redirect(url_for('gerer_employes'))
 
 
+
+
+@app.route('/analyste/scoring-clients')
+@login_required
+def scoring_clients():
+    """Affiche le score de crédit de tous les clients"""
+
+    if current_user.role not in ['analyste_credit', 'direction', 'super_admin']:
+        flash("Accès refusé.", "danger")
+        return redirect(url_for('tableau_bord'))
+
+    clients = Client.query.all()
+
+    liste_scores = []
+
+    for client in clients:
+
+        score = 100
+
+        # Revenu
+        revenu = client.revenu_mensuel or 0
+        if revenu < 15000:
+            score -= 25
+        elif revenu < 30000:
+            score -= 10
+
+        # Ancienneté
+        if client.date_creation:
+            anciennete = (datetime.utcnow() - client.date_creation).days
+            if anciennete > 730:
+                score += 10
+
+        # Historique des prêts
+        nb_prets = Pret.query.filter_by(client_id=client.id).count()
+        if nb_prets >= 3:
+            score += 5
+
+        # Retards
+        retards = Remboursement.query.filter(
+            Remboursement.pret.has(client_id=client.id),
+            Remboursement.statut == "retard"
+        ).count()
+
+        score -= retards * 10
+
+        score = max(0, min(score, 100))
+
+        if score >= 80:
+            categorie = "Excellent"
+            couleur = "success"
+        elif score >= 65:
+            categorie = "Bon"
+            couleur = "info"
+        elif score >= 50:
+            categorie = "Moyen"
+            couleur = "warning"
+        else:
+            categorie = "Faible"
+            couleur = "danger"
+
+        liste_scores.append({
+            "client": client,
+            "score": score,
+            "categorie": categorie,
+            "couleur": couleur,
+            "prets": nb_prets,
+            "retards": retards
+        })
+
+    liste_scores.sort(key=lambda x: x["score"], reverse=True)
+
+    return render_template(
+        "analyste/scoring_clients.html",
+        scores=liste_scores
+    )
+
+
 @app.route('/analyste/analyse-automatique')
 @login_required
 def analyse_automatique():
