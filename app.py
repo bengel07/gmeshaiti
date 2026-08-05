@@ -13039,6 +13039,7 @@ def approuver_employe(employe_id):
     employe.date_approbation = datetime.utcnow()
 
     db.session.commit()
+    resend_email()
 
     flash(f'Employé {employe.prenom} {employe.nom} approuvé avec succès', 'success')
 
