@@ -81,7 +81,7 @@
                     </div>
                     <div>
                         <span class="score-badge score-{{ pret.score_categorie|default('moyen') }}">
-                            Score: {{ pret.score_credit|default(0) }}
+                            Score: {{ pret.score_credit or 0 }}
                         </span>
                         <a href="{{ url_for('analyser_pret', pret_id=pret.id) }}" class="btn btn-warning">🔍 Analyser</a>
                     </div>

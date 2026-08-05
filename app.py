@@ -13047,6 +13047,119 @@ def approuver_employe(employe_id):
     return redirect(url_for('gerer_employes'))
 
 
+@app.route('/analyste/analyse-automatique')
+@login_required
+def analyse_automatique():
+    """Analyse automatiquement toutes les demandes en attente"""
+
+    # Vérification des droits
+    if current_user.role not in ['analyste_credit', 'direction', 'super_admin']:
+        flash("Accès refusé.", "danger")
+        return redirect(url_for('tableau_bord'))
+
+    prets = Pret.query.filter_by(statut='en_attente').all()
+
+    analyses = 0
+
+    for pret in prets:
+
+        client = pret.client
+
+        score = 100
+        raisons = []
+
+        # ----------------------------
+        # Revenu
+        # ----------------------------
+        revenu = client.revenu_mensuel or 0
+
+        if revenu < 15000:
+            score -= 30
+            raisons.append("Revenu faible")
+        elif revenu < 30000:
+            score -= 15
+
+        # ----------------------------
+        # Ratio d'endettement
+        # ----------------------------
+        mensualite = pret.mensualite or 0
+
+        if revenu > 0:
+            ratio = (mensualite / revenu) * 100
+        else:
+            ratio = 100
+
+        if ratio > 35:
+            score -= 25
+            raisons.append("Ratio d'endettement élevé")
+
+        # ----------------------------
+        # Ancienneté client
+        # ----------------------------
+        if client.date_creation:
+            anciennete = (datetime.utcnow() - client.date_creation).days
+
+            if anciennete > 730:
+                score += 10
+            elif anciennete < 90:
+                score -= 10
+                raisons.append("Nouveau client")
+
+        # ----------------------------
+        # Historique des prêts
+        # ----------------------------
+        nb_prets = Pret.query.filter_by(client_id=client.id).count()
+
+        if nb_prets >= 3:
+            score += 5
+
+        # ----------------------------
+        # Retards de paiement
+        # ----------------------------
+        retards = Remboursement.query.filter(
+            Remboursement.pret.has(client_id=client.id),
+            Remboursement.statut == "retard"
+        ).count()
+
+        if retards > 0:
+            score -= retards * 10
+            raisons.append(f"{retards} retard(s)")
+
+        # ----------------------------
+        # Encadrement
+        # ----------------------------
+        score = max(0, min(score, 100))
+
+        pret.score_credit = score
+
+        if score >= 80:
+            categorie = "excellent"
+            risque = "Faible"
+
+        elif score >= 65:
+            categorie = "bon"
+            risque = "Faible"
+
+        elif score >= 50:
+            categorie = "moyen"
+            risque = "Moyen"
+
+        else:
+            categorie = "faible"
+            risque = "Élevé"
+
+        pret.score_categorie = categorie
+        pret.niveau_risque = risque
+        pret.commentaire_analyse = ", ".join(raisons)
+
+        analyses += 1
+
+    db.session.commit()
+
+    flash(f"{analyses} demande(s) analysée(s) automatiquement.", "success")
+
+    return redirect(url_for("tableau_analyste_credit"))
+
 @app.route('/admin/employe/<int:employe_id>/suspendre')
 @login_required
 def suspendre_employe(employe_id):
