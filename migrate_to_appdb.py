@@ -3,22 +3,22 @@ import os
 import sqlite3
 import pickle
 
-print("🚀 Migration vers gmes.db...")
+print("🚀 Migration vers gmes.db1...")
 
 # 1. Supprimer gmes.db existant s'il y a conflit
-if os.path.exists('gmes.db'):
+if os.path.exists('gmes.db1'):
     # Sauvegarder d'abord
     backup = 'gmes.db.backup'
     if os.path.exists(backup):
         os.remove(backup)
-    os.rename('gmes.db', backup)
-    print(f"📦 Ancien gmes.db sauvegardé: {backup}")
+    os.rename('gmes.db1', backup)
+    print(f"📦 Ancien gmes.db1 sauvegardé: {backup}")
 
 # 2. Créer gmes.db avec toutes les tables
-print("🗃️ Création de gmes.db...")
+print("🗃️ Création de gmes.db1...")
 
 # Créer la connexion
-conn = sqlite3.connect('gmes.db')
+conn = sqlite3.connect('gmes.db1')
 cursor = conn.cursor()
 
 # Créer la table face_data
@@ -80,10 +80,10 @@ if os.path.exists('app.db'):
 conn.commit()
 conn.close()
 
-print("✅ gmes.db créé avec succès!")
+print("✅ gmes.db1 créé avec succès!")
 
 print("\n📁 Vérification:")
-print(f"  gmes.db: {os.path.getsize('gmes.db')} octets")
+print(f"  gmes.db1: {os.path.getsize('gmes.db1')} octets")
 
 # CORRECTION: Éviter le backslash dans le f-string
 app_exists = 'Existe' if os.path.exists('app.db') else "N'existe pas"
@@ -93,4 +93,4 @@ print(f"  app.db: {app_exists}")
 print(f"  faces.db: {faces_exists}")
 
 print("\n🔧 Maintenant modifiez app.py pour utiliser:")
-print("   app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gmes.db'")
+print("   app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gmes.db1'")

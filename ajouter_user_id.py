@@ -4,7 +4,7 @@ import sqlite3
 print("🔧 Ajout de employe_id à la base de données...")
 
 # Connexion à la base
-connexion = sqlite3.connect('gmes.db')
+connexion = sqlite3.connect('gmes.db1')
 curseur = connexion.cursor()
 
 # Étape 1: Vérifier ce qu'il y a dans la base
