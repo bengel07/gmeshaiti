@@ -1,13 +1,14 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 
+
 db = SQLAlchemy()
 
 def init_db(app):
     db.init_app(app)
 
     with app.app_context():
-        from models import *
+
 
         db.drop_all()
         db.create_all()
