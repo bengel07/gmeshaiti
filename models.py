@@ -3880,9 +3880,9 @@ class Client(db.Model):
     photo_face_right = db.Column(db.Text) # Face côté droit
     photo_id_verified = db.Column(db.Boolean, default=False)  # ID vérifié
     photo_id= db.Column(db.Boolean, default=False)  # ID vérifié
-    photo_face = db.Column(db.Text),  # Photo recto
-    photo_dos = db.Column(db.Text),  # Photo verso
-    photo_selfie = db.Column(db.Text),
+    photo_face = db.Column(db.Text)  # Photo recto
+    photo_dos = db.Column(db.Text)  # Photo verso
+    photo_selfie = db.Column(db.Text)
     verification_next_due = db.Column(db.DateTime)  # Date prochaine vérification annuelle
     selfie_last_verification = db.Column(db.DateTime)  # Date dernière vérification
     blocked_until_verification = db.Column(db.Boolean, default=False)  # Bloquer transactions
