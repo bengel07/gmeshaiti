@@ -3847,22 +3847,22 @@ class Client(db.Model):
     cree_par_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     id = db.Column(db.Integer, primary_key=True)
     employe_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    id_client = db.Column(db.String(20), unique=True)
-    nom = db.Column(db.String(100))
-    prenom = db.Column(db.String(100))
-    nom_complet = db.Column(db.String(100))
-    sexe = db.Column(db.String(10), nullable=True)
-    telephone = db.Column(db.String(20))
-    email = db.Column(db.String(120))
+    id_client = db.Column(db.String(200), unique=True)
+    nom = db.Column(db.String(500))
+    prenom = db.Column(db.String(500))
+    nom_complet = db.Column(db.String(500))
+    sexe = db.Column(db.String(100), nullable=True)
+    telephone = db.Column(db.String(200))
+    email = db.Column(db.String(200))
     adresse = db.Column(db.Text)
-    cin = db.Column(db.String(50))
+    cin = db.Column(db.String(500))
     date_naissance = db.Column(db.DateTime)
-    profession = db.Column(db.String(100))
+    profession = db.Column(db.String(1000))
     revenu_mensuel = db.Column(db.Float)
     date_inscription = db.Column(db.DateTime, default=datetime.utcnow)
 
-    statut = db.Column(db.String(20), default='actif')
-    mot_de_passe_hash = db.Column(db.String(255))
+    statut = db.Column(db.String(200), default='actif')
+    mot_de_passe_hash = db.Column(db.String(2550))
     groupe_id = db.Column(db.Integer)
     terms_accepted = db.Column(db.Boolean, default=False)
     terms_accepted_at = db.Column(db.DateTime, nullable=True)
@@ -3870,19 +3870,19 @@ class Client(db.Model):
 
     user = db.relationship('User', backref='client_profile', foreign_keys=[employe_id])
 
-    terms_signature_ip = db.Column(db.String(45))
+    terms_signature_ip = db.Column(db.String(450))
     terms_signature_user_agent = db.Column(db.Text)
     terms_signature_hash = db.Column(db.String(256))
 
     # ------------------- Champs pour vérification faciale annuelle -------------------
-    selfie_reference = db.Column(db.String(255))  # Selfie principal de référence
-    photo_face_left = db.Column(db.String(255))  # Face côté gauche
-    photo_face_right = db.Column(db.String(255))  # Face côté droit
+    selfie_reference = db.Column(db.Text)  # Selfie principal de référence
+    photo_face_left = db.Column(db.Text) # Face côté gauche
+    photo_face_right = db.Column(db.Text) # Face côté droit
     photo_id_verified = db.Column(db.Boolean, default=False)  # ID vérifié
     photo_id= db.Column(db.Boolean, default=False)  # ID vérifié
-    photo_face = db.Column(db.String(255), nullable=True)  # Photo recto
-    photo_dos = db.Column(db.String(255), nullable=True)  # Photo verso
-    photo_selfie = db.Column(db.String(255), nullable=True)
+    photo_face = db.Column(db.Text),  # Photo recto
+    photo_dos = db.Column(db.Text),  # Photo verso
+    photo_selfie = db.Column(db.Text),
     verification_next_due = db.Column(db.DateTime)  # Date prochaine vérification annuelle
     selfie_last_verification = db.Column(db.DateTime)  # Date dernière vérification
     blocked_until_verification = db.Column(db.Boolean, default=False)  # Bloquer transactions
@@ -3905,25 +3905,25 @@ class Client(db.Model):
 
     # ✅ CHAMPS AJOUTÉS (nécessaires pour votre formulaire)
     # Informations personnelles complémentaires
-    lieu_naissance = db.Column(db.String(100), nullable=True)
-    nationalite = db.Column(db.String(50), default='Haïtienne')
-    autre_nationalite = db.Column(db.String(50), nullable=True)
-    cin_nif = db.Column(db.String(50), unique=True, nullable=True)  # Alternative à cin
+    lieu_naissance = db.Column(db.String(1000), nullable=True)
+    nationalite = db.Column(db.String(500), default='Haïtienne')
+    autre_nationalite = db.Column(db.String(500), nullable=True)
+    cin_nif = db.Column(db.String(500), unique=True, nullable=True)  # Alternative à cin
 
     # Adresse détaillée
-    commune = db.Column(db.String(100), nullable=True)
-    departement = db.Column(db.String(50), nullable=True)
+    commune = db.Column(db.String(1000), nullable=True)
+    departement = db.Column(db.String(500), nullable=True)
     duree_adresse = db.Column(db.Integer, nullable=True)  # en années
 
     # Situation familiale
-    etat_civil = db.Column(db.String(20), nullable=True)  # celibataire, marie, union_libre, divorce
+    etat_civil = db.Column(db.String(200), nullable=True)  # celibataire, marie, union_libre, divorce
     nom_conjoint = db.Column(db.String(100), nullable=True)
     nb_enfants = db.Column(db.Integer, default=0)
 
     # Informations professionnelles
     entreprise = db.Column(db.String(100), nullable=True)
     adresse_travail = db.Column(db.String(200), nullable=True)
-    tel_travail = db.Column(db.String(20), nullable=True)
+    tel_travail = db.Column(db.String(200), nullable=True)
     autres_revenus = db.Column(db.Text, nullable=True)
 
     # Informations financières
@@ -3940,10 +3940,10 @@ class Client(db.Model):
     date_envoi_terms = db.Column(db.DateTime, nullable=True)
     solde = db.Column(db.Float, default=0.0)
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
-    numero_compte = db.Column(db.String(50), unique=True)
+    numero_compte = db.Column(db.String(500), unique=True)
 
-    ville = db.Column(db.String(100), nullable=True)  # ✅ Le champ doit exister
-    code_postal = db.Column(db.String(100), nullable=True)  # ✅ Le champ doit exister
+    ville = db.Column(db.String(1000), nullable=True)  # ✅ Le champ doit exister
+    code_postal = db.Column(db.String(1000), nullable=True)  # ✅ Le champ doit exister
     # Dans votre modèle Client
 
     @property
