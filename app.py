@@ -3938,38 +3938,47 @@ def client_terms(token):
 
     client = None
 
-    # ===== 1. DÉCODER LE TOKEN JWT =====
+    # ===== 1. DÉCODER LE TOKEN ITSdangerous =====
+    from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+
     try:
         token = token.strip()
 
-        payload = jwt.decode(
+        serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
+        client_id = serializer.loads(
             token,
-            app.config['SECRET_KEY'],
-            algorithms=['HS256']
+            salt="terms-accept",
+            max_age=7 * 24 * 60 * 60
         )
 
-        if payload.get('type') != 'conditions':
-            flash('❌ Type de lien invalide.', 'danger')
-            return redirect(url_for('connexion'))
-
-        client_id = payload.get('client_id')
-
-        client = db.session.get(Client, client_id)
+        client = db.session.get(Client, int(client_id))
 
         if not client:
-            flash('❌ Client non trouvé', 'danger')
+            flash('❌ Client non trouvé.', 'danger')
             return redirect(url_for('connexion'))
 
-        print(f"✅ Client trouvé: {client.email}")
+        print(f"✅ Token valide - Client trouvé: {client.email}")
 
-
-    except jwt.ExpiredSignatureError:
-        flash('⚠️ Le lien a expiré (7 jours). Veuillez demander un nouveau lien.', 'danger')
+    except SignatureExpired:
+        print("❌ Token expiré")
+        flash(
+            '⚠️ Le lien a expiré (7 jours). Veuillez demander un nouveau lien.',
+            'danger'
+        )
         return redirect(url_for('connexion'))
 
-    except jwt.InvalidTokenError as e:
-        print(f"❌ Token JWT invalide: {e}")
-        flash('❌ Lien invalide. Veuillez contacter votre conseiller.', 'danger')
+    except BadSignature as e:
+        print(f"❌ Token invalide: {e}")
+        flash(
+            '❌ Lien invalide. Veuillez contacter votre conseiller.',
+            'danger'
+        )
+        return redirect(url_for('connexion'))
+
+    except Exception as e:
+        print(f"❌ Erreur décodage token: {e}")
+        flash('❌ Impossible de vérifier ce lien.', 'danger')
         return redirect(url_for('connexion'))
 
 
@@ -17090,24 +17099,7 @@ def renvoyer_lien(client_id):
         print("BREVO :", response.status_code, response.text)
 
 
-        # Attacher les versions texte et HTML
-        # part1 = MIMEText(text, 'plain')
-        # part2 = MIMEText(html, 'html')
-        # msg.attach(part1)
-        # msg.attach(part2)
-        #
-        # # Envoyer l'email
-        # try:
-        #     server = smtplib.SMTP(EMAIL_SERVER, EMAIL_PORT)
-        #     server.starttls()
-        #     server.login(EMAIL_EXPEDITEUR, EMAIL_PASSWORD)
-        #     server.send_message(msg)
-        #     server.quit()
-        #     email_envoye = True
-        #     print(f"✅ Email envoyé avec succès à {client.email}")
-        # except Exception as e:
-        #     print(f"❌ Erreur envoi email: {e}")
-        #     email_envoye = False
+
 
         # 4. Créer une notification dans la base
         from datetime import datetime
