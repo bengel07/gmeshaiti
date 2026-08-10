@@ -54,11 +54,11 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     # Champs communs à tous les utilisateurs
-    username = db.Column(db.String(80), unique=True, nullable=True)
+    username = db.Column(db.String(800), unique=True, nullable=True)
     email = db.Column(db.String(120), unique=True)
     password_hash = db.Column(db.String(255))
-    role = db.Column(db.String(20), default='client')  # client, employe, admin, superviseur
-    statut = db.Column(db.String(20), default='actif')  # 'actif', 'en_attente', 'inactif'
+    role = db.Column(db.String(200), default='client')  # client, employe, admin, superviseur
+    statut = db.Column(db.String(200), default='actif')  # 'actif', 'en_attente', 'inactif'
 
     # approuve_par = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Admin qui a approuvé
 
@@ -66,23 +66,23 @@ class User(UserMixin, db.Model):
     nom_complet=db.Column(db.String(100))
     nom = db.Column(db.String(100))
     prenom = db.Column(db.String(100))
-    telephone = db.Column(db.String(20))
+    telephone = db.Column(db.String(200))
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
     groupe_id = db.Column(db.Integer, db.ForeignKey('groupes.id'), nullable=True)
 
     # Champs spécifiques aux clients
-    id_client = db.Column(db.String(20), unique=True, nullable=True)
+    id_client = db.Column(db.String(200), unique=True, nullable=True)
     adresse = db.Column(db.Text)
-    cin_nif = db.Column(db.String(50), unique=True, nullable=True)
+    cin_nif = db.Column(db.String(500), unique=True, nullable=True)
     date_naissance = db.Column(db.DateTime, nullable=True)
-    profession = db.Column(db.String(100))
-    lieu_naissance = db.Column(db.String(100))
-    nationalite = db.Column(db.String(100))
+    profession = db.Column(db.String(1000))
+    lieu_naissance = db.Column(db.String(1000))
+    nationalite = db.Column(db.String(1000))
     autre_nationalite = db.Column(db.String(100))
-    commune = db.Column(db.String(100))
+    commune = db.Column(db.String(1000))
     duree_adresse = db.Column(db.Integer)
-    etat_civil = db.Column(db.String(100))
-    nom_conjoint = db.Column(db.String(100))
+    etat_civil = db.Column(db.String(1000))
+    nom_conjoint = db.Column(db.String(1000))
     nb_enfants = db.Column(db.Integer)
 
     revenu_mensuel = db.Column(db.Float, default=0)
@@ -93,13 +93,13 @@ class User(UserMixin, db.Model):
     derniere_activite = db.Column(db.DateTime, default=datetime.utcnow)
     verifications_completes = db.Column(db.Boolean, default=False)
     formation_aml_cft = db.Column(db.Boolean, default=False)
-    matricule = db.Column(db.String(20), unique=True, default=lambda: "EMP-" + ''.join(random.choices("0123456789", k=6)))  # Matricule d'employé
+    matricule = db.Column(db.String(200), unique=True, default=lambda: "EMP-" + ''.join(random.choices("0123456789", k=6)))  # Matricule d'employé
 
     # Nouveaux champs
     depenses_mensuelles = db.Column(db.Float, default=0)
     capacite_remboursement = db.Column(db.Float, default=0)
-    photo_id = db.Column(db.String(255))
-    photo_selfie = db.Column(db.String(255))
+    photo_id = db.Column(db.String(2505))
+    photo_selfie = db.Column(db.String(2505))
     verification_faciale = db.Column(db.Boolean, default=False)
     score_verification = db.Column(db.Float, default=0)
     terms_accepted = db.Column(db.Boolean, default=False, nullable=False)  # This should exist
@@ -115,17 +115,17 @@ class User(UserMixin, db.Model):
     # Champs pour l'historique
     date_embauche = db.Column(db.DateTime, nullable=True)
     date_depart = db.Column(db.DateTime, nullable=True)
-    motif_depart = db.Column(db.String(100), nullable=True)
-    fonction = db.Column(db.String(100), nullable=True)  # si vous avez ajouté ce champ
+    motif_depart = db.Column(db.String(1000), nullable=True)
+    fonction = db.Column(db.String(1000), nullable=True)  # si vous avez ajouté ce champ
 
     # Dans models.py, classe User
     cree_par_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     token_signature = db.Column(db.Text, unique=True, nullable=True)
     date_envoi_terms = db.Column(db.DateTime, nullable=True)
     date_signature = db.Column(db.DateTime, nullable=True)
-    sexe = db.Column(db.String(1), nullable=True)  # 'M' ou 'F'
+    sexe = db.Column(db.String(10), nullable=True)  # 'M' ou 'F'
 
-    parent_nom = db.Column(db.String(100), nullable=True)
+    parent_nom = db.Column(db.String(1000), nullable=True)
     parent_signature = db.Column(db.Text, nullable=True)
     date_expiration_token = db.Column(db.DateTime, nullable=True)
     date_signature_terms = db.Column(db.DateTime, nullable=True)
@@ -137,12 +137,12 @@ class User(UserMixin, db.Model):
     rejete_par_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     derniere_connexion = db.Column(db.DateTime, nullable=True)
 
-    photo_profil = db.Column(db.String(255))
-    photo_recto = db.Column(db.String(255))
-    photo_verso = db.Column(db.String(255))
+    photo_profil = db.Column(db.String(2505))
+    photo_recto = db.Column(db.String(2505))
+    photo_verso = db.Column(db.String(2055))
 
-    id_number = db.Column(db.String(100), unique=True)
-    id_type = db.Column(db.String(50))
+    id_number = db.Column(db.String(1000), unique=True)
+    id_type = db.Column(db.String(500))
 
     carte_generee = db.Column(db.Boolean, default=False)
     carte_path = db.Column(db.String(200))
@@ -162,7 +162,7 @@ class User(UserMixin, db.Model):
     date_formation_aml_cft = db.Column(db.DateTime)
     statut_conformite = db.Column(db.String(50), default='en_attente')  # 'en_attente', 'conforme', 'non_conforme'
 
-    carte_numero = db.Column(db.String(50), unique=True, nullable=True)
+    carte_numero = db.Column(db.String(500), unique=True, nullable=True)
     est_actif = db.Column(db.Boolean, default=True)
 
     # Relation avec Partner
@@ -528,7 +528,7 @@ class MembreGroupe(db.Model):
     date_sortie = db.Column(db.DateTime, nullable=True)
 
     # Statut
-    statut = db.Column(db.String(20), default='actif')
+    statut = db.Column(db.String(200), default='actif')
     # Options: 'actif', 'inactif', 'suspendu', 'sorti'
 
     # Métadonnées
@@ -1005,7 +1005,7 @@ class VerificationConformite(db.Model):
     date_limite = db.Column(db.DateTime, nullable=True)
 
     # Statut
-    statut = db.Column(db.String(50), default='en_attente')
+    statut = db.Column(db.String(500), default='en_attente')
     # Options: 'en_attente', 'en_cours', 'terminee', 'validee', 'rejetee', 'archivee'
 
     # Métadonnées
@@ -2519,7 +2519,7 @@ class Presence(db.Model):
     heures_supplementaires = db.Column(db.Integer, default=0)  # en minutes
 
     # Statut
-    statut = db.Column(db.String(20), default='present')
+    statut = db.Column(db.String(200), default='present')
     # Options: 'present', 'absent', 'retard', 'excusé', 'congé', 'formation', 'mission'
 
     # Retard
@@ -2755,7 +2755,7 @@ class Conge(db.Model):
     solde_restant = db.Column(db.Integer, default=0)  # Jours restants
 
     # Statut
-    statut = db.Column(db.String(20), default='en_attente')
+    statut = db.Column(db.String(200), default='en_attente')
     # Options: 'en_attente', 'approuve', 'refuse', 'annule', 'termine'
 
     # Approbations
@@ -4079,7 +4079,7 @@ class Pret(db.Model):
     duree_mois = db.Column(db.Integer)
     date_demande = db.Column(db.DateTime, default=datetime.utcnow)
     date_approbation = db.Column(db.DateTime)
-    statut = db.Column(db.String(20), default='en_attente')
+    statut = db.Column(db.String(200), default='en_attente')
     motif = db.Column(db.String(100))
     montant_interet = db.Column(db.Float)
     montant_total = db.Column(db.Float)
@@ -4297,7 +4297,7 @@ class Remboursement(db.Model):
     montant = db.Column(db.Float)
     date_remboursement = db.Column(db.DateTime, default=datetime.utcnow)
     date_echeance = db.Column(db.DateTime)
-    statut = db.Column(db.String(20), default='en_attente')
+    statut = db.Column(db.String(200), default='en_attente')
     type_paiement = db.Column(db.String(20))
     methode =  db.Column(db.String(20))
     reference = db.Column(db.String(20))
@@ -4326,7 +4326,7 @@ class Employe(db.Model):
     telephone = db.Column(db.String(20))
     poste = db.Column(db.String(100))
     date_embauche = db.Column(db.DateTime)
-    statut = db.Column(db.String(20), default='en_attente')  # ← Modifier 'actif' en 'en_attente'
+    statut = db.Column(db.String(200), default='en_attente')  # ← Modifier 'actif' en 'en_attente'
     mot_de_passe_hash = db.Column(db.String(255))
     succursale_id = db.Column(db.Integer, db.ForeignKey('succursale.id'), nullable=False)
     entreprise_id = db.Column(db.Integer, db.ForeignKey("entreprises.id"))
@@ -4468,7 +4468,7 @@ class Transaction(db.Model):
     montant = db.Column(db.Float)
     gateway = db.Column(db.String(20))  # moncash, natcash, etc.
     transaction_id = db.Column(db.String(100))  # ID de la transaction du gateway
-    statut = db.Column(db.String(20), default='en_attente')  # en_attente, paye, echoue
+    statut = db.Column(db.String(200), default='en_attente')  # en_attente, paye, echoue
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
     date_confirmation = db.Column(db.DateTime)
     metadata_info = db.Column(db.Text)  # Données supplémentaires au format JSON
@@ -4507,7 +4507,7 @@ class Credit(db.Model):
     date_fin = db.Column(db.DateTime)
 
     # Statut
-    statut = db.Column(db.String(20), default='en_attente')
+    statut = db.Column(db.String(200), default='en_attente')
 
     # Autres champs
     objet = db.Column(db.String(200))
@@ -6099,7 +6099,7 @@ class Echeance(db.Model):
     date_paiement = db.Column(db.DateTime, nullable=True)
 
     # Statut
-    statut = db.Column(db.String(20), default='en_attente')  # 'en_attente', 'payee', 'retard', 'impayee', 'renégociée'
+    statut = db.Column(db.String(200), default='en_attente')  # 'en_attente', 'payee', 'retard', 'impayee', 'renégociée'
 
     # Paiement
     paiement_id = db.Column(db.Integer, db.ForeignKey('paiements.id'), nullable=True)
@@ -6402,7 +6402,7 @@ class RenegociationCredit(db.Model):
     justificatifs = db.Column(db.JSON, default=list)  # URLs des documents
 
     # Statut
-    statut = db.Column(db.String(20), default='en_attente')  # 'en_attente', 'approuvee', 'rejetee', 'en_cours'
+    statut = db.Column(db.String(200), default='en_attente')  # 'en_attente', 'approuvee', 'rejetee', 'en_cours'
 
     # Dates
     date_demande = db.Column(db.DateTime, default=datetime.utcnow)
@@ -6976,7 +6976,7 @@ class FileAttente(db.Model):
     date_fin_service = db.Column(db.DateTime, nullable=True)
 
     # Statut
-    statut = db.Column(db.String(20), default='en_attente')  # 'en_attente', 'appele', 'en_cours', 'termine', 'annule'
+    statut = db.Column(db.String(200), default='en_attente')  # 'en_attente', 'appele', 'en_cours', 'termine', 'annule'
 
     # Temps d'attente
     temps_estime = db.Column(db.Integer, default=0)  # en minutes
@@ -7934,7 +7934,7 @@ class DemandeConge(db.Model):
     motif = db.Column(db.Text, nullable=True)
 
     # Statut
-    statut = db.Column(db.String(20), default='en_attente')  # 'en_attente', 'approuve', 'refuse', 'annule'
+    statut = db.Column(db.String(200), default='en_attente')  # 'en_attente', 'approuve', 'refuse', 'annule'
 
     # Dates
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
