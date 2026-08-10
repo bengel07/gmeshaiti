@@ -3121,6 +3121,13 @@ def accepter_conditions(token):
         if not client:
             return render_template('accepter_conditions.html', token_invalide=True)
 
+        print("========== VERIFICATION CLIENT ==========")
+        print("ID :", client.id)
+        print("EMAIL :", client.email)
+        print("TERMS ACCEPTED :", client.terms_accepted)
+        print("STATUT :", client.statut)
+        print("=========================================")
+
     except jwt.ExpiredSignatureError:
         return render_template('accepter_conditions.html', token_expire=True)
     except jwt.InvalidTokenError:
