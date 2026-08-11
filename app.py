@@ -1011,7 +1011,7 @@ def demande_pret():
                     flash("⛔ Le revenu mensuel doit être supérieur à 0", "danger")
                     return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-                if montant_demande < 10000 or montant_demande > 10 000 000 000:
+                if montant_demande < 10000 or montant_demande > 10_000_000_000:
                     flash('⛔ Le montant demandé doit être entre 10 000 et 10 000 000 000 Gdes', 'danger')
                     return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
