@@ -7233,11 +7233,18 @@ def directeur_general_dashboard():
         })
 
     # 4. ALERTE : Clients inactifs
-    seuil_inactivite = 90  # jours
-    clients_inactifs = Client.query.filter(
-        Pret.derniere_activite < aujourdhui - timedelta(days=seuil_inactivite),
-        Client.compte_actif == True
-    ).count()
+    seuil_inactivite = 90
+
+    clients_inactifs = (
+            db.session.query(func.count(func.distinct(Client.id)))
+            .join(Pret, Pret.client_id == Client.id)
+            .filter(
+                Pret.derniere_activite < datetime.now() - timedelta(days=seuil_inactivite),
+                Client.compte_actif.is_(True)
+            )
+            .scalar()
+            or 0
+    )
 
     if clients_inactifs > 10:
         alertes.append({
