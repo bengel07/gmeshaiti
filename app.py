@@ -4009,7 +4009,6 @@ def client_terms(token):
                     from werkzeug.security import generate_password_hash
                     import uuid
                     user = User(
-                        id=client.id,
                         prenom=client.prenom,
                         nom=client.nom,
                         email=client.email,
