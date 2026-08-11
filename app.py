@@ -1244,19 +1244,8 @@ def demande_pret():
             print("🔔 ENVOI NOTIFICATION AU DIRECTEUR")
             print("EMAIL:", os.getenv("MAIL_USERNAME"))
             print("PASSWORD:", os.getenv("MAIL_PASSWORD"))
+
             flash("🔔 ENVOI NOTIFICATION AU DIRECTEUR")
-
-
-            # if envoyer_email_demande_pret(client, nouveau_pret):
-            #     flash(
-            #         "✅ Demande de prêt créée avec succès. Un email de confirmation a été envoyé au client.",
-            #         "success"
-            #     )
-            # else:
-            #     flash(
-            #         "⚠️ Demande de prêt créée, mais l'email de confirmation n'a pas pu être envoyé.",
-            #         "warning"
-            #     )
 
 
             # Redirection selon le rôle
@@ -1264,8 +1253,7 @@ def demande_pret():
                 return redirect(url_for('agent_credit_dashboard', succursale_code=current_user.succursale.code))
             else:
                 return redirect(url_for('client_dashboard'))
-
-            flash("redirection")
+                flash("redirection")
 
         except Exception as e:
             db.session.rollback()
@@ -5354,7 +5342,6 @@ def load_user(employe_id):
     """Charge l'utilisateur à chaque requête"""
     try:
         user = db.session.get(User, int(employe_id))
-        print(f"🔄 Load user {employe_id}: {user.username if user else 'None'} - Rôle: {user.role if user else 'None'}")
         return user
     except Exception as e:
         print(f"❌ Erreur load_user: {e}")
