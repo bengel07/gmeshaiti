@@ -1011,7 +1011,7 @@ def demande_pret():
                     flash("⛔ Le revenu mensuel doit être supérieur à 0", "danger")
                     return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-                if montant_demande < 10000 or montant_demande > 10_000_000:
+                if montant_demande < 10000 or montant_demande > 10 000 000 000:
                     flash('⛔ Le montant demandé doit être entre 10 000 et 10 000 000 000 Gdes', 'danger')
                     return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
@@ -1042,11 +1042,44 @@ def demande_pret():
                 return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
             # Validation date de naissance
-            date_naissance = datetime.strptime(request.form.get('date_naissance'), '%Y-%m-%d').date()
-            age = (datetime.now().date() - date_naissance).days / 365.25
+            date_naissance = datetime.strptime(
+                request.form.get('date_naissance'),
+                '%Y-%m-%d'
+            ).date()
+
+            aujourd_hui = datetime.now().date()
+
+            if date_naissance > aujourd_hui:
+                flash('⛔ La date de naissance ne peut pas être dans le futur.', 'danger')
+                return redirect(url_for(
+                    'demande_pret',
+                    client_id=client_id,
+                    telephone=telephone,
+                    email=email
+                ))
+
+            age = aujourd_hui.year - date_naissance.year - (
+                    (aujourd_hui.month, aujourd_hui.day) <
+                    (date_naissance.month, date_naissance.day)
+            )
+
             if age < 18:
-                flash('⛔ Le client doit avoir au moins 18 ans', 'danger')
-                return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
+                flash('⛔ Le client doit avoir au moins 18 ans.', 'danger')
+                return redirect(url_for(
+                    'demande_pret',
+                    client_id=client_id,
+                    telephone=telephone,
+                    email=email
+                ))
+
+            if age > 100:
+                flash('⛔ La date de naissance semble invalide.', 'danger')
+                return redirect(url_for(
+                    'demande_pret',
+                    client_id=client_id,
+                    telephone=telephone,
+                    email=email
+                ))
 
 
             # ========== VÉRIFICATION CLIENT EXISTANT ==========
@@ -1105,6 +1138,7 @@ def demande_pret():
             else:
                 # ========== CRÉATION NOUVEAU CLIENT ==========
                 client = Client(
+                    employe_id=current_user.id if est_agent else None,
                     nom=request.form.get('nom').strip().upper(),
                     prenom=request.form.get('prenom').strip().capitalize(),
                     sexe=request.form.get('sexe'),
