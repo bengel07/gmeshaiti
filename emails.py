@@ -314,7 +314,7 @@ def send_transfer_notification_email(employe, ancienne_succursale, nouvelle_succ
 
 
 
-def envoyer_email_demande_pret(client, pret):
+def (client, pret):
     """
     Envoie un email au client pour confirmer sa demande de prêt
     et lui permettre de signer les conditions du prêt.

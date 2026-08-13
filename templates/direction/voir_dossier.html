@@ -155,12 +155,12 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold">Dépenses mensuelles (HTG)</label>
                             <input type="number" name="depenses_mensuelles" class="form-control"
-                                   value="{{ dossier.depenses_mensuelles or 0 }}" step="0.01">
+                                   value="{{ (dossier.depenses_mensuelles or 0) }}" step="0.01">
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Capacité remboursement (HTG)</label>
                             <input type="number" name="capacite_remboursement" class="form-control"
-                                   value="{{ dossier.capacite_remboursement or 0 }}" step="0.01">
+                                   value="{{ (dossier.capacite_remboursement or 0) }}" step="0.01">
                         </div>
                     </div>
                 </div>

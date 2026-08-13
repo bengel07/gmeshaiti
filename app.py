@@ -1181,7 +1181,8 @@ def demande_pret():
             # 2. ENSUITE vérifier si email doit être envoyé
             if not client.terms_accepted:
                 session['pret_data'] = request.form.to_dict()  # 🔥 AJOUT CRUCIAL
-                envoyer_email_conditions(client)
+                (envoyer_email_demande_pret
+                 (client))
 
                 flash('⚠️ Vérifiez votre email et signez les conditions.', 'warning')
                 return redirect(url_for('demande_pret', client_id=client.id))
