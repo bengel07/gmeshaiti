@@ -14964,7 +14964,7 @@ def remboursements_succursale(succursale_code):
     # 12. Afficher la page
     # ---------------------------------------------------------
     return render_template(
-        'nouveau_remboursements.html',
+        'nouveau_remboursement.html',
         succursale=succursale,
         prets=prets,
         remboursements=remboursements
