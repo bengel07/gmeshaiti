@@ -14564,7 +14564,7 @@ def remboursements_succursale(succursale_code):
     # Filtrer par succursale
     remboursements = Remboursement.query.filter_by(succursale_id=succursale.id).all()
 
-    return render_template('succursale/remboursements.html',
+    return render_template('nouveau_remboursements.html',
                            succursale=succursale,
                            remboursements=remboursements)
 
