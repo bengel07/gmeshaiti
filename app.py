@@ -885,6 +885,8 @@ def demande_pret():
         prenom_form = request.form.get('prenom', '')
         email_form = request.form.get('email', '').strip().lower()
         telephone_form = request.form.get('telephone', '').strip()
+        code_postal_form = request.form.get('code_postal', '').strip()
+        ville_form = request.form.get('ville', '').strip()
         cin_nif_form = request.form.get('cin_nif', '').strip().upper()
         montant_form = request.form.get('montant_demande', '0')
         duree_form = request.form.get('duree', '0')
@@ -1084,7 +1086,7 @@ def demande_pret():
 
             # ========== VÉRIFICATION CLIENT EXISTANT ==========
             client_existant = Client.query.filter(
-                (Client.cin == cin_nif) | (Client.email == email)
+                (Client.cin_nif == cin_nif) | (Client.email == email)
             ).first()
 
             if client_existant:
@@ -1106,6 +1108,8 @@ def demande_pret():
                     'nationalite') == 'Autre' else None
                 client.cin_nif = cin_nif if cin_nif else None
                 client.telephone = telephone
+                client.code_postal = code_postal
+                client.ville = ville
                 client.email = email
 
                 # Mise à jour de l'adresse
