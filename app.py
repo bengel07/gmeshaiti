@@ -14567,7 +14567,8 @@ def remboursements_retards(succursale_code):
         )
 
 
-
+@app.route('/<succursale_code>/remboursements/export-retards')
+@login_required
 def export_remboursements_retards():
     """
     Exporte la liste des remboursements en retard vers un fichier Excel.
