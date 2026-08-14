@@ -11287,7 +11287,6 @@ def historique_remboursements(succursale_code):
     pourcentage = 0
 
     # Si vous voulez afficher les infos du prêt #13 spécifiquement
-    pret = Pret.query.get(13)
     if pret:
         remb_valides = Remboursement.query.filter(
             Remboursement.pret_id == pret.id,
