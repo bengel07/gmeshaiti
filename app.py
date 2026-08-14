@@ -885,8 +885,6 @@ def demande_pret():
         prenom_form = request.form.get('prenom', '')
         email_form = request.form.get('email', '').strip().lower()
         telephone_form = request.form.get('telephone', '').strip()
-        code_postal_form = request.form.get('code_postal', '').strip()
-        ville_form = request.form.get('ville', '').strip()
         cin_nif_form = request.form.get('cin_nif', '').strip().upper()
         montant_form = request.form.get('montant_demande', '0')
         duree_form = request.form.get('duree', '0')
@@ -1108,8 +1106,6 @@ def demande_pret():
                     'nationalite') == 'Autre' else None
                 client.cin_nif = cin_nif if cin_nif else None
                 client.telephone = telephone
-                client.code_postal = code_postal
-                client.ville = ville
                 client.email = email
 
                 # Mise à jour de l'adresse
@@ -14475,21 +14471,89 @@ from flask import abort
 
 
 
+# @app.route('/<succursale_code>/remboursements/retards')
+# @login_required
+# def remboursements_retards(succursale_code):
+#     """Remboursements en retard pour une succursale"""
+#     succursale = Succursale.query.filter_by(code=succursale_code.upper()).first_or_404()
+#
+#     # Récupérer les remboursements en retard
+#     remboursements_retard = Remboursement.query.filter_by(
+#         succursale_id=succursale.id,
+#         statut='en_retard'  # ou 'retard', 'impaye', selon votre modèle
+#     ).all()
+#
+#     return render_template('succursale/remboursements_retards.html',
+#                            succursale=succursale,
+#                            remboursements=remboursements_retard)
+
+
 @app.route('/<succursale_code>/remboursements/retards')
 @login_required
 def remboursements_retards(succursale_code):
-    """Remboursements en retard pour une succursale"""
-    succursale = Succursale.query.filter_by(code=succursale_code.upper()).first_or_404()
+    """Afficher les remboursements en retard d'une succursale."""
 
-    # Récupérer les remboursements en retard
-    remboursements_retard = Remboursement.query.filter_by(
-        succursale_id=succursale.id,
-        statut='en_retard'  # ou 'retard', 'impaye', selon votre modèle
-    ).all()
+    try:
+        # ---------------------------------------------------------
+        # 1. Vérifier la succursale
+        # ---------------------------------------------------------
+        succursale = Succursale.query.filter(
+            db.func.upper(Succursale.code) == succursale_code.upper()
+        ).first_or_404()
 
-    return render_template('succursale/remboursements_retards.html',
-                           succursale=succursale,
-                           remboursements=remboursements_retard)
+        # ---------------------------------------------------------
+        # 2. Récupérer les remboursements en retard
+        # ---------------------------------------------------------
+        remboursements_retard = Remboursement.query.filter(
+            Remboursement.succursale_id == succursale.id,
+            Remboursement.statut == 'en_retard'
+        ).order_by(
+            Remboursement.date_echeance.asc()
+        ).all()
+
+        # ---------------------------------------------------------
+        # 3. Date actuelle
+        # ---------------------------------------------------------
+        maintenant = datetime.now()
+
+        # ---------------------------------------------------------
+        # 4. Statistiques
+        # ---------------------------------------------------------
+        total_retards = len(remboursements_retard)
+
+        montant_total_du = sum(
+            float(remboursement.montant or 0)
+            for remboursement in remboursements_retard
+        )
+
+        # ---------------------------------------------------------
+        # 5. Affichage
+        # ---------------------------------------------------------
+        return render_template(
+            'succursale/remboursements_retards.html',
+            succursale=succursale,
+            remboursements=remboursements_retard,
+            maintenant=maintenant,
+            total_retards=total_retards,
+            montant_total_du=montant_total_du
+        )
+
+    except Exception as e:
+        print("❌ ERREUR remboursements_retards :", e)
+        import traceback
+        traceback.print_exc()
+
+        flash(
+            f"Erreur lors du chargement des remboursements en retard : {str(e)}",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                'remboursements_succursale',
+                succursale_code=succursale_code
+            )
+        )
 
 @app.route('/<succursale_code>/remboursements')
 @login_required
