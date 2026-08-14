@@ -14794,18 +14794,181 @@ def export_remboursements_retards(succursale_code):
         download_name=nom_fichier
     )
 
-@app.route('/<succursale_code>/remboursements')
+@app.route('/<succursale_code>/remboursements', methods=['GET', 'POST'])
 @login_required
 def remboursements_succursale(succursale_code):
-    """Remboursements pour une succursale spécifique"""
-    succursale = Succursale.query.filter_by(code=succursale_code.upper()).first_or_404()
+    """Créer et consulter les remboursements d'une succursale."""
 
-    # Filtrer par succursale
-    remboursements = Remboursement.query.filter_by(succursale_id=succursale.id).all()
+    # ---------------------------------------------------------
+    # 1. Récupérer la succursale
+    # ---------------------------------------------------------
+    succursale = Succursale.query.filter_by(
+        code=succursale_code.upper()
+    ).first_or_404()
 
-    return render_template('nouveau_remboursements.html',
-                           succursale=succursale,
-                           remboursements=remboursements)
+    # ---------------------------------------------------------
+    # 2. Récupérer les prêts de cette succursale
+    # ---------------------------------------------------------
+    prets = Pret.query.filter_by(
+        succursale_id=succursale.id
+    ).all()
+
+    # ---------------------------------------------------------
+    # 3. TRAITEMENT DU FORMULAIRE
+    # ---------------------------------------------------------
+    if request.method == 'POST':
+
+        pret_id = request.form.get('pret_id', type=int)
+        montant_str = request.form.get('montant', '').strip()
+        type_paiement = request.form.get('type_paiement', '').strip()
+        reference = request.form.get('reference', '').strip()
+
+        # Vérification du prêt
+        if not pret_id:
+            flash("Veuillez sélectionner un prêt.", "error")
+            return redirect(
+                url_for(
+                    'remboursements_succursale',
+                    succursale_code=succursale.code
+                )
+            )
+
+        pret = Pret.query.filter_by(
+            id=pret_id,
+            succursale_id=succursale.id
+        ).first()
+
+        if not pret:
+            flash(
+                "Le prêt sélectionné n'existe pas dans cette succursale.",
+                "error"
+            )
+            return redirect(
+                url_for(
+                    'remboursements_succursale',
+                    succursale_code=succursale.code
+                )
+            )
+
+        # -----------------------------------------------------
+        # 4. Vérifier le montant
+        # -----------------------------------------------------
+        try:
+            montant = float(montant_str)
+        except (TypeError, ValueError):
+            montant = 0
+
+        if montant <= 0:
+            flash(
+                "Le montant du remboursement doit être supérieur à zéro.",
+                "error"
+            )
+            return redirect(
+                url_for(
+                    'remboursements_succursale',
+                    succursale_code=succursale.code
+                )
+            )
+
+        # -----------------------------------------------------
+        # 5. Calculer le solde actuel
+        # -----------------------------------------------------
+        solde_restant = float(
+            pret.solde_restant
+            or pret.montant_total
+            or pret.montant
+            or 0
+        )
+
+        # -----------------------------------------------------
+        # 6. Ne jamais permettre de payer plus que le solde
+        # -----------------------------------------------------
+        if montant > solde_restant:
+            flash(
+                f"Le montant ne peut pas dépasser le solde restant "
+                f"de {solde_restant:,.0f} HTG.",
+                "error"
+            )
+            return redirect(
+                url_for(
+                    'remboursements_succursale',
+                    succursale_code=succursale.code
+                )
+            )
+
+        # -----------------------------------------------------
+        # 7. Créer le remboursement
+        # -----------------------------------------------------
+        remboursement = Remboursement(
+            pret_id=pret.id,
+            succursale_id=succursale.id,
+            montant=montant,
+            type_paiement=type_paiement,
+            reference=reference if reference else None
+        )
+
+        db.session.add(remboursement)
+
+        # -----------------------------------------------------
+        # 8. Mettre à jour le solde du prêt
+        # -----------------------------------------------------
+        nouveau_solde = solde_restant - montant
+
+        pret.solde_restant = max(nouveau_solde, 0)
+
+        # -----------------------------------------------------
+        # 9. Si le prêt est totalement payé
+        # -----------------------------------------------------
+        if pret.solde_restant <= 0:
+            pret.solde_restant = 0
+            pret.statut = 'rembourse'
+
+        # -----------------------------------------------------
+        # 10. Sauvegarder
+        # -----------------------------------------------------
+        try:
+            db.session.commit()
+
+            flash(
+                f"Remboursement de {montant:,.0f} HTG enregistré avec succès.",
+                "success"
+            )
+
+        except Exception as e:
+            db.session.rollback()
+
+            print(f"❌ Erreur remboursement : {e}")
+
+            flash(
+                "Une erreur est survenue lors de l'enregistrement du remboursement.",
+                "error"
+            )
+
+        return redirect(
+            url_for(
+                'remboursements_succursale',
+                succursale_code=succursale.code
+            )
+        )
+
+    # ---------------------------------------------------------
+    # 11. Historique des remboursements
+    # ---------------------------------------------------------
+    remboursements = Remboursement.query.filter_by(
+        succursale_id=succursale.id
+    ).order_by(
+        Remboursement.id.desc()
+    ).all()
+
+    # ---------------------------------------------------------
+    # 12. Afficher la page
+    # ---------------------------------------------------------
+    return render_template(
+        'nouveau_remboursements.html',
+        succursale=succursale,
+        prets=prets,
+        remboursements=remboursements
+    )
 
 
 def generer_id_client(succursale_code):
