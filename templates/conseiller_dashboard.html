@@ -469,8 +469,8 @@
                         <i class="fas fa-hand-holding-usd"></i> Remboursement
                     </a>
 
-                    <a href="{{ url_for('historique_remboursements') }}" class="btn">
-                        <i class="fas fa-hand-holding-usd"></i> Les Remboursements
+                    <a href="{{ url_for('historique_remboursements', succursale_code=succursale_code) }}" class="btn">
+                         <i class="fas fa-history"></i> Les Remboursements
                     </a>
 
                     <a href="{{ url_for('prets_en_attente') }}" class="btn">
