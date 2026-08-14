@@ -21,7 +21,7 @@
             <div class="card text-white bg-warning">
                 <div class="card-body">
                     <h5 class="card-title">Montant total dû</h5>
-                    <h2>{{ montant_total_du|default(0) }} FCFA</h2>
+                    <h2>{{ montant_total_du|default(0) }} HTG</h2>
                     <p class="card-text">À recouvrer</p>
                 </div>
             </div>
@@ -51,7 +51,7 @@
                         <tr>
                             <td>{{ loop.index }}</td>
                             <td>{{ paiement.client.nom if paiement.client else 'N/A' }}</td>
-                            <td>{{ paiement.montant }} FCFA</td>
+                            <td>{{ paiement.montant }} HTG</td>
                             <td>{{ paiement.date_echeance.strftime('%d/%m/%Y') }}</td>
                             <td>
                                 {% set jours_retard = (maintenant - paiement.date_echeance).days %}
