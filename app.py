@@ -137,6 +137,17 @@ import schedule
 import threading
 
 
+
+import pandas as pd
+from datetime import datetime, timedelta
+from flask import send_file, flash, redirect, url_for
+from io import BytesIO
+import openpyxl
+from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+from openpyxl.utils.dataframe import dataframe_to_rows
+
+
+
 from flask import request, jsonify, session, Blueprint
 
 # from models import Partner, PartnerAPIKey, PartnerWebhook, PartnerIntegration
@@ -14554,6 +14565,233 @@ def remboursements_retards(succursale_code):
                 succursale_code=succursale_code
             )
         )
+
+
+
+def export_remboursements_retards():
+    """
+    Exporte la liste des remboursements en retard vers un fichier Excel.
+    Accessible uniquement aux administrateurs et directeurs.
+    """
+
+    # ===== 1. VÉRIFICATION DES PERMISSIONS =====
+    if current_user.role not in ['admin', 'super_admin', 'direction']:
+        flash('⛔ Accès non autorisé. Seuls les administrateurs et directeurs peuvent exporter ce rapport.', 'danger')
+        return redirect(url_for('main.index'))
+
+    # ===== 2. PARAMÈTRES DE LA REQUÊTE =====
+    # Récupérer les filtres depuis la requête
+    jours_retard_min = request.args.get('jours_retard', default=1, type=int)
+    date_debut = request.args.get('date_debut')
+    date_fin = request.args.get('date_fin')
+    succursale_id = request.args.get('succursale_id', type=int)
+
+    # ===== 3. CONSTRUCTION DE LA REQUÊTE SQL =====
+    # Obtenir la date actuelle
+    aujourd_hui = datetime.now().date()
+
+    # Requête de base
+    query = db.session.query(
+        Pret,
+        Client,
+        Employe,
+        Succursale
+    ).join(
+        Client, Pret.client_id == Client.id
+    ).join(
+        Employe, Pret.agent_id == Employe.id, isouter=True
+    ).join(
+        Succursale, Pret.succursale_id == Succursale.id, isouter=True
+    ).filter(
+        Pret.statut == 'actif',  # Prêts actifs uniquement
+        Pret.prochaine_echeance < aujourd_hui  # Échéance dépassée
+    )
+
+    # Appliquer les filtres
+    if jours_retard_min > 0:
+        # Calculer la date limite
+        date_limite = aujourd_hui - timedelta(days=jours_retard_min)
+        query = query.filter(Pret.prochaine_echeance < date_limite)
+
+    if date_debut:
+        query = query.filter(Pret.date_creation >= datetime.strptime(date_debut, '%Y-%m-%d'))
+
+    if date_fin:
+        query = query.filter(Pret.date_creation <= datetime.strptime(date_fin, '%Y-%m-%d'))
+
+    if succursale_id:
+        query = query.filter(Pret.succursale_id == succursale_id)
+
+    # ===== 4. EXÉCUTION DE LA REQUÊTE =====
+    resultats = query.all()
+
+    if not resultats:
+        flash('ℹ️ Aucun remboursement en retard trouvé.', 'info')
+        return redirect(request.referrer or url_for('dashboard'))
+
+    # ===== 5. CRÉATION DU DATAFRAME PANDAS =====
+    data = []
+    for pret, client, employe, succursale in resultats:
+        # Calculer les jours de retard
+        jours_retard = (aujourd_hui - pret.prochaine_echeance).days
+
+        # Vérifier les remboursements effectués
+        total_rembourse = sum(e.montant_rembourse for e in pret.echeances if e.statut == 'paye')
+        capital_restant = pret.montant - total_rembourse
+
+        data.append({
+            'ID Prêt': pret.id,
+            'Numéro Prêt': pret.numero_pret or pret.numero_dossier,
+            'Client': f"{client.prenom} {client.nom}",
+            'Téléphone Client': client.telephone,
+            'Email Client': client.email,
+            'Date Début': pret.date_debut.strftime('%d/%m/%Y') if pret.date_debut else 'N/A',
+            'Prochaine Échéance': pret.prochaine_echeance.strftime('%d/%m/%Y') if pret.prochaine_echeance else 'N/A',
+            'Jours de Retard': jours_retard,
+            'Montant Prêt': pret.montant,
+            'Montant Restant': round(capital_restant, 2),
+            'Mensualité': pret.mensualite or 0,
+            'Dernier Remboursement': pret.dernier_remboursement.strftime(
+                '%d/%m/%Y') if pret.dernier_remboursement else 'Jamais',
+            'Agent': f"{employe.prenom} {employe.nom}" if employe else 'Non assigné',
+            'Succursale': succursale.nom if succursale else 'N/A',
+            'Statut Prêt': pret.statut
+        })
+
+    df = pd.DataFrame(data)
+
+    # ===== 6. CRÉATION DU FICHIER EXCEL STYLISÉ =====
+    output = BytesIO()
+
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        # Écrire le DataFrame
+        df.to_excel(writer, sheet_name='Remboursements Retards', index=False)
+
+        # Récupérer le classeur et la feuille
+        workbook = writer.book
+        worksheet = writer.sheets['Remboursements Retards']
+
+        # ===== 7. STYLISATION =====
+        # Définir les styles
+        header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+        header_font = Font(color="FFFFFF", bold=True, size=11)
+        header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+        # Style pour les cellules en retard (rouge)
+        retard_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+        retard_font = Font(color="FFFFFF", bold=True)
+
+        # Style pour les cellules en retard critique (rouge foncé)
+        retard_critique_fill = PatternFill(start_color="8B0000", end_color="8B0000", fill_type="solid")
+        retard_critique_font = Font(color="FFFFFF", bold=True)
+
+        # Style pour les bordures
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+
+        # Appliquer le style aux en-têtes
+        for col in range(1, len(df.columns) + 1):
+            cell = worksheet.cell(row=1, column=col)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_alignment
+            cell.border = thin_border
+
+        # Ajuster la largeur des colonnes
+        for col in worksheet.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 30)
+            worksheet.column_dimensions[column].width = adjusted_width
+
+        # Appliquer le style aux cellules de retard
+        retard_col_idx = df.columns.get_loc('Jours de Retard') + 1
+
+        for row in range(2, len(df) + 2):
+            # Cellule de retard
+            cell = worksheet.cell(row=row, column=retard_col_idx)
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+            # Colorer selon le nombre de jours de retard
+            if isinstance(cell.value, (int, float)):
+                if cell.value >= 90:  # Plus de 3 mois
+                    cell.fill = retard_critique_fill
+                    cell.font = retard_critique_font
+                elif cell.value >= 30:  # Plus d'1 mois
+                    cell.fill = retard_fill
+                    cell.font = retard_font
+
+            # Appliquer les bordures à toutes les cellules de la ligne
+            for col in range(1, len(df.columns) + 1):
+                border_cell = worksheet.cell(row=row, column=col)
+                if not border_cell.border:
+                    border_cell.border = thin_border
+
+        # ===== 8. AJOUT D'UN RÉSUMÉ =====
+        # Créer une nouvelle feuille pour le résumé
+        summary_df = pd.DataFrame({
+            'Indicateur': [
+                'Total des prêts en retard',
+                'Nombre de clients concernés',
+                'Retard moyen (jours)',
+                'Retard maximum (jours)',
+                'Montant total dû',
+                'Montant moyen dû par client'
+            ],
+            'Valeur': [
+                len(df),
+                df['Client'].nunique(),
+                round(df['Jours de Retard'].mean(), 1),
+                df['Jours de Retard'].max(),
+                round(df['Montant Restant'].sum(), 2),
+                round(df['Montant Restant'].mean(), 2)
+            ]
+        })
+
+        summary_df.to_excel(writer, sheet_name='Résumé', index=False)
+
+        # Styliser le résumé
+        summary_worksheet = writer.sheets['Résumé']
+        for col in summary_worksheet.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = max_length + 2
+            summary_worksheet.column_dimensions[column].width = adjusted_width
+
+        # Mettre en gras la colonne des indicateurs
+        for row in range(2, len(summary_df) + 2):
+            cell = summary_worksheet.cell(row=row, column=1)
+            cell.font = Font(bold=True)
+
+    # ===== 9. ENVOI DU FICHIER =====
+    output.seek(0)
+
+    # Générer un nom de fichier avec la date
+    nom_fichier = f"remboursements_retards_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=nom_fichier
+    )
 
 @app.route('/<succursale_code>/remboursements')
 @login_required
