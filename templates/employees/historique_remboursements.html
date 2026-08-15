@@ -429,6 +429,8 @@
                                     <span class="statut-paye">✓ Payé</span>
                                 {% elif r.statut == 'en_attente' %}
                                     <span class="statut-en-attente">⏳ En attente</span>
+                                {% elif r.statut == 'en_cours' %}
+                                    <span class="statut-en-cours">⏳ En cours</span>
                                 {% else %}
                                     <span class="statut-rejete">✗ Rejeté</span>
                                 {% endif %}
