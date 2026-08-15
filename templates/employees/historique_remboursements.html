@@ -320,6 +320,57 @@
             </div>
             {% endif %}
 
+
+            {% if statut == 'en_attente' and prets_en_cours %}
+                <table>
+                    <caption>⏳ Prêts en cours - remboursements attendus</caption>
+
+                    <thead>
+                        <tr>
+                            <th>Prêt N°</th>
+                            <th>Client</th>
+                            <th>Montant du prêt</th>
+                            <th>Solde restant</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for p in prets_en_cours %}
+                            <tr>
+                                <td>
+                                    <strong>{{ p.id }}</strong>
+                                </td>
+
+                                <td>
+                                    {% if p.client %}
+                                        {{ p.client.nom }} {{ p.client.prenom }}
+                                    {% else %}
+                                        Client supprimé
+                                    {% endif %}
+                                </td>
+
+                                <td class="montant">
+                                    {{ "{:,.0f}".format(p.montant) }} HTG
+                                </td>
+
+                                <td class="montant">
+                                    <strong>
+                                        {{ "{:,.0f}".format(p.montant) }} HTG
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    <span class="statut-en-attente">
+                                        ⏳ En attente
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+
             {% if remboursements and remboursements|length > 0 %}
                 <table>
                     <caption>📋 Liste des remboursements</caption>

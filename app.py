@@ -11258,6 +11258,13 @@ def historique_remboursements(succursale_code):
     if statut != 'tous':
         remboursements = [r for r in remboursements if r.statut == statut]
 
+    prets_en_cours = Pret.query.filter(
+        Pret.succursale_id == succursale.id,
+        Pret.statut == 'en_cours'
+    ).options(
+        joinedload(Pret.client)
+    ).order_by(Pret.id.desc()).all()
+
     # ✅ CALCULER LE SOLDE POUR CHAQUE REMBOURSEMENT
     for r in remboursements:
         if r.pret:
@@ -11312,6 +11319,7 @@ def historique_remboursements(succursale_code):
         pret=pret,  # ← AJOUTEZ CECI
         total_rembourse=total_rembourse,  # ← AJOUTEZ CECI
         pourcentage=pourcentage,  # ← AJOUTEZ CECI
+        prets_en_cours=prets_en_cours,
         statut=statut
 
     )
