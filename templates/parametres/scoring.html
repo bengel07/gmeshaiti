@@ -1,0 +1,537 @@
+<!-- templates/parametres/scoring.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4><i class="fas fa-cogs me-2"></i> Paramètres de Scoring</h4>
+                        <p class="mb-0">Gestion des critères d'évaluation de crédit</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-light" onclick="window.location.reload()">
+                            <i class="fas fa-sync me-1"></i> Rafraîchir
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light">
+                            <i class="fas fa-arrow-left me-1"></i> Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Score Moyen</h6>
+                    <h3 class="text-primary">{{ "%.1f"|format(stats.score_moyen) }}</h3>
+                    <small>Sur {{ stats.total_scoring }} évaluations</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Score Minimum</h6>
+                    <h3 class="text-danger">{{ stats.score_min }}</h3>
+                    <small>Dernière évaluation</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Score Maximum</h6>
+                    <h3 class="text-success">{{ stats.score_max }}</h3>
+                    <small>Meilleure évaluation</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Décisions</h6>
+                    <div>
+                        <span class="badge bg-success">{{ stats.prets_approuves }} Approuvés</span>
+                        <span class="badge bg-danger">{{ stats.prets_refuses }} Refusés</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onglets -->
+    <ul class="nav nav-tabs mb-4" id="scoringTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="parametres-tab" data-bs-toggle="tab" href="#parametres" role="tab">
+                <i class="fas fa-sliders-h me-1"></i> Paramètres
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="regles-tab" data-bs-toggle="tab" href="#regles" role="tab">
+                <i class="fas fa-gavel me-1"></i> Règles
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="historique-tab" data-bs-toggle="tab" href="#historique" role="tab">
+                <i class="fas fa-history me-1"></i> Historique
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="test-tab" data-bs-toggle="tab" href="#test" role="tab">
+                <i class="fas fa-flask me-1"></i> Test
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- ===== ONGLET PARAMÈTRES ===== -->
+        <div class="tab-pane fade show active" id="parametres" role="tabpanel">
+            <form method="POST" id="formParametres">
+                <input type="hidden" name="action" value="update">
+
+                <div class="card shadow">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6>Paramètres de Scoring</h6>
+                        <div>
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="fas fa-save me-1"></i> Sauvegarder
+                            </button>
+                            <button type="button" class="btn btn-warning btn-sm" onclick="resetParametres()">
+                                <i class="fas fa-undo me-1"></i> Réinitialiser
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% for categorie, params in categories.items() %}
+                        <div class="mb-4">
+                            <h6 class="text-uppercase text-muted">
+                                <i class="fas fa-folder-open me-1"></i> {{ categorie|capitalize }}
+                            </h6>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Paramètre</th>
+                                            <th>Description</th>
+                                            <th>Poids (%)</th>
+                                            <th>Seuil Alerte</th>
+                                            <th>Score Min</th>
+                                            <th>Score Max</th>
+                                            <th>Actif</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for param in params %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ param.nom }}</strong>
+                                                <input type="hidden" name="parametres[]" value="{{ param.id }}">
+                                            </td>
+                                            <td><small>{{ param.description }}</small></td>
+                                            <td>
+                                                <input type="number"
+                                                       name="poids_{{ param.id }}"
+                                                       value="{{ param.poids }}"
+                                                       class="form-control form-control-sm"
+                                                       style="width: 80px;"
+                                                       min="0" max="100">
+                                            </td>
+                                            <td>
+                                                <input type="number"
+                                                       name="seuil_{{ param.id }}"
+                                                       value="{{ param.seuil_alerte }}"
+                                                       class="form-control form-control-sm"
+                                                       style="width: 80px;">
+                                            </td>
+                                            <td>
+                                                <input type="number"
+                                                       name="score_min_{{ param.id }}"
+                                                       value="{{ param.score_min }}"
+                                                       class="form-control form-control-sm"
+                                                       style="width: 80px;"
+                                                       min="0" max="100">
+                                            </td>
+                                            <td>
+                                                <input type="number"
+                                                       name="score_max_{{ param.id }}"
+                                                       value="{{ param.score_max }}"
+                                                       class="form-control form-control-sm"
+                                                       style="width: 80px;"
+                                                       min="0" max="100">
+                                            </td>
+                                            <td>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input"
+                                                           type="checkbox"
+                                                           name="actif_{{ param.id }}"
+                                                           id="actif_{{ param.id }}"
+                                                           {% if param.actif %}checked{% endif %}>
+                                                    <label class="form-check-label" for="actif_{{ param.id }}">
+                                                        <span class="badge bg-{{ 'success' if param.actif else 'danger' }}">
+                                                            {{ 'Actif' if param.actif else 'Inactif' }}
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- ===== ONGLET RÈGLES ===== -->
+        <div class="tab-pane fade" id="regles" role="tabpanel">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h6>Règles de Scoring</h6>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-primary mb-3" onclick="ajouterRegle()">
+                        <i class="fas fa-plus me-1"></i> Ajouter une règle
+                    </button>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Description</th>
+                                    <th>Condition</th>
+                                    <th>Action</th>
+                                    <th>Ajustement</th>
+                                    <th>Priorité</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for regle in regles %}
+                                <tr>
+                                    <td>{{ regle.nom }}</td>
+                                    <td><small>{{ regle.description }}</small></td>
+                                    <td><code>{{ regle.condition }}</code></td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if regle.action == 'approuver' else 'danger' if regle.action == 'refuser' else 'warning' }}">
+                                            {{ regle.action }}
+                                        </span>
+                                    </td>
+                                    <td>{{ regle.score_ajustement }}</td>
+                                    <td>{{ regle.priorite }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if regle.actif else 'danger' }}">
+                                            {{ 'Actif' if regle.actif else 'Inactif' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="modifierRegle({{ regle.id }})">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="supprimerRegle({{ regle.id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ONGLET HISTORIQUE ===== -->
+        <div class="tab-pane fade" id="historique" role="tabpanel">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h6>Historique des Évaluations</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Prêt</th>
+                                    <th>Score</th>
+                                    <th>Décision</th>
+                                    <th>Date</th>
+                                    <th>Détails</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in historique %}
+                                <tr>
+                                    <td>
+                                        {% if item.client %}
+                                        {{ item.client.prenom }} {{ item.client.nom }}
+                                        {% else %}
+                                        N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.pret %}
+                                        {{ item.pret.numero_dossier }}
+                                        {% else %}
+                                        N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if item.score_total >= 70 else 'warning' if item.score_total >= 50 else 'danger' }}">
+                                            {{ item.score_total }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if item.decision == 'approuve' else 'danger' if item.decision == 'refuse' else 'warning' }}">
+                                            {{ item.decision }}
+                                        </span>
+                                    </td>
+                                    <td>{{ item.date_calcul.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="voirDetails({{ item.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ONGLET TEST ===== -->
+        <div class="tab-pane fade" id="test" role="tabpanel">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h6>Test de Scoring</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="formTest">
+                        <input type="hidden" name="action" value="test">
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label>Client à tester</label>
+                                    <select name="client_id_test" class="form-select" required>
+                                        <option value="">Sélectionner un client...</option>
+                                        {% for client in clients %}
+                                        <option value="{{ client.id }}">
+                                            {{ client.prenom }} {{ client.nom }} - {{ client.telephone }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-flask me-1"></i> Tester le scoring
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="resultatTest" class="mt-3">
+                                    <p class="text-muted">Sélectionnez un client et cliquez sur "Tester"</p>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+function resetParametres() {
+    if (confirm('⚠️ Êtes-vous sûr de vouloir réinitialiser tous les paramètres ?')) {
+        document.getElementById('formParametres').action = "{{ url_for('parametres_scoring') }}";
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'action';
+        input.value = 'reset';
+        document.getElementById('formParametres').appendChild(input);
+        document.getElementById('formParametres').submit();
+    }
+}
+
+function ajouterRegle() {
+    // Afficher un modal pour ajouter une règle
+    $('#modalRegle').modal('show');
+    document.getElementById('formRegle').reset();
+    document.getElementById('regle_id').value = '';
+}
+
+function modifierRegle(id) {
+    // Charger les données de la règle
+    fetch(`/parametres/scoring/regle/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('regle_id').value = data.id;
+            document.getElementById('regle_nom').value = data.nom;
+            document.getElementById('regle_description').value = data.description;
+            document.getElementById('regle_condition').value = data.condition;
+            document.getElementById('regle_action').value = data.action;
+            document.getElementById('regle_ajustement').value = data.score_ajustement;
+            document.getElementById('regle_priorite').value = data.priorite;
+            document.getElementById('regle_actif').checked = data.actif;
+            $('#modalRegle').modal('show');
+        });
+}
+
+function supprimerRegle(id) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette règle ?')) {
+        fetch(`/parametres/scoring/regle/${id}`, { method: 'DELETE' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Erreur: ' + data.error);
+                }
+            });
+    }
+}
+
+// Traitement du formulaire de test
+document.getElementById('formTest').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const clientId = formData.get('client_id_test');
+
+    if (!clientId) {
+        alert('Veuillez sélectionner un client');
+        return;
+    }
+
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        const resultatDiv = document.getElementById('resultatTest');
+
+        if (data.success) {
+            const r = data.resultat;
+            resultatDiv.innerHTML = `
+                <div class="card">
+                    <div class="card-header bg-${r.score_total >= 70 ? 'success' : r.score_total >= 50 ? 'warning' : 'danger'} text-white">
+                        <h5>Score: ${r.score_total}</h5>
+                        <small>Décision: ${r.decision}</small>
+                    </div>
+                    <div class="card-body">
+                        <h6>Détails:</h6>
+                        <ul class="list-unstyled">
+                            ${Object.entries(r.details).map(([key, value]) => `
+                                <li>
+                                    <strong>${key}:</strong>
+                                    ${value.valeur} → Score: ${value.score} (${value.score_pondere} pts)
+                                    <div class="progress" style="height: 5px;">
+                                        <div class="progress-bar bg-${value.score >= 70 ? 'success' : value.score >= 50 ? 'warning' : 'danger'}"
+                                             style="width: ${value.score}%;">
+                                        </div>
+                                    </div>
+                                </li>
+                            `).join('')}
+                        </ul>
+                        ${r.alertes && r.alertes.length > 0 ? `
+                            <div class="alert alert-warning">
+                                <strong>Alertes:</strong>
+                                <ul>
+                                    ${r.alertes.map(a => `<li>${a.message}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        } else {
+            resultatDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    Erreur: ${data.error}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        document.getElementById('resultatTest').innerHTML = `
+            <div class="alert alert-danger">
+                Erreur: ${error.message}
+            </div>
+        `;
+    });
+});
+</script>
+
+<!-- Modal pour les règles -->
+<div class="modal fade" id="modalRegle" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Gestion des règles</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="formRegle">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="regle">
+                    <input type="hidden" name="regle_id" id="regle_id">
+
+                    <div class="mb-3">
+                        <label>Nom de la règle</label>
+                        <input type="text" name="regle_nom" id="regle_nom" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Description</label>
+                        <textarea name="regle_description" id="regle_description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label>Condition (JSON)</label>
+                        <textarea name="regle_condition" id="regle_condition" class="form-control" rows="3"
+                                  placeholder='{"score_total": {"$lt": 50}}'></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label>Action</label>
+                        <select name="regle_action" id="regle_action" class="form-select">
+                            <option value="approuver">Approuver</option>
+                            <option value="refuser">Refuser</option>
+                            <option value="ajuster">Ajuster</option>
+                            <option value="alerter">Alerter</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Ajustement du score</label>
+                        <input type="number" name="regle_ajustement" id="regle_ajustement" class="form-control" value="0">
+                    </div>
+                    <div class="mb-3">
+                        <label>Priorité</label>
+                        <input type="number" name="regle_priorite" id="regle_priorite" class="form-control" value="0">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="regle_actif" id="regle_actif" class="form-check-input" checked>
+                        <label class="form-check-label">Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Sauvegarder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

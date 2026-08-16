@@ -138,13 +138,23 @@ import threading
 
 
 
-import pandas as pd
+
 from datetime import datetime, timedelta
-from flask import send_file, flash, redirect, url_for
-from io import BytesIO
-import openpyxl
+
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 from openpyxl.utils.dataframe import dataframe_to_rows
+
+import pandas as pd
+from datetime import datetime
+from flask import render_template, request, flash, redirect, url_for, jsonify, session
+from flask_login import login_required, current_user
+from sqlalchemy import func, and_, or_
+import json
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 
 
@@ -11799,6 +11809,730 @@ def export_rapports_risque():
         as_attachment=True,
         download_name=nom_fichier
     )
+
+
+
+# ============================================
+# MODÈLES DE DONNÉES POUR LE SCORING
+# ============================================
+
+class ParametreScoring(db.Model):
+    """Modèle pour les paramètres de scoring"""
+    __tablename__ = 'parametres_scoring'
+
+    id = db.Column(db.Integer, primary_key=True)
+    categorie = db.Column(db.String(50), nullable=False)  # client, pret, garantie, etc.
+    sous_categorie = db.Column(db.String(50))
+    nom = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    poids = db.Column(db.Float, default=0)  # Poids dans le score total
+    valeur_min = db.Column(db.Float)  # Valeur minimale acceptable
+    valeur_max = db.Column(db.Float)  # Valeur maximale acceptable
+    seuil_alerte = db.Column(db.Float)  # Seuil d'alerte
+    score_min = db.Column(db.Integer, default=0)  # Score minimum pour ce critère
+    score_max = db.Column(db.Integer, default=100)  # Score maximum pour ce critère
+    actif = db.Column(db.Boolean, default=True)
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    cree_par = db.Column(db.Integer, db.ForeignKey('employes.id'))
+    modifie_par = db.Column(db.Integer, db.ForeignKey('employes.id'))
+
+    def __repr__(self):
+        return f"<ParametreScoring {self.nom}>"
+
+
+class RegleScoring(db.Model):
+    """Modèle pour les règles de scoring"""
+    __tablename__ = 'regles_scoring'
+
+    id = db.Column(db.Integer, primary_key=True)
+    nom = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    condition = db.Column(db.Text)  # Expression JSON de la condition
+    action = db.Column(db.String(50))  # approuver, refuser, alerter, ajuster
+    score_ajustement = db.Column(db.Integer)  # Ajustement du score
+    priorite = db.Column(db.Integer, default=0)
+    actif = db.Column(db.Boolean, default=True)
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class HistoriqueScoring(db.Model):
+    """Modèle pour l'historique des scores"""
+    __tablename__ = 'historique_scoring'
+
+    id = db.Column(db.Integer, primary_key=True)
+    pret_id = db.Column(db.Integer, db.ForeignKey('prets.id'))
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
+    score_total = db.Column(db.Integer)
+    details = db.Column(db.Text)  # JSON des détails du score
+    decision = db.Column(db.String(50))  # approuve, refuse, en_attente
+    date_calcul = db.Column(db.DateTime, default=datetime.utcnow)
+    calcule_par = db.Column(db.Integer, db.ForeignKey('employes.id'))
+
+
+# ============================================
+# FONCTION PRINCIPALE
+# ============================================
+
+@app.route('/parametres/scoring', methods=['GET', 'POST'])
+@login_required
+def parametres_scoring():
+    """
+    Gestion des paramètres de scoring
+    Accessible uniquement aux administrateurs et directeurs
+    """
+
+    # ===== 1. VÉRIFICATION DES PERMISSIONS =====
+    if current_user.role not in ['admin', 'super_admin', 'direction']:
+        flash('⛔ Accès non autorisé. Seuls les administrateurs peuvent gérer les paramètres de scoring.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # ===== 2. TRAITEMENT POST (MISE À JOUR DES PARAMÈTRES) =====
+    if request.method == 'POST':
+        try:
+            # Récupérer les données du formulaire
+            parametres = request.form.getlist('parametres[]')
+            action = request.form.get('action')
+
+            if action == 'update':
+                # Mise à jour des paramètres
+                for param_id in parametres:
+                    param = ParametreScoring.query.get(param_id)
+                    if param:
+                        # Mettre à jour les champs
+                        param.poids = float(request.form.get(f'poids_{param_id}', 0))
+                        param.seuil_alerte = float(request.form.get(f'seuil_{param_id}', 0))
+                        param.score_min = int(request.form.get(f'score_min_{param_id}', 0))
+                        param.score_max = int(request.form.get(f'score_max_{param_id}', 100))
+                        param.modifie_par = current_user.id
+
+                        # Activer/désactiver
+                        param.actif = request.form.get(f'actif_{param_id}') == 'on'
+
+                db.session.commit()
+                flash('✅ Paramètres de scoring mis à jour avec succès', 'success')
+
+            elif action == 'reset':
+                # Réinitialiser aux valeurs par défaut
+                reset_parametres_scoring()
+                flash('✅ Paramètres réinitialisés aux valeurs par défaut', 'success')
+
+            elif action == 'test':
+                # Tester le scoring avec un client fictif
+                client_id = request.form.get('client_id_test')
+                if client_id:
+                    resultat = tester_scoring_client(client_id)
+                    return jsonify(resultat)
+
+            elif action == 'regle':
+                # Ajouter ou modifier une règle
+                regle_id = request.form.get('regle_id')
+                if regle_id:
+                    regle = RegleScoring.query.get(regle_id)
+                else:
+                    regle = RegleScoring()
+
+                regle.nom = request.form.get('regle_nom')
+                regle.description = request.form.get('regle_description')
+                regle.condition = request.form.get('regle_condition')
+                regle.action = request.form.get('regle_action')
+                regle.score_ajustement = int(request.form.get('regle_ajustement', 0))
+                regle.priorite = int(request.form.get('regle_priorite', 0))
+                regle.actif = request.form.get('regle_actif') == 'on'
+
+                if regle_id:
+                    db.session.add(regle)
+                else:
+                    db.session.add(regle)
+
+                db.session.commit()
+                flash('✅ Règle de scoring sauvegardée', 'success')
+
+            return redirect(url_for('parametres_scoring'))
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"❌ Erreur lors de la mise à jour des paramètres: {str(e)}")
+            flash(f'❌ Erreur: {str(e)}', 'danger')
+            return redirect(url_for('parametres_scoring'))
+
+    # ===== 3. TRAITEMENT GET (AFFICHAGE) =====
+
+    # Récupérer tous les paramètres
+    parametres = ParametreScoring.query.order_by(
+        ParametreScoring.categorie,
+        ParametreScoring.sous_categorie,
+        ParametreScoring.nom
+    ).all()
+
+    # Grouper par catégorie
+    categories = {}
+    for param in parametres:
+        if param.categorie not in categories:
+            categories[param.categorie] = []
+        categories[param.categorie].append(param)
+
+    # Récupérer les règles
+    regles = RegleScoring.query.order_by(
+        RegleScoring.priorite.desc(),
+        RegleScoring.nom
+    ).all()
+
+    # Récupérer les statistiques de scoring
+    stats = {
+        'total_scoring': HistoriqueScoring.query.count(),
+        'dernier_scoring': HistoriqueScoring.query.order_by(
+            HistoriqueScoring.date_calcul.desc()
+        ).first(),
+        'score_moyen': db.session.query(
+            func.avg(HistoriqueScoring.score_total)
+        ).scalar() or 0,
+        'score_min': db.session.query(
+            func.min(HistoriqueScoring.score_total)
+        ).scalar() or 0,
+        'score_max': db.session.query(
+            func.max(HistoriqueScoring.score_total)
+        ).scalar() or 0,
+        'prets_approuves': HistoriqueScoring.query.filter_by(
+            decision='approuve'
+        ).count(),
+        'prets_refuses': HistoriqueScoring.query.filter_by(
+            decision='refuse'
+        ).count()
+    }
+
+    # Récupérer les dernières évaluations pour l'historique
+    historique_recent = HistoriqueScoring.query.order_by(
+        HistoriqueScoring.date_calcul.desc()
+    ).limit(20).all()
+
+    # Configurations par défaut si aucune n'existe
+    if not parametres:
+        initialiser_parametres_scoring()
+        flash('ℹ️ Les paramètres de scoring par défaut ont été créés', 'info')
+        return redirect(url_for('parametres_scoring'))
+
+    return render_template(
+        'parametres/scoring.html',
+        categories=categories,
+        parametres=parametres,
+        regles=regles,
+        stats=stats,
+        historique=historique_recent,
+        now=datetime.now()
+    )
+
+
+# ============================================
+# FONCTIONS AUXILIAIRES
+# ============================================
+
+def initialiser_parametres_scoring():
+    """Initialise les paramètres de scoring par défaut"""
+
+    parametres_defaut = [
+        # ===== PARAMÈTRES CLIENT =====
+        {
+            'categorie': 'client',
+            'sous_categorie': 'identite',
+            'nom': 'Âge du client',
+            'description': 'Âge du client au moment de la demande',
+            'poids': 10,
+            'valeur_min': 18,
+            'valeur_max': 70,
+            'seuil_alerte': 25,
+            'score_min': 0,
+            'score_max': 100
+        },
+        {
+            'categorie': 'client',
+            'sous_categorie': 'identite',
+            'nom': 'Stabilité professionnelle',
+            'description': 'Années dans l\'emploi actuel',
+            'poids': 15,
+            'valeur_min': 0,
+            'valeur_max': 30,
+            'seuil_alerte': 1,
+            'score_min': 0,
+            'score_max': 100
+        },
+        {
+            'categorie': 'client',
+            'sous_categorie': 'finances',
+            'nom': 'Revenu mensuel',
+            'description': 'Revenu mensuel net du client',
+            'poids': 20,
+            'valeur_min': 0,
+            'valeur_max': 10000000,
+            'seuil_alerte': 100000,
+            'score_min': 0,
+            'score_max': 100
+        },
+        {
+            'categorie': 'client',
+            'sous_categorie': 'finances',
+            'nom': 'Ratio d\'endettement',
+            'description': 'Ratio mensualité / revenu',
+            'poids': 20,
+            'valeur_min': 0,
+            'valeur_max': 50,
+            'seuil_alerte': 35,
+            'score_min': 0,
+            'score_max': 100
+        },
+        {
+            'categorie': 'client',
+            'sous_categorie': 'historique',
+            'nom': 'Historique de crédit',
+            'description': 'Nombre de prêts précédents remboursés',
+            'poids': 15,
+            'valeur_min': 0,
+            'valeur_max': 10,
+            'seuil_alerte': 1,
+            'score_min': 0,
+            'score_max': 100
+        },
+        {
+            'categorie': 'client',
+            'sous_categorie': 'historique',
+            'nom': 'Retards de paiement',
+            'description': 'Nombre de retards de paiement antérieurs',
+            'poids': 20,
+            'valeur_min': 0,
+            'valeur_max': 5,
+            'seuil_alerte': 1,
+            'score_min': 0,
+            'score_max': 100
+        },
+
+        # ===== PARAMÈTRES PRÊT =====
+        {
+            'categorie': 'pret',
+            'sous_categorie': 'montant',
+            'nom': 'Montant demandé',
+            'description': 'Montant total du prêt demandé',
+            'poids': 15,
+            'valeur_min': 0,
+            'valeur_max': 10000000,
+            'seuil_alerte': 5000000,
+            'score_min': 0,
+            'score_max': 100
+        },
+        {
+            'categorie': 'pret',
+            'sous_categorie': 'duree',
+            'nom': 'Durée du prêt',
+            'description': 'Durée en mois',
+            'poids': 10,
+            'valeur_min': 1,
+            'valeur_max': 60,
+            'seuil_alerte': 36,
+            'score_min': 0,
+            'score_max': 100
+        },
+        {
+            'categorie': 'pret',
+            'sous_categorie': 'garantie',
+            'nom': 'Type de garantie',
+            'description': 'Présence et qualité de la garantie',
+            'poids': 15,
+            'valeur_min': 0,
+            'valeur_max': 1,
+            'seuil_alerte': 0,
+            'score_min': 0,
+            'score_max': 100
+        },
+
+        # ===== PARAMÈTRES ÉCONOMIQUES =====
+        {
+            'categorie': 'economique',
+            'sous_categorie': 'secteur',
+            'nom': 'Secteur d\'activité',
+            'description': 'Risque du secteur d\'activité',
+            'poids': 10,
+            'valeur_min': 0,
+            'valeur_max': 1,
+            'seuil_alerte': 0,
+            'score_min': 0,
+            'score_max': 100
+        },
+        {
+            'categorie': 'economique',
+            'sous_categorie': 'localisation',
+            'nom': 'Zone géographique',
+            'description': 'Risque de la zone géographique',
+            'poids': 5,
+            'valeur_min': 0,
+            'valeur_max': 1,
+            'seuil_alerte': 0,
+            'score_min': 0,
+            'score_max': 100
+        }
+    ]
+
+    for params in parametres_defaut:
+        param = ParametreScoring(**params)
+        db.session.add(param)
+
+    db.session.commit()
+    logger.info("✅ Paramètres de scoring initialisés")
+
+
+def reset_parametres_scoring():
+    """Réinitialise les paramètres de scoring aux valeurs par défaut"""
+
+    # Supprimer tous les paramètres existants
+    ParametreScoring.query.delete()
+    db.session.commit()
+
+    # Recréer les paramètres par défaut
+    initialiser_parametres_scoring()
+
+
+def calculer_score_client(client_id):
+    """
+    Calcule le score de crédit pour un client
+
+    Args:
+        client_id (int): ID du client
+
+    Returns:
+        dict: Résultat du scoring
+    """
+
+    client = Client.query.get(client_id)
+    if not client:
+        return {'error': 'Client non trouvé'}
+
+    # Récupérer les paramètres actifs
+    parametres = ParametreScoring.query.filter_by(actif=True).all()
+
+    # Récupérer le prêt en cours ou le dernier prêt
+    pret_actuel = Pret.query.filter_by(
+        client_id=client_id,
+        statut='en_attente'
+    ).first()
+
+    if not pret_actuel:
+        pret_actuel = Pret.query.filter_by(
+            client_id=client_id
+        ).order_by(Pret.date_creation.desc()).first()
+
+    # Initialiser le score
+    score_total = 0
+    details = {}
+    alertes = []
+
+    for param in parametres:
+        score = 0
+        valeur = None
+
+        # Calculer le score selon la catégorie
+        if param.categorie == 'client':
+            if param.sous_categorie == 'identite':
+                if param.nom == 'Âge du client':
+                    # Calculer l'âge
+                    if client.date_naissance:
+                        age = (datetime.now().date() - client.date_naissance).days // 365
+                        valeur = age
+                        if 18 <= age <= 35:
+                            score = 80
+                        elif 36 <= age <= 50:
+                            score = 100
+                        elif 51 <= age <= 70:
+                            score = 60
+                        else:
+                            score = 20
+
+                elif param.nom == 'Stabilité professionnelle':
+                    # Calculer les années d'expérience
+                    if client.date_creation:
+                        annees = (datetime.now().date() - client.date_creation).days // 365
+                        valeur = annees
+                        if annees >= 5:
+                            score = 100
+                        elif annees >= 3:
+                            score = 80
+                        elif annees >= 1:
+                            score = 50
+                        else:
+                            score = 20
+
+            elif param.sous_categorie == 'finances':
+                if param.nom == 'Revenu mensuel':
+                    valeur = client.revenu_mensuel or 0
+                    if valeur >= 500000:
+                        score = 100
+                    elif valeur >= 250000:
+                        score = 80
+                    elif valeur >= 100000:
+                        score = 50
+                    else:
+                        score = 20
+
+                elif param.nom == "Ratio d'endettement":
+                    # Calculer le ratio d'endettement
+                    if pret_actuel and client.revenu_mensuel:
+                        mensualite = pret_actuel.mensualite or 0
+                        ratio = (mensualite / client.revenu_mensuel) * 100
+                        valeur = ratio
+                        if ratio <= 20:
+                            score = 100
+                        elif ratio <= 30:
+                            score = 80
+                        elif ratio <= 40:
+                            score = 50
+                        else:
+                            score = 20
+
+            elif param.sous_categorie == 'historique':
+                if param.nom == 'Historique de crédit':
+                    # Compter les prêts précédents
+                    nb_prets = Pret.query.filter_by(
+                        client_id=client_id,
+                        statut='rembourse'
+                    ).count()
+                    valeur = nb_prets
+                    if nb_prets >= 5:
+                        score = 100
+                    elif nb_prets >= 3:
+                        score = 80
+                    elif nb_prets >= 1:
+                        score = 50
+                    else:
+                        score = 20
+
+                elif param.nom == 'Retards de paiement':
+                    # Compter les retards
+                    nb_retards = Pret.query.filter(
+                        Pret.client_id == client_id,
+                        Pret.prochaine_echeance < datetime.now().date()
+                    ).count()
+                    valeur = nb_retards
+                    if nb_retards == 0:
+                        score = 100
+                    elif nb_retards == 1:
+                        score = 60
+                    elif nb_retards == 2:
+                        score = 30
+                    else:
+                        score = 0
+
+        elif param.categorie == 'pret':
+            if pret_actuel:
+                if param.sous_categorie == 'montant':
+                    if param.nom == 'Montant demandé':
+                        valeur = pret_actuel.montant
+                        if valeur <= 100000:
+                            score = 100
+                        elif valeur <= 500000:
+                            score = 80
+                        elif valeur <= 1000000:
+                            score = 50
+                        else:
+                            score = 20
+
+                elif param.sous_categorie == 'duree':
+                    if param.nom == 'Durée du prêt':
+                        valeur = pret_actuel.duree_mois
+                        if valeur <= 12:
+                            score = 100
+                        elif valeur <= 24:
+                            score = 80
+                        elif valeur <= 36:
+                            score = 50
+                        else:
+                            score = 20
+
+                elif param.sous_categorie == 'garantie':
+                    if param.nom == 'Type de garantie':
+                        valeur = 1 if pret_actuel.garantie else 0
+                        if pret_actuel.garantie:
+                            score = 100
+                        else:
+                            score = 30
+
+        elif param.categorie == 'economique':
+            # Simuler le score économique
+            if param.sous_categorie == 'secteur':
+                secteur_risque = {
+                    'agriculture': 80,
+                    'commerce': 70,
+                    'services': 60,
+                    'industrie': 50,
+                    'construction': 40
+                }
+                secteur = client.profession or 'services'
+                score = secteur_risque.get(secteur.lower(), 50)
+                valeur = score
+
+            elif param.sous_categorie == 'localisation':
+                # Risque par zone
+                zone_risque = {
+                    'Port-au-Prince': 70,
+                    'Delmas': 60,
+                    'Pétion-Ville': 80,
+                    'Carrefour': 50,
+                    'Autre': 60
+                }
+                ville = client.ville or 'Autre'
+                score = zone_risque.get(ville, 60)
+                valeur = score
+
+        # Appliquer le poids
+        score_pondere = score * (param.poids / 100)
+        score_total += score_pondere
+
+        # Sauvegarder les détails
+        details[param.nom] = {
+            'valeur': valeur,
+            'score': score,
+            'score_pondere': round(score_pondere, 2),
+            'poids': param.poids
+        }
+
+        # Vérifier les alertes
+        if param.seuil_alerte and valeur is not None and valeur < param.seuil_alerte:
+            alertes.append({
+                'parametre': param.nom,
+                'valeur': valeur,
+                'seuil': param.seuil_alerte,
+                'message': f"{param.nom}: {valeur} est inférieur au seuil de {param.seuil_alerte}"
+            })
+
+    # Arrondir le score total
+    score_total = round(score_total, 2)
+
+    # Appliquer les règles
+    regles = RegleScoring.query.filter_by(actif=True).order_by(
+        RegleScoring.priorite.desc()
+    ).all()
+
+    decision = 'en_attente'
+    ajustements = []
+
+    for regle in regles:
+        if regle.condition:
+            # Évaluer la condition
+            condition_data = {
+                'score_total': score_total,
+                'details': details,
+                'client': client,
+                'pret': pret_actuel
+            }
+
+            # Exemple simple d'évaluation
+            if regle.action == 'refuser' and score_total < 50:
+                decision = 'refuse'
+                ajustements.append({
+                    'regle': regle.nom,
+                    'action': 'refuser',
+                    'score_ajustement': 0
+                })
+            elif regle.action == 'approuver' and score_total > 80:
+                decision = 'approuve'
+                ajustements.append({
+                    'regle': regle.nom,
+                    'action': 'approuver',
+                    'score_ajustement': 0
+                })
+            elif regle.action == 'ajuster':
+                score_total += regle.score_ajustement
+                ajustements.append({
+                    'regle': regle.nom,
+                    'action': 'ajuster',
+                    'score_ajustement': regle.score_ajustement
+                })
+
+    # Sauvegarder l'historique
+    historique = HistoriqueScoring(
+        client_id=client_id,
+        pret_id=pret_actuel.id if pret_actuel else None,
+        score_total=score_total,
+        details=json.dumps({
+            'details': details,
+            'alertes': alertes,
+            'ajustements': ajustements
+        }),
+        decision=decision,
+        calcule_par=current_user.id if hasattr(current_user, 'id') else None
+    )
+    db.session.add(historique)
+    db.session.commit()
+
+    return {
+        'client_id': client_id,
+        'score_total': score_total,
+        'details': details,
+        'alertes': alertes,
+        'decision': decision,
+        'ajustements': ajustements
+    }
+
+
+def tester_scoring_client(client_id):
+    """Teste le scoring pour un client spécifique"""
+    try:
+        resultat = calculer_score_client(client_id)
+        return {
+            'success': True,
+            'resultat': resultat
+        }
+    except Exception as e:
+        logger.error(f"❌ Erreur lors du test de scoring: {str(e)}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+
+def evaluer_demande_pret(pret_id):
+    """
+    Évalue une demande de prêt en utilisant le scoring
+
+    Args:
+        pret_id (int): ID du prêt
+
+    Returns:
+        dict: Résultat de l'évaluation
+    """
+
+    pret = Pret.query.get(pret_id)
+    if not pret:
+        return {'error': 'Prêt non trouvé'}
+
+    # Calculer le score du client
+    resultat = calculer_score_client(pret.client_id)
+
+    # Déterminer la décision finale
+    score = resultat['score_total']
+
+    if score >= 80:
+        decision = 'approuve'
+        message = '✅ Prêt approuvé - Excellent score'
+    elif score >= 60:
+        decision = 'approbation_conditionnelle'
+        message = '⚠️ Prêt approuvé sous conditions'
+    elif score >= 40:
+        decision = 'en_attente'
+        message = '⏳ Prêt en attente d\'examen manuel'
+    else:
+        decision = 'refuse'
+        message = '❌ Prêt refusé - Score insuffisant'
+
+    # Mettre à jour le prêt
+    pret.statut = decision
+    pret.score_scoring = score
+    db.session.commit()
+
+    return {
+        'pret_id': pret_id,
+        'score': score,
+        'decision': decision,
+        'message': message,
+        'details': resultat['details']
+    }
 
 
 from flask import make_response
