@@ -1,0 +1,338 @@
+<!-- templates/rapports/risque.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-dark text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4><i class="fas fa-chart-pie me-2"></i> Rapport de Risque</h4>
+                        <p class="mb-0">{{ succursale.nom if succursale else 'Toutes les succursales' }}</p>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('export_rapports_risque', succursale_id=succursale.id if succursale else None, periode=periode, date_debut=date_debut, date_fin=date_fin) }}"
+                           class="btn btn-success">
+                            <i class="fas fa-file-excel me-1"></i> Exporter
+                        </a>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-light">
+                            <i class="fas fa-arrow-left me-1"></i> Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Période</label>
+                    <select name="periode" class="form-select">
+                        <option value="mois" {% if periode == 'mois' %}selected{% endif %}>30 jours</option>
+                        <option value="trimestre" {% if periode == 'trimestre' %}selected{% endif %}>Trimestre</option>
+                        <option value="annee" {% if periode == 'annee' %}selected{% endif %}>Année</option>
+                        <option value="personnalise" {% if periode == 'personnalise' %}selected{% endif %}>Personnalisé</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Date début</label>
+                    <input type="date" name="date_debut" class="form-control" value="{{ date_debut }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Date fin</label>
+                    <input type="date" name="date_fin" class="form-control" value="{{ date_fin }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Succursale</label>
+                    <select name="succursale_id" class="form-select">
+                        <option value="">Toutes</option>
+                        {% for s in succursales %}
+                        <option value="{{ s.id }}" {% if succursale and succursale.id == s.id %}selected{% endif %}>
+                            {{ s.nom }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-1"></i> Filtrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Indicateurs clés -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow border-0">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Taux de Défaut</h6>
+                    <h2 class="text-danger">{{ stats.taux_defaut }}%</h2>
+                    <small>{{ stats.total_defaut }} prêts</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow border-0">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Taux de Retard</h6>
+                    <h2 class="text-warning">{{ stats.taux_retard }}%</h2>
+                    <small>{{ stats.total_retards }} prêts</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow border-0">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Exposition</h6>
+                    <h2 class="text-primary">{{ "{:,.0f}".format(stats.montant_actif) }} FCFA</h2>
+                    <small>{{ stats.total_actifs }} prêts actifs</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow border-0">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Ratio de Couverture</h6>
+                    <h2 class="text-success">{{ stats.ratio_couverture }}%</h2>
+                    <small>Provision: {{ "{:,.0f}".format(stats.provision_totale) }} FCFA</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h6>Évolution des retards</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="evolutionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h6>Répartition du risque</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="repartitionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top clients à risque -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-danger text-white">
+            <h6><i class="fas fa-exclamation-triangle me-2"></i> Top 20 Clients à Risque</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Prêt</th>
+                            <th>Jours Retard</th>
+                            <th>Montant Restant</th>
+                            <th>Niveau</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in stats.clients_risque %}
+                        <tr>
+                            <td>{{ item.client.prenom }} {{ item.client.nom }}</td>
+                            <td>{{ item.pret.numero_dossier }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'danger' if item.jours_retard > 90 else 'warning' if item.jours_retard > 30 else 'info' }}">
+                                    {{ item.jours_retard }} jours
+                                </span>
+                            </td>
+                            <td>{{ "{:,.0f}".format(item.montant_restant) }} FCFA</td>
+                            <td>
+                                <span class="badge bg-{{ item.couleur_risque }}">
+                                    {{ item.niveau_risque }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('details_pret', pret_id=item.pret.id) }}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analyse par succursale -->
+    {% if stats.analyse_succursale %}
+    <div class="card shadow">
+        <div class="card-header">
+            <h6>Analyse par Succursale</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Succursale</th>
+                            <th>Total Prêts</th>
+                            <th>Actifs</th>
+                            <th>Retard</th>
+                            <th>Défaut</th>
+                            <th>Montant Total</th>
+                            <th>Taux Retard</th>
+                            <th>Taux Défaut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in stats.analyse_succursale %}
+                        <tr>
+                            <td>{{ item.succursale.nom }}</td>
+                            <td>{{ item.total_prets }}</td>
+                            <td>{{ item.prets_actifs }}</td>
+                            <td>{{ item.prets_retard }}</td>
+                            <td>{{ item.prets_defaut }}</td>
+                            <td>{{ "{:,.0f}".format(item.montant_total) }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'danger' if item.taux_retard > 20 else 'warning' if item.taux_retard > 10 else 'success' }}">
+                                    {{ item.taux_retard }}%
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'danger' if item.taux_defaut > 10 else 'warning' if item.taux_defaut > 5 else 'success' }}">
+                                    {{ item.taux_defaut }}%
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- JavaScript pour les graphiques -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Graphique d'évolution
+    const evolutionData = {{ chart_data.evolution|tojson }};
+    const ctx1 = document.getElementById('evolutionChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: evolutionData.labels,
+            datasets: [
+                {
+                    label: 'Taux de retard (%)',
+                    data: evolutionData.taux_retard,
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    tension: 0.1,
+                    yAxisID: 'y1'
+                },
+                {
+                    label: 'Total prêts',
+                    data: evolutionData.total_prets,
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    tension: 0.1,
+                    yAxisID: 'y2'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            },
+            scales: {
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Taux de retard (%)'
+                    }
+                },
+                y2: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Nombre de prêts'
+                    }
+                }
+            }
+        }
+    });
+
+    // Graphique de répartition
+    const repartitionData = {{ chart_data.repartition_risque|tojson }};
+    const ctx2 = document.getElementById('repartitionChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: repartitionData.labels,
+            datasets: [{
+                data: repartitionData.values,
+                backgroundColor: [
+                    'rgb(75, 192, 192)',
+                    'rgb(255, 205, 86)',
+                    'rgb(255, 99, 132)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return `${context.label}: ${context.parsed} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

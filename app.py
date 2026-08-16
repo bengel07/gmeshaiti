@@ -11325,6 +11325,482 @@ def historique_remboursements(succursale_code):
     )
 
 
+import pandas as pd
+from datetime import datetime, timedelta
+from flask import render_template, request, flash, redirect, url_for, send_file
+from flask_login import login_required, current_user
+from sqlalchemy import func, and_, or_
+from io import BytesIO
+import json
+
+
+@app.route('/rapports/risque')
+@login_required
+def rapports_risque():
+    """
+    Page des rapports de risque avec filtres et visualisations
+    Accessible aux administrateurs, directeurs et agents de crédit
+    """
+
+    # ===== 1. VÉRIFICATION DES PERMISSIONS =====
+    if current_user.role not in ['admin', 'super_admin', 'direction', 'agent_credit']:
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # ===== 2. PARAMÈTRES DE FILTRAGE =====
+    # Récupérer les filtres depuis la requête
+    periode = request.args.get('periode', 'mois')  # mois, trimestre, annee, personnalise
+    date_debut = request.args.get('date_debut')
+    date_fin = request.args.get('date_fin')
+    succursale_id = request.args.get('succursale_id', type=int)
+    type_risque = request.args.get('type_risque', 'tous')  # tous, defaut, retard, concentration
+
+    # Définir la période par défaut
+    if not date_debut or not date_fin:
+        if periode == 'mois':
+            date_debut = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+            date_fin = datetime.now().strftime('%Y-%m-%d')
+        elif periode == 'trimestre':
+            date_debut = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+            date_fin = datetime.now().strftime('%Y-%m-%d')
+        elif periode == 'annee':
+            date_debut = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+            date_fin = datetime.now().strftime('%Y-%m-%d')
+
+    # Convertir en dates
+    date_debut_obj = datetime.strptime(date_debut, '%Y-%m-%d').date() if date_debut else None
+    date_fin_obj = datetime.strptime(date_fin, '%Y-%m-%d').date() if date_fin else None
+
+    # ===== 3. RÉCUPÉRATION DES SUCCURSALES =====
+    # Filtrer les succursales selon le rôle
+    if current_user.role in ['admin', 'super_admin']:
+        succursales = Succursale.query.filter_by(actif=True).all()
+    else:
+        succursales = [current_user.succursale] if current_user.succursale else []
+
+    # Si une succursale est spécifiée, l'utiliser pour les filtres
+    if succursale_id:
+        succursale = Succursale.query.get(succursale_id)
+    else:
+        succursale = current_user.succursale if current_user.succursale else None
+
+    # ===== 4. CALCUL DES INDICATEURS DE RISQUE =====
+    # Requête de base pour les prêts
+    query_prets = Pret.query
+
+    # Appliquer les filtres de date
+    if date_debut_obj:
+        query_prets = query_prets.filter(Pret.date_creation >= date_debut_obj)
+    if date_fin_obj:
+        query_prets = query_prets.filter(Pret.date_creation <= date_fin_obj)
+
+    # Filtrer par succursale
+    if succursale:
+        query_prets = query_prets.filter(Pret.succursale_id == succursale.id)
+
+    # ===== 5. INDICATEURS CLÉS =====
+    aujourd_hui = datetime.now().date()
+
+    # Tous les prêts
+    tous_prets = query_prets.all()
+    total_prets = len(tous_prets)
+
+    # Prêts actifs (en cours de remboursement)
+    prets_actifs = [p for p in tous_prets if p.statut in ['actif', 'approuve']]
+    total_actifs = len(prets_actifs)
+
+    # Prêts en retard
+    prets_retard = [p for p in prets_actifs
+                    if p.prochaine_echeance and p.prochaine_echeance < aujourd_hui]
+    total_retards = len(prets_retard)
+
+    # Prêts en défaut (retard > 90 jours)
+    prets_defaut = [p for p in prets_retard
+                    if (aujourd_hui - p.prochaine_echeance).days > 90]
+    total_defaut = len(prets_defaut)
+
+    # Montants
+    montant_total = sum(p.montant for p in tous_prets)
+    montant_actif = sum(p.montant for p in prets_actifs)
+    montant_retard = sum(p.montant for p in prets_retard)
+    montant_defaut = sum(p.montant for p in prets_defaut)
+
+    # Calcul des montants restants (créances)
+    def calculer_montant_restant(pret):
+        total_rembourse = sum(e.montant_rembourse for e in pret.echeances if e.statut == 'paye')
+        return pret.montant - total_rembourse
+
+    montant_restant_total = sum(calculer_montant_restant(p) for p in prets_actifs)
+    montant_restant_retard = sum(calculer_montant_restant(p) for p in prets_retard)
+    montant_restant_defaut = sum(calculer_montant_restant(p) for p in prets_defaut)
+
+    # ===== 6. TAUX ET RATIOS =====
+    taux_defaut = (total_defaut / total_prets * 100) if total_prets > 0 else 0
+    taux_retard = (total_retards / total_actifs * 100) if total_actifs > 0 else 0
+    taux_exposition = (montant_actif / montant_total * 100) if montant_total > 0 else 0
+
+    # Ratio de couverture (provision / exposé)
+    # Provision = montant en retard * 20% + montant en défaut * 50%
+    provision_retard = montant_restant_retard * 0.20
+    provision_defaut = montant_restant_defaut * 0.50
+    provision_totale = provision_retard + provision_defaut
+
+    ratio_couverture = (provision_totale / montant_restant_total * 100) if montant_restant_total > 0 else 0
+
+    # ===== 7. ANALYSE PAR SUCCURSALE =====
+    analyse_succursale = []
+
+    for s in (succursales if succursale_id is None else [succursale]):
+        # Prêts de cette succursale
+        prets_succ = [p for p in tous_prets if p.succursale_id == s.id]
+
+        if prets_succ:
+            # Prêts actifs de cette succursale
+            prets_actifs_succ = [p for p in prets_succ if p.statut in ['actif', 'approuve']]
+
+            # Prêts en retard de cette succursale
+            prets_retard_succ = [p for p in prets_actifs_succ
+                                 if p.prochaine_echeance and p.prochaine_echeance < aujourd_hui]
+
+            # Prêts en défaut de cette succursale
+            prets_defaut_succ = [p for p in prets_retard_succ
+                                 if (aujourd_hui - p.prochaine_echeance).days > 90]
+
+            # Montants
+            montant_total_succ = sum(p.montant for p in prets_succ)
+            montant_actif_succ = sum(p.montant for p in prets_actifs_succ)
+            montant_retard_succ = sum(p.montant for p in prets_retard_succ)
+
+            # Taux
+            taux_retard_succ = (len(prets_retard_succ) / len(prets_actifs_succ) * 100) if prets_actifs_succ else 0
+            taux_defaut_succ = (len(prets_defaut_succ) / len(prets_succ) * 100) if prets_succ else 0
+
+            analyse_succursale.append({
+                'succursale': s,
+                'total_prets': len(prets_succ),
+                'prets_actifs': len(prets_actifs_succ),
+                'prets_retard': len(prets_retard_succ),
+                'prets_defaut': len(prets_defaut_succ),
+                'montant_total': montant_total_succ,
+                'montant_actif': montant_actif_succ,
+                'montant_retard': montant_retard_succ,
+                'taux_retard': round(taux_retard_succ, 2),
+                'taux_defaut': round(taux_defaut_succ, 2)
+            })
+
+    # ===== 8. TOP CLIENTS À RISQUE =====
+    clients_risque = []
+
+    for pret in prets_actifs:
+        if pret.prochaine_echeance and pret.prochaine_echeance < aujourd_hui:
+            jours_retard = (aujourd_hui - pret.prochaine_echeance).days
+            montant_restant = calculer_montant_restant(pret)
+
+            # Déterminer le niveau de risque
+            if jours_retard > 90:
+                niveau_risque = 'CRITIQUE'
+                couleur_risque = 'danger'
+            elif jours_retard > 60:
+                niveau_risque = 'ÉLEVÉ'
+                couleur_risque = 'warning'
+            elif jours_retard > 30:
+                niveau_risque = 'MODÉRÉ'
+                couleur_risque = 'info'
+            else:
+                niveau_risque = 'FAIBLE'
+                couleur_risque = 'success'
+
+            clients_risque.append({
+                'client': pret.client,
+                'pret': pret,
+                'jours_retard': jours_retard,
+                'montant_restant': round(montant_restant, 2),
+                'niveau_risque': niveau_risque,
+                'couleur_risque': couleur_risque,
+                'prochaine_echeance': pret.prochaine_echeance
+            })
+
+    # Trier par jours de retard (du plus élevé au plus bas)
+    clients_risque.sort(key=lambda x: x['jours_retard'], reverse=True)
+
+    # ===== 9. ÉVOLUTION MENSUELLE =====
+    evolution_mensuelle = []
+
+    # Calculer l'évolution des retards par mois (sur les 6 derniers mois)
+    mois_courant = datetime.now().month
+    annee_courante = datetime.now().year
+
+    for i in range(6):
+        mois = mois_courant - i
+        annee = annee_courante
+        if mois <= 0:
+            mois += 12
+            annee -= 1
+
+        date_debut_mois = datetime(annee, mois, 1).date()
+        if mois == 12:
+            date_fin_mois = datetime(annee + 1, 1, 1).date() - timedelta(days=1)
+        else:
+            date_fin_mois = datetime(annee, mois + 1, 1).date() - timedelta(days=1)
+
+        # Prêts actifs pendant ce mois
+        prets_mois = Pret.query.filter(
+            Pret.statut.in_(['actif', 'approuve']),
+            Pret.date_creation <= date_fin_mois,
+            or_(
+                Pret.date_fin >= date_debut_mois,
+                Pret.date_fin.is_(None)
+            )
+        )
+
+        if succursale:
+            prets_mois = prets_mois.filter(Pret.succursale_id == succursale.id)
+
+        # Prêts en retard pendant ce mois
+        prets_retard_mois = [p for p in prets_mois.all()
+                             if p.prochaine_echeance and
+                             p.prochaine_echeance < date_fin_mois]
+
+        taux_retard_mois = (len(prets_retard_mois) / len(prets_mois.all()) * 100) if prets_mois.count() > 0 else 0
+
+        evolution_mensuelle.append({
+            'mois': date_debut_mois.strftime('%b %Y'),
+            'total_prets': prets_mois.count(),
+            'prets_retard': len(prets_retard_mois),
+            'taux_retard': round(taux_retard_mois, 2)
+        })
+
+    evolution_mensuelle.reverse()  # Du plus ancien au plus récent
+
+    # ===== 10. ANALYSE PAR SEGMENT =====
+    # Analyse par secteur d'activité
+    analyse_secteur = {}
+    for pret in tous_prets:
+        secteur = pret.client.profession or 'Non spécifié'
+        if secteur not in analyse_secteur:
+            analyse_secteur[secteur] = {
+                'total': 0,
+                'en_retard': 0,
+                'montant_total': 0,
+                'montant_retard': 0
+            }
+        analyse_secteur[secteur]['total'] += 1
+        analyse_secteur[secteur]['montant_total'] += pret.montant
+
+        if pret in prets_retard:
+            analyse_secteur[secteur]['en_retard'] += 1
+            analyse_secteur[secteur]['montant_retard'] += pret.montant
+
+    # ===== 11. PRÉPARATION DU TEMPLATE =====
+    stats = {
+        'total_prets': total_prets,
+        'total_actifs': total_actifs,
+        'total_retards': total_retards,
+        'total_defaut': total_defaut,
+        'montant_total': montant_total,
+        'montant_actif': montant_actif,
+        'montant_retard': montant_retard,
+        'montant_defaut': montant_defaut,
+        'montant_restant_total': montant_restant_total,
+        'montant_restant_retard': montant_restant_retard,
+        'montant_restant_defaut': montant_restant_defaut,
+        'taux_defaut': round(taux_defaut, 2),
+        'taux_retard': round(taux_retard, 2),
+        'taux_exposition': round(taux_exposition, 2),
+        'ratio_couverture': round(ratio_couverture, 2),
+        'provision_totale': round(provision_totale, 2),
+        'clients_risque': clients_risque[:20],  # Top 20
+        'analyse_succursale': analyse_succursale,
+        'evolution_mensuelle': evolution_mensuelle,
+        'analyse_secteur': analyse_secteur
+    }
+
+    # ===== 12. FORMAT JSON POUR GRAPHIQUES =====
+    chart_data = {
+        'evolution': {
+            'labels': [e['mois'] for e in evolution_mensuelle],
+            'taux_retard': [e['taux_retard'] for e in evolution_mensuelle],
+            'total_prets': [e['total_prets'] for e in evolution_mensuelle]
+        },
+        'repartition_risque': {
+            'labels': ['Sain', 'Retard', 'Défaut'],
+            'values': [total_actifs - total_retards, total_retards - total_defaut, total_defaut]
+        },
+        'repartition_montant': {
+            'labels': ['Sain', 'Retard', 'Défaut'],
+            'values': [montant_actif - montant_retard, montant_retard - montant_defaut, montant_defaut]
+        }
+    }
+
+    return render_template(
+        'rapports/risque.html',
+        stats=stats,
+        chart_data=chart_data,
+        succursales=succursales,
+        succursale=succursale,
+        periode=periode,
+        date_debut=date_debut,
+        date_fin=date_fin,
+        type_risque=type_risque,
+        now=datetime.now()
+    )
+
+
+@app.route('/rapports/risque/export')
+@login_required
+def export_rapports_risque():
+    """
+    Exporte le rapport de risque vers Excel
+    """
+    # Vérifier les permissions
+    if current_user.role not in ['admin', 'super_admin', 'direction', 'agent_credit']:
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Récupérer les paramètres
+    periode = request.args.get('periode', 'mois')
+    date_debut = request.args.get('date_debut')
+    date_fin = request.args.get('date_fin')
+    succursale_id = request.args.get('succursale_id', type=int)
+
+    # Définir la période
+    if not date_debut or not date_fin:
+        if periode == 'mois':
+            date_debut = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+            date_fin = datetime.now().strftime('%Y-%m-%d')
+        elif periode == 'trimestre':
+            date_debut = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+            date_fin = datetime.now().strftime('%Y-%m-%d')
+        elif periode == 'annee':
+            date_debut = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+            date_fin = datetime.now().strftime('%Y-%m-%d')
+
+    date_debut_obj = datetime.strptime(date_debut, '%Y-%m-%d').date() if date_debut else None
+    date_fin_obj = datetime.strptime(date_fin, '%Y-%m-%d').date() if date_fin else None
+
+    # Requête de base
+    query = Pret.query.filter(Pret.statut.in_(['actif', 'approuve']))
+
+    if date_debut_obj:
+        query = query.filter(Pret.date_creation >= date_debut_obj)
+    if date_fin_obj:
+        query = query.filter(Pret.date_creation <= date_fin_obj)
+    if succursale_id:
+        query = query.filter(Pret.succursale_id == succursale_id)
+
+    prets = query.all()
+
+    if not prets:
+        flash('Aucune donnée à exporter', 'info')
+        return redirect(request.referrer or url_for('rapports_risque'))
+
+    # Créer le DataFrame
+    aujourd_hui = datetime.now().date()
+    data = []
+
+    for pret in prets:
+        client = pret.client
+
+        # Calculer le retard
+        jours_retard = 0
+        if pret.prochaine_echeance and pret.prochaine_echeance < aujourd_hui:
+            jours_retard = (aujourd_hui - pret.prochaine_echeance).days
+
+        # Montant restant
+        total_rembourse = sum(e.montant_rembourse for e in pret.echeances if e.statut == 'paye')
+        montant_restant = pret.montant - total_rembourse
+
+        # Déterminer le statut de risque
+        if jours_retard > 90:
+            statut_risque = 'CRITIQUE'
+        elif jours_retard > 60:
+            statut_risque = 'ÉLEVÉ'
+        elif jours_retard > 30:
+            statut_risque = 'MODÉRÉ'
+        elif jours_retard > 0:
+            statut_risque = 'FAIBLE'
+        else:
+            statut_risque = 'SAIN'
+
+        data.append({
+            'Numéro Prêt': pret.numero_dossier,
+            'Client': f"{client.prenom} {client.nom}",
+            'Téléphone': client.telephone,
+            'Email': client.email,
+            'Montant Prêt': pret.montant,
+            'Montant Restant': round(montant_restant, 2),
+            'Mensualité': pret.mensualite or 0,
+            'Prochaine Échéance': pret.prochaine_echeance.strftime('%d/%m/%Y') if pret.prochaine_echeance else 'N/A',
+            'Jours de Retard': jours_retard,
+            'Statut Risque': statut_risque,
+            'Date Création': pret.date_creation.strftime('%d/%m/%Y'),
+            'Succursale': pret.succursale.nom if pret.succursale else 'N/A'
+        })
+
+    df = pd.DataFrame(data)
+
+    # Créer le fichier Excel
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        # Feuille principale
+        df.to_excel(writer, sheet_name='Analyse Risque', index=False)
+
+        # Styliser
+        workbook = writer.book
+        worksheet = writer.sheets['Analyse Risque']
+
+        # Ajuster les largeurs
+        for col in worksheet.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 30)
+            worksheet.column_dimensions[column].width = adjusted_width
+
+        # Ajouter un résumé
+        summary_data = {
+            'Indicateur': [
+                'Total prêts analysés',
+                'Prêts à risque (retard > 0)',
+                'Prêts en défaut (retard > 90)',
+                'Montant total exposé',
+                'Montant à risque',
+                'Montant en défaut',
+                'Taux de risque (%)',
+                'Taux de défaut (%)'
+            ],
+            'Valeur': [
+                len(data),
+                sum(1 for d in data if d['Jours de Retard'] > 0),
+                sum(1 for d in data if d['Jours de Retard'] > 90),
+                sum(d['Montant Prêt'] for d in data),
+                sum(d['Montant Restant'] for d in data if d['Jours de Retard'] > 0),
+                sum(d['Montant Restant'] for d in data if d['Jours de Retard'] > 90),
+                round(sum(1 for d in data if d['Jours de Retard'] > 0) / len(data) * 100, 2),
+                round(sum(1 for d in data if d['Jours de Retard'] > 90) / len(data) * 100, 2)
+            ]
+        }
+
+        summary_df = pd.DataFrame(summary_data)
+        summary_df.to_excel(writer, sheet_name='Résumé', index=False)
+
+    output.seek(0)
+
+    nom_fichier = f"rapport_risque_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=nom_fichier
+    )
+
+
 from flask import make_response
 import csv
 from io import StringIO
