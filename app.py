@@ -9509,7 +9509,16 @@ def gestionnaire_groupes_dashboard():
     """
 
     # ===== 1. VÉRIFICATION DES PERMISSIONS =====
-    if current_user.role not in ['admin_succursale', 'super_admin', 'direction', 'agent_credit', 'conseiller']:
+    if (
+            current_user.role not in [
+        'admin_succursale',
+        'super_admin',
+        'direction',
+        'agent_credit',
+        'conseiller'
+    ]
+            and current_user.fonction != 'gestionnaire_groupe'
+    ):
         flash('⛔ Accès non autorisé', 'danger')
         return redirect(url_for('dashboard_redirect'))
 
@@ -9526,9 +9535,9 @@ def gestionnaire_groupes_dashboard():
     # Filtrer par succursale si l'utilisateur n'est pas admin
     if current_user.role not in ['admin_succursale', 'super_admin']:
         if hasattr(current_user, 'succursale_id') and current_user.succursale_id:
-            # Si vous avez une relation succursale, filtrez ici
-            # query = query.filter(Groupe.succursale_id == current_user.succursale_id)
-            pass
+            query = query.filter(
+                Groupe.succursale_id == current_user.succursale_id
+            )
 
     # Filtrer par statut
     if statut != 'tous':
