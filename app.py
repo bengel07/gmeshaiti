@@ -9491,13 +9491,473 @@ def creer_groupe():
             zone=zone
         )
 
-        session.add(groupe)
-        session.commit()
+        db.session.add(groupe)
+        db.session.commit()
 
         return redirect(url_for('liste_groupes'))
 
     return render_template('creer_groupe.html')
 
+
+
+@app.route('/gestionnaire/groupes/dashboard')
+@login_required
+def gestionnaire_groupes_dashboard():
+    """
+    Dashboard de gestion des groupes
+    Accessible aux administrateurs, directeurs et agents de crédit
+    """
+
+    # ===== 1. VÉRIFICATION DES PERMISSIONS =====
+    if current_user.role not in ['admin', 'super_admin', 'direction', 'agent_credit', 'conseiller']:
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # ===== 2. RÉCUPÉRATION DES FILTRES =====
+    statut = request.args.get('statut', 'tous')
+    zone = request.args.get('zone', 'toutes')
+    recherche = request.args.get('recherche', '')
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+
+    # ===== 3. CONSTRUCTION DE LA REQUÊTE =====
+    query = Groupe.query
+
+    # Filtrer par succursale si l'utilisateur n'est pas admin
+    if current_user.role not in ['admin', 'super_admin']:
+        if hasattr(current_user, 'succursale_id') and current_user.succursale_id:
+            # Si vous avez une relation succursale, filtrez ici
+            # query = query.filter(Groupe.succursale_id == current_user.succursale_id)
+            pass
+
+    # Filtrer par statut
+    if statut != 'tous':
+        query = query.filter(Groupe.statut == statut)
+
+    # Filtrer par zone
+    if zone != 'toutes' and zone:
+        query = query.filter(Groupe.zone == zone)
+
+    # Recherche
+    if recherche:
+        query = query.filter(
+            or_(
+                Groupe.nom.ilike(f'%{recherche}%'),
+                Groupe.code_groupe.ilike(f'%{recherche}%'),
+                Groupe.zone.ilike(f'%{recherche}%')
+            )
+        )
+
+    # ===== 4. PAGINATION =====
+    groupes_pagines = query.order_by(
+        Groupe.date_creation.desc()
+    ).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+
+    groupes = groupes_pagines.items
+
+    # ===== 5. STATISTIQUES GLOBALES =====
+    # Nombre total de groupes
+    total_groupes = query.count()
+
+    # Groupes actifs
+    groupes_actifs = Groupe.query.filter_by(statut='actif').count()
+
+    # Groupes inactifs
+    groupes_inactifs = Groupe.query.filter_by(statut='inactif').count()
+
+    # Groupes suspendus
+    groupes_suspendus = Groupe.query.filter_by(statut='suspendu').count()
+
+    # Groupes par zone
+    stats_par_zone = db.session.query(
+        Groupe.zone,
+        func.count(Groupe.id).label('total')
+    ).filter(
+        Groupe.zone.isnot(None)
+    ).group_by(Groupe.zone).all()
+
+    # Groupes par statut
+    stats_par_statut = db.session.query(
+        Groupe.statut,
+        func.count(Groupe.id).label('total')
+    ).group_by(Groupe.statut).all()
+
+    # Évolution des créations par mois (6 derniers mois)
+    evolution_mensuelle = []
+    for i in range(6):
+        mois = datetime.now().month - i
+        annee = datetime.now().year
+        if mois <= 0:
+            mois += 12
+            annee -= 1
+
+        date_debut = datetime(annee, mois, 1)
+        if mois == 12:
+            date_fin = datetime(annee + 1, 1, 1) - timedelta(days=1)
+        else:
+            date_fin = datetime(annee, mois + 1, 1) - timedelta(days=1)
+
+        count = Groupe.query.filter(
+            Groupe.date_creation.between(date_debut, date_fin)
+        ).count()
+
+        evolution_mensuelle.append({
+            'mois': date_debut.strftime('%b %Y'),
+            'total': count
+        })
+
+    evolution_mensuelle.reverse()
+
+    # ===== 6. ZONES DISPONIBLES POUR LE FILTRE =====
+    zones_disponibles = db.session.query(
+        Groupe.zone
+    ).filter(
+        Groupe.zone.isnot(None),
+        Groupe.zone != ''
+    ).distinct().all()
+    zones_list = [z[0] for z in zones_disponibles if z[0]]
+
+    # ===== 7. STATISTIQUES PAR RESPONSABLE =====
+    # Compter les groupes par responsable
+    stats_par_responsable = db.session.query(
+        Groupe.responsable_id,
+        func.count(Groupe.id).label('total')
+    ).filter(
+        Groupe.responsable_id.isnot(None)
+    ).group_by(Groupe.responsable_id).all()
+
+    # Récupérer les noms des responsables
+    responsables_info = []
+    for resp in stats_par_responsable:
+        responsable = Employe.query.get(resp[0])
+        if responsable:
+            responsables_info.append({
+                'responsable': f"{responsable.prenom} {responsable.nom}",
+                'total': resp[1]
+            })
+
+    # ===== 8. DERNIERS GROUPES CRÉÉS =====
+    derniers_groupes = Groupe.query.order_by(
+        Groupe.date_creation.desc()
+    ).limit(10).all()
+
+    # ===== 9. PRÉPARATION DES DONNÉES POUR LES GRAPHIQUES =====
+    chart_data = {
+        'evolution': {
+            'labels': [e['mois'] for e in evolution_mensuelle],
+            'values': [e['total'] for e in evolution_mensuelle]
+        },
+        'repartition_statut': {
+            'labels': ['Actifs', 'Inactifs', 'Suspendus'],
+            'values': [groupes_actifs, groupes_inactifs, groupes_suspendus]
+        },
+        'repartition_zone': {
+            'labels': [z[0] for z in stats_par_zone],
+            'values': [z[1] for z in stats_par_zone]
+        }
+    }
+
+    # ===== 10. STATISTIQUES POUR LE TEMPLATE =====
+    stats = {
+        'total_groupes': total_groupes,
+        'groupes_actifs': groupes_actifs,
+        'groupes_inactifs': groupes_inactifs,
+        'groupes_suspendus': groupes_suspendus,
+        'taux_activite': round((groupes_actifs / total_groupes * 100) if total_groupes > 0 else 0, 2),
+        'evolution_mensuelle': evolution_mensuelle,
+        'stats_par_zone': stats_par_zone,
+        'stats_par_statut': stats_par_statut,
+        'stats_par_responsable': responsables_info,
+        'derniers_groupes': derniers_groupes,
+        'total_zones': len(zones_list)
+    }
+
+    return render_template(
+        'gestionnaire/groupes_dashboard.html',
+        groupes=groupes,
+        pagination=groupes_pagines,
+        stats=stats,
+        chart_data=chart_data,
+        zones=zones_list,
+        statut_filtre=statut,
+        zone_filtre=zone,
+        recherche=recherche,
+        now=datetime.now()
+    )
+
+
+# ============================================
+# FONCTIONS AUXILIAIRES
+# ============================================
+
+@app.route('/gestionnaire/groupes/details/<int:groupe_id>')
+@login_required
+def details_groupe(groupe_id):
+    """Affiche les détails d'un groupe"""
+
+    # Vérifier les permissions
+    if current_user.role not in ['admin', 'super_admin', 'direction', 'agent_credit', 'conseiller']:
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Récupérer le groupe
+    groupe = Groupe.query.get_or_404(groupe_id)
+
+    # Récupérer les membres (si vous avez une relation)
+    membres = []
+    if hasattr(groupe, 'membres'):
+        membres = groupe.membres.all()
+
+    # Récupérer les prêts du groupe (si vous avez une relation)
+    prets = []
+    if hasattr(groupe, 'prets_groupe'):
+        prets = groupe.prets_groupe.all()
+
+    return render_template(
+        'gestionnaire/details_groupe.html',
+        groupe=groupe,
+        membres=membres,
+        prets=prets,
+        now=datetime.now()
+    )
+
+
+@app.route('/gestionnaire/groupes/creer', methods=['GET', 'POST'])
+@login_required
+def creer_groupes():
+    """Créer un nouveau groupe"""
+
+    # Vérifier les permissions
+    if current_user.role not in ['employe','admin_succursale', 'super_admin', 'direction', 'agent_credit']:
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        try:
+            # Générer un code de groupe unique
+            code_groupe = f"GRP-{datetime.now().strftime('%Y%m')}-{Groupe.query.count() + 1:04d}"
+
+            groupe = Groupe(
+                nom=request.form.get('nom'),
+                code_groupe=code_groupe,
+                zone=request.form.get('zone'),
+                statut=request.form.get('statut', 'actif'),
+                responsable_id=request.form.get('responsable_id', type=int)
+            )
+
+            db.session.add(groupe)
+            db.session.commit()
+
+            flash(f'✅ Groupe "{groupe.nom}" créé avec succès !', 'success')
+            return redirect(url_for('gestionnaire_groupes_dashboard'))
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"❌ Erreur lors de la création du groupe: {str(e)}")
+            flash(f'❌ Erreur: {str(e)}', 'danger')
+            return redirect(url_for('creer_groupe'))
+
+    # Récupérer les responsables disponibles
+    responsables = Employe.query.filter_by(role='agent_credit').all()
+
+    return render_template(
+        'gestionnaire/creer_groupe.html',
+        responsables=responsables,
+        now=datetime.now()
+    )
+
+
+@app.route('/gestionnaire/groupes/modifier/<int:groupe_id>', methods=['GET', 'POST'])
+@login_required
+def modifier_groupe(groupe_id):
+    """Modifier un groupe existant"""
+
+    # Vérifier les permissions
+    if current_user.role not in ['admin', 'super_admin', 'direction', 'agent_credit']:
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard'))
+
+    groupe = Groupe.query.get_or_404(groupe_id)
+
+    if request.method == 'POST':
+        try:
+            groupe.nom = request.form.get('nom')
+            groupe.zone = request.form.get('zone')
+            groupe.statut = request.form.get('statut')
+            groupe.responsable_id = request.form.get('responsable_id', type=int)
+
+            db.session.commit()
+
+            flash(f'✅ Groupe "{groupe.nom}" modifié avec succès !', 'success')
+            return redirect(url_for('gestionnaire_groupes_dashboard'))
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"❌ Erreur lors de la modification du groupe: {str(e)}")
+            flash(f'❌ Erreur: {str(e)}', 'danger')
+
+    responsables = Employe.query.filter_by(role='agent_credit').all()
+
+    return render_template(
+        'gestionnaire/modifier_groupe.html',
+        groupe=groupe,
+        responsables=responsables,
+        now=datetime.now()
+    )
+
+
+@app.route('/gestionnaire/groupes/supprimer/<int:groupe_id>', methods=['POST'])
+@login_required
+def supprimer_groupe(groupe_id):
+    """Supprimer un groupe (ou le désactiver)"""
+
+    # Vérifier les permissions
+    if current_user.role not in ['admin', 'super_admin']:
+        flash('⛔ Accès non autorisé', 'danger')
+        return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
+
+    groupe = Groupe.query.get_or_404(groupe_id)
+
+    try:
+        # Vérifier s'il y a des membres ou des prêts associés
+        membres_count = 0
+        prets_count = 0
+
+        if hasattr(groupe, 'membres'):
+            membres_count = groupe.membres.count()
+
+        if hasattr(groupe, 'prets_groupe'):
+            prets_count = groupe.prets_groupe.count()
+
+        if membres_count > 0 or prets_count > 0:
+            # Ne pas supprimer, juste désactiver
+            groupe.statut = 'inactif'
+            db.session.commit()
+            flash(f'ℹ️ Groupe désactivé car il a des membres ou des prêts associés.', 'warning')
+        else:
+            # Supprimer définitivement
+            db.session.delete(groupe)
+            db.session.commit()
+            flash(f'✅ Groupe "{groupe.nom}" supprimé avec succès !', 'success')
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"❌ Erreur lors de la suppression du groupe: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/gestionnaire/groupes/export')
+@login_required
+def export_groupes():
+    """Exporte la liste des groupes vers Excel"""
+
+    # Vérifier les permissions
+    if current_user.role not in ['admin', 'super_admin', 'direction']:
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Récupérer les groupes
+    groupes = Groupe.query.order_by(Groupe.nom).all()
+
+    if not groupes:
+        flash('Aucun groupe à exporter', 'info')
+        return redirect(request.referrer or url_for('gestionnaire_groupes_dashboard'))
+
+    # Créer le DataFrame
+    data = []
+    for groupe in groupes:
+        data.append({
+            'Code': groupe.code_groupe,
+            'Nom': groupe.nom,
+            'Zone': groupe.zone or 'N/A',
+            'Statut': groupe.statut,
+            'Responsable': groupe.responsable_id or 'Non assigné',
+            'Date Création': groupe.date_creation.strftime('%d/%m/%Y') if groupe.date_creation else 'N/A'
+        })
+
+    df = pd.DataFrame(data)
+
+    # Créer le fichier Excel
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Groupes', index=False)
+
+        # Ajuster les colonnes
+        worksheet = writer.sheets['Groupes']
+        for col in worksheet.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 30)
+            worksheet.column_dimensions[column].width = adjusted_width
+
+        # Ajouter un résumé
+        summary_data = {
+            'Indicateur': [
+                'Total groupes',
+                'Groupes actifs',
+                'Groupes inactifs',
+                'Groupes suspendus'
+            ],
+            'Valeur': [
+                len(data),
+                sum(1 for d in data if d['Statut'] == 'actif'),
+                sum(1 for d in data if d['Statut'] == 'inactif'),
+                sum(1 for d in data if d['Statut'] == 'suspendu')
+            ]
+        }
+        summary_df = pd.DataFrame(summary_data)
+        summary_df.to_excel(writer, sheet_name='Résumé', index=False)
+
+    output.seek(0)
+
+    nom_fichier = f"groupes_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=nom_fichier
+    )
+
+
+@app.route('/gestionnaire/groupes/recherche')
+@login_required
+def recherche_groupes():
+    """API de recherche de groupes (pour autocomplete)"""
+
+    terme = request.args.get('q', '')
+
+    if len(terme) < 2:
+        return jsonify([])
+
+    groupes = Groupe.query.filter(
+        or_(
+            Groupe.nom.ilike(f'%{terme}%'),
+            Groupe.code_groupe.ilike(f'%{terme}%'),
+            Groupe.zone.ilike(f'%{terme}%')
+        )
+    ).limit(10).all()
+
+    resultats = [{
+        'id': g.id,
+        'nom': g.nom,
+        'code': g.code_groupe,
+        'zone': g.zone
+    } for g in groupes]
+
+    return jsonify(resultats)
 
 @app.route('/groupe/<int:groupe_id>/rejoindre')
 @login_required

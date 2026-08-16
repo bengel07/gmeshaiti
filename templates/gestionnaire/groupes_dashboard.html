@@ -1,0 +1,255 @@
+<!-- templates/gestionnaire/groupes_dashboard.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4><i class="fas fa-users me-2"></i> Gestion des Groupes</h4>
+                        <p class="mb-0">Dashboard de gestion des groupes solidaires</p>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('creer_groupe') }}" class="btn btn-success me-2">
+                            <i class="fas fa-plus me-1"></i> Nouveau Groupe
+                        </a>
+                        <a href="{{ url_for('export_groupes') }}" class="btn btn-light">
+                            <i class="fas fa-file-excel me-1"></i> Exporter
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow border-0">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Total Groupes</h6>
+                    <h2 class="text-primary">{{ stats.total_groupes }}</h2>
+                    <small>Groupes enregistrés</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow border-0">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Groupes Actifs</h6>
+                    <h2 class="text-success">{{ stats.groupes_actifs }}</h2>
+                    <small>Taux: {{ stats.taux_activite }}%</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow border-0">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Zones</h6>
+                    <h2 class="text-info">{{ stats.total_zones }}</h2>
+                    <small>Zones couvertes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow border-0">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Inactifs / Suspendus</h6>
+                    <h2>
+                        <span class="text-warning">{{ stats.groupes_inactifs }}</span>
+                        <span class="text-muted">/</span>
+                        <span class="text-danger">{{ stats.groupes_suspendus }}</span>
+                    </h2>
+                    <small>Groupes à surveiller</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Statut</label>
+                    <select name="statut" class="form-select">
+                        <option value="tous" {% if statut_filtre == 'tous' %}selected{% endif %}>Tous</option>
+                        <option value="actif" {% if statut_filtre == 'actif' %}selected{% endif %}>Actif</option>
+                        <option value="inactif" {% if statut_filtre == 'inactif' %}selected{% endif %}>Inactif</option>
+                        <option value="suspendu" {% if statut_filtre == 'suspendu' %}selected{% endif %}>Suspendu</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Zone</label>
+                    <select name="zone" class="form-select">
+                        <option value="toutes" {% if zone_filtre == 'toutes' %}selected{% endif %}>Toutes</option>
+                        {% for zone in zones %}
+                        <option value="{{ zone }}" {% if zone_filtre == zone %}selected{% endif %}>{{ zone }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Recherche</label>
+                    <input type="text" name="recherche" class="form-control"
+                           placeholder="Nom, code, zone..." value="{{ recherche }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i> Filtrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Liste des groupes -->
+    <div class="card shadow">
+        <div class="card-header">
+            <h6>Liste des Groupes</h6>
+        </div>
+        <div class="card-body">
+            {% if groupes %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Nom</th>
+                            <th>Zone</th>
+                            <th>Responsable</th>
+                            <th>Statut</th>
+                            <th>Date Création</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for groupe in groupes %}
+                        <tr>
+                            <td><strong>{{ groupe.code_groupe }}</strong></td>
+                            <td>{{ groupe.nom }}</td>
+                            <td>{{ groupe.zone or 'N/A' }}</td>
+                            <td>
+                                {% if groupe.responsable_id %}
+                                {{ groupe.responsable_id }}
+                                {% else %}
+                                <span class="text-muted">Non assigné</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if groupe.statut == 'actif' else 'danger' if groupe.statut == 'suspendu' else 'warning' }}">
+                                    {{ groupe.statut|capitalize }}
+                                </span>
+                            </td>
+                            <td>{{ groupe.date_creation.strftime('%d/%m/%Y') if groupe.date_creation else 'N/A' }}</td>
+                            <td>
+                                <a href="{{ url_for('details_groupe', groupe_id=groupe.id) }}"
+                                   class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{{ url_for('modifier_groupe', groupe_id=groupe.id) }}"
+                                   class="btn btn-sm btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-sm btn-danger"
+                                        onclick="supprimerGroupe({{ groupe.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if pagination.pages > 1 %}
+            <nav>
+                <ul class="pagination justify-content-center">
+                    {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('gestionnaire_groupes_dashboard', page=pagination.prev_num, statut=statut_filtre, zone=zone_filtre, recherche=recherche) }}">
+                            Précédent
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in pagination.iter_pages() %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('gestionnaire_groupes_dashboard', page=page_num, statut=statut_filtre, zone=zone_filtre, recherche=recherche) }}">
+                                    {{ page_num }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('gestionnaire_groupes_dashboard', page=pagination.next_num, statut=statut_filtre, zone=zone_filtre, recherche=recherche) }}">
+                            Suivant
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Aucun groupe trouvé</p>
+                <a href="{{ url_for('creer_groupes') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i> Créer un groupe
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+function supprimerGroupe(groupeId) {
+    if (confirm('⚠️ Êtes-vous sûr de vouloir supprimer ce groupe ?')) {
+        fetch(`/gestionnaire/groupes/supprimer/${groupeId}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Erreur: ' + error);
+        });
+    }
+}
+
+// Recherche en temps réel (autocomplete)
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('input[name="recherche"]');
+    if (searchInput) {
+        let timeout = null;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                if (this.value.length >= 2) {
+                    this.closest('form').submit();
+                }
+            }, 500);
+        });
+    }
+});
+</script>
+{% endblock %}
