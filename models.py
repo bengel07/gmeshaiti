@@ -4053,13 +4053,13 @@ class Groupe(db.Model):
 
     succursale_id = db.Column(
         db.Integer,
-        db.ForeignKey('succursales.id'),
+        db.ForeignKey('succursale.id'),
         nullable=True
     )
 
     succursale = db.relationship(
         'Succursale',
-        backref=db.backref('groupes', lazy=True)
+        backref='groupes'
     )
 
     def get_id(self):
