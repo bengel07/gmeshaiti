@@ -1,0 +1,530 @@
+{% extends "base.html" %}
+
+{% block title %}Rapport des clients{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid py-4">
+
+    <!-- ===================================================== -->
+    <!-- EN-TÊTE -->
+    <!-- ===================================================== -->
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+            <h2 class="fw-bold">
+                <i class="fas fa-users"></i>
+                Rapport des clients
+            </h2>
+
+            <p class="text-muted mb-0">
+                Liste et statistiques des clients
+            </p>
+        </div>
+
+        <div>
+            <button onclick="window.print()"
+                    class="btn btn-primary">
+                <i class="fas fa-print"></i>
+                Imprimer
+            </button>
+        </div>
+
+    </div>
+
+
+    <!-- ===================================================== -->
+    <!-- STATISTIQUES -->
+    <!-- ===================================================== -->
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+
+                    <div class="text-muted">
+                        Total clients
+                    </div>
+
+                    <h3 class="fw-bold">
+                        {{ total_clients }}
+                    </h3>
+
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+
+                    <div class="text-muted">
+                        Clients actifs
+                    </div>
+
+                    <h3 class="fw-bold text-success">
+                        {{ clients_actifs }}
+                    </h3>
+
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+
+                    <div class="text-muted">
+                        Clients suspendus
+                    </div>
+
+                    <h3 class="fw-bold text-danger">
+                        {{ clients_suspendus }}
+                    </h3>
+
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+
+                    <div class="text-muted">
+                        Comptes actifs
+                    </div>
+
+                    <h3 class="fw-bold text-primary">
+                        {{ clients_comptes_actifs }}
+                    </h3>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- ===================================================== -->
+    <!-- RECHERCHE / FILTRES -->
+    <!-- ===================================================== -->
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-body">
+
+            <form method="GET"
+                  action="{{ url_for('rapport_clients') }}">
+
+                <div class="row g-3">
+
+                    <!-- Recherche -->
+
+                    <div class="col-md-5">
+
+                        <label class="form-label fw-bold">
+                            Rechercher
+                        </label>
+
+                        <input
+                            type="text"
+                            name="recherche"
+                            class="form-control"
+                            value="{{ recherche }}"
+                            placeholder="Nom, téléphone, email, CIN, compte..."
+                        >
+
+                    </div>
+
+
+                    <!-- Succursale -->
+
+                    <div class="col-md-3">
+
+                        <label class="form-label fw-bold">
+                            Succursale
+                        </label>
+
+                        <select name="succursale_id"
+                                class="form-select">
+
+                            <option value="">
+                                Toutes les succursales
+                            </option>
+
+                            {% for succursale in succursales %}
+
+                                <option
+                                    value="{{ succursale.id }}"
+                                    {% if succursale_id|string == succursale.id|string %}
+                                        selected
+                                    {% endif %}
+                                >
+
+                                    {{ succursale.nom
+                                       if succursale.nom is defined
+                                       else 'Succursale #' ~ succursale.id }}
+
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- Statut -->
+
+                    <div class="col-md-2">
+
+                        <label class="form-label fw-bold">
+                            Statut
+                        </label>
+
+                        <select name="statut"
+                                class="form-select">
+
+                            <option value="">
+                                Tous
+                            </option>
+
+                            <option value="actif"
+                                    {% if statut == 'actif' %}
+                                        selected
+                                    {% endif %}>
+                                Actifs
+                            </option>
+
+                            <option value="suspendu"
+                                    {% if statut == 'suspendu' %}
+                                        selected
+                                    {% endif %}>
+                                Suspendus
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- Boutons -->
+
+                    <div class="col-md-2 d-flex align-items-end">
+
+                        <button type="submit"
+                                class="btn btn-primary w-100">
+
+                            <i class="fas fa-search"></i>
+                            Rechercher
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- ===================================================== -->
+    <!-- TABLEAU -->
+    <!-- ===================================================== -->
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-body">
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead class="table-dark">
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Client</th>
+                            <th>Compte</th>
+                            <th>Téléphone</th>
+                            <th>Email</th>
+                            <th>CIN / NIF</th>
+                            <th>Succursale</th>
+                            <th>Revenu mensuel</th>
+                            <th>Solde</th>
+                            <th>Statut</th>
+                            <th>Date inscription</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for client in clients %}
+
+                        <tr>
+
+                            <td>
+                                {{ loop.index }}
+                            </td>
+
+
+                            <td>
+
+                                <strong>
+
+                                    {% if client.nom_complet %}
+
+                                        {{ client.nom_complet }}
+
+                                    {% else %}
+
+                                        {{ client.prenom or '' }}
+                                        {{ client.nom or '' }}
+
+                                    {% endif %}
+
+                                </strong>
+
+                            </td>
+
+
+                            <td>
+
+                                {{ client.numero_compte
+                                   or client.id_client
+                                   or '-' }}
+
+                            </td>
+
+
+                            <td>
+                                {{ client.telephone or '-' }}
+                            </td>
+
+
+                            <td>
+                                {{ client.email or '-' }}
+                            </td>
+
+
+                            <td>
+
+                                {{ client.cin_nif
+                                   or client.cin
+                                   or '-' }}
+
+                            </td>
+
+
+                            <td>
+
+                                {% if client.succursale %}
+
+                                    {% if client.succursale.nom is defined %}
+
+                                        {{ client.succursale.nom }}
+
+                                    {% else %}
+
+                                        Succursale #{{ client.succursale.id }}
+
+                                    {% endif %}
+
+                                {% else %}
+
+                                    -
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                {{ "{:,.2f}".format(
+                                    client.revenu_mensuel or 0
+                                ) }}
+                                G
+
+                            </td>
+
+
+                            <td>
+
+                                {{ "{:,.2f}".format(
+                                    client.solde or 0
+                                ) }}
+                                G
+
+                            </td>
+
+
+                            <td>
+
+                                {% set statut_client =
+                                    client.statut_affichage %}
+
+                                {% if statut_client == 'Actif' %}
+
+                                    <span class="badge bg-success">
+                                        Actif
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="badge bg-danger">
+                                        Suspendu
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                {% if client.date_inscription %}
+
+                                    {{ client.date_inscription.strftime('%d/%m/%Y') }}
+
+                                {% else %}
+
+                                    -
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                        {% else %}
+
+                        <tr>
+
+                            <td colspan="11"
+                                class="text-center py-5">
+
+                                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+
+                                <p class="text-muted mb-0">
+                                    Aucun client trouvé.
+                                </p>
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ===================================================== -->
+    <!-- TOTALS -->
+    <!-- ===================================================== -->
+
+    <div class="row mt-4">
+
+        <div class="col-md-6">
+
+            <div class="card border-0 shadow-sm">
+
+                <div class="card-body">
+
+                    <h6 class="text-muted">
+                        Total des soldes
+                    </h6>
+
+                    <h4 class="fw-bold">
+                        {{ "{:,.2f}".format(total_solde) }} G
+                    </h4>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6">
+
+            <div class="card border-0 shadow-sm">
+
+                <div class="card-body">
+
+                    <h6 class="text-muted">
+                        Revenus mensuels cumulés
+                    </h6>
+
+                    <h4 class="fw-bold">
+                        {{ "{:,.2f}".format(total_revenus) }} G
+                    </h4>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ========================================================= -->
+<!-- IMPRESSION -->
+<!-- ========================================================= -->
+
+<style>
+
+@media print {
+
+    body {
+        background: white !important;
+    }
+
+    .btn,
+    form,
+    nav,
+    .sidebar {
+        display: none !important;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    table {
+        font-size: 10px;
+    }
+
+    h2 {
+        font-size: 20px;
+    }
+
+}
+
+</style>
+
+{% endblock %}

@@ -5689,6 +5689,167 @@ def premier_changement_mot_de_passe():
     return render_template('premier_changement.html')
 
 
+
+@app.route('/rapport-clients', methods=['GET'])
+@login_required
+def rapport_clients():
+    """Rapport général des clients"""
+
+    # ============================================================
+    # 1. Vérification des permissions
+    # ============================================================
+    roles_autorises = [
+        'super_admin',
+        'admin',
+        'admin_succursale',
+        'direction',
+        'superviseur',
+        'employe',
+        'agent_credit',
+        'conseiller'
+    ]
+
+    if getattr(current_user, 'role', None) not in roles_autorises:
+        flash("⛔ Vous n'avez pas l'autorisation d'accéder au rapport des clients.", "danger")
+        return redirect(url_for('dashboard_redirect'))
+
+    # ============================================================
+    # 2. Récupération des paramètres de recherche
+    # ============================================================
+    recherche = request.args.get('recherche', '').strip()
+    succursale_id = request.args.get('succursale_id', '').strip()
+    statut = request.args.get('statut', '').strip().lower()
+
+    # ============================================================
+    # 3. Requête de base
+    # ============================================================
+    query = Client.query
+
+    # ============================================================
+    # 4. Recherche
+    # ============================================================
+    if recherche:
+        terme = f"%{recherche}%"
+
+        query = query.filter(
+            db.or_(
+                Client.nom.ilike(terme),
+                Client.prenom.ilike(terme),
+                Client.nom_complet.ilike(terme),
+                Client.telephone.ilike(terme),
+                Client.email.ilike(terme),
+                Client.cin.ilike(terme),
+                Client.cin_nif.ilike(terme),
+                Client.id_client.ilike(terme),
+                Client.numero_compte.ilike(terme)
+            )
+        )
+
+    # ============================================================
+    # 5. Filtre par succursale
+    # ============================================================
+    if succursale_id:
+        try:
+            query = query.filter(
+                Client.succursale_id == int(succursale_id)
+            )
+        except (ValueError, TypeError):
+            pass
+
+    # ============================================================
+    # 6. Récupération des clients
+    # ============================================================
+    clients = query.order_by(
+        Client.date_inscription.desc()
+    ).all()
+
+    # ============================================================
+    # 7. Filtre du statut d'affichage
+    # ============================================================
+    if statut:
+        clients_filtres = []
+
+        for client in clients:
+            try:
+                statut_client = client.statut_affichage.lower()
+            except Exception:
+                statut_client = (
+                    "suspendu"
+                    if client.compte_suspendu
+                    else "actif"
+                )
+
+            if statut_client == statut:
+                clients_filtres.append(client)
+
+        clients = clients_filtres
+
+    # ============================================================
+    # 8. Statistiques
+    # ============================================================
+    total_clients = len(clients)
+
+    clients_actifs = 0
+    clients_suspendus = 0
+    clients_comptes_actifs = 0
+
+    total_solde = 0.0
+    total_revenus = 0.0
+
+    for client in clients:
+
+        # Statut affiché
+        try:
+            statut_client = client.statut_affichage.lower()
+        except Exception:
+            statut_client = (
+                "suspendu"
+                if client.compte_suspendu
+                else "actif"
+            )
+
+        if statut_client == "actif":
+            clients_actifs += 1
+        else:
+            clients_suspendus += 1
+
+        # Compte actif
+        if client.compte_actif:
+            clients_comptes_actifs += 1
+
+        # Solde
+        if client.solde is not None:
+            total_solde += float(client.solde)
+
+        # Revenus
+        if client.revenu_mensuel is not None:
+            total_revenus += float(client.revenu_mensuel)
+
+    # ============================================================
+    # 9. Succursales disponibles
+    # ============================================================
+    succursales = Succursale.query.order_by(
+        Succursale.id.asc()
+    ).all()
+
+    # ============================================================
+    # 10. Affichage
+    # ============================================================
+    return render_template(
+        'rapport_clients.html',
+        clients=clients,
+        succursales=succursales,
+        recherche=recherche,
+        succursale_id=succursale_id,
+        statut=statut,
+        total_clients=total_clients,
+        clients_actifs=clients_actifs,
+        clients_suspendus=clients_suspendus,
+        clients_comptes_actifs=clients_comptes_actifs,
+        total_solde=total_solde,
+        total_revenus=total_revenus
+    )
+
 @app.route('/admin/creer-utilisateur', methods=['GET', 'POST'])
 @login_required
 def creer_utilisateur():
