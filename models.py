@@ -4051,6 +4051,17 @@ class Groupe(db.Model):
     statut = db.Column(db.String(20), default='actif')
     responsable_id = db.Column(db.Integer)
 
+    succursale_id = db.Column(
+        db.Integer,
+        db.ForeignKey('succursales.id'),
+        nullable=True
+    )
+
+    succursale = db.relationship(
+        'Succursale',
+        backref=db.backref('groupes', lazy=True)
+    )
+
     def get_id(self):
         return self.id
 
