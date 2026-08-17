@@ -5850,6 +5850,409 @@ def rapport_clients():
         total_revenus=total_revenus
     )
 
+@app.route('/rapport-groupes', methods=['GET'])
+@login_required
+def rapport_groupes():
+    """Rapport général des groupes"""
+
+    # ==========================================================
+    # 1. Vérification des permissions
+    # ==========================================================
+
+    roles_autorises = [
+        'super_admin',
+        'admin',
+        'admin_succursale',
+        'direction',
+        'superviseur',
+        'agent_credit',
+        'conseiller',
+        'employe'
+    ]
+
+    if getattr(current_user, 'role', None) not in roles_autorises:
+        flash(
+            "⛔ Vous n'avez pas l'autorisation d'accéder à ce rapport.",
+            "danger"
+        )
+        return redirect(url_for('dashboard_redirect'))
+
+    # ==========================================================
+    # 2. Paramètres de recherche
+    # ==========================================================
+
+    recherche = request.args.get('recherche', '').strip()
+    succursale_id = request.args.get('succursale_id', '').strip()
+    statut = request.args.get('statut', '').strip().lower()
+
+    # ==========================================================
+    # 3. Requête Groupes
+    # ==========================================================
+
+    query = Groupe.query
+
+    # Recherche par nom
+    if recherche:
+
+        terme = f"%{recherche}%"
+
+        filtres = []
+
+        if hasattr(Groupe, 'nom'):
+            filtres.append(Groupe.nom.ilike(terme))
+
+        if hasattr(Groupe, 'code'):
+            filtres.append(Groupe.code.ilike(terme))
+
+        if hasattr(Groupe, 'description'):
+            filtres.append(Groupe.description.ilike(terme))
+
+        if filtres:
+            query = query.filter(db.or_(*filtres))
+
+    # ==========================================================
+    # 4. Filtre par succursale
+    # ==========================================================
+
+    if succursale_id:
+
+        try:
+
+            if hasattr(Groupe, 'succursale_id'):
+                query = query.filter(
+                    Groupe.succursale_id == int(succursale_id)
+                )
+
+        except (ValueError, TypeError):
+            pass
+
+    # ==========================================================
+    # 5. Récupération des groupes
+    # ==========================================================
+
+    if hasattr(Groupe, 'date_creation'):
+        groupes = query.order_by(
+            Groupe.date_creation.desc()
+        ).all()
+
+    elif hasattr(Groupe, 'created_at'):
+        groupes = query.order_by(
+            Groupe.created_at.desc()
+        ).all()
+
+    else:
+        groupes = query.order_by(
+            Groupe.id.desc()
+        ).all()
+
+    # ==========================================================
+    # 6. Statistiques
+    # ==========================================================
+
+    groupes_actifs = 0
+    groupes_inactifs = 0
+    total_membres = 0
+
+    total_montant_prets = 0.0
+    total_remboursements = 0.0
+    total_solde = 0.0
+
+    donnees_groupes = []
+
+    for groupe in groupes:
+
+        # ------------------------------------------------------
+        # Nom
+        # ------------------------------------------------------
+
+        nom = getattr(groupe, 'nom', None)
+
+        if not nom:
+            nom = f"Groupe #{groupe.id}"
+
+        # ------------------------------------------------------
+        # Statut
+        # ------------------------------------------------------
+
+        statut_groupe = getattr(groupe, 'statut', None)
+
+        if statut_groupe:
+            statut_affichage = str(statut_groupe).lower()
+
+            if statut_affichage in [
+                'actif',
+                'active',
+                'actifs',
+                'activee'
+            ]:
+                groupes_actifs += 1
+            else:
+                groupes_inactifs += 1
+
+        else:
+
+            # Si aucun champ statut n'existe,
+            # on considère le groupe comme actif.
+            statut_affichage = 'actif'
+            groupes_actifs += 1
+
+        # ------------------------------------------------------
+        # Membres
+        # ------------------------------------------------------
+
+        membres = []
+
+        # Relation groupe.membres
+        if hasattr(groupe, 'membres'):
+
+            try:
+                membres = list(groupe.membres)
+            except Exception:
+                membres = []
+
+        # Relation groupe.clients
+        elif hasattr(groupe, 'clients'):
+
+            try:
+                membres = list(groupe.clients)
+            except Exception:
+                membres = []
+
+        # Sinon recherche directement dans Client
+        elif hasattr(Client, 'groupe_id'):
+
+            try:
+
+                membres = Client.query.filter(
+                    Client.groupe_id == groupe.id
+                ).all()
+
+            except Exception:
+
+                membres = []
+
+        nombre_membres = len(membres)
+
+        total_membres += nombre_membres
+
+        # ------------------------------------------------------
+        # Montants financiers
+        # ------------------------------------------------------
+
+        montant_prets = 0.0
+        montant_remboursements = 0.0
+        solde_groupe = 0.0
+
+        # ======================================================
+        # Recherche des prêts du groupe
+        # ======================================================
+
+        try:
+
+            if membres and hasattr(Pret, 'client_id'):
+
+                ids_clients = [
+                    membre.id
+                    for membre in membres
+                    if getattr(membre, 'id', None)
+                ]
+
+                if ids_clients:
+
+                    prets = Pret.query.filter(
+                        Pret.client_id.in_(ids_clients)
+                    ).all()
+
+                    for pret in prets:
+
+                        montant = getattr(
+                            pret,
+                            'montant_total',
+                            None
+                        )
+
+                        if montant is None:
+                            montant = getattr(
+                                pret,
+                                'montant_demande',
+                                0
+                            )
+
+                        try:
+                            montant_prets += float(montant or 0)
+                        except (ValueError, TypeError):
+                            pass
+
+                        balance = getattr(
+                            pret,
+                            'balance',
+                            None
+                        )
+
+                        if balance is not None:
+
+                            try:
+                                solde_groupe += float(balance or 0)
+                            except (ValueError, TypeError):
+                                pass
+
+        except Exception:
+            pass
+
+        # ======================================================
+        # Remboursements
+        # ======================================================
+
+        try:
+
+            if membres and 'Remboursement' in globals():
+
+                ids_clients = [
+                    membre.id
+                    for membre in membres
+                    if getattr(membre, 'id', None)
+                ]
+
+                if ids_clients and hasattr(
+                    Remboursement,
+                    'client_id'
+                ):
+
+                    remboursements = Remboursement.query.filter(
+                        Remboursement.client_id.in_(ids_clients)
+                    ).all()
+
+                    for remboursement in remboursements:
+
+                        montant = getattr(
+                            remboursement,
+                            'montant',
+                            None
+                        )
+
+                        if montant is None:
+                            montant = getattr(
+                                remboursement,
+                                'montant_rembourse',
+                                0
+                            )
+
+                        try:
+                            montant_remboursements += float(
+                                montant or 0
+                            )
+                        except (ValueError, TypeError):
+                            pass
+
+        except Exception:
+            pass
+
+        # ======================================================
+        # Totaux
+        # ======================================================
+
+        total_montant_prets += montant_prets
+        total_remboursements += montant_remboursements
+        total_solde += solde_groupe
+
+        # ======================================================
+        # Succursale
+        # ======================================================
+
+        succursale = None
+
+        if hasattr(groupe, 'succursale'):
+            succursale = groupe.succursale
+
+        # ======================================================
+        # Date
+        # ======================================================
+
+        date_creation = getattr(
+            groupe,
+            'date_creation',
+            None
+        )
+
+        if date_creation is None:
+            date_creation = getattr(
+                groupe,
+                'created_at',
+                None
+            )
+
+        # ======================================================
+        # Données du groupe
+        # ======================================================
+
+        donnees_groupes.append({
+            'groupe': groupe,
+            'nom': nom,
+            'statut': statut_affichage,
+            'nombre_membres': nombre_membres,
+            'montant_prets': montant_prets,
+            'remboursements': montant_remboursements,
+            'solde': solde_groupe,
+            'succursale': succursale,
+            'date_creation': date_creation
+        })
+
+    # ==========================================================
+    # 7. Filtre statut
+    # ==========================================================
+
+    if statut:
+
+        donnees_groupes = [
+            item
+            for item in donnees_groupes
+            if item['statut'] == statut
+        ]
+
+    # ==========================================================
+    # 8. Succursales
+    # ==========================================================
+
+    succursales = []
+
+    try:
+        succursales = Succursale.query.order_by(
+            Succursale.id.asc()
+        ).all()
+    except Exception:
+        pass
+
+    # ==========================================================
+    # 9. Statistiques finales
+    # ==========================================================
+
+    total_groupes = len(donnees_groupes)
+
+    # ==========================================================
+    # 10. Affichage
+    # ==========================================================
+
+    return render_template(
+        'rapport_dashboard.html',
+
+        groupes=donnees_groupes,
+        succursales=succursales,
+
+        recherche=recherche,
+        succursale_id=succursale_id,
+        statut=statut,
+
+        total_groupes=total_groupes,
+        groupes_actifs=groupes_actifs,
+        groupes_inactifs=groupes_inactifs,
+
+        total_membres=total_membres,
+
+        total_montant_prets=total_montant_prets,
+        total_remboursements=total_remboursements,
+        total_solde=total_solde
+    )
+
 @app.route('/admin/creer-utilisateur', methods=['GET', 'POST'])
 @login_required
 def creer_utilisateur():
