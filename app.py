@@ -9216,32 +9216,6 @@ def admin_notifications():
     )
 
 
-# === ROUTES API COMPLÉMENTAIRES ===
-#
-# @app.route('/api/notifications/mark-read/<int:notification_id>', methods=['POST'])
-# @login_required
-# def mark_notification_read(notification_id):
-#     """Marque une notification comme lue"""
-#     allowed_roles = ['admin', 'super_admin', 'admin_succursale', 'direction']
-#     if getattr(current_user, 'role', None) not in allowed_roles:
-#         return jsonify({'success': False, 'error': 'Non autorisé'}), 403
-#
-#     try:
-#         # Vérifier si la table Notification existe
-#         if hasattr(db, 'Notification'):
-#             notification = Notification.query.get(notification_id)
-#             if notification and notification.employe_id == current_user.id:
-#                 notification.read = True
-#                 db.session.commit()
-#                 return jsonify({'success': True})
-#
-#         # Fallback pour la démo
-#         return jsonify({'success': True})
-#
-#     except Exception as e:
-#         db.session.rollback()
-#         return jsonify({'success': False, 'error': str(e)}), 500
-
 
 @app.route('/api/notifications/mark-all-read', methods=['POST'])
 @login_required
