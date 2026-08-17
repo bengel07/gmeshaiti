@@ -22,7 +22,7 @@
                     <!-- Formulaire simple sans WTForms -->
                     <form method="POST" action="{{ url_for('creer_groupe') }}">
                         <!-- Protection CSRF si activé -->
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                         <div class="form-group">
                             <label for="nom">Nom du Groupe *</label>

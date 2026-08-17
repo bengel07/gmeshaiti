@@ -154,7 +154,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from flask_wtf.csrf import CSRFProtect, generate_csrf
+
 
 
 
@@ -188,6 +188,8 @@ app.config["APP_URL"] = os.environ.get("APP_URL","http://127.0.0.1:10000")
 
 app.config.from_object(Config)  # ← Charge TOUTES les configs (y compris email)
 
+
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 csrf = CSRFProtect(app)
 
 
