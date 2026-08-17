@@ -154,7 +154,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 
 
 
@@ -9778,6 +9778,13 @@ def creer_groupes():
         responsables=responsables,
         now=datetime.now()
     )
+
+
+@app.context_processor
+def inject_csrf_token():
+    return {
+        'csrf_token': generate_csrf
+    }
 
 
 @app.route('/gestionnaire/groupes/modifier/<int:groupe_id>', methods=['GET', 'POST'])
