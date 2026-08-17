@@ -27,6 +27,7 @@
                     </div>
 
                     <form method="POST" id="formPremierChangement">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <!-- Champ Nom d'utilisateur -->
                         <div class="mb-4">
                             <label class="form-label fw-semibold">
