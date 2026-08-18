@@ -28,7 +28,7 @@
                     <!-- Formulaire de dépôt -->
                     <form method="POST" action="{{ url_for('traiter_depot', client_id=client.id) }}">
                           <!-- PROTECTION CSRF -->
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         {{ form.hidden_tag() if form else '' }}
 
                         <div class="mb-3">
