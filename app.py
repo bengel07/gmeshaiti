@@ -22984,7 +22984,7 @@ def traiter_depot(client_id):
         print("❌ ERREUR DEPOT:", e)
         flash(f"Erreur dépôt: {str(e)}", "danger")
 
-    return redirect(url_for('recu_depot', client_id=client_id))
+    return redirect(url_for('recu_depot', client_id=client_id , transaction_id=transaction.id))
 
 
 @app.route('/retrait/recu/<int:transaction_id>/<int:client_id>')
