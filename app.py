@@ -7370,7 +7370,6 @@ def programmer_rapports():
 
     return scheduler
 
-
 @app.route('/recu-depot/<int:transaction_id>')
 @login_required
 def recu_depot(transaction_id):
@@ -7378,32 +7377,77 @@ def recu_depot(transaction_id):
 
     from models import Transaction, Client, Succursale
 
-    transaction = Transaction.query.get_or_404(transaction_id)
+    print("========================================")
+    print("REÇU DÉPÔT")
+    print("Transaction ID reçu :", transaction_id)
 
-    # Vérifier qu'il s'agit bien d'un dépôt
-    type_transaction = str(
-        getattr(transaction, 'type_transaction', '')
-    ).lower()
+    transaction = db.session.get(Transaction, transaction_id)
 
-    if type_transaction not in ['depot', 'dépôt', 'deposit']:
-        flash("❌ Cette transaction n'est pas un dépôt.", "danger")
+    if not transaction:
+        print("❌ TRANSACTION INTROUVABLE :", transaction_id)
+        flash(
+            f"❌ Transaction de dépôt introuvable (ID: {transaction_id})",
+            "danger"
+        )
         return redirect(url_for('dashboard_redirect'))
 
-    # Récupérer le client
+    print("✅ TRANSACTION TROUVÉE :", transaction.id)
+
+    # =========================
+    # VÉRIFIER LE TYPE
+    # =========================
+    type_transaction = str(
+        getattr(transaction, 'type_transaction', '')
+    ).strip().lower()
+
+    print("TYPE TRANSACTION :", type_transaction)
+
+    if type_transaction not in ['depot', 'dépôt', 'deposit']:
+        flash(
+            "❌ Cette transaction n'est pas un dépôt.",
+            "danger"
+        )
+        return redirect(url_for('dashboard_redirect'))
+
+    # =========================
+    # CLIENT
+    # =========================
     client = None
 
-    if getattr(transaction, 'client_id', None):
-        client = Client.query.get(transaction.client_id)
+    client_id = getattr(transaction, 'client_id', None)
+
+    print("CLIENT ID TRANSACTION :", client_id)
+
+    if client_id:
+        client = db.session.get(Client, client_id)
 
         if not client:
-            flash("❌ Client non trouvé pour cette transaction", "danger")
+            print("❌ CLIENT INTROUVABLE :", client_id)
+
+            flash(
+                "❌ Client non trouvé pour cette transaction.",
+                "danger"
+            )
+
             return redirect(url_for('dashboard_redirect'))
 
-    # Succursale
+    # =========================
+    # SUCCURSALE
+    # =========================
     succursale = None
 
-    if client and getattr(client, 'succursale_id', None):
-        succursale = Succursale.query.get(client.succursale_id)
+    if client:
+        succursale_id = getattr(client, 'succursale_id', None)
+
+        print("SUCCURSALE ID :", succursale_id)
+
+        if succursale_id:
+            succursale = db.session.get(
+                Succursale,
+                succursale_id
+            )
+
+    print("========================================")
 
     return render_template(
         'recu_depot.html',
@@ -7411,7 +7455,6 @@ def recu_depot(transaction_id):
         client=client,
         succursale=succursale
     )
-
 # ==========================================================
 # FONCTIONS D'ENVOI DES RAPPORTS AVEC BREVO
 # ==========================================================
