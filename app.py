@@ -7115,6 +7115,909 @@ def export_stats():
     return jsonify(stats)
 
 
+# ==========================================================
+# ENVOI D'EMAIL AVEC BREVO (API)
+# ==========================================================
+
+def envoyer_email_brevo_api(destinataires, sujet, contenu_html, contenu_texte=None, pieces_jointes=None):
+    """
+    Envoyer un email via l'API Brevo
+
+    Args:
+        destinataires: Liste d'emails ou string unique
+        sujet: Sujet de l'email
+        contenu_html: Contenu HTML de l'email
+        contenu_texte: Contenu texte (optionnel)
+        pieces_jointes: Liste de pièces jointes (optionnel)
+
+    Returns:
+        bool: Succès ou échec
+    """
+
+    try:
+        config = get_brevo_config()
+
+        # Gérer les destinataires
+        if isinstance(destinataires, str):
+            destinataires = [destinataires]
+
+        # Construire la liste des destinataires
+        to_list = [{"email": email} for email in destinataires]
+
+        # Construire le payload
+        payload = {
+            "sender": {
+                "name": config['sender_name'],
+                "email": config['sender_email']
+            },
+            "to": to_list,
+            "subject": sujet,
+            "htmlContent": contenu_html
+        }
+
+        # Ajouter le contenu texte si fourni
+        if contenu_texte:
+            payload["textContent"] = contenu_texte
+
+        # Ajouter les pièces jointes si présentes
+        if pieces_jointes:
+            attachments = []
+            for piece in pieces_jointes:
+                if os.path.exists(piece):
+                    with open(piece, 'rb') as f:
+                        import base64
+                        content = base64.b64encode(f.read()).decode('utf-8')
+                        attachments.append({
+                            "name": os.path.basename(piece),
+                            "content": content
+                        })
+            if attachments:
+                payload["attachment"] = attachments
+
+        # Headers
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "api-key": config['api_key']
+        }
+
+        # Envoyer la requête
+        response = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            json=payload,
+            headers=headers
+        )
+
+        if response.status_code == 201:
+            print(f"✅ Email envoyé via Brevo API à {len(destinataires)} destinataires")
+            return True
+        else:
+            print(f"❌ Erreur Brevo API : {response.status_code} - {response.text}")
+            return False
+
+    except Exception as e:
+        print(f"❌ Erreur envoi email Brevo API : {e}")
+        return False
+
+
+# ==========================================================
+# ENVOI D'EMAIL AVEC BREVO (SMTP) - Alternative
+# ==========================================================
+
+def envoyer_email_brevo_smtp(destinataires, sujet, contenu_html, contenu_texte=None):
+    """
+    Envoyer un email via SMTP Brevo (avec Flask-Mail)
+
+    Args:
+        destinataires: Liste d'emails ou string unique
+        sujet: Sujet de l'email
+        contenu_html: Contenu HTML de l'email
+        contenu_texte: Contenu texte (optionnel)
+
+    Returns:
+        bool: Succès ou échec
+    """
+
+    try:
+        # Configuration SMTP Brevo
+        current_app.config['MAIL_SERVER'] = 'smtp-relay.brevo.com'
+        current_app.config['MAIL_PORT'] = 587
+        current_app.config['MAIL_USE_TLS'] = True
+        current_app.config['MAIL_USE_SSL'] = False
+
+        # Identifiants Brevo
+        config = get_brevo_config()
+        current_app.config['MAIL_USERNAME'] = config['smtp_login']
+        current_app.config['MAIL_PASSWORD'] = config['smtp_key']
+        current_app.config['MAIL_DEFAULT_SENDER'] = (config['sender_name'], config['sender_email'])
+
+        # Initialiser Mail
+        from flask_mail import Mail
+        mail = Mail(current_app)
+
+        # Créer le message
+        if isinstance(destinataires, str):
+            destinataires = [destinataires]
+
+        msg = Message(
+            subject=sujet,
+            recipients=destinataires,
+            html=contenu_html,
+            body=contenu_texte
+        )
+
+        # Envoyer
+        mail.send(msg)
+        print(f"✅ Email envoyé via Brevo SMTP à {len(destinataires)} destinataires")
+        return True
+
+    except Exception as e:
+        print(f"❌ Erreur envoi email Brevo SMTP : {e}")
+        return False
+
+
+# ==========================================================
+# FONCTION DE PROGRAMMATION DES RAPPORTS
+# ==========================================================
+
+def programmer_rapports():
+    """
+    Programme l'envoi automatique des rapports via Brevo
+    """
+
+    scheduler = BackgroundScheduler()
+
+    # ==========================================================
+    # 1. RAPPORT QUOTIDIEN (tous les jours à 18h)
+    # ==========================================================
+
+    scheduler.add_job(
+        func=envoyer_rapport_quotidien_brevo,
+        trigger=CronTrigger(hour=18, minute=0),
+        id='rapport_quotidien_brevo',
+        replace_existing=True
+    )
+
+    # ==========================================================
+    # 2. RAPPORT HEBDOMADAIRE (tous les lundis à 8h)
+    # ==========================================================
+
+    scheduler.add_job(
+        func=envoyer_rapport_hebdomadaire_brevo,
+        trigger=CronTrigger(day_of_week='mon', hour=8, minute=0),
+        id='rapport_hebdomadaire_brevo',
+        replace_existing=True
+    )
+
+    # ==========================================================
+    # 3. RAPPORT MENSUEL (le 1er de chaque mois à 9h)
+    # ==========================================================
+
+    scheduler.add_job(
+        func=envoyer_rapport_mensuel_brevo,
+        trigger=CronTrigger(day=1, hour=9, minute=0),
+        id='rapport_mensuel_brevo',
+        replace_existing=True
+    )
+
+    # ==========================================================
+    # 4. RAPPORT FIN DE MOIS (dernier jour du mois à 23h59)
+    # ==========================================================
+
+    scheduler.add_job(
+        func=envoyer_rapport_fin_mois_brevo,
+        trigger=CronTrigger(day='last', hour=23, minute=59),
+        id='rapport_fin_mois_brevo',
+        replace_existing=True
+    )
+
+    # ==========================================================
+    # 5. RAPPORT TRIMESTRIEL (1er janvier, avril, juillet, octobre)
+    # ==========================================================
+
+    scheduler.add_job(
+        func=envoyer_rapport_trimestriel_brevo,
+        trigger=CronTrigger(month='1,4,7,10', day=1, hour=10, minute=0),
+        id='rapport_trimestriel_brevo',
+        replace_existing=True
+    )
+
+    # ==========================================================
+    # 6. RAPPORT ANNUEL (1er janvier à 11h)
+    # ==========================================================
+
+    scheduler.add_job(
+        func=envoyer_rapport_annuel_brevo,
+        trigger=CronTrigger(month=1, day=1, hour=11, minute=0),
+        id='rapport_annuel_brevo',
+        replace_existing=True
+    )
+
+    # ==========================================================
+    # 7. RAPPORT DE PERFORMANCE (tous les vendredis à 16h)
+    # ==========================================================
+
+    scheduler.add_job(
+        func=envoyer_rapport_performance_brevo,
+        trigger=CronTrigger(day_of_week='fri', hour=16, minute=0),
+        id='rapport_performance_brevo',
+        replace_existing=True
+    )
+
+    # ==========================================================
+    # 8. ALERTE DE SUIVI (tous les jours à 8h et 14h)
+    # ==========================================================
+
+    scheduler.add_job(
+        func=envoyer_alerte_suivi_brevo,
+        trigger=CronTrigger(hour='8,14', minute=0),
+        id='alerte_suivi_brevo',
+        replace_existing=True
+    )
+
+    # Démarrer le scheduler
+    scheduler.start()
+
+    print("✅ Programmation des rapports avec Brevo activée")
+
+    return scheduler
+
+
+# ==========================================================
+# FONCTIONS D'ENVOI DES RAPPORTS AVEC BREVO
+# ==========================================================
+
+def envoyer_rapport_quotidien_brevo():
+    """Envoyer le rapport quotidien via Brevo"""
+
+    print(f"📊 Génération du rapport quotidien Brevo - {datetime.now()}")
+
+    try:
+        # Récupérer les données du jour
+        date_debut = datetime.now().replace(hour=0, minute=0, second=0)
+        date_fin = datetime.now()
+
+        stats = get_stats_periode(date_debut, date_fin)
+
+        # Créer le sujet
+        sujet = f"📊 Rapport Quotidien - {datetime.now().strftime('%d/%m/%Y')}"
+
+        # Rendre le template HTML
+        contenu_html = render_template(
+            'emails/rapport_quotidien.html',
+            stats=stats,
+            date_generation=datetime.now()
+        )
+
+        # Destinataires
+        destinataires = get_destinataires('quotidien')
+
+        # Envoyer via Brevo API
+        envoyer_email_brevo_api(
+            destinataires=destinataires,
+            sujet=sujet,
+            contenu_html=contenu_html,
+            contenu_texte=f"Rapport quotidien du {datetime.now().strftime('%d/%m/%Y')}"
+        )
+
+        print(f"✅ Rapport quotidien Brevo envoyé à {len(destinataires)} destinataires")
+
+    except Exception as e:
+        print(f"❌ Erreur envoi rapport quotidien Brevo : {e}")
+
+
+def envoyer_rapport_hebdomadaire_brevo():
+    """Envoyer le rapport hebdomadaire via Brevo"""
+
+    print(f"📊 Génération du rapport hebdomadaire Brevo - {datetime.now()}")
+
+    try:
+        # Récupérer les données de la semaine
+        date_debut = datetime.now() - timedelta(days=7)
+        date_fin = datetime.now()
+
+        stats = get_stats_periode(date_debut, date_fin)
+        stats['semaine'] = date_debut.strftime('%d/%m/%Y') + ' - ' + date_fin.strftime('%d/%m/%Y')
+
+        # Créer le sujet
+        sujet = f"📊 Rapport Hebdomadaire - Semaine du {date_debut.strftime('%d/%m')} au {date_fin.strftime('%d/%m/%Y')}"
+
+        # Rendre le template HTML
+        contenu_html = render_template(
+            'emails/rapport_hebdomadaire.html',
+            stats=stats,
+            date_generation=datetime.now()
+        )
+
+        # Destinataires
+        destinataires = get_destinataires('hebdomadaire')
+
+        # Envoyer via Brevo API
+        envoyer_email_brevo_api(
+            destinataires=destinataires,
+            sujet=sujet,
+            contenu_html=contenu_html,
+            contenu_texte=f"Rapport hebdomadaire du {date_debut.strftime('%d/%m/%Y')} au {date_fin.strftime('%d/%m/%Y')}"
+        )
+
+        print(f"✅ Rapport hebdomadaire Brevo envoyé à {len(destinataires)} destinataires")
+
+    except Exception as e:
+        print(f"❌ Erreur envoi rapport hebdomadaire Brevo : {e}")
+
+
+def envoyer_rapport_mensuel_brevo():
+    """Envoyer le rapport mensuel via Brevo"""
+
+    print(f"📊 Génération du rapport mensuel Brevo - {datetime.now()}")
+
+    try:
+        # Récupérer les données du mois
+        date_debut = datetime.now().replace(day=1, hour=0, minute=0, second=0)
+        date_fin = datetime.now()
+
+        stats = get_stats_periode(date_debut, date_fin)
+        stats['mois'] = date_debut.strftime('%B %Y')
+
+        # Créer le sujet
+        sujet = f"📊 Rapport Mensuel - {date_debut.strftime('%B %Y')}"
+
+        # Rendre le template HTML
+        contenu_html = render_template(
+            'emails/rapport_mensuel.html',
+            stats=stats,
+            date_generation=datetime.now()
+        )
+
+        # Destinataires
+        destinataires = get_destinataires('mensuel')
+
+        # Envoyer via Brevo API
+        envoyer_email_brevo_api(
+            destinataires=destinataires,
+            sujet=sujet,
+            contenu_html=contenu_html,
+            contenu_texte=f"Rapport mensuel de {date_debut.strftime('%B %Y')}"
+        )
+
+        print(f"✅ Rapport mensuel Brevo envoyé à {len(destinataires)} destinataires")
+
+    except Exception as e:
+        print(f"❌ Erreur envoi rapport mensuel Brevo : {e}")
+
+
+def envoyer_rapport_fin_mois_brevo():
+    """Envoyer le rapport de fin de mois via Brevo"""
+
+    print(f"📊 Génération du rapport de fin de mois Brevo - {datetime.now()}")
+
+    try:
+        # Récupérer les données du mois complet
+        date_debut = datetime.now().replace(day=1, hour=0, minute=0, second=0)
+        date_fin = datetime.now()
+
+        stats = get_stats_periode(date_debut, date_fin)
+        stats['mois'] = date_debut.strftime('%B %Y')
+
+        # Statistiques spéciales fin de mois
+        stats['top_clients'] = get_top_clients(date_debut, date_fin)
+        stats['evolution'] = get_evolution_mensuelle()
+
+        # Créer le sujet
+        sujet = f"📊 Bilan Fin de Mois - {date_debut.strftime('%B %Y')}"
+
+        # Rendre le template HTML
+        contenu_html = render_template(
+            'emails/rapport_fin_mois.html',
+            stats=stats,
+            date_generation=datetime.now()
+        )
+
+        # Destinataires
+        destinataires = get_destinataires('fin_mois')
+
+        # Générer le PDF
+        pdf_path = generer_pdf_rapport(stats, 'fin_mois')
+
+        # Envoyer via Brevo API avec pièce jointe
+        envoyer_email_brevo_api(
+            destinataires=destinataires,
+            sujet=sujet,
+            contenu_html=contenu_html,
+            contenu_texte=f"Bilan fin de mois de {date_debut.strftime('%B %Y')}",
+            pieces_jointes=[pdf_path] if pdf_path else None
+        )
+
+        # Nettoyer le fichier temporaire
+        if pdf_path and os.path.exists(pdf_path):
+            os.remove(pdf_path)
+
+        print(f"✅ Rapport fin de mois Brevo envoyé à {len(destinataires)} destinataires")
+
+    except Exception as e:
+        print(f"❌ Erreur envoi rapport fin de mois Brevo : {e}")
+
+
+def envoyer_rapport_trimestriel_brevo():
+    """Envoyer le rapport trimestriel via Brevo"""
+
+    print(f"📊 Génération du rapport trimestriel Brevo - {datetime.now()}")
+
+    try:
+        # Récupérer les données du trimestre
+        mois_actuel = datetime.now().month
+        trimestre = (mois_actuel - 1) // 3
+        premier_mois = trimestre * 3 + 1
+
+        date_debut = datetime.now().replace(month=premier_mois, day=1, hour=0, minute=0, second=0)
+        date_fin = datetime.now()
+
+        stats = get_stats_periode(date_debut, date_fin)
+        stats['trimestre'] = f"T{trimestre + 1} {datetime.now().year}"
+
+        # Statistiques spéciales trimestre
+        stats['comparaison'] = get_comparaison_trimestrielle()
+
+        # Créer le sujet
+        sujet = f"📊 Rapport Trimestriel - T{trimestre + 1} {datetime.now().year}"
+
+        # Rendre le template HTML
+        contenu_html = render_template(
+            'emails/rapport_trimestriel.html',
+            stats=stats,
+            date_generation=datetime.now()
+        )
+
+        # Destinataires
+        destinataires = get_destinataires('trimestriel')
+
+        # Envoyer via Brevo API
+        envoyer_email_brevo_api(
+            destinataires=destinataires,
+            sujet=sujet,
+            contenu_html=contenu_html,
+            contenu_texte=f"Rapport trimestriel T{trimestre + 1} {datetime.now().year}"
+        )
+
+        print(f"✅ Rapport trimestriel Brevo envoyé à {len(destinataires)} destinataires")
+
+    except Exception as e:
+        print(f"❌ Erreur envoi rapport trimestriel Brevo : {e}")
+
+
+def envoyer_rapport_annuel_brevo():
+    """Envoyer le rapport annuel via Brevo"""
+
+    print(f"📊 Génération du rapport annuel Brevo - {datetime.now()}")
+
+    try:
+        # Récupérer les données de l'année
+        date_debut = datetime.now().replace(month=1, day=1, hour=0, minute=0, second=0)
+        date_fin = datetime.now()
+
+        stats = get_stats_periode(date_debut, date_fin)
+        stats['annee'] = datetime.now().year
+
+        # Statistiques spéciales année
+        stats['evolution_annuelle'] = get_evolution_annuelle()
+        stats['projections'] = get_projections_annuelles()
+        stats['graphiques'] = generate_graphiques_annuels()
+
+        # Créer le sujet
+        sujet = f"📊 Rapport Annuel {datetime.now().year}"
+
+        # Rendre le template HTML
+        contenu_html = render_template(
+            'emails/rapport_annuel.html',
+            stats=stats,
+            date_generation=datetime.now()
+        )
+
+        # Destinataires
+        destinataires = get_destinataires('annuel')
+
+        # Générer le PDF
+        pdf_path = generer_pdf_rapport(stats, 'annuel')
+
+        # Envoyer via Brevo API avec pièce jointe
+        envoyer_email_brevo_api(
+            destinataires=destinataires,
+            sujet=sujet,
+            contenu_html=contenu_html,
+            contenu_texte=f"Rapport annuel {datetime.now().year}",
+            pieces_jointes=[pdf_path] if pdf_path else None
+        )
+
+        # Nettoyer le fichier temporaire
+        if pdf_path and os.path.exists(pdf_path):
+            os.remove(pdf_path)
+
+        print(f"✅ Rapport annuel Brevo envoyé à {len(destinataires)} destinataires")
+
+    except Exception as e:
+        print(f"❌ Erreur envoi rapport annuel Brevo : {e}")
+
+
+def envoyer_rapport_performance_brevo():
+    """Envoyer le rapport de performance via Brevo"""
+
+    print(f"📊 Génération du rapport de performance Brevo - {datetime.now()}")
+
+    try:
+        # Récupérer les données de performance
+        stats = get_performance_stats()
+
+        # Créer le sujet
+        sujet = f"📈 Rapport Performance - {datetime.now().strftime('%d/%m/%Y')}"
+
+        # Rendre le template HTML
+        contenu_html = render_template(
+            'emails/rapport_performance.html',
+            stats=stats,
+            date_generation=datetime.now()
+        )
+
+        # Destinataires
+        destinataires = get_destinataires('performance')
+
+        # Envoyer via Brevo API
+        envoyer_email_brevo_api(
+            destinataires=destinataires,
+            sujet=sujet,
+            contenu_html=contenu_html,
+            contenu_texte=f"Rapport de performance du {datetime.now().strftime('%d/%m/%Y')}"
+        )
+
+        print(f"✅ Rapport performance Brevo envoyé à {len(destinataires)} destinataires")
+
+    except Exception as e:
+        print(f"❌ Erreur envoi rapport performance Brevo : {e}")
+
+
+def envoyer_alerte_suivi_brevo():
+    """Envoyer les alertes de suivi via Brevo"""
+
+    print(f"🔔 Envoi des alertes de suivi Brevo - {datetime.now()}")
+
+    try:
+        # Récupérer les alertes
+        alertes = get_alertes_suivi()
+
+        if not alertes:
+            print("✅ Aucune alerte à envoyer")
+            return
+
+        # Créer le sujet
+        sujet = f"🔔 Alertes Suivi - {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+
+        # Rendre le template HTML
+        contenu_html = render_template(
+            'emails/alertes_suivi.html',
+            alertes=alertes,
+            date_generation=datetime.now()
+        )
+
+        # Destinataires
+        destinataires = get_destinataires('alertes')
+
+        # Envoyer via Brevo API
+        envoyer_email_brevo_api(
+            destinataires=destinataires,
+            sujet=sujet,
+            contenu_html=contenu_html,
+            contenu_texte=f"Alertes de suivi du {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        )
+
+        print(f"✅ Alertes Brevo envoyées à {len(destinataires)} destinataires")
+
+    except Exception as e:
+        print(f"❌ Erreur envoi alertes Brevo : {e}")
+
+
+# ==========================================================
+# FONCTIONS UTILITAIRES
+# ==========================================================
+
+def get_stats_periode(date_debut, date_fin):
+    """Récupérer les statistiques pour une période donnée"""
+
+    from models import Client, Transaction, Pret, Remboursement
+
+    # Statistiques clients
+    total_clients = Client.query.filter(
+        Client.date_creation >= date_debut,
+        Client.date_creation <= date_fin
+    ).count()
+
+    nouveaux_clients = Client.query.filter(
+        Client.date_inscription >= date_debut,
+        Client.date_inscription <= date_fin
+    ).count()
+
+    clients_actifs = Client.query.filter(
+        Client.compte_actif == True,
+        Client.date_creation <= date_fin
+    ).count()
+
+    # Statistiques financières
+    total_transactions = Transaction.query.filter(
+        Transaction.date_transaction >= date_debut,
+        Transaction.date_transaction <= date_fin
+    ).count()
+
+    montant_transactions = db.session.query(
+        db.func.sum(Transaction.montant)
+    ).filter(
+        Transaction.date_transaction >= date_debut,
+        Transaction.date_transaction <= date_fin
+    ).scalar() or 0
+
+    # Statistiques prêts
+    prets_accordes = Pret.query.filter(
+        Pret.date_accord >= date_debut,
+        Pret.date_accord <= date_fin
+    ).count()
+
+    montant_prets = db.session.query(
+        db.func.sum(Pret.montant)
+    ).filter(
+        Pret.date_accord >= date_debut,
+        Pret.date_accord <= date_fin
+    ).scalar() or 0
+
+    # Remboursements
+    remboursements = Remboursement.query.filter(
+        Remboursement.date_remboursement >= date_debut,
+        Remboursement.date_remboursement <= date_fin
+    ).count()
+
+    montant_remboursements = db.session.query(
+        db.func.sum(Remboursement.montant)
+    ).filter(
+        Remboursement.date_remboursement >= date_debut,
+        Remboursement.date_remboursement <= date_fin
+    ).scalar() or 0
+
+    return {
+        'periode': {
+            'debut': date_debut.strftime('%d/%m/%Y'),
+            'fin': date_fin.strftime('%d/%m/%Y'),
+            'jours': (date_fin - date_debut).days
+        },
+        'clients': {
+            'total': total_clients,
+            'nouveaux': nouveaux_clients,
+            'actifs': clients_actifs,
+            'taux_croissance': (nouveaux_clients / total_clients * 100) if total_clients > 0 else 0
+        },
+        'transactions': {
+            'total': total_transactions,
+            'montant_total': montant_transactions,
+            'moyenne': montant_transactions / total_transactions if total_transactions > 0 else 0
+        },
+        'prets': {
+            'accordes': prets_accordes,
+            'montant_total': montant_prets,
+            'moyenne': montant_prets / prets_accordes if prets_accordes > 0 else 0
+        },
+        'remboursements': {
+            'total': remboursements,
+            'montant_total': montant_remboursements,
+            'taux_recouvrement': (montant_remboursements / montant_prets * 100) if montant_prets > 0 else 0
+        },
+        'solde_total': get_solde_total(),
+        'date_generation': datetime.now().strftime('%d/%m/%Y %H:%M')
+    }
+
+
+def get_destinataires(type_rapport):
+    """Récupérer les destinataires pour un type de rapport"""
+
+    # Configuration des destinataires
+    config = {
+        'quotidien': [
+            'direction@gmeshaiti.com',
+            'superviseur@gmeshaiti.com'
+        ],
+        'hebdomadaire': [
+            'direction@gmeshaiti.com',
+            'admin@gmeshaiti.com',
+            'superviseur@gmeshaiti.com'
+        ],
+        'mensuel': [
+            'direction@gmeshaiti.com',
+            'admin@gmeshaiti.com',
+            'finance@gmeshaiti.com',
+            'superviseur@gmeshaiti.com'
+        ],
+        'fin_mois': [
+            'direction@gmeshaiti.com',
+            'admin@gmeshaiti.com',
+            'finance@gmeshaiti.com',
+            'comptabilite@gmeshaiti.com'
+        ],
+        'trimestriel': [
+            'direction@gmeshaiti.com',
+            'admin@gmeshaiti.com',
+            'finance@gmeshaiti.com',
+            'comptabilite@gmeshaiti.com',
+            'conseil@gmeshaiti.com'
+        ],
+        'annuel': [
+            'direction@gmeshaiti.com',
+            'admin@gmeshaiti.com',
+            'finance@gmeshaiti.com',
+            'comptabilite@gmeshaiti.com',
+            'conseil@gmeshaiti.com',
+            'audit@gmeshaiti.com'
+        ],
+        'performance': [
+            'direction@gmeshaiti.com',
+            'admin@gmeshaiti.com',
+            'superviseur@gmeshaiti.com'
+        ],
+        'alertes': [
+            'direction@gmeshaiti.com',
+            'superviseur@gmeshaiti.com',
+            'manager@gmeshaiti.com'
+        ]
+    }
+
+    return config.get(type_rapport, [])
+
+
+def get_top_clients(date_debut, date_fin):
+    """Récupérer les top clients"""
+
+    from models import Client, Transaction
+
+    top_clients = db.session.query(
+        Client.nom_complet,
+        db.func.sum(Transaction.montant).label('total')
+    ).join(
+        Transaction, Transaction.client_id == Client.id
+    ).filter(
+        Transaction.date_transaction >= date_debut,
+        Transaction.date_transaction <= date_fin
+    ).group_by(
+        Client.id
+    ).order_by(
+        db.desc('total')
+    ).limit(10).all()
+
+    return top_clients
+
+
+def get_evolution_mensuelle():
+    """Récupérer l'évolution mensuelle"""
+
+    from models import Transaction
+
+    evolution = db.session.query(
+        db.extract('month', Transaction.date_transaction).label('mois'),
+        db.func.sum(Transaction.montant).label('total')
+    ).group_by(
+        'mois'
+    ).order_by(
+        'mois'
+    ).all()
+
+    return evolution
+
+
+def get_comparaison_trimestrielle():
+    """Comparaison trimestrielle"""
+
+    # Implémentation personnalisée
+    return {}
+
+
+def get_evolution_annuelle():
+    """Évolution annuelle"""
+
+    from models import Transaction
+
+    evolution = db.session.query(
+        db.extract('year', Transaction.date_transaction).label('annee'),
+        db.func.sum(Transaction.montant).label('total')
+    ).group_by(
+        'annee'
+    ).order_by(
+        'annee'
+    ).all()
+
+    return evolution
+
+
+def get_projections_annuelles():
+    """Projections annuelles"""
+
+    # Implémentation personnalisée
+    return {}
+
+
+def generate_graphiques_annuels():
+    """Générer des graphiques pour le rapport annuel"""
+
+    # Implémentation personnalisée
+    return {}
+
+
+def get_solde_total():
+    """Récupérer le solde total"""
+
+    from models import Client
+
+    total = db.session.query(
+        db.func.sum(Client.solde)
+    ).scalar() or 0
+
+    return total
+
+
+def get_performance_stats():
+    """Récupérer les statistiques de performance"""
+
+    # Implémentation personnalisée
+    return {}
+
+
+def get_alertes_suivi():
+    """Récupérer les alertes de suivi"""
+
+    # Implémentation personnalisée
+    alertes = []
+
+    # Exemple d'alertes
+    # Clients avec solde bas
+    # Prêts en retard
+    # etc.
+
+    return alertes
+
+
+def generer_pdf_rapport(stats, periode):
+    """Générer un PDF du rapport"""
+
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+        from reportlab.lib.units import cm
+
+        # Créer le PDF
+        filename = f"temp_rapport_{periode}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        path = os.path.join('/tmp', filename)
+
+        doc = SimpleDocTemplate(path, pagesize=A4)
+        styles = getSampleStyleSheet()
+        elements = []
+
+        # Titre
+        titre_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            alignment=1,
+            spaceAfter=20
+        )
+
+        elements.append(Paragraph(f"Rapport {periode}", titre_style))
+        elements.append(Spacer(1, 1 * cm))
+
+        # Ajouter les statistiques
+        # ... Implémentation personnalisée ...
+
+        doc.build(elements)
+
+        return path
+
+    except Exception as e:
+        print(f"❌ Erreur génération PDF : {e}")
+        return None
+
+
 @app.route('/admin/creer-utilisateur', methods=['GET', 'POST'])
 @login_required
 def creer_utilisateur():
