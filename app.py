@@ -421,17 +421,25 @@ def envoyer_email_conditions(client):
         return False
 
     try:
+        import os
         # Générer un token unique pour ce client
-        token = generer_token_conditions(client)
+        from itsdangerous import URLSafeTimedSerializer
 
-        # URL publique Render
-        APP_URL = app.config.get(
-            "APP_URL",
-            "http://127.0.0.1:10000"
+        serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
+        token = serializer.dumps(
+            client.id,
+            salt="terms-accept"
         )
 
+
         # Créer le lien d'acceptation
-        lien_acceptation = f"{APP_URL}/accepter-conditions/{token}"
+        APP_URL = os.environ.get(
+            "APP_URL",
+            "https://gmeshaiti-aeo3.onrender.com"
+        ).rstrip("/")
+
+        lien_acceptation = f"{APP_URL}/client/terms/{token}"
 
         print("🔗 Lien acceptation :", lien_acceptation)
         # try:
