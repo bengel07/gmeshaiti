@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+
+    <title>
+        Reçu de dépôt - GMES
+    </title>
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px;
+            background: #f2f4f8;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #222;
+        }
+
+        .recu {
+            width: 800px;
+            max-width: 100%;
+            margin: auto;
+            background: white;
+            padding: 35px;
+            border-radius: 10px;
+            box-shadow: 0 3px 15px rgba(0,0,0,.12);
+        }
+
+        .entete {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #1f4e78;
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+        }
+
+        .logo {
+            font-size: 30px;
+            font-weight: bold;
+            color: #1f4e78;
+        }
+
+        .slogan {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .titre {
+            text-align: right;
+        }
+
+        .titre h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #1f4e78;
+        }
+
+        .titre p {
+            margin: 6px 0 0;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .confirmation {
+            text-align: center;
+            margin: 25px 0;
+            padding: 15px;
+            background: #eaf7ee;
+            border: 1px solid #b7dfc1;
+            border-radius: 7px;
+            color: #176b2c;
+            font-weight: bold;
+        }
+
+        .section {
+            margin-top: 25px;
+        }
+
+        .section-title {
+            background: #1f4e78;
+            color: white;
+            padding: 9px 12px;
+            font-weight: bold;
+            border-radius: 5px 5px 0 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        td {
+            padding: 11px;
+            border: 1px solid #ddd;
+        }
+
+        td:first-child {
+            width: 40%;
+            font-weight: bold;
+            background: #f7f8fa;
+        }
+
+        .montant {
+            font-size: 25px;
+            font-weight: bold;
+            text-align: center;
+            color: #176b2c;
+        }
+
+        .signature {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 60px;
+        }
+
+        .signature-box {
+            width: 40%;
+            text-align: center;
+            border-top: 1px solid #333;
+            padding-top: 8px;
+        }
+
+        .footer {
+            margin-top: 35px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+        }
+
+        .actions {
+            text-align: center;
+            margin-top: 25px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 11px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .btn-print {
+            background: #1f4e78;
+            color: white;
+        }
+
+        .btn-back {
+            background: #6c757d;
+            color: white;
+        }
+
+        @media print {
+
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .recu {
+                width: 100%;
+                box-shadow: none;
+                border-radius: 0;
+            }
+
+            .actions {
+                display: none;
+            }
+
+            @page {
+                size: A4;
+                margin: 15mm;
+            }
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="recu">
+
+    <!-- ================================================== -->
+    <!-- EN-TÊTE -->
+    <!-- ================================================== -->
+
+    <div class="entete">
+
+        <div>
+            <div class="logo">
+                GMES
+            </div>
+
+            <div class="slogan">
+                GMES youn sipote lot
+            </div>
+        </div>
+
+        <div class="titre">
+
+            <h1>
+                REÇU DE DÉPÔT
+            </h1>
+
+            <p>
+                Justificatif de transaction
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- CONFIRMATION -->
+    <!-- ================================================== -->
+
+    <div class="confirmation">
+
+        ✓ DÉPÔT EFFECTUÉ AVEC SUCCÈS
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- INFORMATIONS TRANSACTION -->
+    <!-- ================================================== -->
+
+    <div class="section">
+
+        <div class="section-title">
+            Informations de la transaction
+        </div>
+
+        <table>
+
+            <tr>
+                <td>Numéro du reçu</td>
+
+                <td>
+                    {{ transaction.id }}
+                </td>
+            </tr>
+
+            <tr>
+                <td>Date et heure</td>
+
+                <td>
+
+                    {% if transaction.date_transaction %}
+
+                        {{ transaction.date_transaction.strftime('%d/%m/%Y à %H:%M') }}
+
+                    {% else %}
+
+                        -
+
+                    {% endif %}
+
+                </td>
+            </tr>
+
+            <tr>
+                <td>Type de transaction</td>
+
+                <td>
+                    Dépôt
+                </td>
+            </tr>
+
+            <tr>
+                <td>Montant déposé</td>
+
+                <td class="montant">
+
+                    {{ "{:,.2f}".format(transaction.montant or 0) }}
+                    Gdes
+
+                </td>
+            </tr>
+
+        </table>
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- CLIENT -->
+    <!-- ================================================== -->
+
+    <div class="section">
+
+        <div class="section-title">
+            Informations du client
+        </div>
+
+        <table>
+
+            <tr>
+                <td>Nom complet</td>
+
+                <td>
+
+                    {% if client %}
+
+                        {{ client.nom_complet or
+                           ((client.prenom or '') ~ ' ' ~ (client.nom or '')) }}
+
+                    {% else %}
+
+                        -
+
+                    {% endif %}
+
+                </td>
+            </tr>
+
+            <tr>
+                <td>Numéro de compte</td>
+
+                <td>
+
+                    {{ client.numero_compte if client else '-' }}
+
+                </td>
+            </tr>
+
+            <tr>
+                <td>ID client</td>
+
+                <td>
+
+                    {{ client.id_client if client else '-' }}
+
+                </td>
+            </tr>
+
+            <tr>
+                <td>Téléphone</td>
+
+                <td>
+
+                    {{ client.telephone if client else '-' }}
+
+                </td>
+            </tr>
+
+        </table>
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- SOLDE -->
+    <!-- ================================================== -->
+
+    <div class="section">
+
+        <div class="section-title">
+            Situation du compte
+        </div>
+
+        <table>
+
+            <tr>
+                <td>Solde actuel</td>
+
+                <td class="montant">
+
+                    {% if client %}
+
+                        {{ "{:,.2f}".format(client.solde or 0) }}
+
+                    {% else %}
+
+                        0.00
+
+                    {% endif %}
+
+                    Gdes
+
+                </td>
+            </tr>
+
+        </table>
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- SUCCURSALE -->
+    <!-- ================================================== -->
+
+    <div class="section">
+
+        <div class="section-title">
+            Informations de la succursale
+        </div>
+
+        <table>
+
+            <tr>
+                <td>Succursale</td>
+
+                <td>
+
+                    {% if succursale %}
+
+                        {{ succursale.nom or
+                           ('Succursale #' ~ succursale.id) }}
+
+                    {% else %}
+
+                        -
+
+                    {% endif %}
+
+                </td>
+            </tr>
+
+            <tr>
+                <td>Employé / Caissier</td>
+
+                <td>
+                    {{ current_user.nom_complet
+                       if current_user.nom_complet is defined
+                       else current_user.email }}
+                </td>
+            </tr>
+
+        </table>
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- SIGNATURES -->
+    <!-- ================================================== -->
+
+    <div class="signature">
+
+        <div class="signature-box">
+            Signature du client
+        </div>
+
+        <div class="signature-box">
+            Signature du caissier
+        </div>
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- FOOTER -->
+    <!-- ================================================== -->
+
+    <div class="footer">
+
+        <strong>GMES Microcrédit</strong><br>
+
+        GMES youn sipote lot<br>
+
+        Ce document constitue un justificatif de dépôt.
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- BOUTONS -->
+    <!-- ================================================== -->
+
+    <div class="actions">
+
+        <button
+            onclick="window.print()"
+            class="btn btn-print">
+
+            🖨️ Imprimer le reçu
+
+        </button>
+
+        <a
+            href="javascript:history.back()"
+            class="btn btn-back">
+
+            ← Retour
+
+        </a>
+
+    </div>
+
+</div>
+
+</body>
+</html>

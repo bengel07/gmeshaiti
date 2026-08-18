@@ -7363,6 +7363,43 @@ def programmer_rapports():
     return scheduler
 
 
+
+@app.route('/recu-depot/<int:transaction_id>')
+@login_required
+def recu_depot(transaction_id):
+    """Afficher le reçu d'un dépôt"""
+
+    transaction = Transaction.query.get_or_404(transaction_id)
+
+    # Vérifier qu'il s'agit bien d'un dépôt
+    type_transaction = str(
+        getattr(transaction, 'type_transaction', '')
+    ).lower()
+
+    if type_transaction not in ['depot', 'dépôt', 'deposit']:
+        flash("❌ Cette transaction n'est pas un dépôt.", "danger")
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupérer le client
+    client = None
+
+    if getattr(transaction, 'client_id', None):
+        client = Client.query.get(transaction.client_id)
+
+    # Succursale
+    succursale = None
+
+    if client and getattr(client, 'succursale_id', None):
+        succursale = Succursale.query.get(client.succursale_id)
+
+    return render_template(
+        'recu_depot.html',
+        transaction=transaction,
+        client=client,
+        succursale=succursale
+    )
+
+
 # ==========================================================
 # FONCTIONS D'ENVOI DES RAPPORTS AVEC BREVO
 # ==========================================================
@@ -22947,7 +22984,7 @@ def traiter_depot(client_id):
         print("❌ ERREUR DEPOT:", e)
         flash(f"Erreur dépôt: {str(e)}", "danger")
 
-    return redirect(url_for('rechercher_client', client_id=client_id))
+    return redirect(url_for('recu_depot', client_id=client_id))
 
 
 @app.route('/retrait/recu/<int:transaction_id>/<int:client_id>')
