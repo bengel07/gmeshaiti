@@ -6692,6 +6692,429 @@ def export_excel_clients():
         )
     )
 
+
+@app.route('/export-pdf-rapport', methods=['GET'])
+@login_required
+def export_pdf_rapport():
+    """Exporter le rapport complet en PDF"""
+
+    # Récupérer les filtres
+    recherche = request.args.get('recherche', '').strip()
+    succursale_id = request.args.get('succursale_id', '').strip()
+    statut = request.args.get('statut', '').strip().lower()
+
+    # Vérification des permissions
+    roles_autorises = [
+        'super_admin',
+        'admin',
+        'admin_succursale',
+        'direction',
+        'superviseur'
+    ]
+
+    if getattr(current_user, 'role', None) not in roles_autorises:
+        flash("⛔ Vous n'avez pas l'autorisation d'exporter le PDF.", "danger")
+        return redirect(url_for('dashboard_redirect'))
+
+    # Récupérer les clients avec les filtres
+    query = Client.query
+
+    if recherche:
+        terme = f"%{recherche}%"
+        query = query.filter(
+            db.or_(
+                Client.nom.ilike(terme),
+                Client.prenom.ilike(terme),
+                Client.nom_complet.ilike(terme),
+                Client.telephone.ilike(terme),
+                Client.email.ilike(terme),
+                Client.cin.ilike(terme),
+                Client.cin_nif.ilike(terme),
+                Client.id_client.ilike(terme),
+                Client.numero_compte.ilike(terme)
+            )
+        )
+
+    if succursale_id:
+        try:
+            query = query.filter(Client.succursale_id == int(succursale_id))
+        except (ValueError, TypeError):
+            pass
+
+    clients = query.order_by(Client.date_inscription.desc()).all()
+
+    # Filtrer par statut
+    if statut:
+        clients_filtres = []
+        for client in clients:
+            try:
+                statut_client = client.statut_affichage.lower()
+            except Exception:
+                statut_client = 'suspendu' if client.compte_suspendu else 'actif'
+
+            if statut_client == statut:
+                clients_filtres.append(client)
+        clients = clients_filtres
+
+    # ==========================================================
+    # GÉNÉRATION DU PDF
+    # ==========================================================
+
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch, cm
+    from io import BytesIO
+    from datetime import datetime
+
+    buffer = BytesIO()
+
+    # Créer le PDF en mode paysage
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(A4),
+        rightMargin=2 * cm,
+        leftMargin=2 * cm,
+        topMargin=2 * cm,
+        bottomMargin=2 * cm
+    )
+
+    styles = getSampleStyleSheet()
+    elements = []
+
+    # Titre
+    titre_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        alignment=1,  # Centre
+        spaceAfter=20
+    )
+
+    elements.append(Paragraph("RAPPORT DES CLIENTS", titre_style))
+
+    # Date
+    date_style = ParagraphStyle(
+        'DateStyle',
+        parent=styles['Normal'],
+        fontSize=10,
+        alignment=1,
+        textColor=colors.grey
+    )
+    elements.append(Paragraph(f"Généré le : {datetime.now().strftime('%d/%m/%Y à %H:%M')}", date_style))
+
+    # Filtres appliqués
+    filtres = []
+    if recherche:
+        filtres.append(f"Recherche : {recherche}")
+    if succursale_id:
+        succ = Succursale.query.get(int(succursale_id))
+        if succ:
+            filtres.append(f"Succursale : {succ.nom}")
+    if statut:
+        filtres.append(f"Statut : {statut.capitalize()}")
+
+    if filtres:
+        filtres_style = ParagraphStyle(
+            'FiltresStyle',
+            parent=styles['Normal'],
+            fontSize=9,
+            textColor=colors.grey,
+            alignment=1
+        )
+        elements.append(Paragraph(" | ".join(filtres), filtres_style))
+
+    elements.append(Spacer(1, 0.5 * cm))
+
+    # Statistiques
+    total = len(clients)
+    actifs = sum(1 for c in clients if (hasattr(c, 'statut_affichage') and c.statut_affichage == 'Actif') or (
+                not hasattr(c, 'statut_affichage') and not c.compte_suspendu))
+    suspendus = total - actifs
+    total_solde = sum(c.solde or 0 for c in clients)
+
+    stats_data = [
+        ["Total Clients", "Actifs", "Suspendus", "Total Solde"],
+        [str(total), str(actifs), str(suspendus), f"{total_solde:,.2f} G"]
+    ]
+
+    stats_table = Table(stats_data, colWidths=[4 * cm, 3 * cm, 3 * cm, 4 * cm])
+    stats_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    elements.append(stats_table)
+    elements.append(Spacer(1, 0.5 * cm))
+
+    # Tableau des clients
+    if clients:
+        # En-tête du tableau
+        table_data = [
+            ["N°", "Client", "Compte", "Téléphone", "Email", "CIN/NIF", "Succursale", "Revenu", "Solde", "Statut",
+             "Date"]
+        ]
+
+        for idx, client in enumerate(clients, 1):
+            # Nom client
+            nom_client = client.nom_complet or f"{client.prenom or ''} {client.nom or ''}".strip() or "-"
+
+            # Statut
+            try:
+                statut_client = client.statut_affichage
+            except Exception:
+                statut_client = "Actif" if not client.compte_suspendu else "Suspendu"
+
+            # Succursale
+            nom_succursale = ""
+            if client.succursale:
+                nom_succursale = client.succursale.nom if hasattr(client.succursale,
+                                                                  "nom") else f"Succursale #{client.succursale.id}"
+
+            # Date inscription
+            date_inscription = client.date_inscription.strftime('%d/%m/%Y') if client.date_inscription else "-"
+
+            table_data.append([
+                str(idx),
+                nom_client,
+                client.numero_compte or client.id_client or "-",
+                client.telephone or "-",
+                client.email or "-",
+                client.cin_nif or client.cin or "-",
+                nom_succursale,
+                f"{client.revenu_mensuel or 0:,.2f}",
+                f"{client.solde or 0:,.2f}",
+                statut_client,
+                date_inscription
+            ])
+
+        # Créer le tableau
+        col_widths = [0.8 * cm, 3 * cm, 2.5 * cm, 2.2 * cm, 2.5 * cm, 2.5 * cm, 2.8 * cm, 2.2 * cm, 2.2 * cm, 2 * cm,
+                      2.2 * cm]
+        table = Table(table_data, colWidths=col_widths, repeatRows=1)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1F4E78')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 7),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+            ('TOPPADDING', (0, 0), (-1, 0), 6),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F0F4F8')]),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        elements.append(table)
+
+    # Total en bas
+    elements.append(Spacer(1, 0.3 * cm))
+    total_style = ParagraphStyle(
+        'TotalStyle',
+        parent=styles['Normal'],
+        fontSize=9,
+        alignment=2,  # Droite
+        textColor=colors.HexColor('#1F4E78')
+    )
+    elements.append(Paragraph(f"Total : {len(clients)} client(s)", total_style))
+
+    # Construire le PDF
+    doc.build(elements)
+    buffer.seek(0)
+
+    # ==========================================================
+    # TÉLÉCHARGEMENT
+    # ==========================================================
+
+    from datetime import datetime
+
+    nom_fichier = f"rapport_clients_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=nom_fichier,
+        mimetype='application/pdf'
+    )
+
+
+@app.route('/export-stats', methods=['GET'])
+@login_required
+def export_stats():
+    """Exporter les statistiques en JSON"""
+
+    # Récupérer les filtres
+    recherche = request.args.get('recherche', '').strip()
+    succursale_id = request.args.get('succursale_id', '').strip()
+    statut = request.args.get('statut', '').strip().lower()
+
+    # Vérification des permissions
+    roles_autorises = [
+        'super_admin',
+        'admin',
+        'admin_succursale',
+        'direction',
+        'superviseur'
+    ]
+
+    if getattr(current_user, 'role', None) not in roles_autorises:
+        return jsonify({
+            'error': 'Permission refusée',
+            'message': 'Vous n\'avez pas l\'autorisation d\'exporter les statistiques'
+        }), 403
+
+    # Récupérer les clients avec les filtres
+    query = Client.query
+
+    if recherche:
+        terme = f"%{recherche}%"
+        query = query.filter(
+            db.or_(
+                Client.nom.ilike(terme),
+                Client.prenom.ilike(terme),
+                Client.nom_complet.ilike(terme),
+                Client.telephone.ilike(terme),
+                Client.email.ilike(terme),
+                Client.cin.ilike(terme),
+                Client.cin_nif.ilike(terme),
+                Client.id_client.ilike(terme),
+                Client.numero_compte.ilike(terme)
+            )
+        )
+
+    if succursale_id:
+        try:
+            query = query.filter(Client.succursale_id == int(succursale_id))
+        except (ValueError, TypeError):
+            pass
+
+    clients = query.order_by(Client.date_inscription.desc()).all()
+
+    # Filtrer par statut
+    if statut:
+        clients_filtres = []
+        for client in clients:
+            try:
+                statut_client = client.statut_affichage.lower()
+            except Exception:
+                statut_client = 'suspendu' if client.compte_suspendu else 'actif'
+
+            if statut_client == statut:
+                clients_filtres.append(client)
+        clients = clients_filtres
+
+    # ==========================================================
+    # CALCUL DES STATISTIQUES
+    # ==========================================================
+
+    total = len(clients)
+    actifs = 0
+    suspendus = 0
+    total_solde = 0
+    total_revenus = 0
+    total_depenses = 0
+    capacite_totale = 0
+
+    for client in clients:
+        try:
+            statut_client = client.statut_affichage
+        except Exception:
+            statut_client = "Actif" if not client.compte_suspendu else "Suspendu"
+
+        if statut_client == "Actif":
+            actifs += 1
+        else:
+            suspendus += 1
+
+        total_solde += client.solde or 0
+        total_revenus += client.revenu_mensuel or 0
+        total_depenses += client.depenses_mensuelles or 0
+        capacite_totale += client.capacite_remboursement or 0
+
+    # Statistiques par succursale
+    stats_succursales = {}
+    for client in clients:
+        if client.succursale:
+            nom_succ = client.succursale.nom if hasattr(client.succursale,
+                                                        "nom") else f"Succursale #{client.succursale.id}"
+            if nom_succ not in stats_succursales:
+                stats_succursales[nom_succ] = {
+                    'total': 0,
+                    'actifs': 0,
+                    'suspendus': 0,
+                    'total_solde': 0
+                }
+            stats_succursales[nom_succ]['total'] += 1
+
+            try:
+                statut_client = client.statut_affichage
+            except Exception:
+                statut_client = "Actif" if not client.compte_suspendu else "Suspendu"
+
+            if statut_client == "Actif":
+                stats_succursales[nom_succ]['actifs'] += 1
+            else:
+                stats_succursales[nom_succ]['suspendus'] += 1
+
+            stats_succursales[nom_succ]['total_solde'] += client.solde or 0
+
+    # Statistiques par type de client (si disponible)
+    stats_sexe = {
+        'Hommes': 0,
+        'Femmes': 0,
+        'Autre': 0
+    }
+
+    for client in clients:
+        if client.sexe:
+            sexe = client.sexe.lower()
+            if sexe in ['homme', 'masculin', 'm']:
+                stats_sexe['Hommes'] += 1
+            elif sexe in ['femme', 'féminin', 'f']:
+                stats_sexe['Femmes'] += 1
+            else:
+                stats_sexe['Autre'] += 1
+
+    # ==========================================================
+    # RÉPONSE JSON
+    # ==========================================================
+
+    stats = {
+        'generated_at': datetime.now().isoformat(),
+        'filters': {
+            'recherche': recherche if recherche else None,
+            'succursale_id': succursale_id if succursale_id else None,
+            'statut': statut if statut else None
+        },
+        'summary': {
+            'total_clients': total,
+            'clients_actifs': actifs,
+            'clients_suspendus': suspendus,
+            'total_solde': total_solde,
+            'total_revenus_mensuels': total_revenus,
+            'total_depenses_mensuelles': total_depenses,
+            'capacite_remboursement_totale': capacite_totale
+        },
+        'par_succursale': stats_succursales,
+        'par_sexe': stats_sexe,
+        'moyennes': {
+            'solde_moyen': total_solde / total if total > 0 else 0,
+            'revenu_moyen': total_revenus / total if total > 0 else 0,
+            'depense_moyenne': total_depenses / total if total > 0 else 0,
+            'capacite_moyenne': capacite_totale / total if total > 0 else 0
+        }
+    }
+
+    return jsonify(stats)
+
+
 @app.route('/admin/creer-utilisateur', methods=['GET', 'POST'])
 @login_required
 def creer_utilisateur():
