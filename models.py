@@ -7600,7 +7600,7 @@ class Epargne(db.Model):
         self.statut = 'cloture'
         self.date_cloture = datetime.now()
         self.motif_cloture = motif
-        self.agent_id = agent_id
+        self.employe_id = agent_id  # ✅ CORRECT
         db.session.commit()
 
     def _reinitialiser_totaux_journaliers(self):
