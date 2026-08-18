@@ -12495,7 +12495,7 @@ def admin_rapports():
 @login_required
 def rapport_prets():
 
-    if getattr(current_user, 'role', None) != 'admin':
+    if getattr(current_user, 'role', None) != 'admin_succursale':
         return redirect(url_for('tableau_de_bord'))
 
     # Filtres
