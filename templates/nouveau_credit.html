@@ -11,6 +11,8 @@
         </div>
         <div class="card-body">
             <form method="POST" action="{{ url_for('demande_pret', client_id=client.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                 <input type="hidden" name="client_id" value="{{ client.id }}">
                 <input type="hidden" name="email" value="{{ client.email }}">
                 <input type="hidden" name="telephone" value="{{ client.telephone }}">
