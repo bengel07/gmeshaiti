@@ -25,6 +25,22 @@
 
         <div class="d-flex gap-2">
 
+            <a href="{{ url_for('export_pdf_rapport',
+                   recherche=recherche if recherche else '',
+                   succursale_id=succursale_id if succursale_id else '',
+                   statut=statut if statut else '') }}"
+               class="btn btn-danger">
+                📄 PDF - Rapport Complet
+            </a>
+
+            <a href="{{ url_for('export_stats',
+                               recherche=recherche if recherche else '',
+                               succursale_id=succursale_id if succursale_id else '',
+                               statut=statut if statut else '') }}"
+               class="btn btn-info">
+                📈 Export Statistiques
+            </a>
+
             <!-- Export Excel -->
             <a href="{{ url_for('export_excel_clients',
                    recherche=recherche if recherche else '',
