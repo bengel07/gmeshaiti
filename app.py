@@ -6253,6 +6253,445 @@ def rapport_groupes():
         total_solde=total_solde
     )
 
+
+@app.route('/export-excel-clients', methods=['GET'])
+@login_required
+def export_excel_clients():
+    """Exporter les clients vers un fichier Excel"""
+
+    # ==========================================================
+    # 1. Vérification des permissions
+    # ==========================================================
+
+    roles_autorises = [
+        'super_admin',
+        'admin',
+        'admin_succursale',
+        'direction',
+        'superviseur',
+        'agent_credit',
+        'conseiller',
+        'employe'
+    ]
+
+    if getattr(current_user, 'role', None) not in roles_autorises:
+        flash(
+            "⛔ Vous n'avez pas l'autorisation d'exporter les clients.",
+            "danger"
+        )
+        return redirect(url_for('dashboard_redirect'))
+
+    # ==========================================================
+    # 2. Récupération des filtres
+    # ==========================================================
+
+    recherche = request.args.get('recherche', '').strip()
+    succursale_id = request.args.get('succursale_id', '').strip()
+    statut = request.args.get('statut', '').strip().lower()
+
+    # ==========================================================
+    # 3. Requête clients
+    # ==========================================================
+
+    query = Client.query
+
+    # Recherche
+    if recherche:
+
+        terme = f"%{recherche}%"
+
+        query = query.filter(
+            db.or_(
+                Client.nom.ilike(terme),
+                Client.prenom.ilike(terme),
+                Client.nom_complet.ilike(terme),
+                Client.telephone.ilike(terme),
+                Client.email.ilike(terme),
+                Client.cin.ilike(terme),
+                Client.cin_nif.ilike(terme),
+                Client.id_client.ilike(terme),
+                Client.numero_compte.ilike(terme)
+            )
+        )
+
+    # Filtre succursale
+    if succursale_id:
+
+        try:
+            query = query.filter(
+                Client.succursale_id == int(succursale_id)
+            )
+        except (ValueError, TypeError):
+            pass
+
+    # ==========================================================
+    # 4. Récupération
+    # ==========================================================
+
+    clients = query.order_by(
+        Client.date_inscription.desc()
+    ).all()
+
+    # ==========================================================
+    # 5. Filtre statut
+    # ==========================================================
+
+    if statut:
+
+        clients_filtres = []
+
+        for client in clients:
+
+            try:
+                statut_client = client.statut_affichage.lower()
+            except Exception:
+                statut_client = (
+                    'suspendu'
+                    if client.compte_suspendu
+                    else 'actif'
+                )
+
+            if statut_client == statut:
+                clients_filtres.append(client)
+
+        clients = clients_filtres
+
+    # ==========================================================
+    # 6. Création du fichier Excel
+    # ==========================================================
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Clients"
+
+    # ==========================================================
+    # 7. En-tête
+    # ==========================================================
+
+    colonnes = [
+        "N°",
+        "ID Client",
+        "Numéro de compte",
+        "Nom",
+        "Prénom",
+        "Nom complet",
+        "Sexe",
+        "Téléphone",
+        "Email",
+        "Adresse",
+        "Commune",
+        "Ville",
+        "Département",
+        "Code postal",
+        "CIN / NIF",
+        "Date de naissance",
+        "Lieu de naissance",
+        "Nationalité",
+        "État civil",
+        "Nom du conjoint",
+        "Nombre d'enfants",
+        "Profession",
+        "Entreprise",
+        "Adresse travail",
+        "Téléphone travail",
+        "Revenu mensuel",
+        "Dépenses mensuelles",
+        "Capacité remboursement",
+        "Solde",
+        "Statut",
+        "Compte actif",
+        "Compte suspendu",
+        "Raison suspension",
+        "Email confirmé",
+        "Prêt actif",
+        "Succursale",
+        "Date inscription",
+        "Date création"
+    ]
+
+    ws.append(colonnes)
+
+    # ==========================================================
+    # 8. Style de l'en-tête
+    # ==========================================================
+
+    for cell in ws[1]:
+
+        cell.font = Font(
+            bold=True,
+            color="FFFFFF"
+        )
+
+        cell.fill = PatternFill(
+            fill_type="solid",
+            fgColor="1F4E78"
+        )
+
+        cell.alignment = Alignment(
+            horizontal="center",
+            vertical="center"
+        )
+
+    ws.freeze_panes = "A2"
+
+    # ==========================================================
+    # 9. Données clients
+    # ==========================================================
+
+    for index, client in enumerate(clients, start=1):
+
+        # ------------------------------------------------------
+        # Statut
+        # ------------------------------------------------------
+
+        try:
+            statut_client = client.statut_affichage
+        except Exception:
+
+            statut_client = (
+                "Suspendu"
+                if client.compte_suspendu
+                else "Actif"
+            )
+
+        # ------------------------------------------------------
+        # Succursale
+        # ------------------------------------------------------
+
+        nom_succursale = ""
+
+        try:
+
+            if client.succursale:
+
+                if hasattr(client.succursale, "nom"):
+                    nom_succursale = client.succursale.nom
+
+                else:
+                    nom_succursale = (
+                        f"Succursale #{client.succursale.id}"
+                    )
+
+        except Exception:
+            nom_succursale = ""
+
+        # ------------------------------------------------------
+        # Date naissance
+        # ------------------------------------------------------
+
+        date_naissance = ""
+
+        if client.date_naissance:
+            date_naissance = client.date_naissance.strftime(
+                "%d/%m/%Y"
+            )
+
+        # ------------------------------------------------------
+        # Date inscription
+        # ------------------------------------------------------
+
+        date_inscription = ""
+
+        if client.date_inscription:
+            date_inscription = client.date_inscription.strftime(
+                "%d/%m/%Y %H:%M"
+            )
+
+        # ------------------------------------------------------
+        # Date création
+        # ------------------------------------------------------
+
+        date_creation = ""
+
+        if client.date_creation:
+            date_creation = client.date_creation.strftime(
+                "%d/%m/%Y %H:%M"
+            )
+
+        # ------------------------------------------------------
+        # Ligne Excel
+        # ------------------------------------------------------
+
+        ws.append([
+            index,
+
+            client.id_client or "",
+
+            client.numero_compte or "",
+
+            client.nom or "",
+
+            client.prenom or "",
+
+            client.nom_complet or "",
+
+            client.sexe or "",
+
+            client.telephone or "",
+
+            client.email or "",
+
+            client.adresse or "",
+
+            client.commune or "",
+
+            client.ville or "",
+
+            client.departement or "",
+
+            client.code_postal or "",
+
+            client.cin_nif or client.cin or "",
+
+            date_naissance,
+
+            client.lieu_naissance or "",
+
+            client.nationalite or "",
+
+            client.etat_civil or "",
+
+            client.nom_conjoint or "",
+
+            client.nb_enfants or 0,
+
+            client.profession or "",
+
+            client.entreprise or "",
+
+            client.adresse_travail or "",
+
+            client.tel_travail or "",
+
+            client.revenu_mensuel or 0,
+
+            client.depenses_mensuelles or 0,
+
+            client.capacite_remboursement or 0,
+
+            client.solde or 0,
+
+            statut_client,
+
+            "Oui" if client.compte_actif else "Non",
+
+            "Oui" if client.compte_suspendu else "Non",
+
+            client.raison_suspension or "",
+
+            "Oui" if client.email_confirme else "Non",
+
+            "Oui" if client.a_un_pret_actif else "Non",
+
+            nom_succursale,
+
+            date_inscription,
+
+            date_creation
+        ])
+
+    # ==========================================================
+    # 10. Formatage des colonnes financières
+    # ==========================================================
+
+    # P = date naissance
+    # Z = revenu
+    # AA = dépenses
+    # AB = capacité
+    # AC = solde
+
+    for row in range(2, ws.max_row + 1):
+
+        ws[f"Z{row}"].number_format = '#,##0.00'
+        ws[f"AA{row}"].number_format = '#,##0.00'
+        ws[f"AB{row}"].number_format = '#,##0.00'
+        ws[f"AC{row}"].number_format = '#,##0.00'
+
+    # ==========================================================
+    # 11. Alignement
+    # ==========================================================
+
+    for row in ws.iter_rows():
+
+        for cell in row:
+
+            cell.alignment = Alignment(
+                vertical="center"
+            )
+
+    # ==========================================================
+    # 12. Largeur automatique
+    # ==========================================================
+
+    for column_cells in ws.columns:
+
+        max_length = 0
+        column = column_cells[0].column
+
+        for cell in column_cells:
+
+            try:
+
+                value_length = len(
+                    str(cell.value)
+                )
+
+                if value_length > max_length:
+                    max_length = value_length
+
+            except Exception:
+                pass
+
+        # Limiter la largeur maximale
+        largeur = min(max(max_length + 2, 10), 35)
+
+        ws.column_dimensions[
+            get_column_letter(column)
+        ].width = largeur
+
+    # ==========================================================
+    # 13. Filtre automatique
+    # ==========================================================
+
+    if ws.max_row >= 2:
+
+        ws.auto_filter.ref = ws.dimensions
+
+    # ==========================================================
+    # 14. Sauvegarde en mémoire
+    # ==========================================================
+
+    fichier = BytesIO()
+
+    wb.save(fichier)
+
+    fichier.seek(0)
+
+    # ==========================================================
+    # 15. Nom du fichier
+    # ==========================================================
+
+    from datetime import datetime
+
+    nom_fichier = (
+        f"rapport_clients_"
+        f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    )
+
+    # ==========================================================
+    # 16. Téléchargement
+    # ==========================================================
+
+    return send_file(
+        fichier,
+        as_attachment=True,
+        download_name=nom_fichier,
+        mimetype=(
+            "application/vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
+        )
+    )
+
 @app.route('/admin/creer-utilisateur', methods=['GET', 'POST'])
 @login_required
 def creer_utilisateur():
