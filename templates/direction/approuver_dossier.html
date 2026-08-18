@@ -225,6 +225,7 @@
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('directeur_approuver_dossier', client_id=client.id) }}">
                         <input type="hidden" name="client_id" value="{{ client.id }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
