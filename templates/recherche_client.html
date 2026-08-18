@@ -325,6 +325,8 @@
                 <!-- Formulaire de recherche avec 2 champs obligatoires -->
                 <div class="search-box">
                     <form method="POST" action="{{ url_for('rechercher_client') }}" id="searchForm">
+                          <!-- PROTECTION CSRF -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="form-group">
                             <label><i class="fas fa-hashtag"></i> Numéro de compte <span class="required">*</span></label>
                             <div class="input-group">

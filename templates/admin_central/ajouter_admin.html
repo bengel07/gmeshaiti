@@ -352,6 +352,8 @@
                 {% endif %}
 
                 <form method="POST" enctype="multipart/form-data">
+                      <!-- PROTECTION CSRF -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <!-- Section Identité -->
                     <div class="section-title">
                         <i class="fas fa-user"></i> Identité

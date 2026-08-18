@@ -68,6 +68,8 @@
         </div>
 
         <form method="POST">
+              <!-- PROTECTION CSRF -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" name="action" value="accepter">
                 ✅ J’accepte les Conditions
             </button>

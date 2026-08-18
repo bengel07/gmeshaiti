@@ -487,6 +487,8 @@ document.getElementById('formTest').addEventListener('submit', function(e) {
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" id="formRegle">
+                  <!-- PROTECTION CSRF -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body">
                     <input type="hidden" name="action" value="regle">
                     <input type="hidden" name="regle_id" id="regle_id">

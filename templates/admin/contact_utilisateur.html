@@ -284,6 +284,8 @@
 
                 <!-- Formulaire de contact -->
                 <form method="POST" class="contact-form">
+                      <!-- PROTECTION CSRF -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="form-group">
                         <label><i class="fas fa-tag"></i> Sujet du message</label>
                         <input type="text" name="sujet" required placeholder="Objet de votre message...">

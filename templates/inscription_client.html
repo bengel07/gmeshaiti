@@ -15,6 +15,8 @@
 <body>
     <h2>📝 Inscription Client</h2>
     <form method="POST">
+          <!-- PROTECTION CSRF -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group">
             <label>Nom:</label>
             <input type="text" name="nom" required>

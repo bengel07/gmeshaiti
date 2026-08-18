@@ -35,6 +35,8 @@
             </div>
 
             <form method="POST" id="transfertForm" class="mt-4">
+                  <!-- PROTECTION CSRF -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mb-3">

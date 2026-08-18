@@ -34,6 +34,8 @@
 
     <!-- Formulaire de modification -->
     <form method="POST" action="{{ url_for('directeur_modifier_dossier', dossier_id=dossier.id) }}" enctype="multipart/form-data">
+          <!-- PROTECTION CSRF -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="row">
             <!-- Informations personnelles -->
             <div class="col-md-6 mb-4">
