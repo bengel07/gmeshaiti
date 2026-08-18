@@ -75,6 +75,77 @@
             border-radius: 4px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
+
+
+        .flash-messages {
+            position: relative;
+            width: 100%;
+            z-index: 9999;
+            margin: 15px 0;
+        }
+
+        .flash-message {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.10);
+            animation: flashIn 0.3s ease-out;
+        }
+
+        .flash-icon {
+            font-size: 20px;
+        }
+
+        .flash-close {
+            margin-left: auto;
+            border: none;
+            background: transparent;
+            font-size: 24px;
+            cursor: pointer;
+            color: inherit;
+        }
+
+        .flash-success {
+            background: #dcfce7;
+            color: #166534;
+            border-left: 5px solid #22c55e;
+        }
+
+        .flash-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border-left: 5px solid #f59e0b;
+        }
+
+        .flash-danger,
+        .flash-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 5px solid #ef4444;
+        }
+
+        .flash-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 5px solid #3b82f6;
+        }
+
+        @keyframes flashIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
     </style>
 </head>
 
@@ -104,14 +175,45 @@
 
     <main>
         <div class="container">
-            <!-- Messages flash -->
+           <!-- ========================= -->
+            <!-- MESSAGES FLASH GMES -->
+            <!-- ========================= -->
+
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
+
                     <div class="flash-messages">
+
                         {% for category, message in messages %}
-                            <div class="flash-message flash-{{ category }}">{{ message }}</div>
+
+                            <div class="flash-message flash-{{ category }}">
+
+                                {% if category == 'success' %}
+                                    <span class="flash-icon">✅</span>
+                                {% elif category == 'danger' or category == 'error' %}
+                                    <span class="flash-icon">❌</span>
+                                {% elif category == 'warning' %}
+                                    <span class="flash-icon">⚠️</span>
+                                {% elif category == 'info' %}
+                                    <span class="flash-icon">ℹ️</span>
+                                {% else %}
+                                    <span class="flash-icon">📢</span>
+                                {% endif %}
+
+                                <span>{{ message }}</span>
+
+                                <button type="button"
+                                        class="flash-close"
+                                        onclick="this.parentElement.remove()">
+                                    ×
+                                </button>
+
+                            </div>
+
                         {% endfor %}
+
                     </div>
+
                 {% endif %}
             {% endwith %}
 
