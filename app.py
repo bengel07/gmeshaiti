@@ -22947,7 +22947,7 @@ def traiter_depot(client_id):
             numero_compte=numero_compte,
             client_id=client.id,
             produit_epargne_id=produit_defaut.id,
-            agent_id=current_user.id,
+            # agent_id=current_user.id,
             succursale_id=current_user.succursale_id,
             solde=0,
             statut='actif',
