@@ -7371,11 +7371,12 @@ def programmer_rapports():
     return scheduler
 
 
-
 @app.route('/recu-depot/<int:transaction_id>')
 @login_required
 def recu_depot(transaction_id):
     """Afficher le reçu d'un dépôt"""
+
+    from models import Transaction, Client, Succursale
 
     transaction = Transaction.query.get_or_404(transaction_id)
 
@@ -7394,6 +7395,10 @@ def recu_depot(transaction_id):
     if getattr(transaction, 'client_id', None):
         client = Client.query.get(transaction.client_id)
 
+        if not client:
+            flash("❌ Client non trouvé pour cette transaction", "danger")
+            return redirect(url_for('dashboard_redirect'))
+
     # Succursale
     succursale = None
 
@@ -7406,7 +7411,6 @@ def recu_depot(transaction_id):
         client=client,
         succursale=succursale
     )
-
 
 # ==========================================================
 # FONCTIONS D'ENVOI DES RAPPORTS AVEC BREVO
@@ -22881,7 +22885,7 @@ def verifier_retrait_api(compte_id):
 @login_required
 def traiter_depot(client_id):
     import re
-    from models import Client, Epargne, ProduitEpargne
+    from models import Client, Epargne, ProduitEpargne, Transaction
     from datetime import datetime
 
     client = db.session.get(Client, client_id)
@@ -22921,7 +22925,7 @@ def traiter_depot(client_id):
         return redirect(url_for('depot_client_form', client_id=client_id))
 
     # =========================
-    # RECHERCHE COMPTE
+    # RECHERCHE DU COMPTE (SEULEMENT, PAS DE CRÉATION)
     # =========================
     compte = Epargne.query.filter_by(
         numero_compte=numero_compte,
@@ -22929,42 +22933,17 @@ def traiter_depot(client_id):
     ).first()
 
     # =========================
-    # CRÉATION AUTO SI ABSENT
+    # SI LE COMPTE N'EXISTE PAS → ERREUR
     # =========================
     if not compte:
-        # ✅ chercher produit existant
-        produit_defaut = ProduitEpargne.query.filter_by(est_actif=True).first()
-
-        if not produit_defaut:
-            flash("Aucun produit d'épargne configuré", "danger")
-            return redirect(url_for('depot_client_form', client_id=client_id))
-
-        # ✅ CORRECTION ICI : utiliser le bon nom d'attribut
-        taux_initial = produit_defaut.taux_interet_annuel
-
-        # ✅ création compte
-        compte = Epargne(
-            numero_compte=numero_compte,
-            client_id=client.id,
-            produit_epargne_id=produit_defaut.id,
-            employe_id=current_user.id,
-            succursale_id=current_user.succursale_id,
-            solde=0,
-            statut='actif',
-            date_ouverture=datetime.utcnow(),
-            taux_interet=taux_initial  # Correction ici
-        )
-
-        db.session.add(compte)
-        db.session.commit()
-
-        flash("💡 Compte épargne créé automatiquement", "info")
+        flash(f"❌ Le compte {numero_compte} n'existe pas pour ce client. Veuillez créer le compte d'abord.", "danger")
+        return redirect(url_for('depot_client_form', client_id=client_id))
 
     # =========================
     # VÉRIFICATION STATUT
     # =========================
     if compte.statut != 'actif':
-        flash(f"Compte {compte.statut}", "danger")
+        flash(f"❌ Le compte est {compte.statut}", "danger")
         return redirect(url_for('depot_client_form', client_id=client_id))
 
     # =========================
@@ -22985,14 +22964,13 @@ def traiter_depot(client_id):
         print(f"✅ DÉPÔT RÉUSSI - Montant: {montant}, Compte: {numero_compte}, Nouveau solde: {compte.solde}")
 
         flash(f"✅ Dépôt de {montant:,.0f} HTG effectué", "success")
-
+        return redirect(url_for('recu_depot', transaction_id=transaction.id))
 
     except Exception as e:
         db.session.rollback()
         print("❌ ERREUR DEPOT:", e)
-        flash(f"Erreur dépôt: {str(e)}", "danger")
-
-    return redirect(url_for('recu_depot',  transaction_id=transaction.id))
+        flash(f"❌ Erreur lors du dépôt: {str(e)}", "danger")
+        return redirect(url_for('depot_client_form', client_id=client_id))
 
 
 @app.route('/retrait/recu/<int:transaction_id>/<int:client_id>')
