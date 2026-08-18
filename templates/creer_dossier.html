@@ -399,6 +399,9 @@
 
     <!-- Formulaire principal -->
     <form method="POST" action="{{ url_for('creer_dossier') }}" enctype="multipart/form-data" id="mainForm">
+
+        <!-- PROTECTION CSRF -->
+         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <!-- ========== GRILLE FORMULAIRE ========== -->
         <div class="form-grid">
             <!-- COLONNE 1 : identité, coordonnées, date, sexe -->
