@@ -1,0 +1,310 @@
+<!-- templates/programmer_rapports.html -->
+{% extends "base.html" %}
+
+{% block title %}Programmer les Rapports - GMEShaiti{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-calendar-alt"></i>
+            Programmation des Rapports
+        </h1>
+        <div>
+            <a href="{{ url_for('rapports_dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <!-- Messages Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert">×</button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- État du scheduler -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card shadow border-0">
+                <div class="card-body">
+                    <h6 class="text-muted">État du scheduler</h6>
+                    {% if scheduler_running %}
+                        <span class="badge bg-success fs-5">🟢 Actif</span>
+                    {% else %}
+                        <span class="badge bg-danger fs-5">🔴 Inactif</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow border-0">
+                <div class="card-body">
+                    <h6 class="text-muted">Rapports programmés</h6>
+                    <h3 class="fw-bold">{{ jobs|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow border-0">
+                <div class="card-body">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <form method="POST" action="{{ url_for('programmer_rapports') }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-play"></i> Activer tous
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('arreter_rapports') }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Arrêter tous les rapports ?')">
+                                <i class="fas fa-stop"></i> Arrêter tous
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des rapports programmés -->
+    <div class="card shadow border-0 mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list"></i> Rapports programmés
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Rapport</th>
+                            <th>Fréquence</th>
+                            <th>Prochaine exécution</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if jobs %}
+                            {% for job in jobs %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    <strong>{{ job.nom }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ job.id }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ job.frequence }}</span>
+                                </td>
+                                <td>
+                                    {% if job.prochaine_execution %}
+                                        <i class="fas fa-clock text-muted"></i>
+                                        {{ job.prochaine_execution }}
+                                    {% else %}
+                                        <span class="text-muted">Non programmé</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle"></i> Actif
+                                    </span>
+                                </td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('desactiver_rapport', job_id=job.id) }}" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Désactiver ce rapport ?')">
+                                            <i class="fas fa-times"></i> Désactiver
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5">
+                                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">Aucun rapport programmé</p>
+                                    <form method="POST" action="{{ url_for('programmer_rapports') }}" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-play"></i> Programmer tous les rapports
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des rapports disponibles -->
+    <div class="card shadow border-0">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-file-alt"></i> Rapports disponibles
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border-left-warning">
+                        <div class="card-body">
+                            <h6>
+                                <i class="fas fa-sun text-warning"></i>
+                                Rapport Quotidien
+                            </h6>
+                            <small class="text-muted">Tous les jours à 18h</small>
+                            <p class="mt-2">
+                                <span class="badge bg-secondary">Résumé du jour</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border-left-primary">
+                        <div class="card-body">
+                            <h6>
+                                <i class="fas fa-calendar-week text-primary"></i>
+                                Rapport Hebdomadaire
+                            </h6>
+                            <small class="text-muted">Tous les lundis à 8h</small>
+                            <p class="mt-2">
+                                <span class="badge bg-secondary">Bilan de la semaine</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border-left-success">
+                        <div class="card-body">
+                            <h6>
+                                <i class="fas fa-calendar-alt text-success"></i>
+                                Rapport Mensuel
+                            </h6>
+                            <small class="text-muted">Le 1er de chaque mois à 9h</small>
+                            <p class="mt-2">
+                                <span class="badge bg-secondary">Bilan du mois</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border-left-danger">
+                        <div class="card-body">
+                            <h6>
+                                <i class="fas fa-calendar-check text-danger"></i>
+                                Rapport Fin de Mois
+                            </h6>
+                            <small class="text-muted">Dernier jour du mois à 23h59</small>
+                            <p class="mt-2">
+                                <span class="badge bg-secondary">Bilan complet</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border-left-info">
+                        <div class="card-body">
+                            <h6>
+                                <i class="fas fa-chart-line text-info"></i>
+                                Rapport Trimestriel
+                            </h6>
+                            <small class="text-muted">Jan, Avr, Juil, Oct à 10h</small>
+                            <p class="mt-2">
+                                <span class="badge bg-secondary">Analyse trimestrielle</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border-left-dark">
+                        <div class="card-body">
+                            <h6>
+                                <i class="fas fa-chart-pie text-dark"></i>
+                                Rapport Annuel
+                            </h6>
+                            <small class="text-muted">1er janvier à 11h</small>
+                            <p class="mt-2">
+                                <span class="badge bg-secondary">Bilan annuel</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border-left-purple">
+                        <div class="card-body">
+                            <h6>
+                                <i class="fas fa-tachometer-alt text-purple"></i>
+                                Rapport Performance
+                            </h6>
+                            <small class="text-muted">Tous les vendredis à 16h</small>
+                            <p class="mt-2">
+                                <span class="badge bg-secondary">KPI & Performance</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border-left-pink">
+                        <div class="card-body">
+                            <h6>
+                                <i class="fas fa-bell text-pink"></i>
+                                Alertes de Suivi
+                            </h6>
+                            <small class="text-muted">Tous les jours à 8h et 14h</small>
+                            <p class="mt-2">
+                                <span class="badge bg-secondary">Alertes & notifications</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-left-warning {
+        border-left: 4px solid #f6c23e !important;
+    }
+    .border-left-primary {
+        border-left: 4px solid #4e73df !important;
+    }
+    .border-left-success {
+        border-left: 4px solid #1cc88a !important;
+    }
+    .border-left-danger {
+        border-left: 4px solid #e74a3b !important;
+    }
+    .border-left-info {
+        border-left: 4px solid #36b9cc !important;
+    }
+    .border-left-dark {
+        border-left: 4px solid #5a5c69 !important;
+    }
+    .border-left-purple {
+        border-left: 4px solid #6f42c1 !important;
+    }
+    .border-left-pink {
+        border-left: 4px solid #e83e8c !important;
+    }
+    .text-purple {
+        color: #6f42c1 !important;
+    }
+    .text-pink {
+        color: #e83e8c !important;
+    }
+</style>
+{% endblock %}

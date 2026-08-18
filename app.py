@@ -8018,6 +8018,29 @@ def generer_pdf_rapport(stats, periode):
         return None
 
 
+@app.route('/programmer-rapports')
+@login_required
+def programmer_rapports_page():
+    """Page de gestion de la programmation des rapports"""
+
+    roles_autorises = [
+        'super_admin',
+        'admin_succursale',
+        'direction',
+        'admin_succursale',
+        'superviseur'
+    ]
+
+    if current_user.role not in roles_autorises:
+        flash(
+            "⛔ Vous n'avez pas l'autorisation de gérer "
+            "la programmation des rapports.",
+            "danger"
+        )
+        return redirect(url_for('dashboard_redirect'))
+
+    return render_template('programmer_rapports.html')
+
 @app.route('/admin/creer-utilisateur', methods=['GET', 'POST'])
 @login_required
 def creer_utilisateur():
