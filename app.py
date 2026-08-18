@@ -22881,9 +22881,12 @@ def verifier_retrait_api(compte_id):
 @login_required
 def traiter_depot(client_id):
     import re
-    from models import Client, Epargne, ProduitEpargne
+    from models import Client, Epargne
     from datetime import datetime
 
+    # =========================
+    # CLIENT
+    # =========================
     client = db.session.get(Client, client_id)
 
     if not client:
@@ -22895,33 +22898,64 @@ def traiter_depot(client_id):
     # =========================
     numero_compte = request.form.get('numero_compte', '').strip()
     montant = request.form.get('montant', type=float)
-    description = request.form.get('description', 'Dépôt client')
-    mode_paiement = request.form.get('mode_paiement', 'especes')
-    reference = request.form.get('reference')
+    description = request.form.get(
+        'description',
+        'Dépôt client'
+    ).strip()
+    mode_paiement = request.form.get(
+        'mode_paiement',
+        'especes'
+    )
+    reference = request.form.get('reference', '').strip()
 
     # =========================
-    # VALIDATION NUMÉRO
+    # VALIDATION NUMÉRO COMPTE
     # =========================
     if not numero_compte:
-        flash("Numéro de compte obligatoire", "danger")
-        return redirect(url_for('depot_client_form', client_id=client_id))
+        flash(
+            "Numéro de compte obligatoire",
+            "danger"
+        )
+        return redirect(
+            url_for(
+                'depot_client_form',
+                client_id=client_id
+            )
+        )
 
-    # Format 00001-00001
-    if re.match(r'^\d{5}-\d{5}$', numero_compte):
-        numero_compte = f"7-12519-{numero_compte}"
-    else:
-        flash('Format du numéro de compte invalide', 'danger')
-        return redirect(url_for('depot_client_form', client_id=client_id))
+    # Format : 00001-27524
+    if not re.match(r'^\d{5}-\d{5}$', numero_compte):
+        flash(
+            "Format du numéro de compte invalide",
+            "danger"
+        )
+        return redirect(
+            url_for(
+                'depot_client_form',
+                client_id=client_id
+            )
+        )
+
+    # Transformer en numéro complet
+    numero_compte = f"7-12519-{numero_compte}"
 
     # =========================
     # VALIDATION MONTANT
     # =========================
-    if not montant or montant <= 0:
-        flash("Montant invalide", "danger")
-        return redirect(url_for('depot_client_form', client_id=client_id))
+    if montant is None or montant <= 0:
+        flash(
+            "Montant invalide",
+            "danger"
+        )
+        return redirect(
+            url_for(
+                'depot_client_form',
+                client_id=client_id
+            )
+        )
 
     # =========================
-    # RECHERCHE COMPTE
+    # RECHERCHER LE COMPTE EXISTANT
     # =========================
     compte = Epargne.query.filter_by(
         numero_compte=numero_compte,
@@ -22929,70 +22963,97 @@ def traiter_depot(client_id):
     ).first()
 
     # =========================
-    # CRÉATION AUTO SI ABSENT
+    # COMPTE INTROUVABLE
     # =========================
     if not compte:
-        # ✅ chercher produit existant
-        produit_defaut = ProduitEpargne.query.filter_by(est_actif=True).first()
-
-        if not produit_defaut:
-            flash("Aucun produit d'épargne configuré", "danger")
-            return redirect(url_for('depot_client_form', client_id=client_id))
-
-        # ✅ CORRECTION ICI : utiliser le bon nom d'attribut
-        taux_initial = produit_defaut.taux_interet_annuel
-
-        # ✅ création compte
-        compte = Epargne(
-            numero_compte=numero_compte,
-            client_id=client.id,
-            produit_epargne_id=produit_defaut.id,
-            employe_id=current_user.id,
-            succursale_id=current_user.succursale_id,
-            solde=0,
-            statut='actif',
-            date_ouverture=datetime.utcnow(),
-            taux_interet=taux_initial  # Correction ici
+        flash(
+            f"❌ Le compte {numero_compte} n'existe pas "
+            f"pour ce client. Aucun compte n'a été créé.",
+            "danger"
         )
 
-        db.session.add(compte)
-        db.session.commit()
-
-        flash("💡 Compte épargne créé automatiquement", "info")
+        return redirect(
+            url_for(
+                'depot_client_form',
+                client_id=client_id
+            )
+        )
 
     # =========================
     # VÉRIFICATION STATUT
     # =========================
     if compte.statut != 'actif':
-        flash(f"Compte {compte.statut}", "danger")
-        return redirect(url_for('depot_client_form', client_id=client_id))
+        flash(
+            f"❌ Le compte est {compte.statut}. "
+            f"Le dépôt est impossible.",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                'depot_client_form',
+                client_id=client_id
+            )
+        )
 
     # =========================
     # DÉPÔT
     # =========================
     try:
+
         desc = f"{description} | Mode: {mode_paiement}"
+
         if reference:
             desc += f" | Ref: {reference}"
 
         transaction = compte.deposer(
             montant=montant,
             description=desc,
-            transaction_ref=reference or f"DEP_{datetime.now().timestamp()}"
+            transaction_ref=(
+                reference
+                or f"DEP_{datetime.now().timestamp()}"
+            )
         )
 
-        db.session.commit()
-        print(f"✅ DÉPÔT RÉUSSI - Montant: {montant}, Compte: {numero_compte}, Nouveau solde: {compte.solde}")
+        print(
+            f"✅ DÉPÔT RÉUSSI - "
+            f"Client: {client.id} - "
+            f"Compte: {numero_compte} - "
+            f"Montant: {montant} - "
+            f"Nouveau solde: {compte.solde}"
+        )
 
-        flash(f"✅ Dépôt de {montant:,.0f} HTG effectué", "success")
+        flash(
+            f"✅ Dépôt de {montant:,.0f} HTG effectué",
+            "success"
+        )
 
+        # =========================
+        # REÇU
+        # =========================
+        return redirect(
+            url_for(
+                'recu_depot',
+                transaction_id=transaction.id
+            )
+        )
 
     except Exception as e:
-        db.session.rollback()
-        print("❌ ERREUR DEPOT:", e)
-        flash(f"Erreur dépôt: {str(e)}", "danger")
 
-    return redirect(url_for('recu_depot', client_id=client_id , transaction_id=transaction.id))
+        db.session.rollback()
+
+        print(
+            f"❌ ERREUR DÉPÔT : {e}"
+        )
+
+        flash(
+            f"❌ Erreur lors du dépôt : {str(e)}",
+            "danger"
+        )
+
+        return redirect(url_for('recu_depot', client_id=client_id , transaction_id=transaction.id))
+
+
 
 
 @app.route('/retrait/recu/<int:transaction_id>/<int:client_id>')
