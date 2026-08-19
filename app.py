@@ -22407,7 +22407,7 @@ def effectuer_depot():
 
         db.session.commit()
 
-        flash(f'✅ Dépôt de {montant:,.0f} HTG effectué avec succès', 'success')
+        flash(f'✅ Dépôt de {montant:,.0f} HTG effectué avec succès', "success")
 
     except Exception as e:
         db.session.rollback()
