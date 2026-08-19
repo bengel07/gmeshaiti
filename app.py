@@ -7371,77 +7371,136 @@ def programmer_rapports():
 def recu_depot(transaction_id):
     """Afficher le reçu d'un dépôt"""
 
-    from models import Transaction, Client, Succursale
+    from models import TransactionEpargne, Client, Succursale
 
     print("========================================")
     print("REÇU DÉPÔT")
-    print("Transaction ID reçu :", transaction_id)
+    print("TransactionEpargne ID reçu :", transaction_id)
 
-    transaction = db.session.get(Transaction, transaction_id)
+    # =========================
+    # RECHERCHER LA TRANSACTION
+    # =========================
+    transaction = db.session.get(
+        TransactionEpargne,
+        transaction_id
+    )
 
     if not transaction:
-        print("❌ TRANSACTION INTROUVABLE :", transaction_id)
+        print(
+            "❌ TRANSACTION EPARGNE INTROUVABLE :",
+            transaction_id
+        )
+
         flash(
             f"❌ Transaction de dépôt introuvable (ID: {transaction_id})",
             "danger"
         )
-        return redirect(url_for('dashboard_redirect'))
 
-    print("✅ TRANSACTION TROUVÉE :", transaction.id)
+        return redirect(
+            url_for('dashboard_redirect')
+        )
+
+    print(
+        "✅ TRANSACTION EPARGNE TROUVÉE :",
+        transaction.id
+    )
 
     # =========================
     # VÉRIFIER LE TYPE
     # =========================
     type_transaction = str(
-        getattr(transaction, 'type_transaction', '')
+        getattr(
+            transaction,
+            'type_transaction',
+            ''
+        )
     ).strip().lower()
 
-    print("TYPE TRANSACTION :", type_transaction)
+    print(
+        "TYPE TRANSACTION :",
+        type_transaction
+    )
 
-    if type_transaction not in ['depot', 'dépôt', 'deposit']:
+    if type_transaction not in [
+        'depot',
+        'dépôt',
+        'deposit'
+    ]:
         flash(
             "❌ Cette transaction n'est pas un dépôt.",
             "danger"
         )
-        return redirect(url_for('dashboard_redirect'))
+
+        return redirect(
+            url_for('dashboard_redirect')
+        )
 
     # =========================
     # CLIENT
     # =========================
     client = None
 
-    client_id = getattr(transaction, 'client_id', None)
+    # TransactionEpargne possède compte_id,
+    # pas directement client_id
+    compte = getattr(
+        transaction,
+        'compte',
+        None
+    )
 
-    print("CLIENT ID TRANSACTION :", client_id)
+    if not compte:
+        flash(
+            "❌ Compte d'épargne introuvable pour cette transaction.",
+            "danger"
+        )
 
-    if client_id:
-        client = db.session.get(Client, client_id)
+        return redirect(
+            url_for('dashboard_redirect')
+        )
 
-        if not client:
-            print("❌ CLIENT INTROUVABLE :", client_id)
+    client_id = compte.client_id
 
-            flash(
-                "❌ Client non trouvé pour cette transaction.",
-                "danger"
-            )
+    print(
+        "CLIENT ID :",
+        client_id
+    )
 
-            return redirect(url_for('dashboard_redirect'))
+    client = db.session.get(
+        Client,
+        client_id
+    )
+
+    if not client:
+        flash(
+            "❌ Client non trouvé pour cette transaction.",
+            "danger"
+        )
+
+        return redirect(
+            url_for('dashboard_redirect')
+        )
 
     # =========================
     # SUCCURSALE
     # =========================
     succursale = None
 
-    if client:
-        succursale_id = getattr(client, 'succursale_id', None)
+    succursale_id = getattr(
+        compte,
+        'succursale_id',
+        None
+    )
 
-        print("SUCCURSALE ID :", succursale_id)
+    print(
+        "SUCCURSALE ID :",
+        succursale_id
+    )
 
-        if succursale_id:
-            succursale = db.session.get(
-                Succursale,
-                succursale_id
-            )
+    if succursale_id:
+        succursale = db.session.get(
+            Succursale,
+            succursale_id
+        )
 
     print("========================================")
 
@@ -7449,7 +7508,8 @@ def recu_depot(transaction_id):
         'recu_depot.html',
         transaction=transaction,
         client=client,
-        succursale=succursale
+        succursale=succursale,
+        compte=compte
     )
 # ==========================================================
 # FONCTIONS D'ENVOI DES RAPPORTS AVEC BREVO

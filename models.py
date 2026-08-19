@@ -4477,12 +4477,6 @@ class Transaction(db.Model):
     employe_id = db.Column(db.Integer)
     pret_id = db.Column(db.Integer)
 
-    # TYPE DE TRANSACTION
-    type_transaction = db.Column(
-        db.String(50),
-        nullable=False,
-        default='depot'
-    )
 
     montant = db.Column(db.Float)
     gateway = db.Column(db.String(20))  # moncash, natcash, etc.
