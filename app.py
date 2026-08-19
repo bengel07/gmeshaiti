@@ -417,11 +417,14 @@ def envoyer_email_conditions(client):
     Envoie un email au client avec un lien pour accepter les conditions d'utilisation
     """
     if client.terms_accepted:
+        flash(f"ℹ️ Client {client.email} a déjà accepté, pas d'envoi")
+
         print(f"ℹ️ Client {client.email} a déjà accepté, pas d'envoi")
         return False
 
     try:
         import os
+        import requests
         # Générer un token unique pour ce client
         from itsdangerous import URLSafeTimedSerializer
 
@@ -445,9 +448,6 @@ def envoyer_email_conditions(client):
         # try:
 
         # 3. ENVOYER L'EMAIL VIA API BREVO (solution intégrée)
-        import requests
-        import os
-
         # Configuration email API Brevo
         BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
         FROM_EMAIL = os.environ.get('FROM_EMAIL', 'gmeshaiti@gmail.com')
@@ -528,9 +528,6 @@ def envoyer_email_conditions(client):
         ---
         GMES Microcrédit
         """
-
-        import os
-        import requests
 
         # Configuration
         BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
@@ -740,7 +737,6 @@ def resend_conditions_email(client_id):
     # Vérification des droits
     if current_user.role not in [
         "super_admin",
-        "admin",
         "direction",
         "admin_succursale",
         "employe"
