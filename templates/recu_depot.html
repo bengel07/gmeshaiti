@@ -382,9 +382,9 @@
 
                 <td class="montant">
 
-                    {% if client %}
+                    {% if compte %}
 
-                        {{ "{:,.2f}".format(client.solde or 0) }}
+                        {{ "{:,.2f}".format(compte.solde or 0) }}
 
                     {% else %}
 
@@ -437,9 +437,14 @@
                 <td>Employé / Caissier</td>
 
                 <td>
-                    {{ current_user.nom_complet
-                       if current_user.nom_complet is defined
-                       else current_user.email }}
+                    {% if current_user %}
+                        {{ current_user.nom_complet
+                           or current_user.nom
+                           or current_user.email
+                           or 'Employé' }}
+                    {% else %}
+                        Employé
+                    {% endif %}
                 </td>
             </tr>
 

@@ -3495,8 +3495,8 @@ def creer_dossier():
             new_last = random.choice([0, 2, 4, 6, 8]) if sexe == 'M' else random.choice([1, 3, 5, 7, 9])
             suffix = suffix[:-1] + str(new_last)
 
-        id_client = f"7-12519-{branch_code}-{suffix}"
-        print(f"🔑 Code client généré: {id_client} (sexe: {sexe})")
+        numero_compte = f"7-12519-{branch_code}-{suffix}"
+        print(f"🔑 Code client généré: {numero_compte} (sexe: {sexe})")
 
         # Compétences
         competences_data = request.form.get('competences_data', '[]')
@@ -3512,7 +3512,7 @@ def creer_dossier():
 
         # Validation
         if not all([nom, prenom, civilite , email, telephone, cin, date_naissance, sexe, adresse, code_postal, ville,
-                    profession, revenu_mensuel, depenses_mensuelles, id_client]):
+                    profession, revenu_mensuel, depenses_mensuelles, numero_compte]):
             succursales = Succursale.query.all()
             return render_template('creer_dossier.html',
                                    error="Tous les champs obligatoires doivent être remplis",
@@ -3582,7 +3582,7 @@ def creer_dossier():
 
 
             # Vérifier code client
-            code_parts = id_client.split('-')
+            code_parts = numero_compte.split('-')
             if len(code_parts) != 4:
                 raise ValueError("Format invalide (doit être: 7-12519-00001-12345)")
             if code_parts[0] != '7' or code_parts[1] != '12519':
@@ -3678,8 +3678,7 @@ def creer_dossier():
 
             # Créer client
             nouveau_client = Client(
-                id_client=id_client,
-                numero_compte=id_client,
+                numero_compte=numero_compte,
                 nom=nom,
                 prenom=prenom,
                 email=email,
@@ -3719,6 +3718,8 @@ def creer_dossier():
 
             db.session.add(nouveau_client)
             db.session.flush()
+
+            nouveau_client.id_client = f"CLI-{nouveau_client.id:06d}"
 
             nouveau_compte = Epargne(
                 client_id=nouveau_client.id,
