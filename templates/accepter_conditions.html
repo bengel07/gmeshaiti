@@ -220,7 +220,7 @@
             {% if token_valide and user %}
                 <form method="POST" id="acceptForm">
                     <!-- PROTECTION CSRF -->
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                     <div class="user-info">
                         <strong><i class="fas fa-user"></i> {{ user.prenom }} {{ user.nom }}</strong><br>

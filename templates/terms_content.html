@@ -490,6 +490,8 @@
         <!-- Zone d'acceptation -->
         <div class="acceptance-box">
             <form method="POST" id="acceptanceForm">
+                <!-- PROTECTION CSRF -->
+                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="already_submitted" id="already_submitted" value="false">
                 <button type="submit" class="btn-accept" id="acceptBtn">
                     <i class="fas fa-check-circle"></i> Accepter les Conditions
