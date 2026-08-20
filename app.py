@@ -3687,6 +3687,8 @@ def creer_dossier():
                 date_naissance=datetime.strptime(date_naissance, '%Y-%m-%d'),
                 sexe=sexe,
                 adresse=f"{adresse}, {code_postal} {ville}",
+                code_postal=code_postal,
+                ville=ville,
                 profession=profession,
                 revenu_mensuel=revenu_mensuel,
                 depenses_mensuelles=depenses_mensuelles,
