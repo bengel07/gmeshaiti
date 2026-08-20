@@ -4693,38 +4693,79 @@ def directeur_modifier_dossier(dossier_id):
         dossier.depenses_mensuelles = float(request.form.get('depenses_mensuelles') or 0)
         dossier.capacite_remboursement = float(request.form.get('capacite_remboursement') or 0)
 
+        # =========================
+        # GESTION DES PHOTOS CLIENT
+        # =========================
 
-        # Gestion des photos
         from werkzeug.utils import secure_filename
         import os
         import time
 
-        # Gestion des photos
+        # Même dossier que celui utilisé par le template :
+        # static/uploads/clients/
+        upload_folder = os.path.join(
+            app.root_path,
+            'static',
+            'uploads',
+            'clients'
+        )
+
+        # Créer le dossier s'il n'existe pas
+        os.makedirs(upload_folder, exist_ok=True)
+
+        # PHOTO RECTO CIN
         if 'photo_face' in request.files:
             file = request.files['photo_face']
+
             if file and file.filename:
-                filename = secure_filename(f"face_{dossier.id}_{int(time.time())}.jpg")
-                # ✅ CORRECTION : Chemin complet vers static/uploads/profils/clients/
-                file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'clients', filename)
+                filename = secure_filename(
+                    f"face_{dossier.id}_{int(time.time())}.jpg"
+                )
+
+                file_path = os.path.join(
+                    upload_folder,
+                    filename
+                )
+
                 file.save(file_path)
+
+                # On stocke SEULEMENT le nom du fichier en DB
                 dossier.photo_face = filename
 
+        # PHOTO VERSO CIN
         if 'photo_dos' in request.files:
             file = request.files['photo_dos']
+
             if file and file.filename:
-                filename = secure_filename(f"dos_{dossier.id}_{int(time.time())}.jpg")
-                # ✅ CORRECTION : Chemin complet vers static/uploads/profils/clients/
-                file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'clients', filename)
+                filename = secure_filename(
+                    f"dos_{dossier.id}_{int(time.time())}.jpg"
+                )
+
+                file_path = os.path.join(
+                    upload_folder,
+                    filename
+                )
+
                 file.save(file_path)
+
                 dossier.photo_dos = filename
 
+        # SELFIE
         if 'selfie_reference' in request.files:
             file = request.files['selfie_reference']
+
             if file and file.filename:
-                filename = secure_filename(f"selfie_{dossier.id}_{int(time.time())}.jpg")
-                # ✅ CORRECTION : Chemin complet vers static/uploads/profils/clients/
-                file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'clients', filename)
+                filename = secure_filename(
+                    f"selfie_{dossier.id}_{int(time.time())}.jpg"
+                )
+
+                file_path = os.path.join(
+                    upload_folder,
+                    filename
+                )
+
                 file.save(file_path)
+
                 dossier.selfie_reference = filename
 
 
