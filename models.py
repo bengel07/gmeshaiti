@@ -3942,6 +3942,8 @@ class Client(db.Model):
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
     numero_compte = db.Column(db.String(500), unique=True)
 
+    date_signature_terms = db.Column(db.DateTime, nullable=True)
+
     ville = db.Column(db.String(1000), nullable=True)  # ✅ Le champ doit exister
     code_postal = db.Column(db.String(1000), nullable=True)  # ✅ Le champ doit exister
     # Dans votre modèle Client

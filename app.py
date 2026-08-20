@@ -3684,6 +3684,7 @@ def creer_dossier():
                 email=email,
                 telephone=telephone,
                 cin=cin,
+                cin_nif=cin,
                 date_naissance=datetime.strptime(date_naissance, '%Y-%m-%d'),
                 sexe=sexe,
                 adresse=f"{adresse}, {code_postal} {ville}",
