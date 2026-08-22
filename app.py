@@ -3477,7 +3477,7 @@ def creer_dossier():
         civilite = request.form.get('civilite')
         email = request.form.get('email')
         telephone = request.form.get('telephone')
-        cin = request.form.get('cin')
+        cin = request.form.get('cin') or request.form.get('cin_nif')
         date_naissance = request.form.get('date_naissance')
         sexe = request.form.get('sexe')
         adresse = request.form.get('adresse')
