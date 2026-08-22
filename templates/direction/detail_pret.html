@@ -212,24 +212,33 @@
 
 <script>
 function approuverPret(pretId) {
-    if(confirm('Êtes-vous sûr de vouloir approuver ce prêt ?')) {
+    if (confirm('Êtes-vous sûr de vouloir approuver ce prêt ?')) {
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
         fetch(`/pret/${pretId}/approuver`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = "{{ url_for('direction_succursale_dashboard') }}";
+            } else {
+                alert('Erreur: ' + data.message);
             }
-        }).then(response => response.json())
-          .then(data => {
-              if(data.success) {
-                  window.location.href = "{{ url_for('direction_succursale_dashboard') }}";
-              } else {
-                  alert('Erreur: ' + data.message);
-              }
-          }).catch(error => {
-              alert('Erreur réseau: ' + error);
-          });
+        })
+        .catch(error => {
+            console.error('Erreur réseau:', error);
+            alert('Erreur réseau: ' + error);
+        });
     }
 }
+
 
 function refuserPret() {
     const pretId = {{ pret.id if pret else 0 }};
@@ -241,33 +250,33 @@ function refuserPret() {
 
     const motif = prompt('Motif du refus :');
 
-    // Vérifier si l'utilisateur a annulé
     if (motif === null) {
         return;
     }
 
-    // Vérifier si le motif est vide
     if (motif.trim() === '') {
         alert('❌ Le motif de refus est obligatoire');
         return;
     }
 
-    // Confirmer l'action
     if (confirm(`Êtes-vous sûr de vouloir refuser ce prêt ?\n\nMotif : ${motif}`)) {
-        // Désactiver le bouton pendant l'envoi
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
         const btn = event.target.closest('button');
         const originalText = btn.innerHTML;
+
         btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Traitement...';
         btn.disabled = true;
 
-        // Envoyer la requête avec le bon nom de champ
         fetch(`/pret/${pretId}/refuser`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
-                motif_refus: motif.trim()  // ← LE BON NOM (avec underscore)
+                motif_refus: motif.trim()
             })
         })
         .then(response => response.json())
