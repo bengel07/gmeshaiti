@@ -2372,7 +2372,7 @@ def generer_recu_pour_pret(pret, dossier_recus="recus_prets"):
 @app.route('/pret/<int:pret_id>/approuver', methods=['POST'])
 @login_required
 @role_required('direction')
-@csrf.exempt  # ← AJOUTEZ CETTE LIGNE
+# @csrf.exempt  # ← AJOUTEZ CETTE LIGNE
 def approuver_pret(pret_id):
     """Approuver une demande de prêt"""
     try:
