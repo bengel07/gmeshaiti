@@ -2372,12 +2372,13 @@ def generer_recu_pour_pret(pret, dossier_recus="recus_prets"):
 @app.route('/pret/<int:pret_id>/approuver', methods=['POST'])
 @login_required
 @role_required('direction')
-# @csrf.exempt  # ← AJOUTEZ CETTE LIGNE
+@csrf.exempt  # ← AJOUTEZ CETTE LIGNE
 def approuver_pret(pret_id):
     """Approuver une demande de prêt"""
     try:
         pret = Pret.query.get_or_404(pret_id)
-        data = request.get_json()
+
+        data = request.get_json(silent=True) or {}
 
         # Mettre à jour les informations
         pret.decision = 'approuve'
@@ -2389,13 +2390,14 @@ def approuver_pret(pret_id):
         pret.approuve_par = current_user.id
 
         db.session.commit()
-        from generer_recus_prets_approuves import generer_recu_pour_un_pret
-        generer_recu_pour_un_pret(pret_id)
+
+        # Générer directement le reçu
+        resultat_recu = generer_recu_pour_pret(pret)
 
         # Envoyer notification au client et à l'agent
         notification_manager.send_approval_notification(pret)
 
-        return jsonify({'success': True, 'message': 'Prêt approuvé avec succès et reçu généré'})
+        return jsonify({'success': True, 'message': 'Prêt approuvé avec succès et reçu généré','recu': resultat_recu})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
