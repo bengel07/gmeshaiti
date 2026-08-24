@@ -910,7 +910,9 @@ def demande_pret():
             return redirect(url_for('demande_pret'))
 
         # ✅ SAUVEGARDER LES DONNÉES DANS LA SESSION AVANT EMAIL
-        session['pret_data'] = request.form.to_dict()
+        session['pret_data'] = {
+            'client_id': client.id
+        }
 
         # ✅ 1. RÉCUPÉRER TOUTES LES VALEURS AU DÉBUT
         client_id_param = request.form.get('client_id') or request.args.get('client_id')
@@ -1257,10 +1259,12 @@ def demande_pret():
             print(f"🔍 Vérification terms_accepted: {client.terms_accepted}")
 
             if not client.terms_accepted:
-                session['pret_data'] = request.form.to_dict()
+                session['pret_data'] = {
+                    'client_id': client.id
+                }
 
                 try:
-                    envoyer_email_demande_pret(client, pret)
+                    envoyer_email_conditions(client)
                 except Exception as e:
                     print(f"⚠️ Erreur envoi email demande prêt : {e}")
 
