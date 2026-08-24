@@ -805,6 +805,8 @@ def generer_numero_pret():
     chiffres_aleatoires = str(random.randint(000, 99999))
     return f"GMES-{date_actuelle}-{chiffres_aleatoires}"
 
+
+
 @app.route('/prets/demande-pret', methods=['GET', 'POST'])
 @login_required
 def demande_pret():
@@ -1205,6 +1207,17 @@ def demande_pret():
 
             print(f"🔍 Vérification terms_accepted: {client.terms_accepted}")
 
+            print("========================================")
+            print("DEBUG CREATION PRET")
+            print("CLIENT ID :", client.id)
+            print("CLIENT :", client.nom, client.prenom)
+            print("TERMS ACCEPTED :", client.terms_accepted)
+            print("EMAIL :", client.email)
+            print("MONTANT :", montant_demande)
+            print("DUREE :", duree)
+            print("SUCCURSALE :", client.succursale_id)
+            print("========================================")
+
             # 2. ENSUITE vérifier si email doit être envoyé
             if not client.terms_accepted:
                 session['pret_data'] = request.form.to_dict()  # 🔥 AJOUT CRUCIAL
@@ -1214,7 +1227,17 @@ def demande_pret():
                 flash('⚠️ Vérifiez votre email et signez les conditions.', 'warning')
                 return redirect(url_for('demande_pret', client_id=client.id))
 
-            print("3. Avant création prêt")
+            print("========================================")
+            print("🚨 JE VAIS CREER LE PRET")
+            print("client.id =", client.id)
+            print("montant =", montant_demande)
+            print("duree =", duree)
+            print("type =", request.form.get('type_pret'))
+            print("objet =", request.form.get('objet'))
+            print("succursale =", current_user.succursale_id)
+            print("========================================")
+
+
             flash("3. Avant création prêt")
 
 
@@ -1322,7 +1345,7 @@ def demande_pret():
             print("❌ ERREUR DÉTAILLÉE :")
             import traceback
             traceback.print_exc()
-            flash('⛔ Une erreur est survenue', 'danger')
+            flash(f'⛔ ERREUR : {str(e)}', 'danger')
             return redirect(url_for('demande_pret'))
 
 
@@ -4661,8 +4684,9 @@ def directeur_voir_dossier(dossier_id):
         return redirect(url_for('connexion'))
 
     dossier = Client.query.get_or_404(dossier_id)
+    client = Client.query.get_or_404(dossier_id)
 
-    return render_template('direction/voir_dossier.html', dossier=dossier)
+    return render_template('direction/voir_dossier.html', dossier=dossier, client=client)
 
 
 @app.route('/direction/modifier-dossier/<int:dossier_id>', methods=['POST'])
