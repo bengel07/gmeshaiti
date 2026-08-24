@@ -1244,48 +1244,48 @@ def demande_pret():
 
             print(f"🔍 Vérification terms_accepted: {client.terms_accepted}")
 
-            print("========================================")
-            print("DEBUG CREATION PRET")
-            print("CLIENT ID :", client.id)
-            print("CLIENT :", client.nom, client.prenom)
-            print("TERMS ACCEPTED :", client.terms_accepted)
-            print("EMAIL :", client.email)
-            print("MONTANT :", montant_demande)
-            print("DUREE :", duree)
-            print("SUCCURSALE :", client.succursale_id)
-            print("========================================")
-
-            # 2. ENSUITE vérifier si email doit être envoyé
-            print(f"🔍 Vérification terms_accepted: {client.terms_accepted}")
-
-            if not client.terms_accepted:
-                session['pret_data'] = {
-                    'client_id': client.id
-                }
-
-                try:
-                    envoyer_email_conditions(client)
-                except Exception as e:
-                    print(f"⚠️ Erreur envoi email demande prêt : {e}")
-
-                flash(
-                    '⚠️ Vérifiez votre email et signez les conditions.',
-                    'warning'
-                )
-
-                return redirect(
-                    url_for('demande_pret', client_id=client.id)
-                )
-
-            print("========================================")
-            print("🚨 JE VAIS CREER LE PRET")
-            print("client.id =", client.id)
-            print("montant =", montant_demande)
-            print("duree =", duree)
-            print("type =", request.form.get('type_pret'))
-            print("objet =", request.form.get('objet'))
-            print("succursale =", current_user.succursale_id)
-            print("========================================")
+            # print("========================================")
+            # print("DEBUG CREATION PRET")
+            # print("CLIENT ID :", client.id)
+            # print("CLIENT :", client.nom, client.prenom)
+            # print("TERMS ACCEPTED :", client.terms_accepted)
+            # print("EMAIL :", client.email)
+            # print("MONTANT :", montant_demande)
+            # print("DUREE :", duree)
+            # print("SUCCURSALE :", client.succursale_id)
+            # print("========================================")
+            #
+            # # 2. ENSUITE vérifier si email doit être envoyé
+            # print(f"🔍 Vérification terms_accepted: {client.terms_accepted}")
+            #
+            # # if not client.terms_accepted:
+            # #     session['pret_data'] = {
+            # #         'client_id': client.id
+            # #     }
+            # #
+            # #     try:
+            # #         envoyer_email_conditions(client)
+            # #     except Exception as e:
+            # #         print(f"⚠️ Erreur envoi email demande prêt : {e}")
+            # #
+            # #     flash(
+            # #         '⚠️ Vérifiez votre email et signez les conditions.',
+            # #         'warning'
+            # #     )
+            # #
+            # #     return redirect(
+            # #         url_for('demande_pret', client_id=client.id)
+            # #     )
+            #
+            # print("========================================")
+            # print("🚨 JE VAIS CREER LE PRET")
+            # print("client.id =", client.id)
+            # print("montant =", montant_demande)
+            # print("duree =", duree)
+            # print("type =", request.form.get('type_pret'))
+            # print("objet =", request.form.get('objet'))
+            # print("succursale =", current_user.succursale_id)
+            # print("========================================")
 
 
             flash("3. Avant création prêt")
