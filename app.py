@@ -824,645 +824,642 @@ def demande_pret():
     from datetime import datetime
     from werkzeug.utils import secure_filename
 
+
+    print("🔥 ROUTE DEMANDE PRET EXECUTÉE")
+
+    print(f"👤 Utilisateur connecté: ID {current_user.id}, Rôle: {current_user.role}, Fonction: {current_user.fonction}")
+
+    # ===== DÉTERMINER QUI EST L'UTILISATEUR =====
+    est_agent = current_user.role in ['admin', 'super_admin', 'direction', 'agent_credit', 'conseiller', 'employe']
+    est_client = hasattr(current_user, 'client_profile') and current_user.client_profile is not None
+
+    print(f"📋 Type d'utilisateur: {'Agent' if est_agent else 'Client' if est_client else 'Autre'}")
+
+    # ===== RECHERCHE DU CLIENT =====
+    client = None
+    client_id = request.args.get('client_id') or request.form.get('client_id')
+
+    # ✅ AJOUTER CETTE VÉRIFICATION
+    if client and not client.terms_accepted:
+        flash('⚠️ Vous devez d\'abord accepter les conditions générales avant de soumettre une demande.', 'warning')
+        return redirect(url_for('demande_pret', client_id=client.id))
+
+    # CAS 1: L'utilisateur est un AGENT - il cherche un client
+    if est_agent:
+        if client_id:
+            client = db.session.get(Client, client_id)
+            if client:
+                print(f"✅ Agent - Client trouvé par ID: {client.id} - {client.prenom} {client.nom}")
+
+        # Recherche par téléphone
+        if not client:
+            telephone = request.args.get('telephone') or request.form.get('telephone')
+            if telephone:
+                telephone_propre = re.sub(r'[\s\-\(\)]', '', telephone)
+                client = Client.query.filter(
+                    (Client.telephone == telephone) |
+                    (Client.telephone == telephone_propre)
+                ).first()
+                if client:
+                    print(f"✅ Agent - Client trouvé par téléphone: {client.id}")
+
+        # Recherche par email
+        if not client:
+            email = request.args.get('email') or request.form.get('email')
+            if email:
+                client = Client.query.filter_by(email=email).first()
+                if client:
+                    print(f"✅ Agent - Client trouvé par email: {client.id}")
+
+        # Si toujours pas de client, on affiche la liste
+        if not client:
+            print("ℹ️ Agent - Aucun client spécifié, affichage de la liste")
+
+    # CAS 2: L'utilisateur est un CLIENT - il fait sa propre demande
+    elif est_client:
+        client = current_user.client_profile
+        print(f"✅ Client connecté: {client.id} - {client.prenom} {client.nom}")
+
+    # CAS 3: Autre type d'utilisateur
+    else:
+        flash("Accès non autorisé", "danger")
+        return redirect(url_for('main.accueil'))
+
+    # ========== CONTRÔLE D'ACCÈS POUR LES AGENTS ==========
+    if est_agent:
+        # Vérifier que l'employé a une succursale assignée
+        if not current_user.succursale_id:
+            flash('⛔ Vous n\'êtes pas assigné à une succursale. Contactez l\'administration.', 'danger')
+            return redirect(url_for('employe_dashboard_generique'))
+
+        # Récupérer la succursale
+        succursale = db.session.get(Succursale, current_user.succursale_id)
+        if not succursale:
+            flash('⛔ Succursale introuvable', 'danger')
+            return redirect(url_for('employe_dashboard_generique'))
+    else:
+        succursale = None
+
+    def allowed_file(filename):
+        return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+    # ========== TRAITEMENT POST ==========
     if request.method == 'POST':
-        # ✅ AJOUTER CES LIGNES POUR VÉRIFIER L'ACTION
+        # ❌ IL MANQUE ÇA :
         action = request.form.get('action', '')
         if action != 'submit':
             flash('Action non reconnue', 'danger')
             return redirect(url_for('demande_pret'))
 
-        # ... le reste du code existant ...
-
-        print("🔥 ROUTE DEMANDE PRET EXECUTÉE")
-
-        print(f"👤 Utilisateur connecté: ID {current_user.id}, Rôle: {current_user.role}, Fonction: {current_user.fonction}")
-
-        # ===== DÉTERMINER QUI EST L'UTILISATEUR =====
-        est_agent = current_user.role in ['admin', 'super_admin', 'direction', 'agent_credit', 'conseiller', 'employe']
-        est_client = hasattr(current_user, 'client_profile') and current_user.client_profile is not None
-
-        print(f"📋 Type d'utilisateur: {'Agent' if est_agent else 'Client' if est_client else 'Autre'}")
-
-        # ===== RECHERCHE DU CLIENT =====
-        client = None
-        client_id = request.args.get('client_id') or request.form.get('client_id')
-
-        # ✅ AJOUTER CETTE VÉRIFICATION
-        if client and not client.terms_accepted:
-            flash('⚠️ Vous devez d\'abord accepter les conditions générales avant de soumettre une demande.', 'warning')
-            return redirect(url_for('demande_pret', client_id=client.id))
-
-        # CAS 1: L'utilisateur est un AGENT - il cherche un client
-        if est_agent:
-            if client_id:
-                client = db.session.get(Client, client_id)
-                if client:
-                    print(f"✅ Agent - Client trouvé par ID: {client.id} - {client.prenom} {client.nom}")
-
-            # Recherche par téléphone
-            if not client:
-                telephone = request.args.get('telephone') or request.form.get('telephone')
-                if telephone:
-                    telephone_propre = re.sub(r'[\s\-\(\)]', '', telephone)
-                    client = Client.query.filter(
-                        (Client.telephone == telephone) |
-                        (Client.telephone == telephone_propre)
-                    ).first()
-                    if client:
-                        print(f"✅ Agent - Client trouvé par téléphone: {client.id}")
-
-            # Recherche par email
-            if not client:
-                email = request.args.get('email') or request.form.get('email')
-                if email:
-                    client = Client.query.filter_by(email=email).first()
-                    if client:
-                        print(f"✅ Agent - Client trouvé par email: {client.id}")
-
-            # Si toujours pas de client, on affiche la liste
-            if not client:
-                print("ℹ️ Agent - Aucun client spécifié, affichage de la liste")
-
-        # CAS 2: L'utilisateur est un CLIENT - il fait sa propre demande
-        elif est_client:
-            client = current_user.client_profile
-            print(f"✅ Client connecté: {client.id} - {client.prenom} {client.nom}")
-
-        # CAS 3: Autre type d'utilisateur
-        else:
-            flash("Accès non autorisé", "danger")
-            return redirect(url_for('main.accueil'))
-
-        # ========== CONTRÔLE D'ACCÈS POUR LES AGENTS ==========
-        if est_agent:
-            # Vérifier que l'employé a une succursale assignée
-            if not current_user.succursale_id:
-                flash('⛔ Vous n\'êtes pas assigné à une succursale. Contactez l\'administration.', 'danger')
-                return redirect(url_for('employe_dashboard_generique'))
-
-            # Récupérer la succursale
-            succursale = db.session.get(Succursale, current_user.succursale_id)
-            if not succursale:
-                flash('⛔ Succursale introuvable', 'danger')
-                return redirect(url_for('employe_dashboard_generique'))
-        else:
-            succursale = None
-
-        def allowed_file(filename):
-            return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-        # ========== TRAITEMENT POST ==========
-        if request.method == 'POST':
-
-            # ✅ SAUVEGARDER LES DONNÉES DANS LA SESSION AVANT EMAIL
-            session['pret_data'] = request.form.to_dict()
-
-            # ✅ 1. RÉCUPÉRER TOUTES LES VALEURS AU DÉBUT
-            client_id_param = request.form.get('client_id') or request.args.get('client_id')
-            telephone_param = request.form.get('telephone') or request.args.get('telephone')
-            email_param = request.form.get('email') or request.args.get('email')
-
-            # ✅ 2. Récupérer les valeurs du formulaire AVANT les validations
-            nom_form = request.form.get('nom', '')
-            prenom_form = request.form.get('prenom', '')
-            email_form = request.form.get('email', '').strip().lower()
-            telephone_form = request.form.get('telephone', '').strip()
-            cin_nif_form = request.form.get('cin_nif', '').strip().upper()
-            montant_form = request.form.get('montant_demande', '0')
-            duree_form = request.form.get('duree', '0')
-
-            print(f"📝 Données POST reçues: email={email_form}, tel={telephone_form}, montant={montant_form}")
-
-            # Récupérer l'email
-            email_verif = request.form.get('email', '').strip().lower()
-            client_verif = Client.query.filter_by(email=email_verif).first()
-
-            # Si client existe mais n'a pas signé
-            if client_verif and not client_verif.terms_accepted:
-                # RENVOYER L'EMAIL
-                envoyer_email_conditions(client_verif)
-                flash('⚠️ Vous devez d\'abord accepter les conditions générales. Un email vient de vous être renvoyé.',
-                      'warning')
-                return redirect(url_for('demande_pret', client_id=client_verif.id))
-
-            if not client:
-                flash("Veuillez sélectionner un client d'abord", "danger")
-                return redirect(url_for('demande_pret',
-                                        client_id=client_id_param,
-                                        telephone=telephone_param,
-                                        email=email_param))
-
-
-            try:
-                print("1. Avant validation")
-                flash("1. Avant validation")
-
-                # Protection CSRF (si vous utilisez Flask-WTF)
-                # csrf.protect()
-
-                # ========== VALIDATION DES DONNÉES ==========
-                required_fields = [
-                    'nom', 'prenom', 'sexe', 'date_naissance', 'lieu_naissance',
-                    'nationalite', 'cin_nif', 'telephone', 'email', 'adresse',
-                    'commune', 'departement', 'duree_adresse', 'etat_civil',
-                    'nb_enfants', 'profession', 'entreprise', 'adresse_travail',
-                    'revenu_mensuel', 'montant_demande', 'duree', 'objet', 'type_pret',
-                    'date_demande'
-                ]
-
-                # ✅ AJOUTEZ CE LOG POUR VOIR TOUS LES CHAMPS REÇUS
-                print("📋 Tous les champs reçus :")
-                for field in required_fields:
-                    value = request.form.get(field)
-                    if not value or not value.strip():
-                        print(f"❌ Champ manquant : {field}")
-                        flash(f'⛔ Le champ {field} est requis', 'danger')
-                        # ✅ CORRECTION : Rediriger avec les bons paramètres
-                        return redirect(url_for('demande_pret', client_id=client.id))
-
-
-                for field in required_fields:
-                    if not request.form.get(field):
-                        print(f"❌ Champ manquant : {field}")
-                        flash(f'⛔ Le champ {field} est requis', 'danger')
-                        return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
-
-                # ========== VALIDATION SPÉCIFIQUE ==========
-                email = request.form.get('email').strip().lower()
-                if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-                    flash('⛔ Format d\'email invalide', 'danger')
-                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
-
-                telephone = request.form.get('telephone').strip()
-                if not re.match(r'^(?:\+509|0)?[2-9]\d{7}$', telephone):
-                    flash('⛔ Format de téléphone invalide (ex: +509 34 56 7890)', 'danger')
-                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
-
-                cin_nif = request.form.get('cin_nif').strip().upper()
-                if not re.match(r'^[0-9A-Z-]{6,20}$', cin_nif):
-                    flash('⛔ Format de CIN/NIF invalide', 'danger')
-                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
-
-                # ========== GESTION DES PHOTOS ==========
-                photo_face = request.files.get('photo_face')
-                photo_dos = request.files.get('photo_dos')
-
-                client_upload_folder = os.path.join(app.root_path, UPLOAD_FOLDER)
-                os.makedirs(client_upload_folder, exist_ok=True)
-
-                photo_face_filename = None
-                if photo_face and photo_face.filename:
-                    if not allowed_file(photo_face.filename):
-                        flash('❌ Format de photo face invalide. Utilisez PNG, JPG ou JPEG.', 'danger')
-                        return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
-
-                    photo_face.seek(0, os.SEEK_END)
-                    file_size = photo_face.tell()
-                    photo_face.seek(0)
-
-                    if file_size > MAX_FILE_SIZE:
-                        flash('❌ Photo face trop volumineuse. Maximum 5 Mo.', 'danger')
-                        return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
-
-                    original_filename = secure_filename(photo_face.filename)
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    photo_face_filename = f"face_{timestamp}_{original_filename}"
-                    photo_face.save(os.path.join(client_upload_folder, photo_face_filename))
-
-                photo_dos_filename = None
-                if photo_dos and photo_dos.filename:
-                    if not allowed_file(photo_dos.filename):
-                        flash('❌ Format de photo dos invalide. Utilisez PNG, JPG ou JPEG.', 'danger')
-                        return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
-
-                    photo_dos.seek(0, os.SEEK_END)
-                    file_size = photo_dos.tell()
-                    photo_dos.seek(0)
-
-                    if file_size > MAX_FILE_SIZE:
-                        flash('❌ Photo dos trop volumineuse. Maximum 5 Mo.', 'danger')
-                        return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
-
-                    original_filename = secure_filename(photo_dos.filename)
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    photo_dos_filename = f"dos_{timestamp}_{original_filename}"
-                    photo_dos.save(os.path.join(client_upload_folder, photo_dos_filename))
-
-                # Validation des montants
-                try:
-                    revenu_mensuel = float(request.form.get('revenu_mensuel'))
-                    montant_demande = float(request.form.get('montant_demande'))
-
-                    if revenu_mensuel <= 0:
-                        flash("⛔ Le revenu mensuel doit être supérieur à 0", "danger")
-                        return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
-
-                    if montant_demande < 10000 or montant_demande > 10_000_000_000:
-                        flash('⛔ Le montant demandé doit être entre 10 000 et 10 000 000 000 Gdes', 'danger')
-                        return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
-
-                    duree = int(request.form.get('duree'))
-                    taux_annuel = float(request.form.get('taux_interet', 12))
-
-                    if duree < 3 or duree > 60:
-                        flash('⛔ La durée doit être entre 3 et 60 mois', 'danger')
-                        return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
-
-                    # Calcul de la mensualité estimée
-                    taux_mensuel = taux_annuel / 100 / 12
-                    if taux_mensuel > 0:
-                        facteur = (1 + taux_mensuel) ** duree
-                        mensualite_estimee = montant_demande * taux_mensuel * facteur / (facteur - 1)
-                    else:
-                        mensualite_estimee = montant_demande / duree
-
-                    ratio_endettement = (mensualite_estimee / revenu_mensuel) * 100
-
-                    if ratio_endettement > 35:
-                        flash(f'⚠️ Ratio d\'endettement trop élevé ({ratio_endettement:.1f}% > 35%). Prêt refusé.',
-                              'danger')
-                        return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
-
-                except ValueError as e:
-                    flash('⛔ Valeurs numériques invalides', 'danger')
-                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
-
-                # Validation date de naissance
-                date_naissance = datetime.strptime(
-                    request.form.get('date_naissance'),
-                    '%Y-%m-%d'
-                ).date()
-
-                aujourd_hui = datetime.now().date()
-
-                if date_naissance > aujourd_hui:
-                    flash('⛔ La date de naissance ne peut pas être dans le futur.', 'danger')
-                    return redirect(url_for(
-                        'demande_pret',
-                        client_id=client_id,
-                        telephone=telephone,
-                        email=email
-                    ))
-
-                age = aujourd_hui.year - date_naissance.year - (
-                        (aujourd_hui.month, aujourd_hui.day) <
-                        (date_naissance.month, date_naissance.day)
-                )
-
-                if age < 18:
-                    flash('⛔ Le client doit avoir au moins 18 ans.', 'danger')
-                    return redirect(url_for(
-                        'demande_pret',
-                        client_id=client_id,
-                        telephone=telephone,
-                        email=email
-                    ))
-
-                if age > 100:
-                    flash('⛔ La date de naissance semble invalide.', 'danger')
-                    return redirect(url_for(
-                        'demande_pret',
-                        client_id=client_id,
-                        telephone=telephone,
-                        email=email
-                    ))
-
-
-                # ========== VÉRIFICATION CLIENT EXISTANT ==========
-                client_existant = Client.query.filter(
-                    (Client.cin_nif == cin_nif) | (Client.email == email)
-                ).first()
-
-                if client_existant:
-                    if est_agent and client_existant.succursale_id != current_user.succursale_id:
-                        flash('⛔ Ce client appartient à une autre succursale', 'danger')
-                        return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
-
-                    client = client_existant
-
-                    # 🔥 AJOUTE TOUTE CETTE PARTIE POUR METTRE À JOUR
-                    # Mise à jour des informations personnelles
-                    client.nom = request.form.get('nom').strip().upper()
-                    client.prenom = request.form.get('prenom').strip().capitalize()
-                    client.sexe = request.form.get('sexe')
-                    client.date_naissance = date_naissance
-                    client.lieu_naissance = request.form.get('lieu_naissance', '').strip() or None
-                    client.nationalite = request.form.get('nationalite')
-                    client.autre_nationalite = request.form.get('autre_nationalite') if request.form.get(
-                        'nationalite') == 'Autre' else None
-                    client.cin_nif = cin_nif if cin_nif else None
-                    client.telephone = telephone
-                    client.email = email
-
-                    # Mise à jour de l'adresse
-                    client.adresse = request.form.get('adresse', '').strip()
-                    client.commune = request.form.get('commune', '').strip() or None
-                    client.departement = request.form.get('departement') or None
-                    client.duree_adresse = int(request.form.get('duree_adresse', 0))
-
-                    # Mise à jour situation familiale
-                    client.etat_civil = request.form.get('etat_civil') or None
-                    client.nom_conjoint = request.form.get('nom_conjoint') if request.form.get('etat_civil') in ['marie',
-                                                                                                                 'union_libre'] else None
-                    client.nb_enfants = int(request.form.get('nb_enfants', 0))
-
-                    # Mise à jour profession
-                    client.profession = request.form.get('profession', '').strip()
-                    client.entreprise = request.form.get('entreprise', '').strip() or None
-                    client.adresse_travail = request.form.get('adresse_travail', '').strip() or None
-                    client.tel_travail = request.form.get('tel_travail') or None
-                    client.revenu_mensuel = revenu_mensuel
-                    client.autres_revenus = request.form.get('autres_revenus') or None
-                    client.date_creation = datetime.now()  # ← AJOUTEZ CETTE LIGNE
-
-                    db.session.commit()  # ← TRÈS IMPORTANT !
-                    print("✅ Client existant mis à jour")
-
-                    print("1,1. Avant creation client")
-
-                    flash("✅ Client existant mis à jour")
-                else:
-                    # ========== CRÉATION NOUVEAU CLIENT ==========
-                    client = Client(
-                        employe_id=current_user.id if est_agent else None,
-                        nom=request.form.get('nom').strip().upper(),
-                        prenom=request.form.get('prenom').strip().capitalize(),
-                        sexe=request.form.get('sexe'),
-                        date_naissance=date_naissance,
-                        lieu_naissance=request.form.get('lieu_naissance').strip(),
-                        nationalite=request.form.get('nationalite'),
-                        autre_nationalite=request.form.get('autre_nationalite') if request.form.get(
-                            'nationalite') == 'Autre' else None,
-                        cin_nif=cin_nif,
-                        telephone=telephone,
-                        email=email,
-                        adresse=request.form.get('adresse').strip(),
-                        commune=request.form.get('commune').strip(),
-                        departement=request.form.get('departement'),
-                        duree_adresse=int(request.form.get('duree_adresse')),
-                        etat_civil=request.form.get('etat_civil'),
-                        nom_conjoint=request.form.get('nom_conjoint') if request.form.get('etat_civil') in ['marie',
-                                                                                                            'union_libre'] else None,
-                        nb_enfants=int(request.form.get('nb_enfants')),
-                        profession=request.form.get('profession').strip(),
-                        entreprise=request.form.get('entreprise').strip(),
-                        adresse_travail=request.form.get('adresse_travail').strip(),
-                        tel_travail=request.form.get('tel_travail'),
-                        revenu_mensuel=revenu_mensuel,
-                        autres_revenus=request.form.get('autres_revenus'),
-                        succursale_id=current_user.succursale_id if est_agent else None,
-                        compte_actif=True,
-                        email_confirme=False,
-                        terms_accepted=False
-                    )
-
-                    db.session.add(client)
-                    # db.session.commit()  # ← AJOUTEZ CETTE LIGNE
-                    db.session.flush()
-
-                    flash("Client créé avec succès", "success")
-
-                print(f"🔍 Vérification terms_accepted: {client.terms_accepted}")
-
-                print("========================================")
-                print("DEBUG CREATION PRET")
-                print("CLIENT ID :", client.id)
-                print("CLIENT :", client.nom, client.prenom)
-                print("TERMS ACCEPTED :", client.terms_accepted)
-                print("EMAIL :", client.email)
-                print("MONTANT :", montant_demande)
-                print("DUREE :", duree)
-                print("SUCCURSALE :", client.succursale_id)
-                print("========================================")
-
-                # 2. ENSUITE vérifier si email doit être envoyé
-                if not client.terms_accepted:
-                    session['pret_data'] = request.form.to_dict()  # 🔥 AJOUT CRUCIAL
-                    (envoyer_email_demande_pret(
-                        client))
-
-                    flash('⚠️ Vérifiez votre email et signez les conditions.', 'warning')
+        # ✅ SAUVEGARDER LES DONNÉES DANS LA SESSION AVANT EMAIL
+        session['pret_data'] = request.form.to_dict()
+
+        # ✅ 1. RÉCUPÉRER TOUTES LES VALEURS AU DÉBUT
+        client_id_param = request.form.get('client_id') or request.args.get('client_id')
+        telephone_param = request.form.get('telephone') or request.args.get('telephone')
+        email_param = request.form.get('email') or request.args.get('email')
+
+        # ✅ 2. Récupérer les valeurs du formulaire AVANT les validations
+        nom_form = request.form.get('nom', '')
+        prenom_form = request.form.get('prenom', '')
+        email_form = request.form.get('email', '').strip().lower()
+        telephone_form = request.form.get('telephone', '').strip()
+        cin_nif_form = request.form.get('cin_nif', '').strip().upper()
+        montant_form = request.form.get('montant_demande', '0')
+        duree_form = request.form.get('duree', '0')
+
+        print(f"📝 Données POST reçues: email={email_form}, tel={telephone_form}, montant={montant_form}")
+
+        # Récupérer l'email
+        email_verif = request.form.get('email', '').strip().lower()
+        client_verif = Client.query.filter_by(email=email_verif).first()
+
+        # Si client existe mais n'a pas signé
+        if client_verif and not client_verif.terms_accepted:
+            # RENVOYER L'EMAIL
+            envoyer_email_conditions(client_verif)
+            flash('⚠️ Vous devez d\'abord accepter les conditions générales. Un email vient de vous être renvoyé.',
+                  'warning')
+            return redirect(url_for('demande_pret', client_id=client_verif.id))
+
+        if not client:
+            flash("Veuillez sélectionner un client d'abord", "danger")
+            return redirect(url_for('demande_pret',
+                                    client_id=client_id_param,
+                                    telephone=telephone_param,
+                                    email=email_param))
+
+
+        try:
+            print("1. Avant validation")
+            flash("1. Avant validation")
+
+            # Protection CSRF (si vous utilisez Flask-WTF)
+            # csrf.protect()
+
+            # ========== VALIDATION DES DONNÉES ==========
+            required_fields = [
+                'nom', 'prenom', 'sexe', 'date_naissance', 'lieu_naissance',
+                'nationalite', 'cin_nif', 'telephone', 'email', 'adresse',
+                'commune', 'departement', 'duree_adresse', 'etat_civil',
+                'nb_enfants', 'profession', 'entreprise', 'adresse_travail',
+                'revenu_mensuel', 'montant_demande', 'duree', 'objet', 'type_pret',
+                'date_demande'
+            ]
+
+            # ✅ AJOUTEZ CE LOG POUR VOIR TOUS LES CHAMPS REÇUS
+            print("📋 Tous les champs reçus :")
+            for field in required_fields:
+                value = request.form.get(field)
+                if not value or not value.strip():
+                    print(f"❌ Champ manquant : {field}")
+                    flash(f'⛔ Le champ {field} est requis', 'danger')
+                    # ✅ CORRECTION : Rediriger avec les bons paramètres
                     return redirect(url_for('demande_pret', client_id=client.id))
 
-                print("========================================")
-                print("🚨 JE VAIS CREER LE PRET")
-                print("client.id =", client.id)
-                print("montant =", montant_demande)
-                print("duree =", duree)
-                print("type =", request.form.get('type_pret'))
-                print("objet =", request.form.get('objet'))
-                print("succursale =", current_user.succursale_id)
-                print("========================================")
 
+            for field in required_fields:
+                if not request.form.get(field):
+                    print(f"❌ Champ manquant : {field}")
+                    flash(f'⛔ Le champ {field} est requis', 'danger')
+                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-                flash("3. Avant création prêt")
+            # ========== VALIDATION SPÉCIFIQUE ==========
+            email = request.form.get('email').strip().lower()
+            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+                flash('⛔ Format d\'email invalide', 'danger')
+                return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
+            telephone = request.form.get('telephone').strip()
+            if not re.match(r'^(?:\+509|0)?[2-9]\d{7}$', telephone):
+                flash('⛔ Format de téléphone invalide (ex: +509 34 56 7890)', 'danger')
+                return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-                # ========== CRÉATION DE LA DEMANDE DE PRÊT ==========
-                # Ajouter cette ligne juste avant la création du prêt
-                numero_pret_unique = generer_numero_pret()
-                montant_interet = montant_demande * (taux_annuel / 100) * (duree / 12)
-                montant_total = montant_demande + montant_interet
-                mensualite = montant_total / duree if duree > 0 else montant_total
+            cin_nif = request.form.get('cin_nif').strip().upper()
+            if not re.match(r'^[0-9A-Z-]{6,20}$', cin_nif):
+                flash('⛔ Format de CIN/NIF invalide', 'danger')
+                return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
+            # ========== GESTION DES PHOTOS ==========
+            photo_face = request.files.get('photo_face')
+            photo_dos = request.files.get('photo_dos')
 
-                nouveau_pret = Pret(
-                    numero_pret=numero_pret_unique,  # ← LIGNE À AJOUTER
-                    client_id=client.id,
-                    agent_id=current_user.id if est_agent else None,
-                    montant=montant_demande,
-                    duree_mois=duree,
-                    motif=request.form.get('objet'),
-                    type_pret=request.form.get('type_pret'),
-                    autre_type_pret=request.form.get('autre_type_pret') if request.form.get(
-                        'type_pret') == 'autre' else None,
-                    garantie=request.form.get('nom_garant') if request.form.get('a_garant') == 'oui' else None,
+            client_upload_folder = os.path.join(app.root_path, UPLOAD_FOLDER)
+            os.makedirs(client_upload_folder, exist_ok=True)
 
-                    succursale_id=current_user.succursale_id if est_agent else client.succursale_id,
+            photo_face_filename = None
+            if photo_face and photo_face.filename:
+                if not allowed_file(photo_face.filename):
+                    flash('❌ Format de photo face invalide. Utilisez PNG, JPG ou JPEG.', 'danger')
+                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-                    info_garant=json.dumps({
-                        'nom': request.form.get('nom_garant'),
-                        'telephone': request.form.get('tel_garant'),
-                        'adresse': request.form.get('adresse_garant'),
-                        'relation': request.form.get('relation_garant'),
-                        'profession': request.form.get('profession_garant')
-                    }) if request.form.get('a_garant') == 'oui' else None,
-                    reference1=json.dumps({
-                        'nom': request.form.get('ref1_nom'),
-                        'telephone': request.form.get('ref1_tel')
-                    }, ensure_ascii=False),
+                photo_face.seek(0, os.SEEK_END)
+                file_size = photo_face.tell()
+                photo_face.seek(0)
 
-                    reference2=json.dumps({
-                        'nom': request.form.get('ref2_nom'),
-                        'telephone': request.form.get('ref2_tel')
-                    },  ensure_ascii=False),
+                if file_size > MAX_FILE_SIZE:
+                    flash('❌ Photo face trop volumineuse. Maximum 5 Mo.', 'danger')
+                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-                    signature=request.form.get('signature'),
-                    mensualite=round(mensualite, 2),
-                    montant_interet=round(montant_interet, 2),
-                    montant_total=round(montant_total, 2),
-                    taux_interet=taux_annuel,
-                    statut='en_attente',
-                    numero_dossier=request.form.get('num_dossier')
+                original_filename = secure_filename(photo_face.filename)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                photo_face_filename = f"face_{timestamp}_{original_filename}"
+                photo_face.save(os.path.join(client_upload_folder, photo_face_filename))
 
-                )
+            photo_dos_filename = None
+            if photo_dos and photo_dos.filename:
+                if not allowed_file(photo_dos.filename):
+                    flash('❌ Format de photo dos invalide. Utilisez PNG, JPG ou JPEG.', 'danger')
+                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-                db.session.add(nouveau_pret)
-                db.session.flush()  # Pour obtenir l'ID
+                photo_dos.seek(0, os.SEEK_END)
+                file_size = photo_dos.tell()
+                photo_dos.seek(0)
 
-                envoyer_email_demande_pret(client, nouveau_pret)
+                if file_size > MAX_FILE_SIZE:
+                    flash('❌ Photo dos trop volumineuse. Maximum 5 Mo.', 'danger')
+                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-                print("3,1. création prêt")
-                flash("3,1. création prêt")
+                original_filename = secure_filename(photo_dos.filename)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                photo_dos_filename = f"dos_{timestamp}_{original_filename}"
+                photo_dos.save(os.path.join(client_upload_folder, photo_dos_filename))
 
-                # Suspendre le compte du client
-                if hasattr(client, 'suspendre_compte_pret'):
-                    client.suspendre_compte_pret()
+            # Validation des montants
+            try:
+                revenu_mensuel = float(request.form.get('revenu_mensuel'))
+                montant_demande = float(request.form.get('montant_demande'))
 
-                # Journalisation
-                journal_entry = Journal(
-                    employe_id=current_user.id,
-                    action='CREATION_PRET',
-                    details=f"Création demande prêt {nouveau_pret.numero_dossier} pour client {client.id}",
-                    ip_address=request.remote_addr,
-                    user_agent=request.user_agent.string,
-                    client_id=client.id,
-                    pret_id=nouveau_pret.id
-                )
-                db.session.add(journal_entry)
+                if revenu_mensuel <= 0:
+                    flash("⛔ Le revenu mensuel doit être supérieur à 0", "danger")
+                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-                db.session.commit()
+                if montant_demande < 10000 or montant_demande > 10_000_000_000:
+                    flash('⛔ Le montant demandé doit être entre 10 000 et 10 000 000 000 Gdes', 'danger')
+                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-                # session['pret_data'] = request.form.to_dict()
+                duree = int(request.form.get('duree'))
+                taux_annuel = float(request.form.get('taux_interet', 12))
 
-                print(f"✅ Commit effectué - Prêt #{nouveau_pret.id} créé")
-                flash(f"✅ Commit effectué - Prêt #{nouveau_pret.id} créé")
+                if duree < 3 or duree > 60:
+                    flash('⛔ La durée doit être entre 3 et 60 mois', 'danger')
+                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-                # envoyer_notification_pret(client, nouveau_pret)
-                notifier_directeurs_demande_pret(nouveau_pret)
-
-                print("🔔 Notifications envoyées aux directeurs")
-
-                print("🔔 ENVOI NOTIFICATION AU DIRECTEUR")
-                print("EMAIL:", os.getenv("MAIL_USERNAME"))
-                print("PASSWORD:", os.getenv("MAIL_PASSWORD"))
-
-                flash("🔔 ENVOI NOTIFICATION AU DIRECTEUR")
-
-
-                # Redirection selon le rôle
-                if est_agent:
-                    return redirect(url_for('agent_credit_dashboard', succursale_code=current_user.succursale.code))
+                # Calcul de la mensualité estimée
+                taux_mensuel = taux_annuel / 100 / 12
+                if taux_mensuel > 0:
+                    facteur = (1 + taux_mensuel) ** duree
+                    mensualite_estimee = montant_demande * taux_mensuel * facteur / (facteur - 1)
                 else:
-                    return redirect(url_for('client_dashboard'))
-                    flash("redirection")
+                    mensualite_estimee = montant_demande / duree
 
-            except Exception as e:
-                db.session.rollback()
-                print("❌ ERREUR DÉTAILLÉE :")
-                import traceback
-                traceback.print_exc()
-                flash(f'⛔ ERREUR : {str(e)}', 'danger')
-                return redirect(url_for('demande_pret'))
+                ratio_endettement = (mensualite_estimee / revenu_mensuel) * 100
 
+                if ratio_endettement > 35:
+                    flash(f'⚠️ Ratio d\'endettement trop élevé ({ratio_endettement:.1f}% > 35%). Prêt refusé.',
+                          'danger')
+                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-        print("❌ booummm :")
-        flash("attent ")
+            except ValueError as e:
+                flash('⛔ Valeurs numériques invalides', 'danger')
+                return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-        # ========== REQUÊTE GET ==========
-        # Préparer la liste des clients pour les agents
-        clients_list = []
-        stats = {}
+            # Validation date de naissance
+            date_naissance = datetime.strptime(
+                request.form.get('date_naissance'),
+                '%Y-%m-%d'
+            ).date()
 
-        # clients_paginated = None
+            aujourd_hui = datetime.now().date()
 
-        if est_agent and current_user.succursale_id:
-            page = request.args.get('page', 1, type=int)
-            per_page = 20
+            if date_naissance > aujourd_hui:
+                flash('⛔ La date de naissance ne peut pas être dans le futur.', 'danger')
+                return redirect(url_for(
+                    'demande_pret',
+                    client_id=client_id,
+                    telephone=telephone,
+                    email=email
+                ))
 
-            clients_paginated = Client.query.filter_by(
-                succursale_id=current_user.succursale_id,
-                compte_actif=True
-            ).order_by(
-                Client.nom,
-                Client.prenom
-            ).paginate(
-                page=page,
-                per_page=per_page,
-                error_out=False
+            age = aujourd_hui.year - date_naissance.year - (
+                    (aujourd_hui.month, aujourd_hui.day) <
+                    (date_naissance.month, date_naissance.day)
             )
 
-            clients_list = clients_paginated.items
+            if age < 18:
+                flash('⛔ Le client doit avoir au moins 18 ans.', 'danger')
+                return redirect(url_for(
+                    'demande_pret',
+                    client_id=client_id,
+                    telephone=telephone,
+                    email=email
+                ))
 
-            clients_ids_subquery = db.session.query(Client.id).filter_by(
-                succursale_id=current_user.succursale_id
+            if age > 100:
+                flash('⛔ La date de naissance semble invalide.', 'danger')
+                return redirect(url_for(
+                    'demande_pret',
+                    client_id=client_id,
+                    telephone=telephone,
+                    email=email
+                ))
+
+
+            # ========== VÉRIFICATION CLIENT EXISTANT ==========
+            client_existant = Client.query.filter(
+                (Client.cin_nif == cin_nif) | (Client.email == email)
+            ).first()
+
+            if client_existant:
+                if est_agent and client_existant.succursale_id != current_user.succursale_id:
+                    flash('⛔ Ce client appartient à une autre succursale', 'danger')
+                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
+
+                client = client_existant
+
+                # 🔥 AJOUTE TOUTE CETTE PARTIE POUR METTRE À JOUR
+                # Mise à jour des informations personnelles
+                client.nom = request.form.get('nom').strip().upper()
+                client.prenom = request.form.get('prenom').strip().capitalize()
+                client.sexe = request.form.get('sexe')
+                client.date_naissance = date_naissance
+                client.lieu_naissance = request.form.get('lieu_naissance', '').strip() or None
+                client.nationalite = request.form.get('nationalite')
+                client.autre_nationalite = request.form.get('autre_nationalite') if request.form.get(
+                    'nationalite') == 'Autre' else None
+                client.cin_nif = cin_nif if cin_nif else None
+                client.telephone = telephone
+                client.email = email
+
+                # Mise à jour de l'adresse
+                client.adresse = request.form.get('adresse', '').strip()
+                client.commune = request.form.get('commune', '').strip() or None
+                client.departement = request.form.get('departement') or None
+                client.duree_adresse = int(request.form.get('duree_adresse', 0))
+
+                # Mise à jour situation familiale
+                client.etat_civil = request.form.get('etat_civil') or None
+                client.nom_conjoint = request.form.get('nom_conjoint') if request.form.get('etat_civil') in ['marie',
+                                                                                                             'union_libre'] else None
+                client.nb_enfants = int(request.form.get('nb_enfants', 0))
+
+                # Mise à jour profession
+                client.profession = request.form.get('profession', '').strip()
+                client.entreprise = request.form.get('entreprise', '').strip() or None
+                client.adresse_travail = request.form.get('adresse_travail', '').strip() or None
+                client.tel_travail = request.form.get('tel_travail') or None
+                client.revenu_mensuel = revenu_mensuel
+                client.autres_revenus = request.form.get('autres_revenus') or None
+                client.date_creation = datetime.now()  # ← AJOUTEZ CETTE LIGNE
+
+                db.session.commit()  # ← TRÈS IMPORTANT !
+                print("✅ Client existant mis à jour")
+
+                print("1,1. Avant creation client")
+
+                flash("✅ Client existant mis à jour")
+            else:
+                # ========== CRÉATION NOUVEAU CLIENT ==========
+                client = Client(
+                    employe_id=current_user.id if est_agent else None,
+                    nom=request.form.get('nom').strip().upper(),
+                    prenom=request.form.get('prenom').strip().capitalize(),
+                    sexe=request.form.get('sexe'),
+                    date_naissance=date_naissance,
+                    lieu_naissance=request.form.get('lieu_naissance').strip(),
+                    nationalite=request.form.get('nationalite'),
+                    autre_nationalite=request.form.get('autre_nationalite') if request.form.get(
+                        'nationalite') == 'Autre' else None,
+                    cin_nif=cin_nif,
+                    telephone=telephone,
+                    email=email,
+                    adresse=request.form.get('adresse').strip(),
+                    commune=request.form.get('commune').strip(),
+                    departement=request.form.get('departement'),
+                    duree_adresse=int(request.form.get('duree_adresse')),
+                    etat_civil=request.form.get('etat_civil'),
+                    nom_conjoint=request.form.get('nom_conjoint') if request.form.get('etat_civil') in ['marie',
+                                                                                                        'union_libre'] else None,
+                    nb_enfants=int(request.form.get('nb_enfants')),
+                    profession=request.form.get('profession').strip(),
+                    entreprise=request.form.get('entreprise').strip(),
+                    adresse_travail=request.form.get('adresse_travail').strip(),
+                    tel_travail=request.form.get('tel_travail'),
+                    revenu_mensuel=revenu_mensuel,
+                    autres_revenus=request.form.get('autres_revenus'),
+                    succursale_id=current_user.succursale_id if est_agent else None,
+                    compte_actif=True,
+                    email_confirme=False,
+                    terms_accepted=False
+                )
+
+                db.session.add(client)
+                # db.session.commit()  # ← AJOUTEZ CETTE LIGNE
+                db.session.flush()
+
+                flash("Client créé avec succès", "success")
+
+            print(f"🔍 Vérification terms_accepted: {client.terms_accepted}")
+
+            print("========================================")
+            print("DEBUG CREATION PRET")
+            print("CLIENT ID :", client.id)
+            print("CLIENT :", client.nom, client.prenom)
+            print("TERMS ACCEPTED :", client.terms_accepted)
+            print("EMAIL :", client.email)
+            print("MONTANT :", montant_demande)
+            print("DUREE :", duree)
+            print("SUCCURSALE :", client.succursale_id)
+            print("========================================")
+
+            # 2. ENSUITE vérifier si email doit être envoyé
+            if not client.terms_accepted:
+                session['pret_data'] = request.form.to_dict()  # 🔥 AJOUT CRUCIAL
+                (envoyer_email_demande_pret(
+                    client))
+
+                flash('⚠️ Vérifiez votre email et signez les conditions.', 'warning')
+                return redirect(url_for('demande_pret', client_id=client.id))
+
+            print("========================================")
+            print("🚨 JE VAIS CREER LE PRET")
+            print("client.id =", client.id)
+            print("montant =", montant_demande)
+            print("duree =", duree)
+            print("type =", request.form.get('type_pret'))
+            print("objet =", request.form.get('objet'))
+            print("succursale =", current_user.succursale_id)
+            print("========================================")
+
+
+            flash("3. Avant création prêt")
+
+
+            # ========== CRÉATION DE LA DEMANDE DE PRÊT ==========
+            # Ajouter cette ligne juste avant la création du prêt
+            numero_pret_unique = generer_numero_pret()
+            montant_interet = montant_demande * (taux_annuel / 100) * (duree / 12)
+            montant_total = montant_demande + montant_interet
+            mensualite = montant_total / duree if duree > 0 else montant_total
+
+
+            nouveau_pret = Pret(
+                numero_pret=numero_pret_unique,  # ← LIGNE À AJOUTER
+                client_id=client.id,
+                agent_id=current_user.id if est_agent else None,
+                montant=montant_demande,
+                duree_mois=duree,
+                motif=request.form.get('objet'),
+                type_pret=request.form.get('type_pret'),
+                autre_type_pret=request.form.get('autre_type_pret') if request.form.get(
+                    'type_pret') == 'autre' else None,
+                garantie=request.form.get('nom_garant') if request.form.get('a_garant') == 'oui' else None,
+
+                succursale_id=current_user.succursale_id if est_agent else client.succursale_id,
+
+                info_garant=json.dumps({
+                    'nom': request.form.get('nom_garant'),
+                    'telephone': request.form.get('tel_garant'),
+                    'adresse': request.form.get('adresse_garant'),
+                    'relation': request.form.get('relation_garant'),
+                    'profession': request.form.get('profession_garant')
+                }) if request.form.get('a_garant') == 'oui' else None,
+                reference1=json.dumps({
+                    'nom': request.form.get('ref1_nom'),
+                    'telephone': request.form.get('ref1_tel')
+                }, ensure_ascii=False),
+
+                reference2=json.dumps({
+                    'nom': request.form.get('ref2_nom'),
+                    'telephone': request.form.get('ref2_tel')
+                },  ensure_ascii=False),
+
+                signature=request.form.get('signature'),
+                mensualite=round(mensualite, 2),
+                montant_interet=round(montant_interet, 2),
+                montant_total=round(montant_total, 2),
+                taux_interet=taux_annuel,
+                statut='en_attente',
+                numero_dossier=request.form.get('num_dossier')
+
             )
 
-            stats = {
-                'total_clients': Client.query.filter_by(
-                    succursale_id=current_user.succursale_id
-                ).count(),
-                'prets_actifs': Pret.query.filter(
-                    Pret.client_id.in_(clients_ids_subquery),
-                    Pret.statut.in_(['approuve', 'actif'])
-                ).count(),
-                'prets_attente': Pret.query.filter(
-                    Pret.client_id.in_(clients_ids_subquery),
-                    Pret.statut == 'en_attente'
-                ).count(),
-                'prets_refuses': Pret.query.filter(
-                    Pret.client_id.in_(clients_ids_subquery),
-                    Pret.statut == 'refuse'
-                ).count()
-            }
+            db.session.add(nouveau_pret)
+            db.session.flush()  # Pour obtenir l'ID
+
+            envoyer_email_demande_pret(client, nouveau_pret)
+
+            print("3,1. création prêt")
+            flash("3,1. création prêt")
+
+            # Suspendre le compte du client
+            if hasattr(client, 'suspendre_compte_pret'):
+                client.suspendre_compte_pret()
+
+            # Journalisation
+            journal_entry = Journal(
+                employe_id=current_user.id,
+                action='CREATION_PRET',
+                details=f"Création demande prêt {nouveau_pret.numero_dossier} pour client {client.id}",
+                ip_address=request.remote_addr,
+                user_agent=request.user_agent.string,
+                client_id=client.id,
+                pret_id=nouveau_pret.id
+            )
+            db.session.add(journal_entry)
+
+            db.session.commit()
+
+            # session['pret_data'] = request.form.to_dict()
+
+            print(f"✅ Commit effectué - Prêt #{nouveau_pret.id} créé")
+            flash(f"✅ Commit effectué - Prêt #{nouveau_pret.id} créé")
+
+            # envoyer_notification_pret(client, nouveau_pret)
+            notifier_directeurs_demande_pret(nouveau_pret)
+
+            print("🔔 Notifications envoyées aux directeurs")
+
+            print("🔔 ENVOI NOTIFICATION AU DIRECTEUR")
+            print("EMAIL:", os.getenv("MAIL_USERNAME"))
+            print("PASSWORD:", os.getenv("MAIL_PASSWORD"))
+
+            flash("🔔 ENVOI NOTIFICATION AU DIRECTEUR")
 
 
-        elif client and est_client:
-            stats = {
-                'total_prets': Pret.query.filter_by(
-                    client_id=client.id
-                ).count(),
-                'prets_actifs': Pret.query.filter(
-                    Pret.client_id == client.id,
-                    Pret.statut.in_(['en_attente', 'actif', 'approuve'])
-                ).count(),
-                'prets_attente': Pret.query.filter(
-                    Pret.client_id == client.id,
-                    Pret.statut == 'en_attente'
-                ).count(),
-                'montant_total': db.session.query(
-                    db.func.sum(Pret.montant)
-                ).filter_by(
-                    client_id=client.id
-                ).scalar() or 0
-            }
-            clients_paginated = None
+            # Redirection selon le rôle
+            if est_agent:
+                return redirect(url_for('agent_credit_dashboard', succursale_code=current_user.succursale.code))
+            else:
+                return redirect(url_for('client_dashboard'))
+                flash("redirection")
 
-        print("❌ bawww :")
-        flash("nou bon :")
+        except Exception as e:
+            db.session.rollback()
+            print("❌ ERREUR DÉTAILLÉE :")
+            import traceback
+            traceback.print_exc()
+            flash(f'⛔ ERREUR : {str(e)}', 'danger')
+            return redirect(url_for('demande_pret'))
 
-        # ⬇️⬇️⬇️ CES 3 LIGNES SORTIES DU elif ⬇️⬇️⬇️
-        form_data = {}
-        show_for_director = False
-        current_pret = None
 
-        # ⬇️⬇️⬇️ UN SEUL RETURN POUR TOUS LES CAS ⬇️⬇️⬇️
-        return render_template(
-            'prets/demande_pret.html',
-            client=client,
-            clients=clients_list,
-            pagination=clients_paginated if est_agent else None,
-            stats=stats,
-            succursale=succursale if est_agent else None,
-            est_agent=est_agent,
-            est_client=est_client,
-            now=datetime.now(),
-            form_data=form_data,
-            show_for_director=show_for_director,
-            pret=current_pret,
-            verifier_eligibilite_pret = verifier_eligibilite_pret  # ← AJOUTEZ CETTE LIGNE
+    print("❌ booummm :")
+    flash("attent ")
+
+    # ========== REQUÊTE GET ==========
+    # Préparer la liste des clients pour les agents
+    clients_list = []
+    stats = {}
+
+    # clients_paginated = None
+
+    if est_agent and current_user.succursale_id:
+        page = request.args.get('page', 1, type=int)
+        per_page = 20
+
+        clients_paginated = Client.query.filter_by(
+            succursale_id=current_user.succursale_id,
+            compte_actif=True
+        ).order_by(
+            Client.nom,
+            Client.prenom
+        ).paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
         )
+
+        clients_list = clients_paginated.items
+
+        clients_ids_subquery = db.session.query(Client.id).filter_by(
+            succursale_id=current_user.succursale_id
+        )
+
+        stats = {
+            'total_clients': Client.query.filter_by(
+                succursale_id=current_user.succursale_id
+            ).count(),
+            'prets_actifs': Pret.query.filter(
+                Pret.client_id.in_(clients_ids_subquery),
+                Pret.statut.in_(['approuve', 'actif'])
+            ).count(),
+            'prets_attente': Pret.query.filter(
+                Pret.client_id.in_(clients_ids_subquery),
+                Pret.statut == 'en_attente'
+            ).count(),
+            'prets_refuses': Pret.query.filter(
+                Pret.client_id.in_(clients_ids_subquery),
+                Pret.statut == 'refuse'
+            ).count()
+        }
+
+
+    elif client and est_client:
+        stats = {
+            'total_prets': Pret.query.filter_by(
+                client_id=client.id
+            ).count(),
+            'prets_actifs': Pret.query.filter(
+                Pret.client_id == client.id,
+                Pret.statut.in_(['en_attente', 'actif', 'approuve'])
+            ).count(),
+            'prets_attente': Pret.query.filter(
+                Pret.client_id == client.id,
+                Pret.statut == 'en_attente'
+            ).count(),
+            'montant_total': db.session.query(
+                db.func.sum(Pret.montant)
+            ).filter_by(
+                client_id=client.id
+            ).scalar() or 0
+        }
+        clients_paginated = None
+
+    print("❌ bawww :")
+    flash("nou bon :")
+
+    # ⬇️⬇️⬇️ CES 3 LIGNES SORTIES DU elif ⬇️⬇️⬇️
+    form_data = {}
+    show_for_director = False
+    current_pret = None
+
+    # ⬇️⬇️⬇️ UN SEUL RETURN POUR TOUS LES CAS ⬇️⬇️⬇️
+    return render_template(
+        'prets/demande_pret.html',
+        client=client,
+        clients=clients_list,
+        pagination=clients_paginated if est_agent else None,
+        stats=stats,
+        succursale=succursale if est_agent else None,
+        est_agent=est_agent,
+        est_client=est_client,
+        now=datetime.now(),
+        form_data=form_data,
+        show_for_director=show_for_director,
+        pret=current_pret,
+        verifier_eligibilite_pret = verifier_eligibilite_pret  # ← AJOUTEZ CETTE LIGNE
+    )
 
 
 @app.route('/clients/pret/<int:pret_id>', methods=['GET'])
