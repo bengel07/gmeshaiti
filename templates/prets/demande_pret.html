@@ -48,6 +48,9 @@
         <!-- PROTECTION CSRF -->
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+        <!-- AJOUTER CETTE LIGNE : -->
+        <input type="hidden" name="action" value="submit">
+
         <!-- 6️⃣ Informations du client -->
         <div class="card shadow mb-4">
             <div class="card-header bg-info text-white">
@@ -818,7 +821,7 @@
                             <i class="fas fa-times me-2"></i>Annuler
                         </a>
                         <!-- ✅ AJOUTEZ CE BOUTON -->
-                        <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
+                        <button type="submit" class="btn btn-success btn-lg" id="submitBtn" name="action" value="submit">
                             <i class="fas fa-save me-2"></i>Soumettre la demande
                         </button>
                         {% endif %}
@@ -1603,5 +1606,47 @@
               });
         }
     }
+
+    // ✅ AJOUTER CETTE FONCTION POUR CONFIRMER LA SOUMISSION
+    document.addEventListener('DOMContentLoaded', function() {
+        const submitBtn = document.getElementById('submitBtn');
+        const formPret = document.getElementById('formPret');
+
+        if (submitBtn && formPret) {
+            submitBtn.addEventListener('click', function(e) {
+                // Vérifier si tous les champs requis sont remplis
+                const requiredFields = formPret.querySelectorAll('[required]');
+                let allFilled = true;
+                let firstEmpty = null;
+
+                requiredFields.forEach(field => {
+                    if (!field.value || field.value.trim() === '') {
+                        allFilled = false;
+                        if (!firstEmpty) firstEmpty = field;
+                    }
+                });
+
+                if (!allFilled) {
+                    e.preventDefault();
+                    if (firstEmpty) {
+                        firstEmpty.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstEmpty.focus();
+                        firstEmpty.style.borderColor = 'red';
+                        setTimeout(() => {
+                            firstEmpty.style.borderColor = '';
+                        }, 3000);
+                    }
+                    alert('Veuillez remplir tous les champs obligatoires avant de soumettre.');
+                    return false;
+                }
+
+                // Demander confirmation
+                if (!confirm('Voulez-vous vraiment soumettre cette demande de prêt ?')) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}
