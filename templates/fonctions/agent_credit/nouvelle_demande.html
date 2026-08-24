@@ -600,9 +600,9 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Téléphone</label>
                             <input type="tel" class="form-control"
-                               name="telephone_garant"
+                               name="tel_garant"
                                id="telephoneGarant"
-                               value="{{ form_data.telephone_garant if form_data else '' }}"
+                               value="{{ form_data.tel_garant if form_data else '' }}"
                                placeholder="+1 617 555 1234"
                                autocomplete="tel"
                                maxlength="20"
@@ -733,7 +733,7 @@
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Numéro dossier</label>
                         <input type="text" class="form-control" name="numero_dossier"
-                               value="{{ form_data.num_dossier if form_data else ('PRET-' + now.strftime('%Y%m%d%H%M%S')) }}"
+                               value="{{ form_data.numero_dossier if form_data else ('PRET-' + now.strftime('%Y%m%d%H%M%S')) }}"
                                {% if not show_for_director %}readonly{% endif %}>
                     </div>
                     <div class="col-md-3 mb-3">
@@ -779,7 +779,7 @@
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Signature responsable</label>
                         <input type="text" class="form-control" name="signature_responsable"
-                               value="{{ form_data.signature_responsable or (current_user.prenom + ' ' + current_user.nom) }}"
+                               {{ form_data.signature_responsable or (current_user.prenom + ' ' + current_user.nom) }}
                                {% if not show_for_director %}readonly{% endif %}>
                     </div>
                 </div>
@@ -971,7 +971,7 @@
 
 <script>
 
-    // Fonction pour rechercher un client par les 5 derniers chiffres du compte
+    // Fonction pour rechercher un client par les 10 derniers chiffres du compte
     function rechercherClientParCompte() {
         const compteInput = document.getElementById('compteInput');
         const derniersChiffres = compteInput.value.trim();
@@ -1169,7 +1169,7 @@
                 }
             });
 
-            // Auto-recherche quand 5 chiffres sont saisis
+            // Auto-recherche quand 10 chiffres sont saisis
             compteInput.addEventListener('input', function(e) {
                 if (this.value.length === 10) {
                     // Optionnel : recherche automatique

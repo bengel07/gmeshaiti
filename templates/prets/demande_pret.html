@@ -762,7 +762,7 @@
                         <label class="form-label">Montant accordé</label>
                         <div class="input-group">
                             <input type="number" class="form-control" name="montant_accorde" id="montantAccorde"
-                                   value="{{ form_data.montant_accorde if form_data and form_data.montant_accorde else (form_data.montant_demande if form_data else '') }}"
+                                   value="{{ form_data.montant_accorde if form_data else form_data.montant_demande }}"
                                    {% if not show_for_director %}disabled{% endif %}>
                             <span class="input-group-text">Gdes</span>
                         </div>
@@ -779,7 +779,7 @@
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Signature responsable</label>
                         <input type="text" class="form-control" name="signature_responsable"
-                               {{ form_data.signature_responsable if form_data and form_data.signature_responsable else (current_user.prenom + ' ' + current_user.nom) }}
+                               {{ form_data.signature_responsable or (current_user.prenom + ' ' + current_user.nom) }}
                                {% if not show_for_director %}readonly{% endif %}>
                     </div>
                 </div>
