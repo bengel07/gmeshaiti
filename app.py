@@ -839,10 +839,7 @@ def demande_pret():
     client = None
     client_id = request.args.get('client_id') or request.form.get('client_id')
 
-    # ✅ AJOUTER CETTE VÉRIFICATION
-    if client and not client.terms_accepted:
-        flash('⚠️ Vous devez d\'abord accepter les conditions générales avant de soumettre une demande.', 'warning')
-        return redirect(url_for('demande_pret', client_id=client.id))
+
 
     # CAS 1: L'utilisateur est un AGENT - il cherche un client
     if est_agent:
@@ -932,16 +929,21 @@ def demande_pret():
         print(f"📝 Données POST reçues: email={email_form}, tel={telephone_form}, montant={montant_form}")
 
         # Récupérer l'email
-        email_verif = request.form.get('email', '').strip().lower()
+        email_verif = (request.form.get('email') or '').strip().lower()
         client_verif = Client.query.filter_by(email=email_verif).first()
 
-        # Si client existe mais n'a pas signé
         if client_verif and not client_verif.terms_accepted:
-            # RENVOYER L'EMAIL
             envoyer_email_conditions(client_verif)
-            flash('⚠️ Vous devez d\'abord accepter les conditions générales. Un email vient de vous être renvoyé.',
-                  'warning')
-            return redirect(url_for('demande_pret', client_id=client_verif.id))
+
+            flash(
+                '⚠️ Vous devez d\'abord accepter les conditions générales. '
+                'Un email vient de vous être renvoyé.',
+                'warning'
+            )
+
+            return redirect(
+                url_for('demande_pret', client_id=client_verif.id)
+            )
 
         if not client:
             flash("Veuillez sélectionner un client d'abord", "danger")
@@ -991,10 +993,20 @@ def demande_pret():
                 flash('⛔ Format d\'email invalide', 'danger')
                 return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-            telephone = request.form.get('telephone').strip()
-            if not re.match(r'^(?:\+509|0)?[2-9]\d{7}$', telephone):
-                flash('⛔ Format de téléphone invalide (ex: +509 34 56 7890)', 'danger')
-                return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
+            telephone = (request.form.get('telephone') or '').strip()
+
+            telephone_normalise = re.sub(r'[\s\-\(\)]', '', telephone)
+
+            if not re.match(r'^\+?[1-9]\d{6,14}$', telephone_normalise):
+                flash('⛔ Format de téléphone invalide.', 'danger')
+                return redirect(url_for(
+                    'demande_pret',
+                    client_id=client_id,
+                    telephone=telephone,
+                    email=email
+                ))
+
+            telephone = telephone_normalise
 
             cin_nif = request.form.get('cin_nif').strip().upper()
             if not re.match(r'^[0-9A-Z-]{6,20}$', cin_nif):
@@ -1009,42 +1021,50 @@ def demande_pret():
             os.makedirs(client_upload_folder, exist_ok=True)
 
             photo_face_filename = None
-            if photo_face and photo_face.filename:
-                if not allowed_file(photo_face.filename):
-                    flash('❌ Format de photo face invalide. Utilisez PNG, JPG ou JPEG.', 'danger')
-                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
+            if not photo_face or not photo_face.filename:
+                flash('❌ La photo face (recto) est obligatoire.', 'danger')
+                return redirect(url_for(
+                    'demande_pret',
+                    client_id=client_id,
+                    telephone=telephone,
+                    email=email
+                ))
 
-                photo_face.seek(0, os.SEEK_END)
-                file_size = photo_face.tell()
-                photo_face.seek(0)
+            photo_face.seek(0, os.SEEK_END)
+            file_size = photo_face.tell()
+            photo_face.seek(0)
 
-                if file_size > MAX_FILE_SIZE:
-                    flash('❌ Photo face trop volumineuse. Maximum 5 Mo.', 'danger')
-                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
+            if file_size > MAX_FILE_SIZE:
+                flash('❌ Photo face trop volumineuse. Maximum 5 Mo.', 'danger')
+                return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-                original_filename = secure_filename(photo_face.filename)
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                photo_face_filename = f"face_{timestamp}_{original_filename}"
-                photo_face.save(os.path.join(client_upload_folder, photo_face_filename))
+            original_filename = secure_filename(photo_face.filename)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            photo_face_filename = f"face_{timestamp}_{original_filename}"
+            photo_face.save(os.path.join(client_upload_folder, photo_face_filename))
 
             photo_dos_filename = None
-            if photo_dos and photo_dos.filename:
-                if not allowed_file(photo_dos.filename):
-                    flash('❌ Format de photo dos invalide. Utilisez PNG, JPG ou JPEG.', 'danger')
-                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
+            if not photo_dos or not photo_dos.filename:
+                flash('❌ La photo dos (verso) est obligatoire.', 'danger')
+                return redirect(url_for(
+                    'demande_pret',
+                    client_id=client_id,
+                    telephone=telephone,
+                    email=email
+                ))
 
-                photo_dos.seek(0, os.SEEK_END)
-                file_size = photo_dos.tell()
-                photo_dos.seek(0)
+            photo_dos.seek(0, os.SEEK_END)
+            file_size = photo_dos.tell()
+            photo_dos.seek(0)
 
-                if file_size > MAX_FILE_SIZE:
-                    flash('❌ Photo dos trop volumineuse. Maximum 5 Mo.', 'danger')
-                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
+            if file_size > MAX_FILE_SIZE:
+                flash('❌ Photo dos trop volumineuse. Maximum 5 Mo.', 'danger')
+                return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
-                original_filename = secure_filename(photo_dos.filename)
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                photo_dos_filename = f"dos_{timestamp}_{original_filename}"
-                photo_dos.save(os.path.join(client_upload_folder, photo_dos_filename))
+            original_filename = secure_filename(photo_dos.filename)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            photo_dos_filename = f"dos_{timestamp}_{original_filename}"
+            photo_dos.save(os.path.join(client_upload_folder, photo_dos_filename))
 
             # Validation des montants
             try:
@@ -1166,12 +1186,12 @@ def demande_pret():
 
                 # Mise à jour profession
                 client.profession = request.form.get('profession', '').strip()
-                client.entreprise = request.form.get('entreprise', '').strip() or None
-                client.adresse_travail = request.form.get('adresse_travail', '').strip() or None
-                client.tel_travail = request.form.get('tel_travail') or None
+                client.entreprise = (request.form.get('entreprise') or '').strip() or None
+                client.adresse_travail = (request.form.get('adresse_travail') or '').strip() or None
+                client.tel_travail = (request.form.get('tel_travail') or '').strip() or None
                 client.revenu_mensuel = revenu_mensuel
-                client.autres_revenus = request.form.get('autres_revenus') or None
-                client.date_creation = datetime.now()  # ← AJOUTEZ CETTE LIGNE
+                client.autres_revenus = (request.form.get('autres_revenus') or '').strip() or None
+                # client.date_creation = datetime.now()  # ← AJOUTEZ CETTE LIGNE
 
                 db.session.commit()  # ← TRÈS IMPORTANT !
                 print("✅ Client existant mis à jour")
@@ -1203,8 +1223,8 @@ def demande_pret():
                                                                                                         'union_libre'] else None,
                     nb_enfants=int(request.form.get('nb_enfants')),
                     profession=request.form.get('profession').strip(),
-                    entreprise=request.form.get('entreprise').strip(),
-                    adresse_travail=request.form.get('adresse_travail').strip(),
+                    entreprise=(request.form.get('entreprise') or '').strip() or None,
+                    adresse_travail=(request.form.get('adresse_travail') or '').strip() or None,
                     tel_travail=request.form.get('tel_travail'),
                     revenu_mensuel=revenu_mensuel,
                     autres_revenus=request.form.get('autres_revenus'),
@@ -1234,13 +1254,21 @@ def demande_pret():
             print("========================================")
 
             # 2. ENSUITE vérifier si email doit être envoyé
-            if not client.terms_accepted:
-                session['pret_data'] = request.form.to_dict()  # 🔥 AJOUT CRUCIAL
-                (envoyer_email_demande_pret(
-                    client))
+            print(f"🔍 Vérification terms_accepted: {client.terms_accepted}")
 
-                flash('⚠️ Vérifiez votre email et signez les conditions.', 'warning')
-                return redirect(url_for('demande_pret', client_id=client.id))
+            if not client.terms_accepted:
+                session['pret_data'] = request.form.to_dict()
+
+                envoyer_email_demande_pret(client)
+
+                flash(
+                    '⚠️ Vérifiez votre email et signez les conditions.',
+                    'warning'
+                )
+
+                return redirect(
+                    url_for('demande_pret', client_id=client.id)
+                )
 
             print("========================================")
             print("🚨 JE VAIS CREER LE PRET")
@@ -1301,7 +1329,7 @@ def demande_pret():
                 montant_total=round(montant_total, 2),
                 taux_interet=taux_annuel,
                 statut='en_attente',
-                numero_dossier=request.form.get('num_dossier')
+                numero_dossier=request.form.get('numero_dossier')
 
             )
 
@@ -1350,10 +1378,12 @@ def demande_pret():
 
             # Redirection selon le rôle
             if est_agent:
-                return redirect(url_for('agent_credit_dashboard', succursale_code=current_user.succursale.code))
-            else:
-                return redirect(url_for('client_dashboard'))
-                flash("redirection")
+                return redirect(url_for(
+                    'agent_credit_dashboard',
+                    succursale_code=current_user.succursale.code
+                ))
+
+            return redirect(url_for('dashboard_redirect'))
 
         except Exception as e:
             db.session.rollback()
@@ -1364,8 +1394,6 @@ def demande_pret():
             return redirect(url_for('demande_pret'))
 
 
-    print("❌ booummm :")
-    flash("attent ")
 
     # ========== REQUÊTE GET ==========
     # Préparer la liste des clients pour les agents
@@ -1436,8 +1464,6 @@ def demande_pret():
         }
         clients_paginated = None
 
-    print("❌ bawww :")
-    flash("nou bon :")
 
     # ⬇️⬇️⬇️ CES 3 LIGNES SORTIES DU elif ⬇️⬇️⬇️
     form_data = {}
