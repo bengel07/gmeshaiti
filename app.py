@@ -1259,7 +1259,10 @@ def demande_pret():
             if not client.terms_accepted:
                 session['pret_data'] = request.form.to_dict()
 
-                envoyer_email_demande_pret(client)
+                try:
+                    envoyer_email_demande_pret(client, pret)
+                except Exception as e:
+                    print(f"⚠️ Erreur envoi email demande prêt : {e}")
 
                 flash(
                     '⚠️ Vérifiez votre email et signez les conditions.',
