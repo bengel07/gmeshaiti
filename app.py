@@ -1340,6 +1340,8 @@ def demande_pret():
             db.session.add(nouveau_pret)
             db.session.flush()  # Pour obtenir l'ID
 
+            envoyer_email_demande_pret(client, pret)
+
             envoyer_email_demande_pret(client, nouveau_pret)
 
             print("3,1. création prêt")
@@ -1387,7 +1389,10 @@ def demande_pret():
                     succursale_code=current_user.succursale.code
                 ))
 
-            return redirect(url_for('dashboard_redirect'))
+            return redirect(url_for(
+                'recu_pret',
+                pret_id=nouveau_pret.id
+            ))
 
         except Exception as e:
             db.session.rollback()
