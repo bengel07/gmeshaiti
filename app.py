@@ -1208,7 +1208,8 @@ def demande_pret():
             # 2. ENSUITE vérifier si email doit être envoyé
             if not client.terms_accepted:
                 session['pret_data'] = request.form.to_dict()  # 🔥 AJOUT CRUCIAL
-                (envoyer_email_demande_pret(client))
+                (envoyer_email_demande_pret(
+                    client))
 
                 flash('⚠️ Vérifiez votre email et signez les conditions.', 'warning')
                 return redirect(url_for('demande_pret', client_id=client.id))
@@ -4510,7 +4511,10 @@ def directeur_approuver_dossier(client_id):
 
     # ✅ AJOUTEZ CES LIGNES APRÈS :
     if user_client:
-        user_client.statut = 'actif'  # ou 'approuve' selon votre convention
+        if action == 'approuver':
+            user_client.statut = 'suspendu'
+        elif action == 'rejeter':
+            user_client.statut = 'actif'
 
     # 📝 Notification au client
     notification_client = Notification(
@@ -4811,20 +4815,47 @@ def directeur_modifier_dossier(dossier_id):
 
 
 
-
-
-@app.route('/directeur/rejeter-dossier/<int:client_id>', methods=['GET'])
+@app.route('/directeur/rejeter-dossier/<int:client_id>', methods=['POST'])
 @login_required
 def directeur_rejeter_dossier(client_id):
-    """Rejeter un dossier avec motif (redirige vers la route POST)"""
-    motif = request.args.get('motif', '')
+    """Rejeter définitivement un dossier avec motif"""
+
+    if current_user.role != 'direction' or current_user.fonction not in [
+        'directeur',
+        'direction',
+        'directeur_operations',
+        'directeur_general'
+    ]:
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('dashboard_redirect'))
+
+    motif = request.form.get('motif', '').strip()
 
     if not motif:
         flash('❌ Motif de rejet requis', 'danger')
         return redirect(url_for('direction_tous_les_dossiers'))
 
-    # Simuler un formulaire POST vers la route d'approbation
-    return redirect(url_for('directeur_approuver_dossier', client_id=client_id))
+    client = Client.query.get_or_404(client_id)
+
+    client.statut = 'rejete'
+    client.motif_rejet = motif
+    client.date_rejet = datetime.now()
+    client.rejete_par_id = current_user.id
+
+    # Le compte utilisateur reste ACTIF après un rejet
+    user_client = User.query.filter_by(email=client.email).first()
+
+    if user_client:
+        user_client.statut = 'actif'
+
+    db.session.commit()
+
+    flash(
+        f'❌ Dossier de {client.prenom} {client.nom} rejeté avec succès',
+        'warning'
+    )
+
+    return redirect(url_for('directeur_tous_les_dossiers'))
 
 @app.route('/conseiller/mes-dossiers')
 @login_required
