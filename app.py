@@ -911,10 +911,10 @@ def demande_pret():
 
         # ✅ SAUVEGARDER LES DONNÉES DANS LA SESSION AVANT EMAIL
         session['pret_data'] = request.form.to_dict()
-        session['pret_data']['client_id'] = client.id
+        session['pret_data']['numero_compte'] = client.id
 
         # ✅ 1. RÉCUPÉRER TOUTES LES VALEURS AU DÉBUT
-        client_id_param = request.form.get('client_id') or request.args.get('client_id')
+        numero_compte_param = request.form.get('numero_compte') or request.args.get('numero_compte')
         telephone_param = request.form.get('telephone') or request.args.get('telephone')
         email_param = request.form.get('email') or request.args.get('email')
 
@@ -1241,35 +1241,6 @@ def demande_pret():
 
                 flash("Client créé avec succès", "success")
 
-
-            print("========================================")
-            print("DEBUG CREATION PRET")
-            print("CLIENT ID :", client.id)
-            print("CLIENT :", client.nom, client.prenom)
-            print("TERMS ACCEPTED :", client.terms_accepted)
-            print("EMAIL :", client.email)
-            print("MONTANT :", montant_demande)
-            print("DUREE :", duree)
-            print("SUCCURSALE :", client.succursale_id)
-            print("========================================")
-
-            # 2. ENSUITE vérifier si email doit être envoyé
-            print(f"🔍 Vérification terms_accepted: {client.terms_accepted}")
-
-
-
-            print("========================================")
-            print("🚨 JE VAIS CREER LE PRET")
-            print("client.id =", client.id)
-            print("montant =", montant_demande)
-            print("duree =", duree)
-            print("type =", request.form.get('type_pret'))
-            print("objet =", request.form.get('objet'))
-            print("succursale =", current_user.succursale_id)
-            print("========================================")
-
-
-            flash("3. Avant création prêt")
 
 
             # ========== CRÉATION DE LA DEMANDE DE PRÊT ==========
