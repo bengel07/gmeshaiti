@@ -959,9 +959,9 @@ def demande_pret():
 
 
         # Récupérer l'email
-        # email_verif = (request.form.get('email') or '').strip().lower()
-        # client_verif = Client.query.filter_by(email=email_verif).first()
-        #
+        email_verif = (request.form.get('email') or '').strip().lower()
+        client_verif = Client.query.filter_by(email=email_verif).first()
+
         # if client_verif and not client_verif.terms_accepted:
         #     envoyer_email_conditions(client_verif)
         #
