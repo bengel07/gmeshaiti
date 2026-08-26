@@ -911,7 +911,7 @@ def demande_pret():
 
         # ✅ SAUVEGARDER LES DONNÉES DANS LA SESSION AVANT EMAIL
         session['pret_data'] = request.form.to_dict()
-        session['pret_data']['numero_compte'] = client.id
+        session['pret_data']['numero_compte'] = client.numero_compte
 
         # ✅ 1. RÉCUPÉRER TOUTES LES VALEURS AU DÉBUT
         numero_compte_param = request.form.get('numero_compte') or request.args.get('numero_compte')
@@ -949,7 +949,7 @@ def demande_pret():
         if not client:
             flash("Veuillez sélectionner un client d'abord", "danger")
             return redirect(url_for('demande_pret',
-                                    client_id=client_id_param,
+                                    numero_compte=numero_compte_param,
                                     telephone=telephone_param,
                                     email=email_param))
 
