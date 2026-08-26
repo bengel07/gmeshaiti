@@ -929,22 +929,51 @@ def demande_pret():
 
         print(f"📝 Données POST reçues: email={email_form}, tel={telephone_form}, montant={montant_form}")
 
-        # Récupérer l'email
-        email_verif = (request.form.get('email') or '').strip().lower()
-        client_verif = Client.query.filter_by(email=email_verif).first()
+        numero_compte = (request.form.get('numero_compte') or '').strip()
 
-        if client_verif and not client_verif.terms_accepted:
-            envoyer_email_conditions(client_verif)
+        client_verif = Client.query.filter_by(
+            numero_compte=numero_compte
+        ).first()
+
+        if not client_verif:
+            flash("⛔ Client introuvable avec ce numéro de compte.", "danger")
+            return redirect(url_for('demande_pret'))
+
+        if not client_verif.terms_accepted:
+            session['pret_data'] = request.form.to_dict()
+            session['pret_data']['client_id'] = client_verif.id
+
+            try:
+                envoyer_email_conditions(client_verif)
+            except Exception as e:
+                print(f"⚠️ Erreur envoi email conditions : {e}")
 
             flash(
-                '⚠️ Vous devez d\'abord accepter les conditions générales. '
-                'Un email vient de vous être renvoyé.',
-                'warning'
+                "⚠️ Vous devez accepter les conditions générales avant de continuer.",
+                "warning"
             )
 
             return redirect(
                 url_for('demande_pret', client_id=client_verif.id)
             )
+
+
+        # Récupérer l'email
+        # email_verif = (request.form.get('email') or '').strip().lower()
+        # client_verif = Client.query.filter_by(email=email_verif).first()
+        #
+        # if client_verif and not client_verif.terms_accepted:
+        #     envoyer_email_conditions(client_verif)
+        #
+        #     flash(
+        #         '⚠️ Vous devez d\'abord accepter les conditions générales. '
+        #         'Un email vient de vous être renvoyé.',
+        #         'warning'
+        #     )
+        #
+        #     return redirect(
+        #         url_for('demande_pret', client_id=client_verif.id)
+        #     )
 
         if not client:
             flash("Veuillez sélectionner un client d'abord", "danger")
@@ -1340,7 +1369,7 @@ def demande_pret():
             db.session.add(nouveau_pret)
             db.session.flush()  # Pour obtenir l'ID
 
-            envoyer_email_demande_pret(client, pret)
+
 
             envoyer_email_demande_pret(client, nouveau_pret)
 
