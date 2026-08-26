@@ -929,51 +929,22 @@ def demande_pret():
 
         print(f"📝 Données POST reçues: email={email_form}, tel={telephone_form}, montant={montant_form}")
 
-        numero_compte = (request.form.get('numero_compte') or '').strip()
+        # Récupérer l'email
+        email_verif = (request.form.get('email') or '').strip().lower()
+        client_verif = Client.query.filter_by(email=email_verif).first()
 
-        client_verif = Client.query.filter_by(
-            numero_compte=numero_compte
-        ).first()
-
-        if not client_verif:
-            flash("⛔ Client introuvable avec ce numéro de compte.", "danger")
-            return redirect(url_for('demande_pret'))
-
-        if not client_verif.terms_accepted:
-            session['pret_data'] = request.form.to_dict()
-            session['pret_data']['client_id'] = client_verif.id
-
-            try:
-                envoyer_email_conditions(client_verif)
-            except Exception as e:
-                print(f"⚠️ Erreur envoi email conditions : {e}")
+        if client_verif and not client_verif.terms_accepted:
+            envoyer_email_conditions(client_verif)
 
             flash(
-                "⚠️ Vous devez accepter les conditions générales avant de continuer.",
-                "warning"
+                '⚠️ Vous devez d\'abord accepter les conditions générales. '
+                'Un email vient de vous être renvoyé.',
+                'warning'
             )
 
             return redirect(
                 url_for('demande_pret', client_id=client_verif.id)
             )
-
-
-        # Récupérer l'email
-        email_verif = (request.form.get('email') or '').strip().lower()
-        client_verif = Client.query.filter_by(email=email_verif).first()
-
-        # if client_verif and not client_verif.terms_accepted:
-        #     envoyer_email_conditions(client_verif)
-        #
-        #     flash(
-        #         '⚠️ Vous devez d\'abord accepter les conditions générales. '
-        #         'Un email vient de vous être renvoyé.',
-        #         'warning'
-        #     )
-        #
-        #     return redirect(
-        #         url_for('demande_pret', client_id=client_verif.id)
-        #     )
 
         if not client:
             flash("Veuillez sélectionner un client d'abord", "danger")
@@ -1285,23 +1256,7 @@ def demande_pret():
             # 2. ENSUITE vérifier si email doit être envoyé
             print(f"🔍 Vérification terms_accepted: {client.terms_accepted}")
 
-            if not client.terms_accepted:
-                session['pret_data'] = request.form.to_dict()
-                session['pret_data']['client_id'] = client.id
 
-                try:
-                    envoyer_email_conditions(client)
-                except Exception as e:
-                    print(f"⚠️ Erreur envoi email demande prêt : {e}")
-
-                flash(
-                    '⚠️ Vérifiez votre email et signez les conditions.',
-                    'warning'
-                )
-
-                return redirect(
-                    url_for('demande_pret', client_id=client.id)
-                )
 
             print("========================================")
             print("🚨 JE VAIS CREER LE PRET")
@@ -1369,9 +1324,26 @@ def demande_pret():
             db.session.add(nouveau_pret)
             db.session.flush()  # Pour obtenir l'ID
 
+            if not client.terms_accepted:
+                session['pret_data'] = request.form.to_dict()
+                session['pret_data']['client_id'] = client.id
+
+                try:
+                    envoyer_email_demande_pret(client, nouveau_pret)
+                except Exception as e:
+                    print(f"⚠️ Erreur envoi email demande prêt : {e}")
+
+                flash(
+                    '⚠️ Vérifiez votre email et signez les conditions.',
+                    'warning'
+                )
+
+                return redirect(
+                    url_for('demande_pret', client_id=client.id)
+                )
 
 
-            envoyer_email_demande_pret(client, nouveau_pret)
+
 
             print("3,1. création prêt")
             flash("3,1. création prêt")
