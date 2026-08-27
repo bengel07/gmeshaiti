@@ -1319,9 +1319,9 @@ def demande_pret():
             print("3,1. création prêt")
             flash("3,1. création prêt")
 
-            # Suspendre le compte du client
-            if hasattr(client, 'suspendre_compte_pret'):
-                client.suspendre_compte_pret()
+            # # Suspendre le compte du client
+            # if hasattr(client, 'suspendre_compte_pret'):
+            #     client.suspendre_compte_pret()
 
             # Journalisation
             journal_entry = Journal(
@@ -2423,11 +2423,17 @@ def approuver_pret(pret_id):
     try:
         pret = Pret.query.get_or_404(pret_id)
 
+        client = db.session.get(Client, pret.client_id)
+
         data = request.get_json(silent=True) or {}
 
         # Mettre à jour les informations
         pret.decision = 'approuve'
         pret.statut = 'approuve'  # ← AJOUTEZ CETTE LIGNE
+
+        if client:
+            client.suspendre_compte_pret()
+
         pret.montant_accorde = data.get('montant_accorde', pret.montant_demande)
         pret.taux_interet = data.get('taux_interet', pret.taux_interet)
         pret.signature_responsable = f"{current_user.prenom} {current_user.nom}"
