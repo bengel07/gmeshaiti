@@ -4868,7 +4868,7 @@ def directeur_modifier_dossier(dossier_id):
 
 @app.route('/directeur/rejeter-dossier/<int:client_id>', methods=['GET','POST'])
 @login_required
-def directeur_rejeter_dossier(client_id):
+def directeur_rejeter_dossier(pret_id):
     """Rejeter définitivement un dossier avec motif"""
 
     if current_user.role != 'direction' or current_user.fonction not in [
@@ -4889,7 +4889,10 @@ def directeur_rejeter_dossier(client_id):
         flash('❌ Motif de rejet requis', 'danger')
         return redirect(url_for('direction_tous_les_dossiers'))
 
-    client = Client.query.get_or_404(client_id)
+    # 🔴 On récupère LE PRÊT
+    pret = Pret.query.get_or_404(pret_id)
+
+    client = Client.query.get_or_404(pret.client_id)
 
     client.statut = 'rejete'
     client.motif_rejet = motif
@@ -4915,6 +4918,9 @@ def directeur_rejeter_dossier(client_id):
     )
 
     return redirect(url_for('directeur_tous_les_dossiers'))
+
+
+
 
 @app.route('/conseiller/mes-dossiers')
 @login_required
