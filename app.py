@@ -1314,14 +1314,9 @@ def demande_pret():
                 )
 
 
-
-
             print("3,1. création prêt")
             flash("3,1. création prêt")
 
-            # # Suspendre le compte du client
-            # if hasattr(client, 'suspendre_compte_pret'):
-            #     client.suspendre_compte_pret()
 
             # Journalisation
             journal_entry = Journal(
@@ -1346,12 +1341,6 @@ def demande_pret():
             notifier_directeurs_demande_pret(nouveau_pret)
 
             print("🔔 Notifications envoyées aux directeurs")
-
-            print("🔔 ENVOI NOTIFICATION AU DIRECTEUR")
-            print("EMAIL:", os.getenv("MAIL_USERNAME"))
-            print("PASSWORD:", os.getenv("MAIL_PASSWORD"))
-
-            flash("🔔 ENVOI NOTIFICATION AU DIRECTEUR")
 
 
             # Redirection selon le rôle
@@ -4877,7 +4866,7 @@ def directeur_modifier_dossier(dossier_id):
 
 
 
-@app.route('/directeur/rejeter-dossier/<int:client_id>', methods=['POST'])
+@app.route('/directeur/rejeter-dossier/<int:client_id>', methods=['GET','POST'])
 @login_required
 def directeur_rejeter_dossier(client_id):
     """Rejeter définitivement un dossier avec motif"""
@@ -4891,7 +4880,10 @@ def directeur_rejeter_dossier(client_id):
         flash('⛔ Accès non autorisé', 'danger')
         return redirect(url_for('dashboard_redirect'))
 
-    motif = request.form.get('motif', '').strip()
+    if request.method == 'POST':
+        motif = request.form.get('motif', '').strip()
+    else:
+        motif = request.args.get('motif', '').strip()
 
     if not motif:
         flash('❌ Motif de rejet requis', 'danger')
