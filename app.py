@@ -92,7 +92,7 @@ from emails import (
     send_transfer_notification_email,
     send_email_async,
     send_email, envoyer_email_demande_pret,
-    envoyer_email_confirmation_demande
+    envoyer_email_confirmation_demande, envoyer_email_decision_rejet
 )
 
 # ==================== MODELS ====================
@@ -4903,6 +4903,11 @@ def directeur_rejeter_dossier(client_id):
         user_client.statut = 'actif'
 
     db.session.commit()
+
+    try:
+        envoyer_email_decision_rejet(client, motif)
+    except Exception as e:
+        print(f"⚠️ Erreur envoi email de rejet : {e}")
 
     flash(
         f'❌ Dossier de {client.prenom} {client.nom} rejeté avec succès',

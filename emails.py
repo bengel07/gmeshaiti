@@ -695,3 +695,228 @@ def envoyer_email_confirmation_demande(client, pret):
         html_content=html
     )
 
+
+def envoyer_email_decision_rejet(client, motif):
+    """
+    Envoie au client un email pour l'informer que sa demande de prêt
+    a été rejetée, avec le motif du rejet.
+    """
+
+    import os
+    import requests
+
+    api_key = os.getenv("BREVO_API_KEY")
+    from_email = os.getenv("FROM_EMAIL")
+    from_name = os.getenv("FROM_NAME", "GMES Microcrédit")
+
+    if not api_key:
+        raise Exception("BREVO_API_KEY non configurée")
+
+    if not from_email:
+        raise Exception("FROM_EMAIL non configuré")
+
+    if not client.email:
+        raise Exception(
+            f"Le client {client.id} n'a pas d'adresse email"
+        )
+
+    url = "https://api.brevo.com/v3/smtp/email"
+
+    headers = {
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json"
+    }
+
+    prenom = client.prenom or ""
+    nom = client.nom or ""
+
+    # Numéro de dossier si disponible
+    numero_dossier = ""
+
+    if hasattr(client, "numero_dossier") and client.numero_dossier:
+        numero_dossier = client.numero_dossier
+
+    # Nettoyage du motif
+    motif = (motif or "").strip()
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Décision concernant votre demande de prêt</title>
+    </head>
+
+    <body style="
+        margin: 0;
+        padding: 0;
+        background-color: #f4f6f8;
+        font-family: Arial, Helvetica, sans-serif;
+    ">
+
+        <div style="
+            max-width: 650px;
+            margin: 30px auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        ">
+
+            <!-- En-tête -->
+            <div style="
+                background-color: #dc3545;
+                color: white;
+                padding: 25px;
+                text-align: center;
+            ">
+                <h1 style="margin: 0; font-size: 25px;">
+                    GMES Microcrédit
+                </h1>
+
+                <p style="
+                    margin: 8px 0 0;
+                    font-size: 15px;
+                ">
+                    Décision concernant votre demande de prêt
+                </p>
+            </div>
+
+            <!-- Contenu -->
+            <div style="padding: 30px; color: #333333;">
+
+                <p style="font-size: 17px;">
+                    Bonjour <strong>{prenom} {nom}</strong>,
+                </p>
+
+                <p style="font-size: 16px; line-height: 1.6;">
+                    Nous vous informons qu'après examen de votre dossier,
+                    votre demande de prêt n'a malheureusement pas été
+                    approuvée.
+                </p>
+
+                <!-- Décision -->
+                <div style="
+                    margin: 25px 0;
+                    padding: 20px;
+                    background-color: #f8d7da;
+                    border-left: 5px solid #dc3545;
+                    border-radius: 5px;
+                ">
+
+                    <p style="
+                        margin: 0 0 10px;
+                        font-size: 16px;
+                        color: #721c24;
+                    ">
+                        <strong>Décision : DEMANDE REJETÉE</strong>
+                    </p>
+
+                    <p style="
+                        margin: 0;
+                        font-size: 15px;
+                        color: #721c24;
+                    ">
+                        <strong>Motif du rejet :</strong><br>
+                        {motif}
+                    </p>
+
+                </div>
+
+                <p style="
+                    font-size: 15px;
+                    line-height: 1.6;
+                ">
+                    Nous vous invitons à prendre en considération ce motif
+                    et, si nécessaire, à communiquer avec notre équipe pour
+                    obtenir davantage d'informations concernant votre dossier.
+                </p>
+
+                <p style="
+                    font-size: 15px;
+                    line-height: 1.6;
+                ">
+                    Vous pourrez éventuellement soumettre une nouvelle
+                    demande lorsque votre situation répondra aux critères
+                    d'admissibilité applicables.
+                </p>
+
+                <p style="
+                    margin-top: 30px;
+                    font-size: 15px;
+                ">
+                    Merci de votre confiance.
+                </p>
+
+                <p style="
+                    font-size: 15px;
+                    margin-bottom: 0;
+                ">
+                    Cordialement,<br>
+                    <strong>L'équipe GMES Microcrédit</strong>
+                </p>
+
+            </div>
+
+            <!-- Pied de page -->
+            <div style="
+                background-color: #f1f3f5;
+                padding: 18px;
+                text-align: center;
+                color: #6c757d;
+                font-size: 12px;
+            ">
+                <p style="margin: 0;">
+                    Cet email a été envoyé automatiquement.
+                    Merci de ne pas répondre directement à ce message.
+                </p>
+
+                <p style="margin: 8px 0 0;">
+                    © GMES Microcrédit
+                </p>
+            </div>
+
+        </div>
+
+    </body>
+    </html>
+    """
+
+    payload = {
+        "sender": {
+            "name": from_name,
+            "email": from_email
+        },
+        "to": [
+            {
+                "email": client.email,
+                "name": f"{prenom} {nom}".strip()
+            }
+        ],
+        "subject": "Décision concernant votre demande de prêt - GMES Microcrédit",
+        "htmlContent": html_content
+    }
+
+    response = requests.post(
+        url,
+        headers=headers,
+        json=payload,
+        timeout=30
+    )
+
+    if response.status_code not in [200, 201, 202]:
+        print("❌ Erreur Brevo :", response.status_code)
+        print("❌ Réponse Brevo :", response.text)
+
+        raise Exception(
+            f"Brevo erreur {response.status_code}: {response.text}"
+        )
+
+    print(
+        f"✅ Email de rejet envoyé avec succès à {client.email}"
+    )
+
+    return response.json()
+
