@@ -643,11 +643,11 @@
 
                                      <!-- Bouton renvoyer email -->
                                     {% if dossier.statut == 'en_attente_terms' %}
-                                    <form action="{{ url_for('renvoyer_conditions_pret', client_id=dossier.client_id, pret_id=dossier.id) }}"
+                                    <form action="{{ url_for('renvoyer_conditions_pret', pret_id=dossier.id) }}"
                                           method="POST"
                                           style="display:inline;">
+
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                                         <button type="submit"
                                                 class="btn-action btn-email"
