@@ -729,7 +729,7 @@ def accepter_conditions_pret(token):
         flash("Une erreur est survenue.", "danger")
         return render_template("erreurs/500.html")
 
-@app.route('/renvoyer-conditions-pret/<int:pret_id>', methods=['POST'])
+@app.route('/renvoyer-conditions-pret/<int:pret_id>', methods=['GET','POST'])
 @login_required
 def renvoyer_conditions_pret(pret_id):
     """Renvoyer au client le lien d'acceptation des conditions du prêt"""
