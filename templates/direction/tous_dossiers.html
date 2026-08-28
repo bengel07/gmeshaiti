@@ -643,7 +643,7 @@
 
                                      <!-- Bouton renvoyer email -->
                                     <!-- Email conditions -->
-                                    {% if dossier.client.terms_accepted == False %}
+                                    {% if dossier.terms_accepted == False %}
                                     <form action="{{ url_for('resend_conditions_email', client_id=dossier.client.id) }}"
                                           method="POST"
                                           style="display:inline;">
