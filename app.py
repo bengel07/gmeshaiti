@@ -4778,6 +4778,13 @@ def directeur_tous_les_dossiers(succursale_code=None):
 
     for client in clients:
         conseiller = db.session.get(User, client.cree_par_id) if client.cree_par_id else None
+
+        pret = Pret.query.filter_by(
+            client_id=client.id
+        ).order_by(
+            Pret.id.desc()
+        ).first()
+
         dossiers.append({
             'client': client,
             'conseiller_prenom': conseiller.prenom if conseiller else 'Inconnu',

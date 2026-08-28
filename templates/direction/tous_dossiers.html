@@ -642,8 +642,9 @@
 
 
                                      <!-- Bouton renvoyer email -->
-                                    {% if dossier.statut == 'en_attente_terms' %}
-                                    <form action="{{ url_for('renvoyer_conditions_pret', pret_id=dossier.id) }}"
+                                    <!-- Email conditions -->
+                                    {% if dossier.client.terms_accepted == False %}
+                                    <form action="{{ url_for('resend_conditions_email', client_id=dossier.client.id) }}"
                                           method="POST"
                                           style="display:inline;">
 
@@ -651,12 +652,42 @@
 
                                         <button type="submit"
                                                 class="btn-action btn-email"
-                                                title="Renvoyer lien conditions">
+                                                title="Renvoyer les conditions générales">
+                                            <i class="fas fa-envelope"></i>
+                                        </button>
+
+                                    </form>
+
+                                    {% elif dossier.pret and dossier.pret.statut == 'en_attente_terms' %}
+                                    <form action="{{ url_for('renvoyer_conditions_pret', pret_id=dossier.pret.id) }}"
+                                          method="POST"
+                                          style="display:inline;">
+
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                        <button type="submit"
+                                                class="btn-action btn-email"
+                                                title="Renvoyer les conditions du prêt">
                                             <i class="fas fa-envelope"></i>
                                         </button>
 
                                     </form>
                                     {% endif %}
+<!--                                    {% if dossier.statut == 'en_attente_terms' %}-->
+<!--                                    <form action="{{ url_for('resend_conditions_email', client_id=dossier.id) }}"-->
+<!--                                          method="POST"-->
+<!--                                          style="display:inline;">-->
+<!--                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">-->
+<!--                                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">-->
+
+<!--                                        <button type="submit"-->
+<!--                                                class="btn-action btn-email"-->
+<!--                                                title="Renvoyer lien conditions">-->
+<!--                                            <i class="fas fa-envelope"></i>-->
+<!--                                        </button>-->
+
+<!--                                    </form>-->
+<!--                                    {% endif %}-->
 
 
                                 </div>
