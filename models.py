@@ -7777,7 +7777,7 @@ class RetraitAttente(db.Model):
     # Relations
     client = db.relationship('Client', backref='retraits_attente')
     compte = db.relationship('Epargne', backref='retraits_attente')
-    employe = db.relationship('User', backref='retraits_inities')
+    employe = db.relationship('Users', backref='retraits_inities')
 
 
 
