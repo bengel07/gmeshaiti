@@ -5420,7 +5420,7 @@ def directeur_modifier_dossier(dossier_id):
 
 
 
-@app.route('/directeur/rejeter-dossier/<int:client_id>', methods=['GET','POST'])
+@app.route('/directeur/rejeter-dossier/<int:pret_id>', methods=['GET','POST'])
 @login_required
 def directeur_rejeter_dossier(pret_id):
     """Rejeter définitivement un dossier avec motif"""
