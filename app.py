@@ -1276,7 +1276,6 @@ GMES Microcrédit
         raise
 
 
-
 @app.route("/resend-conditions-email/<int:client_id>", methods=["POST"])
 @login_required
 def resend_conditions_email(client_id):
@@ -5420,7 +5419,9 @@ def directeur_modifier_dossier(dossier_id):
 
 
 
-@app.route('/directeur/rejeter-dossier/<int:pret_id>', methods=['GET','POST'])
+@app.route('/directeur/rejeter-dossier/<int:client_id>', methods=['GET','POST'])
+@login_required
+@app.route('/directeur/rejeter-dossier/<int:pret_id>', methods=['GET', 'POST'])
 @login_required
 def directeur_rejeter_dossier(pret_id):
     """Rejeter définitivement un dossier avec motif"""
@@ -5443,17 +5444,19 @@ def directeur_rejeter_dossier(pret_id):
         flash('❌ Motif de rejet requis', 'danger')
         return redirect(url_for('direction_tous_les_dossiers'))
 
-    # 🔴 On récupère LE PRÊT
+    # Récupérer le prêt
     pret = Pret.query.get_or_404(pret_id)
 
+    # Récupérer le client lié au prêt
     client = Client.query.get_or_404(pret.client_id)
 
+    # Rejeter le dossier client
     client.statut = 'rejete'
     client.motif_rejet = motif
     client.date_rejet = datetime.now()
     client.rejete_par_id = current_user.id
 
-    # Le compte utilisateur reste ACTIF après un rejet
+    # Le compte du client reste actif
     user_client = User.query.filter_by(email=client.email).first()
 
     if user_client:
