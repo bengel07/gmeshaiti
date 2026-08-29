@@ -7,9 +7,11 @@
     <p>Email: <strong>{{ client.email }}</strong></p>
 
     <form method="POST" action="{{ url_for('envoyer_confirmation_retrait', client_id=client.id) }}"
-            <!-- PROTECTION CSRF -->
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
           id="formRetrait" class="mt-4">
+
+        <!-- PROTECTION CSRF -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="form-group">
             <label>Compte épargne source *</label>
