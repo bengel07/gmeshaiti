@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmation de retrait</title>
+    <style>
+        /* Styles pour les clients email (Gmail, Outlook, etc.) */
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #1a3a6b 0%, #2a5a9a 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .header p {
+            margin: 5px 0 0;
+            opacity: 0.8;
+            font-size: 14px;
+        }
+        .content {
+            padding: 30px 25px;
+        }
+        .greeting {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .greeting strong {
+            color: #1a3a6b;
+        }
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #2a5a9a;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info-box h3 {
+            margin: 0 0 10px 0;
+            color: #1a3a6b;
+            font-size: 16px;
+        }
+        .info-box ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .info-box ul li {
+            padding: 6px 0;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 14px;
+            color: #333;
+        }
+        .info-box ul li:last-child {
+            border-bottom: none;
+        }
+        .info-box ul li strong {
+            display: inline-block;
+            min-width: 140px;
+            color: #1a3a6b;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0 20px;
+        }
+        .btn {
+            display: inline-block;
+            background: #2a5a9a;
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 14px 40px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(42, 90, 154, 0.3);
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            background: #1a3a6b;
+            box-shadow: 0 6px 14px rgba(42, 90, 154, 0.4);
+        }
+        .expiration-warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 12px 18px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        .expiration-warning strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+        .security-note {
+            background: #e8f0fe;
+            border: 1px solid #b6d4fe;
+            color: #1a3a6b;
+            padding: 12px 18px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        .security-note strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 25px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+            border-top: 1px solid #e9ecef;
+        }
+        .footer a {
+            color: #2a5a9a;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .divider {
+            border: none;
+            border-top: 1px solid #e9ecef;
+            margin: 25px 0;
+        }
+        /* Responsive */
+        @media only screen and (max-width: 480px) {
+            .container {
+                border-radius: 0;
+            }
+            .content {
+                padding: 20px 15px;
+            }
+            .header h1 {
+                font-size: 20px;
+            }
+            .btn {
+                display: block;
+                padding: 14px 20px;
+                font-size: 15px;
+            }
+            .info-box ul li strong {
+                display: block;
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>🏦 Confirmation de retrait</h1>
+            <p>Signature électronique requise</p>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="content">
+            <div class="greeting">
+                <p>Bonjour <strong>{{ client.prenom }} {{ client.nom }}</strong>,</p>
+                <p>Une demande de retrait a été initiée sur votre compte d'épargne.</p>
+                <p>Pour finaliser cette opération, vous devez <strong>signer électroniquement</strong> en cliquant sur le bouton ci-dessous :</p>
+            </div>
+
+            <!-- BOUTON DE SIGNATURE -->
+            <div class="btn-container">
+                <a href="{{ lien_signature }}" class="btn">✍️ Signer le retrait</a>
+            </div>
+
+            <!-- DÉTAILS DU RETRAIT -->
+            <div class="info-box">
+                <h3>📋 Détails de la demande</h3>
+                <ul>
+                    <li><strong>Compte source :</strong> {{ compte.numero_compte }}</li>
+                    <li><strong>Montant :</strong> {{ montant|round(0)|int }} HTG</li>
+                    <li><strong>Mode de retrait :</strong>
+                        {% if mode_retrait == 'especes' %}Espèces
+                        {% elif mode_retrait == 'cheque' %}Chèque
+                        {% elif mode_retrait == 'virement' %}Virement bancaire
+                        {% elif mode_retrait == 'carte' %}Carte bancaire
+                        {% elif mode_retrait == 'mobile' %}Mobile money
+                        {% else %}{{ mode_retrait|capitalize }}
+                        {% endif %}
+                    </li>
+                    {% if description %}
+                    <li><strong>Description :</strong> {{ description }}</li>
+                    {% endif %}
+                    <li><strong>Date de la demande :</strong> {{ now.strftime('%d/%m/%Y à %H:%M') }}</li>
+                </ul>
+            </div>
+
+            <!-- EXPIRATION -->
+            <div class="expiration-warning">
+                <strong>⏰ Ce lien expire dans 30 minutes</strong>
+                <span>Date d'expiration : {{ expiration.strftime('%d/%m/%Y à %H:%M') }}</span>
+            </div>
+
+            <!-- NOTE DE SÉCURITÉ -->
+            <div class="security-note">
+                <strong>🔒 Pour votre sécurité</strong>
+                <span>Ne partagez pas ce lien avec d'autres personnes. Si vous n'êtes pas à l'origine de cette demande, veuillez nous contacter immédiatement.</span>
+            </div>
+
+            <hr class="divider">
+
+            <!-- INFORMATIONS COMPLÉMENTAIRES -->
+            <p style="font-size: 13px; color: #6c757d; margin: 0 0 10px 0;">
+                ❓ Vous avez des questions ? Contactez votre conseiller ou rendez-vous en agence.
+            </p>
+            <p style="font-size: 13px; color: #6c757d; margin: 0;">
+                <strong>📍 Agence GMES Haïti</strong><br>
+                Email : <a href="mailto:contact@gmeshaiti.com">contact@gmeshaiti.com</a>
+            </p>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <p style="margin: 0 0 5px 0;">
+                Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
+            </p>
+            <p style="margin: 0;">
+                &copy; {{ now.year }} GMES Haïti - Tous droits réservés.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
