@@ -5203,6 +5203,7 @@ def directeur_tous_les_dossiers(succursale_code=None):
 
         dossiers.append({
             'client': client,
+            'pret': pret,
             'conseiller_prenom': conseiller.prenom if conseiller else 'Inconnu',
             'conseiller_nom': conseiller.nom if conseiller else '',
             'succursale': succursale.nom
@@ -5419,8 +5420,7 @@ def directeur_modifier_dossier(dossier_id):
 
 
 
-@app.route('/directeur/rejeter-dossier/<int:client_id>', methods=['GET','POST'])
-@login_required
+
 @app.route('/directeur/rejeter-dossier/<int:pret_id>', methods=['GET', 'POST'])
 @login_required
 def directeur_rejeter_dossier(pret_id):
