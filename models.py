@@ -4503,7 +4503,7 @@ class Retrait(db.Model):
     signature_data = db.Column(db.Text)  # Stockage de la signature en base64
     date_retrait = db.Column(db.DateTime, default=datetime.utcnow)
     statut = db.Column(db.String(50), default='effectue')
-    transaction_id = db.Column(db.Integer, db.ForeignKey('transaction_epargne.id'))
+    transaction_id = db.Column(db.Integer, db.ForeignKey('transactions.id'))
 
     # Relations
     client = db.relationship('Client', backref='retraits')
