@@ -7770,14 +7770,14 @@ class RetraitAttente(db.Model):
     token = db.Column(db.String(100), unique=True, nullable=False)
     token_expiration = db.Column(db.DateTime, nullable=False)
     statut = db.Column(db.String(50), default='en_attente_signature')
-    employe_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    employe_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
     date_confirmation = db.Column(db.DateTime)
 
     # Relations
     client = db.relationship('Client', backref='retraits_attente')
     compte = db.relationship('Epargne', backref='retraits_attente')
-    employe = db.relationship('Users', backref='retraits_inities')
+    employe = db.relationship('User', backref='retraits_inities')
 
 
 
