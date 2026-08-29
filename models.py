@@ -4495,7 +4495,7 @@ class Retrait(db.Model):
     __tablename__ = 'retraits'
 
     id = db.Column(db.Integer, primary_key=True)
-    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
     compte_epargne_id = db.Column(db.Integer, db.ForeignKey('epargne.id'), nullable=False)
     montant = db.Column(db.Numeric(15, 2), nullable=False)
     mode_retrait = db.Column(db.String(50), nullable=False)
@@ -7762,7 +7762,7 @@ class RetraitAttente(db.Model):
     __tablename__ = 'retraits_attente'
 
     id = db.Column(db.Integer, primary_key=True)
-    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
     compte_epargne_id = db.Column(db.Integer, db.ForeignKey('epargne.id'), nullable=False)
     montant = db.Column(db.Numeric(15, 2), nullable=False)
     mode_retrait = db.Column(db.String(50), nullable=False)
