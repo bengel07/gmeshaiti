@@ -5419,35 +5419,21 @@ def directeur_modifier_dossier(dossier_id):
 
 
 
-@app.route('/directeur/rejeter-dossier/<int:pret_id>', methods=['GET', 'POST'])
+
+@app.route('/directeur/rejeter-dossier/<int:client_id>', methods=['GET','POST'])
 @login_required
 def directeur_rejeter_dossier(pret_id):
-    """Rejeter définitivement un prêt avec motif."""
+    """Rejeter définitivement un dossier avec motif"""
 
-    # =========================================================
-    # 1. VÉRIFICATION DES DROITS
-    # =========================================================
-    if current_user.role != 'direction':
-        flash('⛔ Accès non autorisé', 'danger')
-        return redirect(url_for('dashboard_redirect'))
-
-    # Vérification de la fonction seulement si elle existe
-    fonction = getattr(current_user, 'fonction', None)
-
-    fonctions_autorisees = [
+    if current_user.role != 'direction' or current_user.fonction not in [
         'directeur',
         'direction',
         'directeur_operations',
         'directeur_general'
-    ]
-
-    if fonction not in fonctions_autorisees:
-        flash('⛔ Fonction non autorisée pour cette opération', 'danger')
+    ]:
+        flash('⛔ Accès non autorisé', 'danger')
         return redirect(url_for('dashboard_redirect'))
 
-    # =========================================================
-    # 2. RÉCUPÉRER LE MOTIF
-    # =========================================================
     if request.method == 'POST':
         motif = request.form.get('motif', '').strip()
     else:
@@ -5457,74 +5443,37 @@ def directeur_rejeter_dossier(pret_id):
         flash('❌ Motif de rejet requis', 'danger')
         return redirect(url_for('direction_tous_les_dossiers'))
 
-    # =========================================================
-    # 3. RÉCUPÉRER LE PRÊT
-    # =========================================================
-    print(f"🔍 Rejet demandé - pret_id={pret_id}")
-
+    # 🔴 On récupère LE PRÊT
     pret = Pret.query.get_or_404(pret_id)
 
-    print(f"✅ Prêt trouvé - ID={pret.id}")
-    print(f"🔍 client_id du prêt = {pret.client_id}")
-
-    # =========================================================
-    # 4. RÉCUPÉRER LE CLIENT
-    # =========================================================
     client = Client.query.get_or_404(pret.client_id)
 
-    print(
-        f"✅ Client trouvé - ID={client.id}, "
-        f"Nom={client.prenom} {client.nom}"
-    )
-
-    # =========================================================
-    # 5. REJETER LE CLIENT
-    # =========================================================
     client.statut = 'rejete'
     client.motif_rejet = motif
     client.date_rejet = datetime.now()
     client.rejete_par_id = current_user.id
 
-    # =========================================================
-    # 6. COMPTE UTILISATEUR DU CLIENT
-    # =========================================================
+    # Le compte utilisateur reste ACTIF après un rejet
     user_client = User.query.filter_by(email=client.email).first()
 
     if user_client:
         user_client.statut = 'actif'
-        print(f"✅ Compte client réactivé : {client.email}")
-    else:
-        print(f"ℹ️ Aucun compte User trouvé pour : {client.email}")
 
-    # =========================================================
-    # 7. SAUVEGARDER
-    # =========================================================
     db.session.commit()
 
-    print(
-        f"✅ Rejet enregistré - prêt={pret.id}, "
-        f"client={client.id}, motif={motif}"
-    )
-
-    # =========================================================
-    # 8. ENVOYER L'EMAIL
-    # =========================================================
     try:
         envoyer_email_decision_rejet(client, motif)
-        print(f"📧 Email de rejet envoyé à {client.email}")
-
     except Exception as e:
         print(f"⚠️ Erreur envoi email de rejet : {e}")
 
-    # =========================================================
-    # 9. MESSAGE ET REDIRECTION
-    # =========================================================
     flash(
         f'❌ Dossier de {client.prenom} {client.nom} rejeté avec succès',
         'warning'
     )
 
     return redirect(url_for('directeur_tous_les_dossiers'))
+
+
 
 
 @app.route('/conseiller/mes-dossiers')
