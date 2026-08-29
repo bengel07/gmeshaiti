@@ -23565,15 +23565,94 @@ def retirer(self, montant, description="", transaction_ref=None):
 
     return transaction
 
+# # ============================================
+# # ROUTE 2: Traiter le retrait (POST)
+# # ============================================
+# @app.route('/client/<int:client_id>/retrait/traiter', methods=['POST'])
+# @login_required
+# def traiter_retrait(client_id):
+#     """Traiter le formulaire de retrait"""
+#     from models import Client, Epargne
+#     from datetime import datetime
+#
+#     client = db.session.get(Client, client_id)
+#     if not client:
+#         flash('Client non trouvé', 'danger')
+#         return redirect(url_for('rechercher_client'))
+#
+#     # Récupérer les données du formulaire
+#     compte_epargne_id = request.form.get('compte_epargne_id')
+#     montant = request.form.get('montant', type=float)
+#
+#     # Validations de base
+#     if not compte_epargne_id:
+#         flash('Veuillez sélectionner un compte', 'danger')
+#         return redirect(url_for('retrait_client_form', client_id=client_id))
+#
+#     if not montant or montant <= 0:
+#         flash('Montant invalide', 'danger')
+#         return redirect(url_for('retrait_client_form', client_id=client_id))
+#
+#     # Récupérer le compte
+#     compte = Epargne.query.get(compte_epargne_id)
+#     if not compte:
+#         flash('Compte non trouvé', 'danger')
+#         return redirect(url_for('retrait_client_form', client_id=client_id))
+#
+#     # Vérifier que le compte appartient bien au client
+#     if compte.client_id != client_id:
+#         flash('Ce compte n\'appartient pas à ce client', 'danger')
+#         return redirect(url_for('retrait_client_form', client_id=client_id))
+#
+#     # Vérifier que le compte est actif
+#     if compte.statut != 'actif':
+#         flash(f'Le compte {compte.numero_compte} est {compte.statut}. Retrait impossible.', 'danger')
+#         return redirect(url_for('retrait_client_form', client_id=client_id))
+#
+#     try:
+#         # Préparer la description
+#         description = request.form.get('description', 'Retrait client')
+#         mode_retrait = request.form.get('mode_retrait', 'especes')
+#         description_complete = f"{description} - Mode: {mode_retrait}"
+#
+#         # Effectuer le retrait avec la méthode du modèle
+#         transaction = compte.retirer(
+#             montant=montant,
+#             description=description_complete,
+#             transaction_ref=f"RET_{datetime.now().timestamp()}"
+#         )
+#
+#         flash(f'Retrait de {montant:,.0f} HTG effectué sur le compte {compte.numero_compte}', 'success')
+#
+#         # Rediriger vers la page d'impression du reçu si demandé
+#         if request.form.get('imprimer_reçu'):
+#             return redirect(url_for('imprimer_recu_retrait',
+#                                     transaction_id=transaction.id,
+#                                     client_id=client_id))
+#
+#         return redirect(url_for('voir_client', client_id=client_id))
+#
+#
+#     except ValueError as e:
+#         # Erreur métier (solde insuffisant, plafond dépassé, etc.)
+#         flash(str(e), 'danger')
+#         return redirect(url_for('retrait_client_form', client_id=client_id))
+#     except Exception as e:
+#         db.session.rollback()
+#         flash(f'Erreur technique lors du retrait: {str(e)}', 'danger')
+#         return redirect(url_for('retrait_client_form', client_id=client_id))
+#
+
 # ============================================
-# ROUTE 2: Traiter le retrait (POST)
+# ROUTE 2: Envoyer la confirmation par email avec Brevo (POST)
 # ============================================
-@app.route('/client/<int:client_id>/retrait/traiter', methods=['POST'])
+@app.route('/client/<int:client_id>/retrait/envoyer_email', methods=['POST'])
 @login_required
-def traiter_retrait(client_id):
-    """Traiter le formulaire de retrait"""
-    from models import Client, Epargne
-    from datetime import datetime
+def envoyer_confirmation_retrait(client_id):
+    """Envoyer un email de confirmation au client pour signature via Brevo"""
+    from models import Client, Epargne, RetraitAttente
+    from datetime import datetime, timedelta
+    import secrets
 
     client = db.session.get(Client, client_id)
     if not client:
@@ -23583,6 +23662,8 @@ def traiter_retrait(client_id):
     # Récupérer les données du formulaire
     compte_epargne_id = request.form.get('compte_epargne_id')
     montant = request.form.get('montant', type=float)
+    mode_retrait = request.form.get('mode_retrait', 'especes')
+    description = request.form.get('description', '')
 
     # Validations de base
     if not compte_epargne_id:
@@ -23609,37 +23690,182 @@ def traiter_retrait(client_id):
         flash(f'Le compte {compte.numero_compte} est {compte.statut}. Retrait impossible.', 'danger')
         return redirect(url_for('retrait_client_form', client_id=client_id))
 
+    # Vérifier les contraintes (solde, plafond)
     try:
-        # Préparer la description
-        description = request.form.get('description', 'Retrait client')
-        mode_retrait = request.form.get('mode_retrait', 'especes')
-        description_complete = f"{description} - Mode: {mode_retrait}"
-
-        # Effectuer le retrait avec la méthode du modèle
-        transaction = compte.retirer(
-            montant=montant,
-            description=description_complete,
-            transaction_ref=f"RET_{datetime.now().timestamp()}"
-        )
-
-        flash(f'Retrait de {montant:,.0f} HTG effectué sur le compte {compte.numero_compte}', 'success')
-
-        # Rediriger vers la page d'impression du reçu si demandé
-        if request.form.get('imprimer_reçu'):
-            return redirect(url_for('imprimer_recu_retrait',
-                                    transaction_id=transaction.id,
-                                    client_id=client_id))
-
-        return redirect(url_for('voir_client', client_id=client_id))
-
+        compte.peut_retirer(montant)  # Lève une exception si impossible
     except ValueError as e:
-        # Erreur métier (solde insuffisant, plafond dépassé, etc.)
         flash(str(e), 'danger')
         return redirect(url_for('retrait_client_form', client_id=client_id))
+
+    # Générer un token sécurisé unique
+    token = secrets.token_urlsafe(32)
+    expiration = datetime.utcnow() + timedelta(minutes=30)
+
+    # Créer une entrée "retrait en attente" dans la base de données
+    retrait_attente = RetraitAttente(
+        client_id=client.id,
+        compte_epargne_id=compte.id,
+        montant=montant,
+        mode_retrait=mode_retrait,
+        description=description,
+        token=token,
+        token_expiration=expiration,
+        statut='en_attente_signature',
+        employe_id=current_user.id if hasattr(current_user, 'id') else None
+    )
+    db.session.add(retrait_attente)
+    db.session.commit()
+
+    # Construire le lien sécurisé
+    lien_signature = url_for('page_signature_client', token=token, _external=True)
+
+    # Préparer le contenu de l'email
+    html_content = render_template('email_confirmation_retrait.html',
+                                   client=client,
+                                   compte=compte,
+                                   montant=montant,
+                                   mode_retrait=mode_retrait,
+                                   description=description,
+                                   lien_signature=lien_signature,
+                                   expiration=expiration,
+                                   now=datetime.utcnow())
+
+    # Envoyer l'email via Brevo
+    try:
+        api_response = send_brevo_email(
+            recipient_email=client.email,
+            recipient_name=f"{client.prenom} {client.nom}",
+            subject='🔐 Confirmation de retrait - Signature requise',
+            html_content=html_content
+        )
+
+        # Log de l'envoi (optionnel)
+        app.logger.info(f"Email envoyé via Brevo: {api_response}")
+
+        flash(f'✅ Un email de confirmation a été envoyé à {client.email}', 'success')
+
     except Exception as e:
-        db.session.rollback()
-        flash(f'Erreur technique lors du retrait: {str(e)}', 'danger')
+        # En cas d'erreur, annuler l'enregistrement en attente
+        db.session.delete(retrait_attente)
+        db.session.commit()
+        flash(f'❌ Erreur lors de l\'envoi de l\'email: {str(e)}', 'danger')
         return redirect(url_for('retrait_client_form', client_id=client_id))
+
+    return render_template('demande_envoyee.html',
+                           client=client,
+                           compte=compte,
+                           montant=montant,
+                           mode_retrait=mode_retrait,
+                           email=client.email)
+
+
+# ============================================
+# ROUTE 3: Page de signature client (GET/POST)
+# ============================================
+@app.route('/signature_client/<token>', methods=['GET', 'POST'])
+def page_signature_client(token):
+    """Page où le client signe électroniquement le retrait"""
+    from models import Client, Epargne, RetraitAttente, Retrait, TransactionEpargne
+    from datetime import datetime
+
+    # Vérifier le token
+    retrait_attente = RetraitAttente.query.filter_by(
+        token=token,
+        statut='en_attente_signature'
+    ).first()
+
+    if not retrait_attente:
+        flash('❌ Lien invalide ou déjà utilisé', 'danger')
+        return redirect(url_for('index'))
+
+    # Vérifier l'expiration
+    if datetime.utcnow() > retrait_attente.token_expiration:
+        retrait_attente.statut = 'expire'
+        db.session.commit()
+        flash('⏰ Le lien a expiré (30 minutes). Veuillez faire une nouvelle demande.', 'danger')
+        return redirect(url_for('index'))
+
+    client = db.session.get(Client, retrait_attente.client_id)
+    compte = db.session.get(Epargne, retrait_attente.compte_epargne_id)
+
+    if request.method == 'POST':
+        signature_data = request.form.get('signature_data')
+
+        if not signature_data:
+            flash('❌ Signature requise pour finaliser le retrait', 'danger')
+            return redirect(request.url)
+
+        # Vérifier à nouveau les contraintes (au cas où le solde a changé)
+        try:
+            compte.peut_retirer(retrait_attente.montant)
+        except ValueError as e:
+            retrait_attente.statut = 'echec'
+            db.session.commit()
+            flash(f'❌ {str(e)}', 'danger')
+            return redirect(url_for('index'))
+
+        try:
+            # FINALISER LE RETRAIT
+            # Créer la transaction
+            transaction = TransactionEpargne(
+                compte_id=compte.id,
+                type_transaction='retrait',
+                montant=retrait_attente.montant,
+                solde_apres=compte.solde - retrait_attente.montant,
+                description=f"{retrait_attente.description} - Mode: {retrait_attente.mode_retrait} - Signé par client",
+                transaction_ref=f"RET_{datetime.utcnow().timestamp()}"
+            )
+            db.session.add(transaction)
+
+            # Mettre à jour le solde du compte
+            compte.solde -= retrait_attente.montant
+            compte.total_retrait_jour += retrait_attente.montant
+
+            # Créer l'enregistrement du retrait
+            retrait = Retrait(
+                client_id=client.id,
+                compte_epargne_id=compte.id,
+                montant=retrait_attente.montant,
+                mode_retrait=retrait_attente.mode_retrait,
+                description=retrait_attente.description,
+                signature_data=signature_data,
+                date_retrait=datetime.utcnow(),
+                statut='effectue',
+                transaction_id=transaction.id
+            )
+            db.session.add(retrait)
+
+            # Marquer la demande comme finalisée
+            retrait_attente.statut = 'finalise'
+            retrait_attente.date_confirmation = datetime.utcnow()
+
+            db.session.commit()
+
+            flash(f'✅ Retrait de {retrait_attente.montant:,.0f} HTG finalisé avec succès !', 'success')
+
+            # Rediriger vers le reçu
+            return redirect(url_for('imprimer_recu_retrait',
+                                    transaction_id=transaction.id,
+                                    client_id=client.id))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'❌ Erreur lors de la finalisation: {str(e)}', 'danger')
+            return redirect(url_for('index'))
+
+    # GET: Afficher la page de signature
+    temps_restant = int((retrait_attente.token_expiration - datetime.utcnow()).total_seconds() / 60)
+    if temps_restant < 0:
+        temps_restant = 0
+
+    return render_template('page_signature_client.html',
+                         client=client,
+                         compte=compte,
+                         montant=retrait_attente.montant,
+                         mode_retrait=retrait_attente.mode_retrait,
+                         description=retrait_attente.description,
+                         token=token,
+                         temps_restant=temps_restant)
 
 
 # ============================================

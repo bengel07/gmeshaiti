@@ -4491,6 +4491,25 @@ class Transaction(db.Model):
     succursale_id = db.Column(db.Integer, db.ForeignKey('succursale.id'))
 
 
+class Retrait(db.Model):
+    __tablename__ = 'retraits'
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    compte_epargne_id = db.Column(db.Integer, db.ForeignKey('epargne.id'), nullable=False)
+    montant = db.Column(db.Numeric(15, 2), nullable=False)
+    mode_retrait = db.Column(db.String(50), nullable=False)
+    description = db.Column(db.String(255))
+    signature_data = db.Column(db.Text)  # Stockage de la signature en base64
+    date_retrait = db.Column(db.DateTime, default=datetime.utcnow)
+    statut = db.Column(db.String(50), default='effectue')
+    transaction_id = db.Column(db.Integer, db.ForeignKey('transaction_epargne.id'))
+
+    # Relations
+    client = db.relationship('Client', backref='retraits')
+    compte = db.relationship('Epargne', backref='retraits')
+    transaction = db.relationship('TransactionEpargne', backref='retrait_associe')
+
 class Credit(db.Model):
     __tablename__ = 'credits'
 
@@ -7738,6 +7757,27 @@ class RetraitConfirmation(db.Model):
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
 
     employe_id = db.Column(db.Integer, nullable=True)  # ✅ AJOUTER CETTE LIGNE
+
+class RetraitAttente(db.Model):
+    __tablename__ = 'retraits_attente'
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    compte_epargne_id = db.Column(db.Integer, db.ForeignKey('epargne.id'), nullable=False)
+    montant = db.Column(db.Numeric(15, 2), nullable=False)
+    mode_retrait = db.Column(db.String(50), nullable=False)
+    description = db.Column(db.String(255))
+    token = db.Column(db.String(100), unique=True, nullable=False)
+    token_expiration = db.Column(db.DateTime, nullable=False)
+    statut = db.Column(db.String(50), default='en_attente_signature')
+    employe_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    date_confirmation = db.Column(db.DateTime)
+
+    # Relations
+    client = db.relationship('Client', backref='retraits_attente')
+    compte = db.relationship('Epargne', backref='retraits_attente')
+    employe = db.relationship('User', backref='retraits_inities')
 
 
 
