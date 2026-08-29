@@ -635,10 +635,7 @@
                                        class="btn-action btn-approve" title="Approuver">
                                         <i class="fas fa-check"></i>
                                     </a>
-                                    {% if item.pret %}
-                                    <button class="btn-action btn-reject"
-                                            onclick="rejeterDossier({{ item.pret.id }})"
-                                            title="Rejeter">
+                                    <button class="btn-action btn-reject" onclick="rejeterDossier({{ dossier.pret.id }})" title="Rejeter">
                                         <i class="fas fa-times"></i>
                                     </button>
                                     {% endif %}
