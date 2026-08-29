@@ -24098,165 +24098,165 @@ def attente_confirmation_retrait(client_id, compte_id, token):
         token=token
     )
 
-# ============================================
-# ROUTE: Envoyer confirmation email avant retrait
-# ============================================
-@app.route('/client/<int:client_id>/retrait/confirmation', methods=['POST'])
-@login_required
-def envoyer_confirmation_retrait(client_id):
-    """Envoie un email de confirmation au client avec signature"""
-    from models import Client, Epargne, RetraitConfirmation
-    from itsdangerous import URLSafeTimedSerializer
-    import json
-    import base64
-    import os
-
-    client = db.session.get(Client, client_id)
-    if not client:
-        flash('Client non trouvé', 'danger')
-        return redirect(url_for('rechercher_client'))
-
-    # ========== RÉCUPÉRATION DE LA SIGNATURE ==========
-    signature_data = request.form.get('signature_data')
-    if not signature_data:
-        flash('❌ La signature du client est obligatoire', 'danger')
-        return redirect(url_for('retrait_client_form', client_id=client_id))
-
-    compte_id = request.form.get('compte_epargne_id')
-    montant = request.form.get('montant', type=float)
-    mode_retrait = request.form.get('mode_retrait', 'especes')
-    description = request.form.get('description', 'Retrait client')
-    employe_id = current_user.id  # Si current_user est l'employé
-
-    # ========== SAUVEGARDE DE LA SIGNATURE ==========
-    signature_path = None
-    try:
-        # Créer le dossier signatures
-        signature_dir = os.path.join('static', 'signatures', 'retraits')
-        os.makedirs(signature_dir, exist_ok=True)
-
-        # Nettoyer et sauvegarder l'image
-        if signature_data.startswith('data:image/png;base64,'):
-            signature_data = signature_data.replace('data:image/png;base64,', '')
-
-        signature_filename = f"retrait_{client_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-        signature_path = os.path.join(signature_dir, signature_filename)
-
-        with open(signature_path, 'wb') as f:
-            f.write(base64.b64decode(signature_data))
-
-        print(f"✅ Signature sauvegardée: {signature_path}")
-
-    except Exception as e:
-        print(f"Erreur sauvegarde signature: {e}")
-        flash('Erreur lors de la sauvegarde de la signature', 'danger')
-        return redirect(url_for('retrait_client_form', client_id=client_id))
-
-    # ========== CRÉATION DU TOKEN AVEC SIGNATURE ==========
-    serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-    data = {
-        'client_id': client_id,
-        'compte_id': compte_id,
-        'montant': montant,
-        'mode_retrait': mode_retrait,
-        'description': description,
-        'signature_path': signature_path,  # ← Ajoute le chemin de la signature
-        'employe_id': employe_id  # Utiliser employe_id
-    }
-    token = serializer.dumps(json.dumps(data))
-
-    # ========== GÉNÉRATION DU LIEN AVEC IP DYNAMIQUE ==========
-    lien_acceptation = url_for('confirmer_retrait', token=token, _external=True)
-
-    import socket
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        local_ip = s.getsockname()[0]
-        s.close()
-        lien_acceptation = lien_acceptation.replace('127.0.0.1', local_ip).replace('localhost', local_ip)
-    except:
-        pass
-
-    confirmation_url = lien_acceptation
-
-    # ========== ENVOI DE L'EMAIL ==========
-    html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body {{ font-family: Arial, sans-serif; }}
-            .container {{ max-width: 600px; margin: auto; padding: 20px; }}
-            .header {{ background: #4e73df; color: white; padding: 20px; text-align: center; }}
-            .content {{ padding: 20px; }}
-            .montant {{ font-size: 24px; color: #28a745; font-weight: bold; }}
-            .btn {{ background: #4e73df; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; }}
-            .footer {{ text-align: center; font-size: 12px; color: gray; margin-top: 30px; }}
-            .signature-info {{ background: #f0f0f0; padding: 10px; border-radius: 5px; margin-top: 20px; }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h2>🏦 GMES - Confirmation de retrait</h2>
-            </div>
-            <div class="content">
-                <p>Bonjour <strong>{client.prenom} {client.nom}</strong>,</p>
-                <p>Vous avez demandé un retrait de :</p>
-                <p class="montant">{montant:,.0f} HTG</p>
-                <p><strong>Mode:</strong> {mode_retrait}</p>
-                <p><strong>Description:</strong> {description}</p>
-
-                <div class="signature-info">
-                    <p>✍️ <strong>Signature du client:</strong> Validée électroniquement</p>
-                </div>
-
-                <p style="margin-top: 30px;">
-                    <a href="{confirmation_url}" class="btn">✅ CONFIRMER LE RETRAIT</a>
-                </p>
-                <p><small>Ce lien est valable 30 minutes.</small></p>
-                <p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
-            </div>
-            <div class="footer">
-                <p>GMES - Gestion Microfinance</p>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-
-    msg = Message(
-        subject=f"GMES - Confirmation de retrait de {montant:,.0f} HTG",
-        recipients=[client.email],
-        html=html
-    )
-
-    confirmation = RetraitConfirmation(
-        token=token,
-        confirme=False,
-        client_id = client_id,
-        employe_id=employe_id  # Commentez cette ligne temporairement
-    )
-
-    db.session.add(confirmation)
-    db.session.commit()
-
-    try:
-        mail.send(msg)
-        flash(f'📧 Email de confirmation envoyé à {client.email}', 'success')
-        flash(f'✍️ Signature validée et enregistrée', 'success')
-    except Exception as e:
-        flash(f'Erreur lors de l\'envoi de l\'email: {str(e)}', 'danger')
-        return redirect(url_for('retrait_client_form', client_id=client_id))
-
-    return redirect(url_for(
-        'attente_confirmation_retrait',
-        client_id=client_id,
-        compte_id=compte_id,
-        token = token
-    ))
-
+# # ============================================
+# # ROUTE: Envoyer confirmation email avant retrait
+# # ============================================
+# @app.route('/client/<int:client_id>/retrait/confirmation', methods=['POST'])
+# @login_required
+# def envoyer_confirmation_retrait(client_id):
+#     """Envoie un email de confirmation au client avec signature"""
+#     from models import Client, Epargne, RetraitConfirmation
+#     from itsdangerous import URLSafeTimedSerializer
+#     import json
+#     import base64
+#     import os
+#
+#     client = db.session.get(Client, client_id)
+#     if not client:
+#         flash('Client non trouvé', 'danger')
+#         return redirect(url_for('rechercher_client'))
+#
+#     # ========== RÉCUPÉRATION DE LA SIGNATURE ==========
+#     signature_data = request.form.get('signature_data')
+#     if not signature_data:
+#         flash('❌ La signature du client est obligatoire', 'danger')
+#         return redirect(url_for('retrait_client_form', client_id=client_id))
+#
+#     compte_id = request.form.get('compte_epargne_id')
+#     montant = request.form.get('montant', type=float)
+#     mode_retrait = request.form.get('mode_retrait', 'especes')
+#     description = request.form.get('description', 'Retrait client')
+#     employe_id = current_user.id  # Si current_user est l'employé
+#
+#     # ========== SAUVEGARDE DE LA SIGNATURE ==========
+#     signature_path = None
+#     try:
+#         # Créer le dossier signatures
+#         signature_dir = os.path.join('static', 'signatures', 'retraits')
+#         os.makedirs(signature_dir, exist_ok=True)
+#
+#         # Nettoyer et sauvegarder l'image
+#         if signature_data.startswith('data:image/png;base64,'):
+#             signature_data = signature_data.replace('data:image/png;base64,', '')
+#
+#         signature_filename = f"retrait_{client_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+#         signature_path = os.path.join(signature_dir, signature_filename)
+#
+#         with open(signature_path, 'wb') as f:
+#             f.write(base64.b64decode(signature_data))
+#
+#         print(f"✅ Signature sauvegardée: {signature_path}")
+#
+#     except Exception as e:
+#         print(f"Erreur sauvegarde signature: {e}")
+#         flash('Erreur lors de la sauvegarde de la signature', 'danger')
+#         return redirect(url_for('retrait_client_form', client_id=client_id))
+#
+#     # ========== CRÉATION DU TOKEN AVEC SIGNATURE ==========
+#     serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+#     data = {
+#         'client_id': client_id,
+#         'compte_id': compte_id,
+#         'montant': montant,
+#         'mode_retrait': mode_retrait,
+#         'description': description,
+#         'signature_path': signature_path,  # ← Ajoute le chemin de la signature
+#         'employe_id': employe_id  # Utiliser employe_id
+#     }
+#     token = serializer.dumps(json.dumps(data))
+#
+#     # ========== GÉNÉRATION DU LIEN AVEC IP DYNAMIQUE ==========
+#     lien_acceptation = url_for('confirmer_retrait', token=token, _external=True)
+#
+#     import socket
+#     try:
+#         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#         s.connect(("8.8.8.8", 80))
+#         local_ip = s.getsockname()[0]
+#         s.close()
+#         lien_acceptation = lien_acceptation.replace('127.0.0.1', local_ip).replace('localhost', local_ip)
+#     except:
+#         pass
+#
+#     confirmation_url = lien_acceptation
+#
+#     # ========== ENVOI DE L'EMAIL ==========
+#     html = f"""
+#     <!DOCTYPE html>
+#     <html>
+#     <head>
+#         <style>
+#             body {{ font-family: Arial, sans-serif; }}
+#             .container {{ max-width: 600px; margin: auto; padding: 20px; }}
+#             .header {{ background: #4e73df; color: white; padding: 20px; text-align: center; }}
+#             .content {{ padding: 20px; }}
+#             .montant {{ font-size: 24px; color: #28a745; font-weight: bold; }}
+#             .btn {{ background: #4e73df; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; }}
+#             .footer {{ text-align: center; font-size: 12px; color: gray; margin-top: 30px; }}
+#             .signature-info {{ background: #f0f0f0; padding: 10px; border-radius: 5px; margin-top: 20px; }}
+#         </style>
+#     </head>
+#     <body>
+#         <div class="container">
+#             <div class="header">
+#                 <h2>🏦 GMES - Confirmation de retrait</h2>
+#             </div>
+#             <div class="content">
+#                 <p>Bonjour <strong>{client.prenom} {client.nom}</strong>,</p>
+#                 <p>Vous avez demandé un retrait de :</p>
+#                 <p class="montant">{montant:,.0f} HTG</p>
+#                 <p><strong>Mode:</strong> {mode_retrait}</p>
+#                 <p><strong>Description:</strong> {description}</p>
+#
+#                 <div class="signature-info">
+#                     <p>✍️ <strong>Signature du client:</strong> Validée électroniquement</p>
+#                 </div>
+#
+#                 <p style="margin-top: 30px;">
+#                     <a href="{confirmation_url}" class="btn">✅ CONFIRMER LE RETRAIT</a>
+#                 </p>
+#                 <p><small>Ce lien est valable 30 minutes.</small></p>
+#                 <p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
+#             </div>
+#             <div class="footer">
+#                 <p>GMES - Gestion Microfinance</p>
+#             </div>
+#         </div>
+#     </body>
+#     </html>
+#     """
+#
+#     msg = Message(
+#         subject=f"GMES - Confirmation de retrait de {montant:,.0f} HTG",
+#         recipients=[client.email],
+#         html=html
+#     )
+#
+#     confirmation = RetraitConfirmation(
+#         token=token,
+#         confirme=False,
+#         client_id = client_id,
+#         employe_id=employe_id  # Commentez cette ligne temporairement
+#     )
+#
+#     db.session.add(confirmation)
+#     db.session.commit()
+#
+#     try:
+#         mail.send(msg)
+#         flash(f'📧 Email de confirmation envoyé à {client.email}', 'success')
+#         flash(f'✍️ Signature validée et enregistrée', 'success')
+#     except Exception as e:
+#         flash(f'Erreur lors de l\'envoi de l\'email: {str(e)}', 'danger')
+#         return redirect(url_for('retrait_client_form', client_id=client_id))
+#
+#     return redirect(url_for(
+#         'attente_confirmation_retrait',
+#         client_id=client_id,
+#         compte_id=compte_id,
+#         token = token
+#     ))
+#
 
 
 # ============================================
