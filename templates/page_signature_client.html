@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h3>✍️ Signature électronique du retrait</h3>
+        </div>
+        <div class="card-body">
+            <!-- Informations du retrait -->
+            <div class="alert alert-info">
+                <h5>📋 Détails du retrait</h5>
+                <ul class="mb-0">
+                    <li><strong>Client :</strong> {{ client.prenom }} {{ client.nom }}</li>
+                    <li><strong>Email :</strong> {{ client.email }}</li>
+                    <li><strong>Compte :</strong> {{ compte.numero_compte }}</li>
+                    <li><strong>Montant :</strong> {{ montant|round(0)|int }} HTG</li>
+                    <li><strong>Mode de retrait :</strong>
+                        {% if mode_retrait == 'especes' %}Espèces
+                        {% elif mode_retrait == 'cheque' %}Chèque
+                        {% elif mode_retrait == 'virement' %}Virement bancaire
+                        {% elif mode_retrait == 'carte' %}Carte bancaire
+                        {% elif mode_retrait == 'mobile' %}Mobile money
+                        {% else %}{{ mode_retrait|capitalize }}
+                        {% endif %}
+                    </li>
+                    {% if description %}
+                    <li><strong>Description :</strong> {{ description }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <!-- Timer d'expiration -->
+            <div class="alert alert-warning" id="timerAlert">
+                ⏰ Ce lien expire dans <strong><span id="countdown">{{ temps_restant }}</span> minutes</strong>
+            </div>
+
+            <!-- Formulaire de signature -->
+            <form method="POST" action="{{ url_for('page_signature_client', token=token) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="form-group">
+                    <label>✍️ Veuillez signer dans le cadre ci-dessous :</label>
+                    <div class="signature-pad" style="border: 2px solid #ddd; border-radius: 8px; padding: 10px; background: #f8f9fa;">
+                        <canvas id="signatureCanvas" width="500" height="250"
+                                style="border: 1px solid #ccc; background: white; width: 100%; height: auto; cursor: crosshair; touch-action: none;">
+                        </canvas>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="effacerSignature()">
+                                🗑️ Effacer
+                            </button>
+                            <button type="button" class="btn btn-sm btn-success" onclick="validerSignature()">
+                                ✅ Valider la signature
+                            </button>
+                        </div>
+                    </div>
+                    <input type="hidden" name="signature_data" id="signatureData" required>
+                    <small class="form-text text-muted">
+                        <span id="signatureStatus" class="text-danger">⚠️ Signature requise pour finaliser</span>
+                    </small>
+                </div>
+
+                <div class="alert alert-secondary">
+                    <strong>🔒 Sécurité :</strong> Votre signature électronique atteste de votre accord pour ce retrait.
+                </div>
+
+                <button type="submit" id="btnConfirmer" class="btn btn-success btn-lg" disabled>
+                    ✅ Confirmer et finaliser le retrait
+                </button>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Annuler</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+<script>
+// Initialisation du pad de signature
+let signaturePad;
+let signatureValidee = false;
+
+const canvas = document.getElementById('signatureCanvas');
+canvas.width = 500;
+canvas.height = 250;
+
+// Redimensionner pour s'adapter à l'écran
+function resizeCanvas() {
+    const ratio = Math.max(500 / canvas.width, 250 / canvas.height);
+    canvas.width = canvas.width * ratio;
+    canvas.height = canvas.height * ratio;
+}
+
+signaturePad = new SignaturePad(canvas);
+
+// Fonction pour effacer la signature
+function effacerSignature() {
+    signaturePad.clear();
+    signatureValidee = false;
+    document.getElementById('signatureData').value = '';
+    document.getElementById('signatureStatus').innerHTML = '⚠️ Signature requise pour finaliser';
+    document.getElementById('signatureStatus').className = 'text-danger';
+    document.getElementById('btnConfirmer').disabled = true;
+}
+
+// Fonction pour valider la signature
+function validerSignature() {
+    if (signaturePad.isEmpty()) {
+        alert('❌ Veuillez signer dans le cadre avant de valider');
+        return;
+    }
+    const signatureData = signaturePad.toDataURL();
+    document.getElementById('signatureData').value = signatureData;
+    signatureValidee = true;
+    document.getElementById('signatureStatus').innerHTML = '✅ Signature validée !';
+    document.getElementById('signatureStatus').className = 'text-success';
+    document.getElementById('btnConfirmer').disabled = false;
+}
+
+// Empêcher le submit si signature non validée
+document.querySelector('form').addEventListener('submit', function(e) {
+    if (!signatureValidee) {
+        e.preventDefault();
+        alert('❌ Veuillez signer et valider votre signature avant de confirmer');
+        return false;
+    }
+});
+
+// Compte à rebours
+document.addEventListener('DOMContentLoaded', function() {
+    let minutes = {{ temps_restant }};
+    const countdownElement = document.getElementById('countdown');
+    const timerAlert = document.getElementById('timerAlert');
+
+    if (minutes <= 0) {
+        timerAlert.innerHTML = '⏰ Ce lien a expiré. Veuillez faire une nouvelle demande.';
+        timerAlert.className = 'alert alert-danger';
+        document.querySelector('form').querySelector('button[type="submit"]').disabled = true;
+        return;
+    }
+
+    // Mettre à jour le timer toutes les minutes
+    const interval = setInterval(function() {
+        minutes--;
+        if (minutes <= 0) {
+            clearInterval(interval);
+            countdownElement.textContent = '0';
+            timerAlert.innerHTML = '⏰ Ce lien a expiré. Veuillez faire une nouvelle demande.';
+            timerAlert.className = 'alert alert-danger';
+            document.querySelector('form').querySelector('button[type="submit"]').disabled = true;
+        } else {
+            countdownElement.textContent = minutes;
+        }
+    }, 60000);
+});
+
+// Pour les écrans tactiles
+if ('ontouchstart' in window) {
+    canvas.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+    });
+}
+</script>
+
+<style>
+.signature-pad canvas {
+    touch-action: none;
+    max-width: 100%;
+    height: auto;
+}
+</style>
+{% endblock %}
