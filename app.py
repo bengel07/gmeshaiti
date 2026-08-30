@@ -23732,17 +23732,15 @@ def envoyer_confirmation_retrait(client_id):
 
     # Envoyer l'email via Brevo
     try:
-        api_response = send_email(
-            recipient_email=client.email,
-            recipient_name=f"{client.prenom} {client.nom}",
+        # ✅ CORRECTION: Utiliser les bons paramètres pour send_email()
+        email_envoye = send_email(
+            to_email=client.email,  # ✅ Bon paramètre
             subject='🔐 Confirmation de retrait - Signature requise',
             html_content=html_content
+            # from_email et from_name sont optionnels
         )
 
-        # Log de l'envoi (optionnel)
-        app.logger.info(f"Email envoyé via Brevo: {api_response}")
-
-        if api_response:
+        if email_envoye:
             flash(f'✅ Un email de confirmation a été envoyé à {client.email}', 'success')
         else:
             # Si l'email n'a pas été envoyé, supprimer l'entrée en attente
