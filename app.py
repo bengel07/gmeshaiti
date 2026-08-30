@@ -23732,7 +23732,7 @@ def envoyer_confirmation_retrait(client_id):
 
     # Envoyer l'email via Brevo
     try:
-        api_response = send_brevo_email(
+        api_response = send_email(
             recipient_email=client.email,
             recipient_name=f"{client.prenom} {client.nom}",
             subject='🔐 Confirmation de retrait - Signature requise',
@@ -23742,7 +23742,14 @@ def envoyer_confirmation_retrait(client_id):
         # Log de l'envoi (optionnel)
         app.logger.info(f"Email envoyé via Brevo: {api_response}")
 
-        flash(f'✅ Un email de confirmation a été envoyé à {client.email}', 'success')
+        if email_envoye:
+            flash(f'✅ Un email de confirmation a été envoyé à {client.email}', 'success')
+        else:
+            # Si l'email n'a pas été envoyé, supprimer l'entrée en attente
+            db.session.delete(retrait_attente)
+            db.session.commit()
+            flash(f'❌ Erreur lors de l\'envoi de l\'email', 'danger')
+            return redirect(url_for('retrait_client_form', client_id=client_id))
 
     except Exception as e:
         # En cas d'erreur, annuler l'enregistrement en attente
