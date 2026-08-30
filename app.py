@@ -23813,13 +23813,13 @@ def page_signature_client(token):
         try:
             # FINALISER LE RETRAIT
             # Créer la transaction
-            montant_decimal = Decimal(str(retrait_attente.montant))
+            montant_float = float(retrait_attente.montant)
 
             transaction = TransactionEpargne(
                 compte_id=compte.id,
                 type_transaction='retrait',
                 montant=retrait_attente.montant,
-                solde_apres=compte.solde - montant_decimal,
+                solde_apres=compte.solde - montant_float,
                 description=f"{retrait_attente.description} - Mode: {retrait_attente.mode_retrait} - Signé par client",
                 transaction_ref=f"RET_{datetime.utcnow().timestamp()}"
             )
@@ -23829,9 +23829,9 @@ def page_signature_client(token):
             # Convertir en Decimal pour éviter les problèmes de type
 
 
-            compte.solde = compte.solde - montant_decimal
-            compte.solde_disponible = compte.solde_disponible - montant_decimal
-            compte.total_retrait_jour = compte.total_retrait_jour + montant_decimal
+            compte.solde = compte.solde - montant_float
+            compte.solde_disponible = compte.solde_disponible - montant_float
+            compte.total_retrait_jour = compte.total_retrait_jour + montant_float
 
             # Créer l'enregistrement du retrait
             retrait = Retrait(
