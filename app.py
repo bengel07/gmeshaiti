@@ -23772,6 +23772,7 @@ def page_signature_client(token):
     """Page où le client signe électroniquement le retrait"""
     from models import Client, Epargne, RetraitAttente, Retrait, TransactionEpargne
     from datetime import datetime
+    from decimal import Decimal
 
     # Vérifier le token
     retrait_attente = RetraitAttente.query.filter_by(
@@ -23812,19 +23813,25 @@ def page_signature_client(token):
         try:
             # FINALISER LE RETRAIT
             # Créer la transaction
+            montant_decimal = Decimal(str(retrait_attente.montant))
+
             transaction = TransactionEpargne(
                 compte_id=compte.id,
                 type_transaction='retrait',
                 montant=retrait_attente.montant,
-                solde_apres=compte.solde - retrait_attente.montant,
+                solde_apres=compte.solde - montant_decimal,
                 description=f"{retrait_attente.description} - Mode: {retrait_attente.mode_retrait} - Signé par client",
                 transaction_ref=f"RET_{datetime.utcnow().timestamp()}"
             )
             db.session.add(transaction)
 
             # Mettre à jour le solde du compte
-            compte.solde -= retrait_attente.montant
-            compte.total_retrait_jour += retrait_attente.montant
+            # Convertir en Decimal pour éviter les problèmes de type
+
+
+            compte.solde = compte.solde - montant_decimal
+            compte.solde_disponible = compte.solde_disponible - montant_decimal
+            compte.total_retrait_jour = compte.total_retrait_jour + montant_decimal
 
             # Créer l'enregistrement du retrait
             retrait = Retrait(
