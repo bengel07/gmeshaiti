@@ -48,6 +48,7 @@
     <h3>{{ email }}</h3>
     <p>En attente de validation du client...</p>
     <p><small>Cette page se mettra à jour automatiquement quand le client confirmera.</small></p>
+    <a href="{{ url_for('imprimer_recu_retrait',client_id=client.id,transaction_id=transaction.id) }}" class="btn btn-primary" target="_blank">🧾 Voir / Imprimer le reçu</a>
     <a href="{{ url_for('retrait_client_form', client_id=client.id) }}" class="btn-retour">Retour au client</a>
 </div>
 </body>

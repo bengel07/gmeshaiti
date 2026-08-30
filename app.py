@@ -23756,7 +23756,7 @@ def envoyer_confirmation_retrait(client_id):
         flash(f'❌ Erreur lors de l\'envoi de l\'email: {str(e)}', 'danger')
         return redirect(url_for('retrait_client_form', client_id=client_id))
 
-    return render_template('demande_envoyee.html',
+    return render_template('attente_confirmation_retrait',
                            client=client,
                            compte=compte,
                            montant=montant,
@@ -24258,20 +24258,23 @@ def envoyer_email_recu_client(transaction, client):
         </html>
         """
 
-        msg = Message(
-            subject=f"GMES - Reçu de retrait {transaction.montant:,.0f} HTG",
-            recipients=[client.email],
-            html=html_recu
-        )
-        mail.send(msg)
-        print(f"✅ EMAIL ENVOYÉ avec succès à {client.email}")
-        return True
+        result = send_email_via_brevo(to_email=client.email,
+                                      subject=f"GMES - Reçu de retrait {transaction.montant:,.0f} HTG",
+                                      html_content=html_recu)
+        if result:
+            print( f"✅ Reçu envoyé via Brevo à {client.email}"
+                   )
+            return True
+        print( f"❌ Brevo n'a pas pu envoyer le reçu à {client.email}"
+               )
+        return False
+
 
     except Exception as e:
-        print(f"❌ ERREUR envoi email: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return False
+        print(f"❌ ERREUR envoi reçu via Brevo : {str(e)}")
+    import traceback
+    traceback.print_exc()
+    return False
 
 
 
