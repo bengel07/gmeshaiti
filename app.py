@@ -23742,7 +23742,7 @@ def envoyer_confirmation_retrait(client_id):
         # Log de l'envoi (optionnel)
         app.logger.info(f"Email envoyé via Brevo: {api_response}")
 
-        if email_envoye:
+        if recipient_email:
             flash(f'✅ Un email de confirmation a été envoyé à {client.email}', 'success')
         else:
             # Si l'email n'a pas été envoyé, supprimer l'entrée en attente
