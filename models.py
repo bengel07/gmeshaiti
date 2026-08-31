@@ -7777,6 +7777,7 @@ class RetraitAttente(db.Model):
     employe_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
     date_confirmation = db.Column(db.DateTime)
+    client_signature = db.Column(db.Text, nullable=True)
 
     # Relations
     client = db.relationship('Client', backref='retraits_attente')
