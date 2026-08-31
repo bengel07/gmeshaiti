@@ -24029,27 +24029,6 @@ def page_signature_client(token):
         compte=compte,
         retrait_attente=retrait_attente
     )
-```
-
-**La correction principale est la partie 15 :**
-
-```python
-return render_template(
-    'signature_client.html',
-    client=client,
-    compte=compte,
-    retrait_attente=retrait_attente
-)
-```
-
-Elle est exécutée lorsque le client ouvre le lien avec **GET**.
-
-Ton ancien code arrivait à la fin sans `return`, ce qui produisait exactement :
-
-```text
-TypeError: The view function for 'page_signature_client'
-did not return a valid response.
-```
 
 
 # ============================================
