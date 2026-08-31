@@ -24014,7 +24014,7 @@ def page_signature_client(token):
             traceback.print_exc()
 
             return render_template(
-                'retrait_confirme_client.html',
+                'page_signature_client.html',
                 client=client,
                 montant=retrait_attente.montant,
                 erreur=str(e)
@@ -24024,7 +24024,7 @@ def page_signature_client(token):
     # 15. AFFICHER LA PAGE DE SIGNATURE
     # ============================================
     return render_template(
-        'retrait_confirme_client.html',
+        'page_signature_client.html',
         client=client,
         compte=compte,
         retrait_attente=retrait_attente
