@@ -24024,7 +24024,7 @@ def page_signature_client(token):
     # 15. AFFICHER LA PAGE DE SIGNATURE
     # ============================================
     return render_template(
-        'signature_client.html',
+        'retrait_confirme_client.html',
         client=client,
         compte=compte,
         retrait_attente=retrait_attente
