@@ -24024,7 +24024,8 @@ def page_signature_client(token):
                 url_for(
                     'imprimer_recu_retrait_public',
                     transaction_id=transaction.id,
-                    client_id=client.id
+                    client_id=client.id,
+                    token=token
                 )
             )
 
