@@ -83,19 +83,20 @@
     <!-- BOUTON REÇU : CACHÉ AU DÉPART             -->
     <!-- ========================================= -->
 
-    <a id="btn-recu"
-       href="#"
-       class="btn btn-primary"
-       target="_blank"
-       style="display:none;">
-        🧾 Voir / Imprimer le reçu
-    </a>
+
 
     <br>
 
     <a href="{{ url_for('retrait_client_form', client_id=client.id) }}"
        class="btn-retour">
         Retour au client
+    </a>
+    <a id="btn-recu"
+       href="#"
+       class="btn btn-primary"
+       target="_blank"
+       style="display:none;">
+        🧾 Voir / Imprimer le reçu
     </a>
 
 </div>
@@ -163,4 +164,4 @@ const intervalRetrait = setInterval(() => {
 
 </body>
 </html>
-```
+
