@@ -23770,7 +23770,7 @@ def envoyer_confirmation_retrait(client_id):
 @app.route('/signature_client/<token>', methods=['GET', 'POST'])
 def page_signature_client(token):
     """Page où le client signe électroniquement le retrait"""
-    from models import Client, Epargne, RetraitAttente, Retrait, TransactionEpargne
+    from models import Client, Epargne, RetraitAttente, Retrait, TransactionEpargne, RetraitConfirmation
     from datetime import datetime
     from decimal import Decimal
 
@@ -23830,6 +23830,7 @@ def page_signature_client(token):
                 transaction_ref=f"RET_{datetime.utcnow().timestamp()}"
             )
             db.session.add(transaction)
+            db.session.flush()
 
             # Mettre à jour le solde du compte
             compte.solde = solde_actuel - montant_float
@@ -23886,14 +23887,12 @@ def page_signature_client(token):
             traceback.print_exc()
 
             return render_template(
-
                 'retrait_confirme_client.html',
-
                 client=client,
-
-                erreur=str(e)
-
-            ), 500
+                montant=retrait_attente.montant,
+                transaction=transaction,
+                retrait=retrait
+            )
 
 
 # ============================================
