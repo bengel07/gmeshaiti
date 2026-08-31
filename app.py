@@ -23785,12 +23785,41 @@ def page_signature_client(token):
     # 1. VÉRIFIER LE TOKEN
     # ============================================
     retrait_attente = RetraitAttente.query.filter_by(
-        token=token,
-        statut='en_attente_signature'
+        token=token
     ).first()
 
     if not retrait_attente:
-        flash('❌ Lien invalide ou déjà utilisé', 'danger')
+        flash('❌ Lien invalide ou introuvable', 'danger')
+        return redirect(url_for('index'))
+
+    # Si le retrait a déjà été signé et effectué,
+    # ouvrir directement le reçu
+    if retrait_attente.statut == 'finalise':
+
+        confirmation = RetraitConfirmation.query.filter_by(
+            token=token,
+            confirme=True
+        ).first()
+
+        if confirmation:
+            return redirect(
+                url_for(
+                    'imprimer_recu_retrait_public',
+                    token=token
+                )
+            )
+
+        flash('❌ Ce retrait a déjà été effectué.', 'danger')
+        return redirect(url_for('index'))
+
+    # Si le lien a déjà expiré
+    if retrait_attente.statut == 'expire':
+        flash('⏰ Ce lien a expiré.', 'danger')
+        return redirect(url_for('index'))
+
+    # Si le retrait est dans un autre état
+    if retrait_attente.statut != 'en_attente_signature':
+        flash('❌ Ce lien n’est plus disponible.', 'danger')
         return redirect(url_for('index'))
 
     # ============================================
