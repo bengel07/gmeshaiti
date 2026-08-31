@@ -24038,7 +24038,6 @@ def page_signature_client(token):
                 ).total_seconds() / 60
             )
         ),
-        erreur=str(e)
     ), 500
 
 
