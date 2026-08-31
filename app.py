@@ -23756,12 +23756,12 @@ def envoyer_confirmation_retrait(client_id):
         flash(f'❌ Erreur lors de l\'envoi de l\'email: {str(e)}', 'danger')
         return redirect(url_for('retrait_client_form', client_id=client_id))
 
-    return render_template('attente_confirmation_retrait',
-                           client=client,
-                           compte=compte,
-                           montant=montant,
-                           mode_retrait=mode_retrait,
-                           email=client.email)
+    return redirect(url_for(
+        'attente_confirmation_retrait',
+        client_id=client.id,
+        compte_id=compte.id,
+        token=token
+    ))
 
 
 # ============================================
@@ -23846,6 +23846,16 @@ def page_signature_client(token):
                 transaction_id=transaction.id
             )
             db.session.add(retrait)
+
+            confirmation = RetraitConfirmation(
+                token=token,
+                confirme=True,
+                client_id=client.id,
+                transaction_id=transaction.id,
+                employe_id=retrait_attente.employe_id
+            )
+
+            db.session.add(confirmation)
 
             # Marquer la demande comme finalisée
             retrait_attente.statut = 'finalise'
