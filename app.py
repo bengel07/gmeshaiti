@@ -106,7 +106,7 @@ from models import (
     Client, Groupe, User, Document, Dossier, Action, RetardPaiement,
     ScoringCredit, HistoriqueEmploye, Epargne, TransactionEpargne,
     Depense, PartnerIntegration, PartnerWebhook, Partner, ProjetSocial,
-    Satisfaction, Emploi, Famille, ProduitEpargne
+    Satisfaction, Emploi, Famille, ProduitEpargne, RetraitConfirmation
 )
 
 # ==================== ROUTES / BLUEPRINTS ====================
