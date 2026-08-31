@@ -4512,7 +4512,7 @@ class Retrait(db.Model):
     # Relations
     client = db.relationship('Client', backref='retraits')
     compte = db.relationship('Epargne', backref='retraits')
-    transaction = db.relationship('Transaction', backref='retrait_associe')
+    transaction = db.relationship('TransactionEpargne', backref='retrait_associe')
 
 class Credit(db.Model):
     __tablename__ = 'credits'
