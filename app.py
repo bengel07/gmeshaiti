@@ -23811,53 +23811,33 @@ def page_signature_client(token):
             return redirect(url_for('index'))
 
         try:
-            # ============================================
             # FINALISER LE RETRAIT
-            # ============================================
-
+            # Créer la transaction
             montant_float = float(retrait_attente.montant)
 
-            # --------------------------------------------
-            # 1. Créer la transaction
-            # --------------------------------------------
             transaction = TransactionEpargne(
                 compte_id=compte.id,
                 type_transaction='retrait',
-                montant=montant_float,
-                solde_avant=compte.solde,
+                montant=retrait_attente.montant,
                 solde_apres=compte.solde - montant_float,
-                description=(
-                    f"{retrait_attente.description or 'Retrait client'} "
-                    f"- Mode: {retrait_attente.mode_retrait} "
-                    f"- Signé par client"
-                ),
-                transaction_ref=f"RET_{datetime.utcnow().timestamp()}",
-                employe_id=retrait_attente.employe_id,
-                status='CONFIRMED'
+                description=f"{retrait_attente.description} - Mode: {retrait_attente.mode_retrait} - Signé par client",
+                transaction_ref=f"RET_{datetime.utcnow().timestamp()}"
             )
-
             db.session.add(transaction)
 
-            # IMPORTANT :
-            # donne un ID à transaction avant de l'utiliser
-            db.session.flush()
+            # Mettre à jour le solde du compte
+            # Convertir en Decimal pour éviter les problèmes de type
 
-            # --------------------------------------------
-            # 2. Mettre à jour le compte
-            # --------------------------------------------
+
             compte.solde = compte.solde - montant_float
             compte.solde_disponible = compte.solde_disponible - montant_float
-            compte.total_retrait_jour = (
-                    compte.total_retrait_jour + montant_float
-            )
+            compte.total_retrait_jour = compte.total_retrait_jour + montant_float
 
-            # --------------------------------------------
-            # 3. Créer le retrait
-            # --------------------------------------------
+            # Créer l'enregistrement du retrait
             retrait = Retrait(
                 client_id=client.id,
                 compte_epargne_id=compte.id,
-                montant=montant_float,
+                montant=retrait_attente.montant,
                 mode_retrait=retrait_attente.mode_retrait,
                 description=retrait_attente.description,
                 signature_data=signature_data,
@@ -23865,12 +23845,8 @@ def page_signature_client(token):
                 statut='effectue',
                 transaction_id=transaction.id
             )
-
             db.session.add(retrait)
 
-            # --------------------------------------------
-            # 4. Enregistrer la confirmation
-            # --------------------------------------------
             confirmation = RetraitConfirmation(
                 token=token,
                 confirme=True,
@@ -23881,51 +23857,39 @@ def page_signature_client(token):
 
             db.session.add(confirmation)
 
-            # --------------------------------------------
-            # 5. Marquer la demande comme finalisée
-            # --------------------------------------------
+            # Marquer la demande comme finalisée
             retrait_attente.statut = 'finalise'
             retrait_attente.date_confirmation = datetime.utcnow()
 
-            # --------------------------------------------
-            # 6. Sauvegarder définitivement
-            # --------------------------------------------
             db.session.commit()
 
-            # --------------------------------------------
-            # 7. Message succès
-            # --------------------------------------------
-            flash(
-                f'✅ Retrait de {montant_float:,.0f} HTG finalisé avec succès !',
-                'success'
-            )
+            flash(f'✅ Retrait de {retrait_attente.montant:,.0f} HTG finalisé avec succès !', 'success')
 
-            # --------------------------------------------
-            # 8. Page de confirmation CLIENT
-            # --------------------------------------------
+            # Rediriger vers le reçu
             return render_template(
                 'retrait_confirme_client.html',
                 client=client,
-                compte=compte,
-                transaction=transaction,
-                retrait=retrait,
-                montant=montant_float
+                montant=retrait_attente.montant
             )
 
         except Exception as e:
             db.session.rollback()
-
-            print("❌ ERREUR FINALISATION RETRAIT :", str(e))
-
-            import traceback
-            traceback.print_exc()
-
-            flash(
-                f'❌ Erreur lors de la finalisation: {str(e)}',
-                'danger'
-            )
-
+            flash(f'❌ Erreur lors de la finalisation: {str(e)}', 'danger')
             return redirect(url_for('index'))
+
+    # GET: Afficher la page de signature
+    temps_restant = int((retrait_attente.token_expiration - datetime.utcnow()).total_seconds() / 60)
+    if temps_restant < 0:
+        temps_restant = 0
+
+    return render_template('page_signature_client.html',
+                         client=client,
+                         compte=compte,
+                         montant=retrait_attente.montant,
+                         mode_retrait=retrait_attente.mode_retrait,
+                         description=retrait_attente.description,
+                         token=token,
+                         temps_restant=temps_restant)
 
 
 # ============================================

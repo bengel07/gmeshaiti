@@ -1,87 +1,166 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
     <title>Confirmation en attente</title>
+
     <style>
-        body{
+        body {
             font-family: Arial;
-            text-align:center;
-            padding:50px;
-            background:#f5f5f5;
+            text-align: center;
+            padding: 50px;
+            background: #f5f5f5;
         }
-        .box{
-            background:white;
-            padding:40px;
-            border-radius:10px;
-            max-width:600px;
-            margin:auto;
-            box-shadow:0 0 10px rgba(0,0,0,0.1);
+
+        .box {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            max-width: 600px;
+            margin: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        .spinner{
-            width:60px;
-            height:60px;
-            border:6px solid #ddd;
-            border-top:6px solid #4e73df;
-            border-radius:50%;
-            animation:spin 1s linear infinite;
-            margin:auto;
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid #ddd;
+            border-top: 6px solid #4e73df;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: auto;
         }
-        @keyframes spin{
-            100%{ transform:rotate(360deg); }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
         }
-        .btn-retour{
+
+        .btn-retour,
+        .btn-recu {
             display: inline-block;
             margin-top: 20px;
             padding: 10px 20px;
-            background: #4e73df;
             color: white;
             text-decoration: none;
             border-radius: 5px;
         }
+
+        .btn-retour {
+            background: #4e73df;
+        }
+
+        .btn-recu {
+            background: #28a745;
+            display: none;
+        }
     </style>
 </head>
+
 <body>
+
 <div class="box">
-    <div class="spinner"></div>
+
+    <div class="spinner" id="spinner"></div>
+
     <h2>📧 Confirmation envoyée</h2>
+
     <p>Un email de confirmation a été envoyé à :</p>
+
     <h3>{{ email }}</h3>
-    <p>En attente de validation du client...</p>
-    <p><small>Cette page se mettra à jour automatiquement quand le client confirmera.</small></p>
-    <a href="{{ url_for('imprimer_recu_retrait',client_id=client.id,transaction_id=transaction.id) }}" class="btn btn-primary" target="_blank">🧾 Voir / Imprimer le reçu</a>
-    <a href="{{ url_for('retrait_client_form', client_id=client.id) }}" class="btn-retour">Retour au client</a>
+
+    <p id="message-attente">
+        En attente de validation du client...
+    </p>
+
+    <p>
+        <small>
+            Cette page se mettra à jour automatiquement quand le client confirmera.
+        </small>
+    </p>
+
+    <!-- ========================================= -->
+    <!-- BOUTON REÇU : CACHÉ AU DÉPART             -->
+    <!-- ========================================= -->
+
+    <a id="bouton-recu"
+       href="#"
+       class="btn-recu"
+       target="_blank">
+        🧾 Voir / Imprimer le reçu
+    </a>
+
+    <br>
+
+    <a href="{{ url_for('retrait_client_form', client_id=client.id) }}"
+       class="btn-retour">
+        Retour au client
+    </a>
+
 </div>
-</body>
-</html>
+
 
 <script>
 
-// Stocker l'interval
 const intervalRetrait = setInterval(() => {
 
     fetch("/api/retrait/status/{{ token }}")
-    .then(response => response.json())
+        .then(response => response.json())
+        .then(data => {
 
-    .then(data => {
+            console.log("STATUT RETRAIT =", data);
 
-        console.log("DATA =", data);
+            // =========================================
+            // CLIENT A SIGNÉ
+            // =========================================
 
-        // ✅ Si confirmé
-        if(data.confirmed){
+            if (data.confirmed && data.redirect_url) {
 
-            console.log("CONFIRMÉ");
+                console.log("✅ CLIENT A SIGNÉ");
+                console.log("🧾 URL DU REÇU =", data.redirect_url);
 
-            // ✅ Stop boucle
-            clearInterval(intervalRetrait);
+                // Arrêter la vérification
+                clearInterval(intervalRetrait);
 
-            // ✅ Redirection reçu
-            window.location.href = data.redirect_url;
-        }
+                // Arrêter le spinner
+                document.getElementById("spinner").style.display = "none";
 
-    })
+                // Modifier le message
+                document.getElementById("message-attente").innerHTML =
+                    "✅ Le client a signé. Le retrait est confirmé.";
 
-    .catch(error => console.log('Erreur:', error));
+                // =========================================
+                // ACTIVER LE BOUTON REÇU
+                // =========================================
+
+                const boutonRecu = document.getElementById("bouton-recu");
+
+                boutonRecu.href = data.redirect_url;
+
+                boutonRecu.style.display = "inline-block";
+
+                // =========================================
+                // OUVRIR AUTOMATIQUEMENT LE REÇU
+                // =========================================
+
+                window.location.href = data.redirect_url;
+            }
+
+        })
+        .catch(error => {
+
+            console.error(
+                "❌ Erreur vérification retrait :",
+                error
+            );
+
+        });
 
 }, 3000);
 
 </script>
+
+</body>
+</html>
+```
