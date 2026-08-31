@@ -84,9 +84,13 @@
     <!-- BOUTON REÇU : CACHÉ AU DÉPART             -->
     <!-- ========================================= -->
 
-    <a href="{{ url_for('imprimer_recu_retrait', client_id=client.id, transaction_id=transaction.id) }}" class="btn btn-primary" target="_blank">
-    🧾 Voir / Imprimer le reçu
-</a>
+    <a id="btn-recu"
+       href="#"
+       class="btn btn-primary"
+       target="_blank"
+       style="display:none;">
+        🧾 Voir / Imprimer le reçu
+    </a>
 
     <br>
 
