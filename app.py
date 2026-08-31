@@ -24023,11 +24023,27 @@ def page_signature_client(token):
     # ============================================
     # 15. AFFICHER LA PAGE DE SIGNATURE
     # ============================================
+
+    # Calculer le temps restant en minutes
+    temps_restant = max(
+        0,
+        int(
+            (
+                    retrait_attente.token_expiration - datetime.utcnow()
+            ).total_seconds() / 60
+        )
+    )
+
     return render_template(
         'page_signature_client.html',
         client=client,
         compte=compte,
-        retrait_attente=retrait_attente
+        retrait_attente=retrait_attente,
+        montant=retrait_attente.montant,
+        mode_retrait=retrait_attente.mode_retrait,
+        description=retrait_attente.description,
+        temps_restant=temps_restant,
+        token=token
     )
 
 

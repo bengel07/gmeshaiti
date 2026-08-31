@@ -14,7 +14,7 @@
                     <li><strong>Client :</strong> {{ client.prenom }} {{ client.nom }}</li>
                     <li><strong>Email :</strong> {{ client.email }}</li>
                     <li><strong>Compte :</strong> {{ compte.numero_compte }}</li>
-                    <li><strong>Montant :</strong> {{ montant|round(0)|int }} HTG</li>
+                    <li><strong>Montant :</strong> {{ retrait_attente.montant|round(0)|int }} HTG</li>
                     <li><strong>Mode de retrait :</strong>
                         {% if mode_retrait == 'especes' %}Espèces
                         {% elif mode_retrait == 'cheque' %}Chèque
