@@ -23874,16 +23874,26 @@ def page_signature_client(token):
                                     transaction_id=transaction.id,
                                     client_id=client.id))
 
+
         except Exception as e:
+
             db.session.rollback()
-            # ✅ Afficher l'erreur complète pour le debug
+
+            print(f"❌ ERREUR FINALISATION RETRAIT : {str(e)}")
+
             import traceback
-            print("=" * 60)
-            print("❌ ERREUR COMPLETE:")
+
             traceback.print_exc()
-            print("=" * 60)
-            flash(f'❌ Erreur lors de la finalisation: {str(e)}', 'danger')
-            return redirect(url_for('index'))
+
+            return render_template(
+
+                'retrait_confirme_client.html',
+
+                client=client,
+
+                erreur=str(e)
+
+            ), 500
 
 
 # ============================================
