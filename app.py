@@ -23812,26 +23812,29 @@ def page_signature_client(token):
 
         try:
             # FINALISER LE RETRAIT
-            # Créer la transaction
             montant_float = float(retrait_attente.montant)
 
+            # ✅ Convertir les valeurs du compte en float avant les opérations
+            solde_actuel = float(compte.solde)
+            solde_disponible_actuel = float(compte.solde_disponible)
+            total_retrait_actuel = float(compte.total_retrait_jour)
+
+            # Créer la transaction
             transaction = TransactionEpargne(
                 compte_id=compte.id,
                 type_transaction='retrait',
                 montant=retrait_attente.montant,
-                solde_apres=compte.solde - montant_float,
+                solde_avant=solde_actuel,
+                solde_apres=solde_actuel - montant_float,
                 description=f"{retrait_attente.description} - Mode: {retrait_attente.mode_retrait} - Signé par client",
                 transaction_ref=f"RET_{datetime.utcnow().timestamp()}"
             )
             db.session.add(transaction)
 
             # Mettre à jour le solde du compte
-            # Convertir en Decimal pour éviter les problèmes de type
-
-
-            compte.solde = compte.solde - montant_float
-            compte.solde_disponible = compte.solde_disponible - montant_float
-            compte.total_retrait_jour = compte.total_retrait_jour + montant_float
+            compte.solde = solde_actuel - montant_float
+            compte.solde_disponible = solde_disponible_actuel - montant_float
+            compte.total_retrait_jour = total_retrait_actuel + montant_float
 
             # Créer l'enregistrement du retrait
             retrait = Retrait(
@@ -23847,6 +23850,7 @@ def page_signature_client(token):
             )
             db.session.add(retrait)
 
+            # Créer la confirmation
             confirmation = RetraitConfirmation(
                 token=token,
                 confirme=True,
@@ -23854,42 +23858,32 @@ def page_signature_client(token):
                 transaction_id=transaction.id,
                 employe_id=retrait_attente.employe_id
             )
-
             db.session.add(confirmation)
 
             # Marquer la demande comme finalisée
             retrait_attente.statut = 'finalise'
             retrait_attente.date_confirmation = datetime.utcnow()
 
+            # ✅ Commit avant le flash et le render
             db.session.commit()
 
             flash(f'✅ Retrait de {retrait_attente.montant:,.0f} HTG finalisé avec succès !', 'success')
 
-            # Rediriger vers le reçu
-            return render_template(
-                'retrait_confirme_client.html',
-                client=client,
-                montant=retrait_attente.montant
-            )
+            # ✅ Rediriger vers une route existante
+            return redirect(url_for('imprimer_recu_retrait_public',
+                                    transaction_id=transaction.id,
+                                    client_id=client.id))
 
         except Exception as e:
             db.session.rollback()
+            # ✅ Afficher l'erreur complète pour le debug
+            import traceback
+            print("=" * 60)
+            print("❌ ERREUR COMPLETE:")
+            traceback.print_exc()
+            print("=" * 60)
             flash(f'❌ Erreur lors de la finalisation: {str(e)}', 'danger')
             return redirect(url_for('index'))
-
-    # GET: Afficher la page de signature
-    temps_restant = int((retrait_attente.token_expiration - datetime.utcnow()).total_seconds() / 60)
-    if temps_restant < 0:
-        temps_restant = 0
-
-    return render_template('page_signature_client.html',
-                         client=client,
-                         compte=compte,
-                         montant=retrait_attente.montant,
-                         mode_retrait=retrait_attente.mode_retrait,
-                         description=retrait_attente.description,
-                         token=token,
-                         temps_restant=temps_restant)
 
 
 # ============================================
