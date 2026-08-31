@@ -7783,6 +7783,11 @@ class RetraitAttente(db.Model):
     client = db.relationship('Client', backref='retraits_attente')
     compte = db.relationship('Epargne', backref='retraits_attente')
     employe = db.relationship('User', backref='retraits_inities')
+    transaction_id = db.Column(
+        db.Integer,
+        db.ForeignKey('transactions_epargne.id'),
+        nullable=True
+    )
 
 
 

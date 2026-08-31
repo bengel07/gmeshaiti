@@ -3,6 +3,7 @@ from sqlalchemy import text
 
 db = SQLAlchemy()
 
+
 def init_db(app):
     db.init_app(app)
 
@@ -15,10 +16,15 @@ def init_db(app):
                 ADD COLUMN IF NOT EXISTS client_signature TEXT
             """))
 
+            db.session.execute(text("""
+                ALTER TABLE retraits_attente
+                ADD COLUMN IF NOT EXISTS transaction_id INTEGER
+            """))
+
             db.session.commit()
 
-            print("✅ client_signature vérifiée/ajoutée dans retraits_attente")
+            print("✅ Colonnes client_signature et transaction_id vérifiées")
 
         except Exception as e:
             db.session.rollback()
-            print(f"❌ Erreur ajout client_signature : {e}")
+            print(f"❌ Erreur modification retraits_attente : {e}")
