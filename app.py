@@ -24256,6 +24256,309 @@ def imprimer_recu_retrait(client_id, transaction_id):
     return html
 
 
+# ============================================
+# ROUTE: Imprimer le reçu de retrait
+# ============================================
+@app.route('/client/<int:client_id>/retrait/<int:transaction_id>/recu')
+@login_required
+def imprimer_recu_retrait(client_id, transaction_id):
+    """Génère et imprime le reçu d'un retrait"""
+    from models import Client, Epargne, TransactionEpargne
+    from datetime import datetime
+
+    client = db.session.get(Client, client_id)
+    if not client:
+        flash('Client non trouvé', 'danger')
+        return redirect(url_for('rechercher_client'))
+
+    transaction = db.session.get(TransactionEpargne, transaction_id)
+    if not transaction:
+        flash('Transaction non trouvée', 'danger')
+        return redirect(url_for('voir_client', client_id=client_id))
+
+    compte = db.session.get(Epargne, transaction.compte_id)
+
+    # Générer un reçu HTML simple
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Reçu de retrait</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 50px; }}
+            .recu {{ border: 1px solid #ccc; padding: 20px; max-width: 400px; margin: auto; }}
+            .header {{ text-align: center; border-bottom: 2px solid #000; margin-bottom: 20px; }}
+            .content {{ margin-bottom: 20px; }}
+            .montant {{ font-size: 24px; color: green; text-align: center; margin: 20px 0; }}
+            .footer {{ text-align: center; font-size: 12px; color: gray; margin-top: 30px; }}
+        </style>
+    </head>
+    <body>
+        <div class="recu">
+            <div class="header">
+                <h2>GMES - Reçu de retrait</h2>
+                <p>Date: {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
+            </div>
+            <div class="content">
+                <p><strong>Client:</strong> {client.prenom} {client.nom}</p>
+                <p><strong>Compte:</strong> {compte.numero_compte}</p>
+                <p><strong>Type:</strong> Retrait</p>
+                <p><strong>Mode:</strong> Espèces</p>
+                <div class="montant">
+                    <strong>Montant:</strong> {transaction.montant:,.0f} HTG
+                </div>
+                <p><strong>Description:</strong> {transaction.description or 'Retrait client'}</p>
+                <p><strong>Référence:</strong> {transaction.transaction_ref or '-'}</p>
+                <p><strong>Nouveau solde:</strong> {transaction.solde_apres:,.0f} HTG</p>
+            </div>
+            <div class="footer">
+                <p>Signature du caissier: _________________</p>
+                <p>Merci de votre confiance</p>
+            </div>
+        </div>
+        <script>window.print();</script>
+    </body>
+    </html>
+    """
+
+    return html
+
+# ============================================
+# ROUTE PUBLIQUE : Reçu après signature client
+# ============================================
+@app.route('/retrait/recu/<token>')
+def imprimer_recu_retrait_public(token):
+    """Affiche le reçu au client après sa signature."""
+
+    from models import RetraitAttente, Client, Epargne, TransactionEpargne
+
+    try:
+        # Trouver la demande de retrait avec le token
+        retrait_attente = RetraitAttente.query.filter_by(
+            token=token
+        ).first()
+
+        if not retrait_attente:
+            return """
+            <div style="text-align:center; margin-top:100px; font-family:Arial;">
+                <h2>❌ Lien invalide</h2>
+                <p>Ce lien de reçu n'est plus valide.</p>
+            </div>
+            """, 404
+
+        # Vérifier que le retrait a bien été signé
+        if not retrait_attente.client_signature:
+            return """
+            <div style="text-align:center; margin-top:100px; font-family:Arial;">
+                <h2>⚠️ Signature requise</h2>
+                <p>Le retrait n'a pas encore été signé par le client.</p>
+            </div>
+            """, 403
+
+        client = db.session.get(Client, retrait_attente.client_id)
+
+        if not client:
+            return "Client non trouvé", 404
+
+        # Récupérer la transaction créée après la signature
+        transaction = db.session.get(
+            TransactionEpargne,
+            retrait_attente.transaction_id
+        )
+
+        if not transaction:
+            return """
+            <div style="text-align:center; margin-top:100px; font-family:Arial;">
+                <h2>⚠️ Reçu indisponible</h2>
+                <p>La transaction de retrait n'a pas été trouvée.</p>
+            </div>
+            """, 404
+
+        compte = db.session.get(
+            Epargne,
+            transaction.compte_id
+        )
+
+        if not compte:
+            return "Compte d'épargne non trouvé", 404
+
+        html = f"""
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Reçu de retrait - GMES</title>
+
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    background: #f5f5f5;
+                    margin: 0;
+                    padding: 30px;
+                }}
+
+                .recu {{
+                    background: white;
+                    border: 1px solid #ccc;
+                    padding: 30px;
+                    max-width: 500px;
+                    margin: auto;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                }}
+
+                .header {{
+                    text-align: center;
+                    border-bottom: 2px solid #000;
+                    margin-bottom: 25px;
+                    padding-bottom: 15px;
+                }}
+
+                .header h2 {{
+                    margin: 0;
+                }}
+
+                .content p {{
+                    margin: 10px 0;
+                }}
+
+                .montant {{
+                    font-size: 26px;
+                    font-weight: bold;
+                    text-align: center;
+                    margin: 25px 0;
+                }}
+
+                .signature {{
+                    margin-top: 30px;
+                    padding: 15px;
+                    border-top: 1px solid #ccc;
+                }}
+
+                .footer {{
+                    text-align: center;
+                    font-size: 12px;
+                    margin-top: 30px;
+                }}
+
+                .buttons {{
+                    text-align: center;
+                    margin: 25px auto;
+                }}
+
+                button {{
+                    padding: 12px 25px;
+                    font-size: 16px;
+                    cursor: pointer;
+                }}
+
+                @media print {{
+                    body {{
+                        background: white;
+                        padding: 0;
+                    }}
+
+                    .buttons {{
+                        display: none;
+                    }}
+
+                    .recu {{
+                        box-shadow: none;
+                        border: none;
+                    }}
+                }}
+            </style>
+        </head>
+
+        <body>
+
+            <div class="recu">
+
+                <div class="header">
+                    <h2>GMES - Reçu de retrait</h2>
+                    <p>Retrait confirmé</p>
+                </div>
+
+                <div class="content">
+
+                    <p>
+                        <strong>Client :</strong>
+                        {client.prenom} {client.nom}
+                    </p>
+
+                    <p>
+                        <strong>Compte :</strong>
+                        {compte.numero_compte}
+                    </p>
+
+                    <p>
+                        <strong>Type :</strong>
+                        Retrait
+                    </p>
+
+                    <p>
+                        <strong>Date :</strong>
+                        {transaction.date_transaction.strftime('%d/%m/%Y %H:%M')
+                        if transaction.date_transaction else '-'}
+                    </p>
+
+                    <div class="montant">
+                        {transaction.montant:,.0f} HTG
+                    </div>
+
+                    <p>
+                        <strong>Description :</strong>
+                        {transaction.description or 'Retrait client'}
+                    </p>
+
+                    <p>
+                        <strong>Référence :</strong>
+                        {transaction.transaction_ref or '-'}
+                    </p>
+
+                    <p>
+                        <strong>Nouveau solde :</strong>
+                        {transaction.solde_apres:,.0f} HTG
+                    </p>
+
+                </div>
+
+                <div class="signature">
+                    <strong>Signature du client :</strong>
+                    <p>✓ Retrait signé électroniquement</p>
+                </div>
+
+                <div class="footer">
+                    <p>Merci de votre confiance.</p>
+                    <p>GMES Microcrédit</p>
+                </div>
+
+            </div>
+
+            <div class="buttons">
+                <button onclick="window.print()">
+                    🖨️ Imprimer le reçu
+                </button>
+            </div>
+
+        </body>
+        </html>
+        """
+
+        return html
+
+    except Exception as e:
+        app.logger.exception(
+            "Erreur lors de l'affichage du reçu client"
+        )
+
+        return f"""
+        <div style="text-align:center; margin-top:100px; font-family:Arial;">
+            <h2>❌ Erreur</h2>
+            <p>Impossible d'afficher le reçu.</p>
+        </div>
+        """, 500
+
 @app.route('/retrait/attente/<int:client_id>/<int:compte_id>/<token>')
 @login_required
 def attente_confirmation_retrait(client_id, compte_id, token):
