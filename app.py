@@ -23763,18 +23763,27 @@ def envoyer_confirmation_retrait(client_id):
         token=token
     ))
 
-
+```python
 # ============================================
 # ROUTE 3: Page de signature client (GET/POST)
 # ============================================
 @app.route('/signature_client/<token>', methods=['GET', 'POST'])
 def page_signature_client(token):
     """Page où le client signe électroniquement le retrait"""
-    from models import Client, Epargne, RetraitAttente, Retrait, TransactionEpargne, RetraitConfirmation
-    from datetime import datetime
-    from decimal import Decimal
 
-    # Vérifier le token
+    from models import (
+        Client,
+        Epargne,
+        RetraitAttente,
+        Retrait,
+        TransactionEpargne,
+        RetraitConfirmation
+    )
+    from datetime import datetime
+
+    # ============================================
+    # 1. VÉRIFIER LE TOKEN
+    # ============================================
     retrait_attente = RetraitAttente.query.filter_by(
         token=token,
         statut='en_attente_signature'
@@ -23784,60 +23793,152 @@ def page_signature_client(token):
         flash('❌ Lien invalide ou déjà utilisé', 'danger')
         return redirect(url_for('index'))
 
-    # Vérifier l'expiration
+    # ============================================
+    # 2. VÉRIFIER L'EXPIRATION DU TOKEN
+    # ============================================
     if datetime.utcnow() > retrait_attente.token_expiration:
+
         retrait_attente.statut = 'expire'
         db.session.commit()
-        flash('⏰ Le lien a expiré (30 minutes). Veuillez faire une nouvelle demande.', 'danger')
+
+        flash(
+            '⏰ Le lien a expiré (30 minutes). '
+            'Veuillez faire une nouvelle demande.',
+            'danger'
+        )
+
         return redirect(url_for('index'))
 
-    client = db.session.get(Client, retrait_attente.client_id)
-    compte = db.session.get(Epargne, retrait_attente.compte_epargne_id)
+    # ============================================
+    # 3. RÉCUPÉRER LE CLIENT ET LE COMPTE
+    # ============================================
+    client = db.session.get(
+        Client,
+        retrait_attente.client_id
+    )
 
+    compte = db.session.get(
+        Epargne,
+        retrait_attente.compte_epargne_id
+    )
+
+    if not client or not compte:
+        flash(
+            '❌ Client ou compte d’épargne introuvable.',
+            'danger'
+        )
+        return redirect(url_for('index'))
+
+    # ============================================
+    # 4. TRAITEMENT DE LA SIGNATURE DU CLIENT
+    # ============================================
     if request.method == 'POST':
+
         signature_data = request.form.get('signature_data')
 
+        # --------------------------------------------
+        # Vérifier que le client a bien signé
+        # --------------------------------------------
         if not signature_data:
-            flash('❌ Signature requise pour finaliser le retrait', 'danger')
+
+            flash(
+                '❌ Signature requise pour finaliser le retrait',
+                'danger'
+            )
+
             return redirect(request.url)
 
-        # Vérifier à nouveau les contraintes (au cas où le solde a changé)
+        # --------------------------------------------
+        # Vérifier à nouveau les contraintes du retrait
+        # --------------------------------------------
         try:
-            compte.peut_retirer(retrait_attente.montant)
+
+            compte.peut_retirer(
+                retrait_attente.montant
+            )
+
         except ValueError as e:
+
             retrait_attente.statut = 'echec'
             db.session.commit()
-            flash(f'❌ {str(e)}', 'danger')
+
+            flash(
+                f'❌ {str(e)}',
+                'danger'
+            )
+
             return redirect(url_for('index'))
 
+        # ============================================
+        # 5. FINALISER LE RETRAIT
+        # ============================================
+        transaction = None
+        retrait = None
+
         try:
-            # FINALISER LE RETRAIT
-            montant_float = float(retrait_attente.montant)
 
-            # ✅ Convertir les valeurs du compte en float avant les opérations
-            solde_actuel = float(compte.solde)
-            solde_disponible_actuel = float(compte.solde_disponible)
-            total_retrait_actuel = float(compte.total_retrait_jour)
+            # ----------------------------------------
+            # Convertir les montants en float
+            # ----------------------------------------
+            montant_float = float(
+                retrait_attente.montant
+            )
 
-            # Créer la transaction
+            solde_actuel = float(
+                compte.solde
+            )
+
+            solde_disponible_actuel = float(
+                compte.solde_disponible
+            )
+
+            total_retrait_actuel = float(
+                compte.total_retrait_jour
+            )
+
+            # ========================================
+            # 6. CRÉER LA TRANSACTION
+            # ========================================
             transaction = TransactionEpargne(
                 compte_id=compte.id,
                 type_transaction='retrait',
                 montant=retrait_attente.montant,
                 solde_avant=solde_actuel,
-                solde_apres=solde_actuel - montant_float,
-                description=f"{retrait_attente.description} - Mode: {retrait_attente.mode_retrait} - Signé par client",
-                transaction_ref=f"RET_{datetime.utcnow().timestamp()}"
+                solde_apres=(
+                    solde_actuel - montant_float
+                ),
+                description=(
+                    f"{retrait_attente.description} "
+                    f"- Mode: {retrait_attente.mode_retrait} "
+                    f"- Signé par client"
+                ),
+                transaction_ref=(
+                    f"RET_{datetime.utcnow().timestamp()}"
+                )
             )
+
             db.session.add(transaction)
+
             db.session.flush()
 
-            # Mettre à jour le solde du compte
-            compte.solde = solde_actuel - montant_float
-            compte.solde_disponible = solde_disponible_actuel - montant_float
-            compte.total_retrait_jour = total_retrait_actuel + montant_float
+            # ========================================
+            # 7. METTRE À JOUR LE COMPTE D'ÉPARGNE
+            # ========================================
+            compte.solde = (
+                solde_actuel - montant_float
+            )
 
-            # Créer l'enregistrement du retrait
+            compte.solde_disponible = (
+                solde_disponible_actuel - montant_float
+            )
+
+            compte.total_retrait_jour = (
+                total_retrait_actuel + montant_float
+            )
+
+            # ========================================
+            # 8. CRÉER L'ENREGISTREMENT DU RETRAIT
+            # ========================================
             retrait = Retrait(
                 client_id=client.id,
                 compte_epargne_id=compte.id,
@@ -23849,9 +23950,12 @@ def page_signature_client(token):
                 statut='effectue',
                 transaction_id=transaction.id
             )
+
             db.session.add(retrait)
 
-            # Créer la confirmation
+            # ========================================
+            # 9. CRÉER LA CONFIRMATION
+            # ========================================
             confirmation = RetraitConfirmation(
                 token=token,
                 confirme=True,
@@ -23859,40 +23963,93 @@ def page_signature_client(token):
                 transaction_id=transaction.id,
                 employe_id=retrait_attente.employe_id
             )
+
             db.session.add(confirmation)
 
-            # Marquer la demande comme finalisée
+            # ========================================
+            # 10. FINALISER LA DEMANDE
+            # ========================================
             retrait_attente.statut = 'finalise'
+
             retrait_attente.date_confirmation = datetime.utcnow()
 
-            # ✅ Commit avant le flash et le render
+            # ========================================
+            # 11. ENREGISTRER EN BASE DE DONNÉES
+            # ========================================
             db.session.commit()
 
-            flash(f'✅ Retrait de {retrait_attente.montant:,.0f} HTG finalisé avec succès !', 'success')
+            # ========================================
+            # 12. MESSAGE DE SUCCÈS
+            # ========================================
+            flash(
+                f'✅ Retrait de '
+                f'{retrait_attente.montant:,.0f} HTG '
+                f'finalisé avec succès !',
+                'success'
+            )
 
-            # ✅ Rediriger vers une route existante
-            return redirect(url_for('imprimer_recu_retrait_public',
-                                    transaction_id=transaction.id,
-                                    client_id=client.id))
+            # ========================================
+            # 13. REDIRIGER VERS LE REÇU
+            # ========================================
+            return redirect(
+                url_for(
+                    'imprimer_recu_retrait_public',
+                    transaction_id=transaction.id,
+                    client_id=client.id
+                )
+            )
 
-
+        # ============================================
+        # 14. ERREUR PENDANT LA FINALISATION
+        # ============================================
         except Exception as e:
 
             db.session.rollback()
 
-            print(f"❌ ERREUR FINALISATION RETRAIT : {str(e)}")
+            print(
+                f"❌ ERREUR FINALISATION RETRAIT : {str(e)}"
+            )
 
             import traceback
-
             traceback.print_exc()
 
             return render_template(
                 'retrait_confirme_client.html',
                 client=client,
                 montant=retrait_attente.montant,
-                transaction=transaction,
-                retrait=retrait
-            )
+                erreur=str(e)
+            ), 500
+
+    # ============================================
+    # 15. AFFICHER LA PAGE DE SIGNATURE
+    # ============================================
+    return render_template(
+        'signature_client.html',
+        client=client,
+        compte=compte,
+        retrait_attente=retrait_attente
+    )
+```
+
+**La correction principale est la partie 15 :**
+
+```python
+return render_template(
+    'signature_client.html',
+    client=client,
+    compte=compte,
+    retrait_attente=retrait_attente
+)
+```
+
+Elle est exécutée lorsque le client ouvre le lien avec **GET**.
+
+Ton ancien code arrivait à la fin sans `return`, ce qui produisait exactement :
+
+```text
+TypeError: The view function for 'page_signature_client'
+did not return a valid response.
+```
 
 
 # ============================================
