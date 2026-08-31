@@ -23864,6 +23864,7 @@ def page_signature_client(token):
     if request.method == 'POST':
 
         signature_data = request.form.get('signature_data')
+        retrait_attente.client_signature = signature_data
 
         # --------------------------------------------
         # Vérifier que le client a bien signé
@@ -23949,6 +23950,7 @@ def page_signature_client(token):
             db.session.add(transaction)
 
             db.session.flush()
+            retrait_attente.transaction_id = transaction.id
 
             # ========================================
             # 7. METTRE À JOUR LE COMPTE D'ÉPARGNE
@@ -24023,8 +24025,8 @@ def page_signature_client(token):
             return redirect(
                 url_for(
                     'imprimer_recu_retrait_public',
-                    transaction_id=transaction.id,
-                    client_id=client.id,
+                    # transaction_id=transaction.id,
+                    # client_id=client.id,
                     token=token
                 )
             )
