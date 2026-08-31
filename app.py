@@ -23763,7 +23763,7 @@ def envoyer_confirmation_retrait(client_id):
         token=token
     ))
 
-```python
+
 # ============================================
 # ROUTE 3: Page de signature client (GET/POST)
 # ============================================
