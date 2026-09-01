@@ -9,15 +9,30 @@ def init_db(app):
 
     with app.app_context():
         try:
-            with db.engine.connect() as conn:
+            with db.engine.begin() as conn:
                 conn.execute(text("""
                     ALTER TABLE transactions_caisse
                     ADD COLUMN IF NOT EXISTS succursale_id INTEGER
-                    REFERENCES succursales(id)
                 """))
-                conn.commit()
 
-            print("✅ Vérification de la colonne succursale_id terminée")
+                conn.execute(text("""
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1
+                            FROM pg_constraint
+                            WHERE conname = 'fk_transactions_caisse_succursale'
+                        ) THEN
+                            ALTER TABLE transactions_caisse
+                            ADD CONSTRAINT fk_transactions_caisse_succursale
+                            FOREIGN KEY (succursale_id)
+                            REFERENCES succursale(id);
+                        END IF;
+                    END
+                    $$;
+                """))
+
+            print("✅ Colonne succursale_id vérifiée avec succès")
 
         except Exception as e:
-            print(f"⚠️ Erreur lors de l'ajout de succursale_id : {e}")
+            print(f"⚠️ Erreur lors de la mise à jour de transactions_caisse : {e}")
