@@ -11,13 +11,13 @@ def init_db(app):
         try:
             with db.engine.begin() as conn:
 
-                # Ajouter la colonne si elle n'existe pas
+                # succursale_id
                 conn.execute(text("""
                     ALTER TABLE transactions_caisse
                     ADD COLUMN IF NOT EXISTS succursale_id INTEGER
                 """))
 
-                # Ajouter la clé étrangère vers la vraie table : succursale
+                # Clé étrangère succursale
                 conn.execute(text("""
                     DO $$
                     BEGIN
@@ -35,7 +35,31 @@ def init_db(app):
                     $$;
                 """))
 
-            print("✅ transactions_caisse.succursale_id vérifié avec succès")
+                # employe_id
+                conn.execute(text("""
+                    ALTER TABLE transactions_caisse
+                    ADD COLUMN IF NOT EXISTS employe_id INTEGER
+                """))
+
+                # Clé étrangère employe
+                conn.execute(text("""
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1
+                            FROM pg_constraint
+                            WHERE conname = 'fk_transactions_caisse_employe'
+                        ) THEN
+                            ALTER TABLE transactions_caisse
+                            ADD CONSTRAINT fk_transactions_caisse_employe
+                            FOREIGN KEY (employe_id)
+                            REFERENCES users(id);
+                        END IF;
+                    END
+                    $$;
+                """))
+
+            print("✅ Colonnes succursale_id et employe_id vérifiées avec succès")
 
         except Exception as e:
-            print(f"❌ Erreur migration succursale_id : {e}")
+            print(f"❌ Erreur migration transactions_caisse : {e}")
