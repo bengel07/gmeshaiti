@@ -1,9 +1,3 @@
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text
-
-db = SQLAlchemy()
-
-
 def init_db(app):
     db.init_app(app)
 
@@ -11,13 +5,14 @@ def init_db(app):
         try:
             with db.engine.begin() as conn:
 
-                # succursale_id
+                # ==========================================
+                # 1. transactions_caisse.succursale_id
+                # ==========================================
                 conn.execute(text("""
                     ALTER TABLE transactions_caisse
                     ADD COLUMN IF NOT EXISTS succursale_id INTEGER
                 """))
 
-                # Clé étrangère succursale
                 conn.execute(text("""
                     DO $$
                     BEGIN
@@ -35,13 +30,14 @@ def init_db(app):
                     $$;
                 """))
 
-                # employe_id
+                # ==========================================
+                # 2. transactions_caisse.employe_id
+                # ==========================================
                 conn.execute(text("""
                     ALTER TABLE transactions_caisse
                     ADD COLUMN IF NOT EXISTS employe_id INTEGER
                 """))
 
-                # Clé étrangère employe
                 conn.execute(text("""
                     DO $$
                     BEGIN
@@ -59,7 +55,32 @@ def init_db(app):
                     $$;
                 """))
 
-            print("✅ Colonnes succursale_id et employe_id vérifiées avec succès")
+                # ==========================================
+                # 3. retraits.succursale_id
+                # ==========================================
+                conn.execute(text("""
+                    ALTER TABLE retraits
+                    ADD COLUMN IF NOT EXISTS succursale_id INTEGER
+                """))
+
+                conn.execute(text("""
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1
+                            FROM pg_constraint
+                            WHERE conname = 'fk_retraits_succursale'
+                        ) THEN
+                            ALTER TABLE retraits
+                            ADD CONSTRAINT fk_retraits_succursale
+                            FOREIGN KEY (succursale_id)
+                            REFERENCES succursale(id);
+                        END IF;
+                    END
+                    $$;
+                """))
+
+            print("✅ Migration des colonnes succursale/employe terminée")
 
         except Exception as e:
-            print(f"❌ Erreur migration transactions_caisse : {e}")
+            print(f"❌ Erreur migration : {e}")
