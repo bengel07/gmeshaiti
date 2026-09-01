@@ -121,31 +121,17 @@ const intervalRetrait = setInterval(() => {
                 console.log("✅ CLIENT A SIGNÉ");
                 console.log("🧾 URL DU REÇU =", data.redirect_url);
 
-                // Arrêter la vérification
                 clearInterval(intervalRetrait);
 
-                // Arrêter le spinner
                 document.getElementById("spinner").style.display = "none";
 
-                // Modifier le message
                 document.getElementById("message-attente").innerHTML =
                     "✅ Le client a signé. Le retrait est confirmé.";
-
-                // =========================================
-                // ACTIVER LE BOUTON REÇU
-                // =========================================
 
                 const boutonRecu = document.getElementById("bouton-recu");
 
                 boutonRecu.href = data.redirect_url;
-
                 boutonRecu.style.display = "inline-block";
-
-                // =========================================
-                // OUVRIR AUTOMATIQUEMENT LE REÇU
-                // =========================================
-
-                window.location.href = data.redirect_url;
             }
 
         })
