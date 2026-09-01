@@ -28789,7 +28789,7 @@ def rechercher_client_par_compte(derniers_chiffres):
 @login_required
 def liste_recus():
     """Affiche la liste des reçus avec filtres par succursale et employé"""
-    from models import TransactionEpargne, Epargne, Client, Succursale, User, Depot, Retrait, Remboursement
+    from models import TransactionEpargne, Epargne, Client, Succursale, User, TransactionCaisse, Retrait, Remboursement
     from sqlalchemy import or_
     from datetime import datetime
 
@@ -28842,7 +28842,7 @@ def liste_recus():
     # 2️⃣ Récupérer les dépôts (si table Depot existe)
     # ============================================
     query_depots = db.session.query(
-        Depot,
+        TransactionCaisse,
         Client.id.label('client_id'),
         Client.prenom,
         Client.nom,
@@ -28851,9 +28851,9 @@ def liste_recus():
         User.prenom.label('employe_prenom'),
         User.nom.label('employe_nom'),
         User.id.label('employe_id')
-    ).join(Client, Depot.client_id == Client.id) \
-        .join(Succursale, Depot.succursale_id == Succursale.id) \
-        .outerjoin(User, Depot.employe_id == User.id)
+    ).join(Client, TransactionCaisse.client_id == Client.id) \
+        .join(Succursale, TransactionCaisse.succursale_id == Succursale.id) \
+        .outerjoin(User, TransactionCaisse.employe_id == User.id)
 
     # ============================================
     # 3️⃣ Récupérer les retraits (si table Retrait existe)
