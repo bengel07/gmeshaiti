@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">📋 Gestion des reçus</h4>
+            <span class="badge badge-light">{{ total_recus }} reçu(s)</span>
+        </div>
+        <div class="card-body">
+
+            <!-- Filtres -->
+            <form method="GET" action="{{ url_for('liste_recus') }}" id="formFiltres">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="font-weight-bold">Succursale</label>
+                        <select name="succursale_id" class="form-control" id="succursaleSelect">
+                            <option value="">Toutes les succursales</option>
+                            {% for succ in succursales %}
+                            <option value="{{ succ.id }}" {% if filters.succursale_id|int == succ.id %}selected{% endif %}>
+                                {{ succ.nom }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="font-weight-bold">Employé</label>
+                        <select name="employe_id" class="form-control" id="employeSelect">
+                            <option value="">Tous les employés</option>
+                            {% for employe in employes %}
+                            <option value="{{ employe.id }}" {% if filters.employe_id|int == employe.id %}selected{% endif %}>
+                                {{ employe.prenom }} {{ employe.nom }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="font-weight-bold">Type d'opération</label>
+                        <select name="type" class="form-control">
+                            <option value="">Tous</option>
+                            <option value="depot" {% if filters.type == 'depot' %}selected{% endif %}>Dépôt</option>
+                            <option value="retrait" {% if filters.type == 'retrait' %}selected{% endif %}>Retrait</option>
+                            <option value="remboursement" {% if filters.type == 'remboursement' %}selected{% endif %}>Remboursement</option>
+                            <option value="transfert" {% if filters.type == 'transfert' %}selected{% endif %}>Transfert</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="font-weight-bold">Date début</label>
+                        <input type="date" name="date_debut" class="form-control" value="{{ filters.date_debut }}">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="font-weight-bold">Date fin</label>
+                        <input type="date" name="date_fin" class="form-control" value="{{ filters.date_fin }}">
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="font-weight-bold">Nom du client</label>
+                        <input type="text" name="client_nom" class="form-control" placeholder="Nom ou prénom..." value="{{ filters.client_nom }}">
+                    </div>
+
+                    <div class="col-md-2 mb-3">
+                        <label class="font-weight-bold">ID Client</label>
+                        <input type="number" name="client_id" class="form-control" placeholder="ID..." value="{{ filters.client_id }}">
+                    </div>
+
+                    <div class="col-md-2 mb-3">
+                        <label class="font-weight-bold">N° Compte</label>
+                        <input type="text" name="compte_numero" class="form-control" placeholder="Ex: EP-0002" value="{{ filters.compte_numero }}">
+                    </div>
+
+                    <div class="col-md-2 mb-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary mr-2">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <a href="{{ url_for('liste_recus') }}" class="btn btn-secondary">
+                            <i class="fas fa-sync"></i>
+                        </a>
+                    </div>
+                </div>
+            </form>
+
+            <hr>
+
+            <!-- Résultats -->
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Date</th>
+                            <th>Succursale</th>
+                            <th>Employé</th>
+                            <th>Type</th>
+                            <th>Client</th>
+                            <th>ID</th>
+                            <th>N° Compte</th>
+                            <th>Montant</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if recus %}
+                            {% for recu in recus %}
+                            <tr>
+                                <td>{{ recu.date_operation.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>
+                                    <span class="badge badge-secondary">{{ recu.succursale_nom }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-info">{{ recu.employe_nom }}</span>
+                                </td>
+                                <td>
+                                    {% if recu.type == 'retrait' %}
+                                        <span class="badge badge-danger">Retrait</span>
+                                    {% elif recu.type == 'depot' %}
+                                        <span class="badge badge-success">Dépôt</span>
+                                    {% elif recu.type == 'remboursement' %}
+                                        <span class="badge badge-info">Remboursement</span>
+                                    {% elif recu.type == 'transfert' %}
+                                        <span class="badge badge-warning">Transfert</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">{{ recu.type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ recu.client_nom }}</td>
+                                <td>{{ recu.client_id }}</td>
+                                <td>{{ recu.compte_numero }}</td>
+                                <td><strong>{{ recu.montant|round(0)|int }} HTG</strong></td>
+                                <td>
+                                    <a href="{{ url_for('imprimer_recu_retrait_public', transaction_id=recu.transaction_id, client_id=recu.client_id) }}"
+                                       class="btn btn-sm btn-info"
+                                       target="_blank"
+                                       title="Voir le reçu">
+                                        <i class="fas fa-receipt"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-2x d-block mb-2"></i>
+                                    Aucun reçu trouvé pour ces critères
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+            <nav aria-label="Pagination">
+                <ul class="pagination justify-content-center">
+                    {% if page > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('liste_recus', page=page-1, **filters) }}">Précédent</a>
+                    </li>
+                    {% endif %}
+
+                    {% for p in range(1, total_pages + 1) %}
+                        {% if p == page %}
+                        <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                        {% else %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('liste_recus', page=p, **filters) }}">{{ p }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page < total_pages %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('liste_recus', page=page+1, **filters) }}">Suivant</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<style>
+    .badge {
+        font-size: 12px;
+        padding: 5px 10px;
+    }
+    .table th {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .table td {
+        vertical-align: middle;
+        font-size: 13px;
+    }
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+</style>
+
+<script>
+    // Filtrer les employés par succursale
+    document.addEventListener('DOMContentLoaded', function() {
+        const succursaleSelect = document.getElementById('succursaleSelect');
+        const employeSelect = document.getElementById('employeSelect');
+
+        succursaleSelect.addEventListener('change', function() {
+            const succursaleId = this.value;
+
+            if (succursaleId) {
+                // Charger les employés de la succursale via AJAX
+                fetch(`/api/employes/succursale/${succursaleId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Vider le select
+                        employeSelect.innerHTML = '<option value="">Tous les employés</option>';
+
+                        // Ajouter les employés
+                        if (data.employes && data.employes.length > 0) {
+                            data.employes.forEach(function(employe) {
+                                const option = document.createElement('option');
+                                option.value = employe.id;
+                                option.textContent = employe.prenom + ' ' + employe.nom;
+                                employeSelect.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => console.log('Erreur:', error));
+            } else {
+                // Recharger la page pour avoir tous les employés
+                window.location.href = window.location.pathname;
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -28782,6 +28782,166 @@ def rechercher_client_par_compte(derniers_chiffres):
         return jsonify({'error': str(e)}), 500
 
 
+# ============================================
+# ROUTE: Liste des reçus avec filtres (succursale + agent)
+# ============================================
+@app.route('/recus')
+@login_required
+def liste_recus():
+    """Affiche la liste des reçus avec filtres par succursale et agent"""
+    from models import TransactionEpargne, Epargne, Client, Succursale, User
+    from sqlalchemy import and_, or_
+
+    # Récupérer les filtres
+    succursale_id = request.args.get('succursale_id', '')
+    employe_id = request.args.get('employe_id', '')
+    type_op = request.args.get('type', '')
+    date_debut = request.args.get('date_debut', '')
+    date_fin = request.args.get('date_fin', '')
+    client_nom = request.args.get('client_nom', '')
+    client_id = request.args.get('client_id', '')
+    compte_numero = request.args.get('compte_numero', '')
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+
+    # Récupérer les succursales pour le filtre
+    if current_user.role == 'super_admin':
+        succursales = Succursale.query.filter_by(statut='actif').all()
+    else:
+        succursales = Succursale.query.filter_by(id=current_user.succursale_id, statut='actif').all()
+
+    # Récupérer les agents pour le filtre
+    if succursale_id:
+        employes = User.query.filter_by(succursale_id=succursale_id, statut='actif').all()
+    elif current_user.role != 'super_admin':
+        employes = User.query.filter_by(succursale_id=current_user.succursale_id, statut='actif').all()
+    else:
+        employes = User.query.filter_by(statut='actif').all()
+
+    # Construire la requête avec succursale et agent
+    query = db.session.query(
+        TransactionEpargne,
+        Epargne.numero_compte,
+        Client.id.label('client_id'),
+        Client.prenom,
+        Client.nom,
+        Succursale.nom.label('succursale_nom'),
+        Succursale.id.label('succursale_id'),
+        User.prenom.label('employe_prenom'),
+        User.nom.label('employe_nom'),
+        User.id.label('employe_id')
+    ).join(Epargne, TransactionEpargne.compte_id == Epargne.id) \
+        .join(Client, Epargne.client_id == Client.id) \
+        .join(Succursale, Epargne.succursale_id == Succursale.id) \
+        .join(User, TransactionEpargne.employe_id == User.id)  # Assurez-vous que TransactionEpargne a employe_id
+
+    # ✅ Filtrer par succursale
+    if current_user.role != 'super_admin' and hasattr(current_user, 'succursale_id'):
+        query = query.filter(Succursale.id == current_user.succursale_id)
+    elif succursale_id:
+        query = query.filter(Succursale.id == int(succursale_id))
+
+    # ✅ Filtrer par agent
+    if employe_id:
+        query = query.filter(User.id == int(employe_id))
+
+    # Appliquer les autres filtres
+    if type_op:
+        query = query.filter(TransactionEpargne.type_transaction == type_op)
+
+    if date_debut:
+        query = query.filter(TransactionEpargne.date_transaction >= date_debut)
+
+    if date_fin:
+        query = query.filter(TransactionEpargne.date_transaction <= date_fin + ' 23:59:59')
+
+    if client_nom:
+        query = query.filter(
+            or_(
+                Client.nom.ilike(f'%{client_nom}%'),
+                Client.prenom.ilike(f'%{client_nom}%')
+            )
+        )
+
+    if client_id:
+        try:
+            query = query.filter(Client.id == int(client_id))
+        except ValueError:
+            flash("❌ L'ID client doit être un nombre.", "danger")
+            return redirect(url_for('liste_recus'))
+
+    if compte_numero:
+        query = query.filter(Epargne.numero_compte.ilike(f'%{compte_numero}%'))
+
+    # Trier par date décroissante
+    query = query.order_by(TransactionEpargne.date_transaction.desc())
+
+    # Pagination
+    pagination = query.paginate(page=page, per_page=per_page)
+
+    # Formater les résultats
+    recus = []
+    for item in pagination.items:
+        transaction = item[0]
+        recus.append({
+            'transaction_id': transaction.id,
+            'date_operation': transaction.date_transaction,
+            'type': transaction.type_transaction,
+            'client_id': item.client_id,
+            'client_nom': f"{item.prenom} {item.nom}",
+            'compte_numero': item.numero_compte,
+            'montant': transaction.montant,
+            'succursale_nom': item.succursale_nom,
+            'succursale_id': item.succursale_id,
+            'employe_nom': f"{item.employe_prenom} {item.employe_nom}",
+            'employe_id': item.employe_id
+        })
+
+    # Filtres pour le template
+    filters = {
+        'succursale_id': succursale_id,
+        'employe_id': employe_id,
+        'type': type_op,
+        'date_debut': date_debut,
+        'date_fin': date_fin,
+        'client_nom': client_nom,
+        'client_id': client_id,
+        'compte_numero': compte_numero
+    }
+
+    return render_template('recus.html',
+                           recus=recus,
+                           filters=filters,
+                           succursales=succursales,
+                           employes=employes,
+                           page=page,
+                           total_pages=pagination.pages,
+                           total_recus=pagination.total)
+
+
+
+@app.route('/api/employes/succursale/<int:succursale_id>')
+@login_required
+def api_employes_succursale(succursale_id):
+    """Retourne la liste des employés d'une succursale"""
+    from models import User
+
+    employes = User.query.filter_by(
+        succursale_id=succursale_id,
+        statut='actif'
+    ).all()
+
+    return jsonify({
+        'employes': [
+            {
+                'id': employe.id,
+                'prenom': employe.prenom,
+                'nom': employe.nom
+            }
+            for employe in employes
+        ]
+    })
+
 # from views import super_admin_switcher, super_admin_go, super_admin_quick_access, PAGES
 
 # === CRÉATION DES TABLES ET ADMIN AU DÉMARRAGE ===
