@@ -23902,7 +23902,11 @@ def page_signature_client(token):
                 signature_data=signature_data,
                 date_retrait=datetime.utcnow(),
                 statut='effectue',
-                transaction_id=transaction.id
+                transaction_id=transaction.id,
+
+                # Succursale et employé ayant créé la demande
+                succursale_id = retrait_attente.succursale_id,
+                employe_id = retrait_attente.employe_id
             )
 
             db.session.add(retrait)
