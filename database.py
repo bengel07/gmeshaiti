@@ -1,3 +1,4 @@
+
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 
@@ -11,9 +12,9 @@ def init_db(app):
         try:
             with db.engine.begin() as conn:
 
-                # ==========================================
-                # 1. transactions_caisse.succursale_id
-                # ==========================================
+                # =====================================================
+                # 1. TRANSACTIONS_CAISSE : succursale_id
+                # =====================================================
                 conn.execute(text("""
                     ALTER TABLE transactions_caisse
                     ADD COLUMN IF NOT EXISTS succursale_id INTEGER
@@ -36,9 +37,9 @@ def init_db(app):
                     $$;
                 """))
 
-                # ==========================================
-                # 2. transactions_caisse.employe_id
-                # ==========================================
+                # =====================================================
+                # 2. TRANSACTIONS_CAISSE : employe_id
+                # =====================================================
                 conn.execute(text("""
                     ALTER TABLE transactions_caisse
                     ADD COLUMN IF NOT EXISTS employe_id INTEGER
@@ -61,9 +62,9 @@ def init_db(app):
                     $$;
                 """))
 
-                # ==========================================
-                # 3. retraits.succursale_id
-                # ==========================================
+                # =====================================================
+                # 3. RETRAITS : succursale_id
+                # =====================================================
                 conn.execute(text("""
                     ALTER TABLE retraits
                     ADD COLUMN IF NOT EXISTS succursale_id INTEGER
@@ -86,11 +87,33 @@ def init_db(app):
                     $$;
                 """))
 
-            print("✅ Migration des colonnes succursale/employe terminée")
+                # =====================================================
+                # 4. RETRAITS : employe_id
+                # =====================================================
+                conn.execute(text("""
+                    ALTER TABLE retraits
+                    ADD COLUMN IF NOT EXISTS employe_id INTEGER
+                """))
+
+                conn.execute(text("""
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1
+                            FROM pg_constraint
+                            WHERE conname = 'fk_retraits_employe'
+                        ) THEN
+                            ALTER TABLE retraits
+                            ADD CONSTRAINT fk_retraits_employe
+                            FOREIGN KEY (employe_id)
+                            REFERENCES users(id);
+                        END IF;
+                    END
+                    $$;
+                """))
+
+            print("✅ Base de données vérifiée avec succès")
 
         except Exception as e:
-            print(f"❌ Erreur migration : {e}")
-
-
-
+            print(f"❌ Erreur migration base de données : {e}")
 
