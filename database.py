@@ -10,11 +10,14 @@ def init_db(app):
     with app.app_context():
         try:
             with db.engine.begin() as conn:
+
+                # Ajouter la colonne si elle n'existe pas
                 conn.execute(text("""
                     ALTER TABLE transactions_caisse
                     ADD COLUMN IF NOT EXISTS succursale_id INTEGER
                 """))
 
+                # Ajouter la clé étrangère vers la vraie table : succursale
                 conn.execute(text("""
                     DO $$
                     BEGIN
@@ -32,7 +35,7 @@ def init_db(app):
                     $$;
                 """))
 
-            print("✅ Colonne succursale_id vérifiée avec succès")
+            print("✅ transactions_caisse.succursale_id vérifié avec succès")
 
         except Exception as e:
-            print(f"⚠️ Erreur lors de la mise à jour de transactions_caisse : {e}")
+            print(f"❌ Erreur migration succursale_id : {e}")
