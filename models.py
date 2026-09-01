@@ -6958,6 +6958,7 @@ class TransactionCaisse(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=True)
     agent_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     succursale_id = db.Column(db.Integer, db.ForeignKey('succursales.id'))
+    employe_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
     # Description
     description = db.Column(db.Text, nullable=True)
