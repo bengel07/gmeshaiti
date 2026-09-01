@@ -4510,6 +4510,8 @@ class Retrait(db.Model):
     )
     succursale_id = db.Column(db.Integer, db.ForeignKey('succursales.id'))
 
+    employe_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
     # Relations
     client = db.relationship('Client', backref='retraits')
     compte = db.relationship('Epargne', backref='retraits')
