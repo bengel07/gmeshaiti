@@ -132,7 +132,7 @@
                                 <td>{{ recu.compte_numero }}</td>
                                 <td><strong>{{ recu.montant|round(0)|int }} HTG</strong></td>
                                 <td>
-                                    <a href="{{ url_for('imprimer_recu_retrait_public', token=recu.token)) }}"
+                                    <a href="{{ url_for('imprimer_recu_retrait_public', token=recu.token) }}"
                                        class="btn btn-sm btn-info"
                                        target="_blank"
                                        title="Voir le reçu">
