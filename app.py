@@ -28788,9 +28788,10 @@ def rechercher_client_par_compte(derniers_chiffres):
 @app.route('/recus')
 @login_required
 def liste_recus():
-    """Affiche la liste des reçus avec filtres par succursale et agent"""
-    from models import TransactionEpargne, Epargne, Client, Succursale, User
-    from sqlalchemy import and_, or_
+    """Affiche la liste des reçus avec filtres par succursale et employé"""
+    from models import TransactionEpargne, Epargne, Client, Succursale, User, Depot, Retrait, Remboursement
+    from sqlalchemy import or_
+    from datetime import datetime
 
     # Récupérer les filtres
     succursale_id = request.args.get('succursale_id', '')
@@ -28810,7 +28811,7 @@ def liste_recus():
     else:
         succursales = Succursale.query.filter_by(id=current_user.succursale_id, statut='actif').all()
 
-    # Récupérer les agents pour le filtre
+    # Récupérer les employés pour le filtre
     if succursale_id:
         employes = User.query.filter_by(succursale_id=succursale_id, statut='actif').all()
     elif current_user.role != 'super_admin':
@@ -28818,8 +28819,10 @@ def liste_recus():
     else:
         employes = User.query.filter_by(statut='actif').all()
 
-    # Construire la requête avec succursale et agent
-    query = db.session.query(
+    # ============================================
+    # 1️⃣ Récupérer les transactions (dépôts, retraits, intérêts, etc.)
+    # ============================================
+    query_transactions = db.session.query(
         TransactionEpargne,
         Epargne.numero_compte,
         Client.id.label('client_id'),
@@ -28833,69 +28836,246 @@ def liste_recus():
     ).join(Epargne, TransactionEpargne.compte_id == Epargne.id) \
         .join(Client, Epargne.client_id == Client.id) \
         .join(Succursale, Epargne.succursale_id == Succursale.id) \
-        .join(User, TransactionEpargne.employe_id == User.id)  # Assurez-vous que TransactionEpargne a employe_id
+        .outerjoin(User, TransactionEpargne.employe_id == User.id)
 
-    # ✅ Filtrer par succursale
+    # ============================================
+    # 2️⃣ Récupérer les dépôts (si table Depot existe)
+    # ============================================
+    query_depots = db.session.query(
+        Depot,
+        Client.id.label('client_id'),
+        Client.prenom,
+        Client.nom,
+        Succursale.nom.label('succursale_nom'),
+        Succursale.id.label('succursale_id'),
+        User.prenom.label('employe_prenom'),
+        User.nom.label('employe_nom'),
+        User.id.label('employe_id')
+    ).join(Client, Depot.client_id == Client.id) \
+        .join(Succursale, Depot.succursale_id == Succursale.id) \
+        .outerjoin(User, Depot.employe_id == User.id)
+
+    # ============================================
+    # 3️⃣ Récupérer les retraits (si table Retrait existe)
+    # ============================================
+    query_retraits = db.session.query(
+        Retrait,
+        Client.id.label('client_id'),
+        Client.prenom,
+        Client.nom,
+        Succursale.nom.label('succursale_nom'),
+        Succursale.id.label('succursale_id'),
+        User.prenom.label('employe_prenom'),
+        User.nom.label('employe_nom'),
+        User.id.label('employe_id')
+    ).join(Client, Retrait.client_id == Client.id) \
+        .join(Succursale, Retrait.succursale_id == Succursale.id) \
+        .outerjoin(User, Retrait.employe_id == User.id)
+
+    # ============================================
+    # 4️⃣ Récupérer les remboursements (si table Remboursement existe)
+    # ============================================
+    query_remboursements = db.session.query(
+        Remboursement,
+        Client.id.label('client_id'),
+        Client.prenom,
+        Client.nom,
+        Succursale.nom.label('succursale_nom'),
+        Succursale.id.label('succursale_id'),
+        User.prenom.label('employe_prenom'),
+        User.nom.label('employe_nom'),
+        User.id.label('employe_id')
+    ).join(Client, Remboursement.client_id == Client.id) \
+        .join(Succursale, Remboursement.succursale_id == Succursale.id) \
+        .outerjoin(User, Remboursement.employe_id == User.id)
+
+    # ============================================
+    # 5️⃣ Appliquer les filtres sur chaque requête
+    # ============================================
+
+    # Filtrer par succursale
     if current_user.role != 'super_admin' and hasattr(current_user, 'succursale_id'):
-        query = query.filter(Succursale.id == current_user.succursale_id)
+        query_transactions = query_transactions.filter(Succursale.id == current_user.succursale_id)
+        query_depots = query_depots.filter(Succursale.id == current_user.succursale_id)
+        query_retraits = query_retraits.filter(Succursale.id == current_user.succursale_id)
+        query_remboursements = query_remboursements.filter(Succursale.id == current_user.succursale_id)
     elif succursale_id:
-        query = query.filter(Succursale.id == int(succursale_id))
+        try:
+            query_transactions = query_transactions.filter(Succursale.id == int(succursale_id))
+            query_depots = query_depots.filter(Succursale.id == int(succursale_id))
+            query_retraits = query_retraits.filter(Succursale.id == int(succursale_id))
+            query_remboursements = query_remboursements.filter(Succursale.id == int(succursale_id))
+        except (ValueError, TypeError):
+            pass
 
-    # ✅ Filtrer par agent
+    # Filtrer par employé
     if employe_id:
-        query = query.filter(User.id == int(employe_id))
+        try:
+            query_transactions = query_transactions.filter(User.id == int(employe_id))
+            query_depots = query_depots.filter(User.id == int(employe_id))
+            query_retraits = query_retraits.filter(User.id == int(employe_id))
+            query_remboursements = query_remboursements.filter(User.id == int(employe_id))
+        except (ValueError, TypeError):
+            pass
 
-    # Appliquer les autres filtres
-    if type_op:
-        query = query.filter(TransactionEpargne.type_transaction == type_op)
-
-    if date_debut:
-        query = query.filter(TransactionEpargne.date_transaction >= date_debut)
-
-    if date_fin:
-        query = query.filter(TransactionEpargne.date_transaction <= date_fin + ' 23:59:59')
-
+    # Filtrer par client
     if client_nom:
-        query = query.filter(
-            or_(
-                Client.nom.ilike(f'%{client_nom}%'),
-                Client.prenom.ilike(f'%{client_nom}%')
-            )
+        query_transactions = query_transactions.filter(
+            or_(Client.nom.ilike(f'%{client_nom}%'), Client.prenom.ilike(f'%{client_nom}%'))
+        )
+        query_depots = query_depots.filter(
+            or_(Client.nom.ilike(f'%{client_nom}%'), Client.prenom.ilike(f'%{client_nom}%'))
+        )
+        query_retraits = query_retraits.filter(
+            or_(Client.nom.ilike(f'%{client_nom}%'), Client.prenom.ilike(f'%{client_nom}%'))
+        )
+        query_remboursements = query_remboursements.filter(
+            or_(Client.nom.ilike(f'%{client_nom}%'), Client.prenom.ilike(f'%{client_nom}%'))
         )
 
     if client_id:
         try:
-            query = query.filter(Client.id == int(client_id))
-        except ValueError:
-            flash("❌ L'ID client doit être un nombre.", "danger")
-            return redirect(url_for('liste_recus'))
+            client_id_int = int(client_id)
+            if client_id_int > 0:
+                query_transactions = query_transactions.filter(Client.id == client_id_int)
+                query_depots = query_depots.filter(Client.id == client_id_int)
+                query_retraits = query_retraits.filter(Client.id == client_id_int)
+                query_remboursements = query_remboursements.filter(Client.id == client_id_int)
+        except (ValueError, TypeError):
+            pass
 
-    if compte_numero:
-        query = query.filter(Epargne.numero_compte.ilike(f'%{compte_numero}%'))
+    # ============================================
+    # 6️⃣ Exécuter les requêtes et fusionner les résultats
+    # ============================================
 
-    # Trier par date décroissante
-    query = query.order_by(TransactionEpargne.date_transaction.desc())
-
-    # Pagination
-    pagination = query.paginate(page=page, per_page=per_page)
-
-    # Formater les résultats
     recus = []
-    for item in pagination.items:
+
+    # Transactions
+    for item in query_transactions.all():
         transaction = item[0]
+        # Filtrer par type
+        if type_op and transaction.type_transaction != type_op:
+            continue
+        # Filtrer par date
+        if date_debut and transaction.date_transaction < datetime.strptime(date_debut, '%Y-%m-%d'):
+            continue
+        if date_fin and transaction.date_transaction > datetime.strptime(date_fin + ' 23:59:59', '%Y-%m-%d %H:%M:%S'):
+            continue
+        # Filtrer par compte
+        if compte_numero and compte_numero.lower() not in item.numero_compte.lower():
+            continue
+
         recus.append({
-            'transaction_id': transaction.id,
-            'date_operation': transaction.date_transaction,
+            'id': transaction.id,
             'type': transaction.type_transaction,
+            'date_operation': transaction.date_transaction,
+            'montant': transaction.montant,
             'client_id': item.client_id,
             'client_nom': f"{item.prenom} {item.nom}",
             'compte_numero': item.numero_compte,
-            'montant': transaction.montant,
             'succursale_nom': item.succursale_nom,
             'succursale_id': item.succursale_id,
-            'employe_nom': f"{item.employe_prenom} {item.employe_nom}",
-            'employe_id': item.employe_id
+            'employe_nom': f"{item.employe_prenom} {item.employe_nom}" if item.employe_prenom else "N/A",
+            'employe_id': item.employe_id,
+            'transaction_id': transaction.id
         })
+
+    # Dépôts
+    for item in query_depots.all():
+        depot = item[0]
+        if type_op and type_op != 'depot':
+            continue
+        if date_debut and depot.date_depot < datetime.strptime(date_debut, '%Y-%m-%d'):
+            continue
+        if date_fin and depot.date_depot > datetime.strptime(date_fin + ' 23:59:59', '%Y-%m-%d %H:%M:%S'):
+            continue
+        if compte_numero and compte_numero.lower() not in (depot.compte_numero or '').lower():
+            continue
+
+        recus.append({
+            'id': depot.id,
+            'type': 'depot',
+            'date_operation': depot.date_depot,
+            'montant': depot.montant,
+            'client_id': item.client_id,
+            'client_nom': f"{item.prenom} {item.nom}",
+            'compte_numero': depot.compte_numero or 'N/A',
+            'succursale_nom': item.succursale_nom,
+            'succursale_id': item.succursale_id,
+            'employe_nom': f"{item.employe_prenom} {item.employe_nom}" if item.employe_prenom else "N/A",
+            'employe_id': item.employe_id,
+            'transaction_id': depot.id
+        })
+
+    # Retraits
+    for item in query_retraits.all():
+        retrait = item[0]
+        if type_op and type_op != 'retrait':
+            continue
+        if date_debut and retrait.date_retrait < datetime.strptime(date_debut, '%Y-%m-%d'):
+            continue
+        if date_fin and retrait.date_retrait > datetime.strptime(date_fin + ' 23:59:59', '%Y-%m-%d %H:%M:%S'):
+            continue
+        if compte_numero and compte_numero.lower() not in (retrait.compte_numero or '').lower():
+            continue
+
+        recus.append({
+            'id': retrait.id,
+            'type': 'retrait',
+            'date_operation': retrait.date_retrait,
+            'montant': retrait.montant,
+            'client_id': item.client_id,
+            'client_nom': f"{item.prenom} {item.nom}",
+            'compte_numero': retrait.compte_numero or 'N/A',
+            'succursale_nom': item.succursale_nom,
+            'succursale_id': item.succursale_id,
+            'employe_nom': f"{item.employe_prenom} {item.employe_nom}" if item.employe_prenom else "N/A",
+            'employe_id': item.employe_id,
+            'transaction_id': retrait.id
+        })
+
+    # Remboursements
+    for item in query_remboursements.all():
+        remboursement = item[0]
+        if type_op and type_op != 'remboursement':
+            continue
+        if date_debut and remboursement.date_remboursement < datetime.strptime(date_debut, '%Y-%m-%d'):
+            continue
+        if date_fin and remboursement.date_remboursement > datetime.strptime(date_fin + ' 23:59:59',
+                                                                             '%Y-%m-%d %H:%M:%S'):
+            continue
+        if compte_numero and compte_numero.lower() not in (remboursement.compte_numero or '').lower():
+            continue
+
+        recus.append({
+            'id': remboursement.id,
+            'type': 'remboursement',
+            'date_operation': remboursement.date_remboursement,
+            'montant': remboursement.montant,
+            'client_id': item.client_id,
+            'client_nom': f"{item.prenom} {item.nom}",
+            'compte_numero': remboursement.compte_numero or 'N/A',
+            'succursale_nom': item.succursale_nom,
+            'succursale_id': item.succursale_id,
+            'employe_nom': f"{item.employe_prenom} {item.employe_nom}" if item.employe_prenom else "N/A",
+            'employe_id': item.employe_id,
+            'transaction_id': remboursement.id
+        })
+
+    # ============================================
+    # 7️⃣ Trier et paginer
+    # ============================================
+
+    # Trier par date décroissante
+    recus = sorted(recus, key=lambda x: x['date_operation'], reverse=True)
+
+    total_recus = len(recus)
+    total_pages = (total_recus + per_page - 1) // per_page
+
+    # Pagination
+    start = (page - 1) * per_page
+    end = start + per_page
+    recus_page = recus[start:end]
 
     # Filtres pour le template
     filters = {
@@ -28910,13 +29090,13 @@ def liste_recus():
     }
 
     return render_template('recus.html',
-                           recus=recus,
+                           recus=recus_page,
                            filters=filters,
                            succursales=succursales,
                            employes=employes,
                            page=page,
-                           total_pages=pagination.pages,
-                           total_recus=pagination.total)
+                           total_pages=total_pages,
+                           total_recus=total_recus)
 
 
 
