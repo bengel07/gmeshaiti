@@ -355,7 +355,10 @@ function checkTransfert() {
         <table class="table table-sm">
             <tr>
                 <td><strong>De:</strong></td>
-                <td>${sourceData.numero} (${sourceData.type})</td>
+                <td>
+                    ${sourceData.numero}
+                    ${sourceData.type ? `(${sourceData.type})` : ''}
+                </td>
             </tr>
             <tr>
                 <td><strong>Vers:</strong></td>
