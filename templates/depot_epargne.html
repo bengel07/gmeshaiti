@@ -38,8 +38,10 @@
                                    id="numero_compte"
                                    name="numero_compte"
                                    required
-                                   placeholder="12345-12345">
-                            <div class="form-text">Format: 5 chiffres - 5 chiffres (ex: 12345-12345)</div>
+                                   pattern="[0-9]{5}-[0-9]{5}"
+                                   title="Format obligatoire : 5 chiffres-5 chiffres"
+                                   placeholder="00001-12345">
+                            <div class="form-text">Format: 5 chiffres - 5 chiffres (ex: 00001-12345)</div>
                         </div>
 
                         <div class="mb-3">
