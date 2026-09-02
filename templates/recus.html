@@ -131,14 +131,22 @@
                                 <td>{{ recu.client_id }}</td>
                                 <td>{{ recu.compte_numero }}</td>
                                 <td><strong>{{ recu.montant|round(0)|int }} HTG</strong></td>
+
                                 <td>
-                                    <a href="{{ url_for('imprimer_recu_retrait_public', token=recu.token) }}"
+                                    <a href="{{ url_for(
+                                        'imprimer_recu_retrait',
+                                        client_id=recu.client_id,
+                                        transaction_id=recu.transaction_id
+                                    ) }}"
                                        class="btn btn-sm btn-info"
                                        target="_blank"
-                                       title="Voir le reçu">
+                                       title="Voir / Imprimer le reçu">
+
                                         <i class="fas fa-receipt"></i>
                                     </a>
                                 </td>
+
+
                             </tr>
                             {% endfor %}
                         {% else %}
