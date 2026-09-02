@@ -25583,7 +25583,7 @@ def recu_transfert(transaction, type_transfert='client'):
     data.append(["📤 COMPTE SOURCE", ""])
     data.append(["Numéro:", transaction.compte.numero_compte])
     data.append(["Client:", f"{transaction.compte.client.prenom} {transaction.compte.client.nom}"])
-    data.append(["Type:", transaction.compte.type_compte])
+    data.append(["Type:", transaction.compte.produit.nom if transaction.compte.produit else "N/A"])
 
     # ============================================================
     # 4️⃣ INFORMATIONS COMPTE DESTINATION
@@ -25595,7 +25595,7 @@ def recu_transfert(transaction, type_transfert='client'):
             data.append(["📥 COMPTE DESTINATION", ""])
             data.append(["Numéro:", compte_dest.numero_compte])
             data.append(["Client:", f"{compte_dest.client.prenom} {compte_dest.client.nom}"])
-            data.append(["Type:", compte_dest.type_compte])
+            data.append(["Type:", compte_dest.produit.nom if compte_dest.produit else "N/A"])
 
     # ============================================================
     # 5️⃣ TABLEAU
@@ -25670,7 +25670,7 @@ def telecharger_recu(reference):
     # Si le fichier n'existe pas, le générer
     if not os.path.exists(chemin_fichier):
         try:
-            generer_recu_transfert(transaction)
+            recu_transfert(transaction)
         except Exception as e:
             flash(f'Erreur lors de la génération du reçu: {str(e)}', 'danger')
             return redirect(request.referrer or url_for('dashboard'))
