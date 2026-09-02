@@ -25274,7 +25274,14 @@ def verifier_transfert():
         compte_source_id = data.get('compte_source_id')
         montant = float(data.get('montant'))
 
-        compte_destination_numero = data.get('compte_destination_numero', '')
+        compte_destination_numero = data.get('compte_destination_numero', '').strip()
+
+        # Normaliser le numéro du compte destination
+        import re
+
+        if compte_destination_numero and not compte_destination_numero.startswith('7-12519-'):
+            if re.match(r'^\d{5}-\d{5}$', compte_destination_numero):
+                compte_destination_numero = f"7-12519-{compte_destination_numero}"
 
         compte = Epargne.query.get(compte_source_id)
 
@@ -25528,6 +25535,8 @@ def retards():
     except Exception as e:
         flash(f'Erreur lors du chargement des paiements en retard: {str(e)}', 'error')
         return redirect(url_for('dashboard'))
+
+
 
 @app.route('/api/verifier-compte', methods=['POST'])
 @login_required
