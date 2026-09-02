@@ -24842,16 +24842,17 @@ def confirmer_retrait(token):
         """
 
 
-
 @app.route('/client/<int:client_id>/transfert', methods=['GET', 'POST'])
 @login_required
 def transfert_client_form(client_id):
+    """Transfert entre comptes d'un même client"""
 
     from models import Client, Epargne
     from datetime import datetime
+    from sqlalchemy import func
 
     # =========================
-    # Vérifier client
+    # 1️⃣ VÉRIFIER CLIENT
     # =========================
     client = db.session.get(Client, client_id)
     if not client:
@@ -24859,7 +24860,7 @@ def transfert_client_form(client_id):
         return redirect(url_for('rechercher_client'))
 
     # =========================
-    # Comptes du client
+    # 2️⃣ COMPTES DU CLIENT
     # =========================
     comptes_epargne = Epargne.query.filter_by(
         client_id=client_id,
@@ -24870,11 +24871,8 @@ def transfert_client_form(client_id):
         flash('Aucun compte épargne disponible', 'warning')
         return redirect(url_for('voir_client', client_id=client_id))
 
-
-
-
     # =========================
-    # GET → afficher page
+    # 3️⃣ GET → AFFICHER PAGE
     # =========================
     if request.method == 'GET':
         return render_template(
@@ -24885,497 +24883,255 @@ def transfert_client_form(client_id):
         )
 
     # =========================
-    # POST → traitement
+    # 4️⃣ POST → TRAITER TRANSFERT
     # =========================
-    if request.method == 'POST':
-        try:
+    try:
+        # Récupérer les données du formulaire
+        compte_source_id = request.form.get('compte_source')
+        compte_destination_numero = request.form.get('compte_destination_numero')
+        montant = request.form.get('montant')
+        description = request.form.get('description', 'Transfert entre comptes')
 
-            # 🔴 SECURISÉ (évite int(None))
-            compte_source_id = request.form.get('compte_source')
+        # =========================
+        # 5️⃣ VALIDATION
+        # =========================
+        if not compte_source_id:
+            raise ValueError("Compte source manquant")
 
-            compte_destination_ref = request.form.get('compte_destination') or \
-                                     request.form.get('compte_destination_numero')
+        if not compte_destination_numero:
+            raise ValueError("Numéro de compte destination manquant")
 
-            montant = request.form.get('montant')
-            description = request.form.get('description', 'Transfert entre comptes')
+        if not montant:
+            raise ValueError("Montant manquant")
 
-            # =========================
-            # VALIDATION SAFE
-            # =========================
-            if not compte_source_id or not compte_destination_ref:
-                raise ValueError("Compte source ou destination manquant")
+        # Nettoyer le numéro de compte
+        compte_destination_numero = compte_destination_numero.strip()
 
-            compte_destination_ref = " ".join(compte_destination_ref.split())
+        # Normaliser le numéro (si format court)
+        import re
+        if not compte_destination_numero.startswith('7-12519-'):
+            if re.match(r'^\d{5}-\d{5}$', compte_destination_numero):
+                compte_destination_numero = f"7-12519-{compte_destination_numero}"
 
-            if not montant:
-                raise ValueError("Montant manquant")
+        # Convertir les types
+        compte_source_id = int(compte_source_id)
+        montant = float(montant)
 
-            compte_source_id = int(compte_source_id)
-            numero_destination = compte_destination_ref.strip()
-            montant = float(montant)
+        if montant <= 0:
+            raise ValueError("Le montant doit être supérieur à 0")
 
-            if montant <= 0:
-                raise ValueError("Montant invalide")
+        if montant < 1000:
+            raise ValueError("Le montant minimum est de 1 000 HTG")
 
-            if str(compte_source_id) == str(numero_destination):
-                raise ValueError("Les comptes doivent être différents")
+        # =========================
+        # 6️⃣ RÉCUPÉRER LES COMPTES
+        # =========================
+        compte_source = Epargne.query.filter_by(
+            id=compte_source_id,
+            client_id=client_id,
+            statut='actif'
+        ).first()
 
-            # =========================
-            # Récupération comptes
-            # =========================
-            compte_source = Epargne.query.filter_by(
-                id=compte_source_id,
-                #client_id=client_id,
-                statut='actif'
-            ).first()
+        compte_destination = Epargne.query.filter_by(
+            numero_compte=compte_destination_numero,
+            statut='actif'
+        ).first()
 
-            # DEBUG
-            print(f"🔍 Recherche compte destination avec numero_compte = '{compte_destination_ref}'")
-            print(f"   Type: {type(compte_destination_ref)}")
-            print(f"   Longueur: {len(compte_destination_ref)}")
+        if not compte_source:
+            raise ValueError("Compte source introuvable ou inactif")
 
-            compte_destination = Epargne.query.filter_by(
-                numero_compte=compte_destination_ref,
-                #client_id=client_id,
-                statut='actif'
-            ).first()
+        if not compte_destination:
+            raise ValueError("Compte destination introuvable ou inactif")
 
-            if not compte_source or not compte_destination:
-                raise ValueError("Compte introuvable ou inactif")
+        # Vérifier que les comptes sont différents
+        if compte_source.id == compte_destination.id:
+            raise ValueError("Les comptes source et destination doivent être différents")
 
-            # =========================
-            # Vérification solde
-            # =========================
-            if compte_source.solde < montant:
-                raise ValueError(
-                    f"Solde insuffisant: {compte_source.solde:,.0f} HTG"
-                )
+        # Vérifier que le compte source appartient au client
+        if compte_source.client_id != client_id:
+            raise ValueError("Ce compte ne vous appartient pas")
 
-            # ✅ Ajouter avant le transfert
-            if compte_source.bloque:
-                raise ValueError("Le compte source est bloqué")
+        # Vérifier les comptes bloqués
+        if compte_source.bloque:
+            raise ValueError("Le compte source est bloqué")
 
-            if compte_destination.bloque:
-                raise ValueError("Le compte destination est bloqué")
+        if compte_destination.bloque:
+            raise ValueError("Le compte destination est bloqué")
 
-            # =========================
-            # Référence
-            # =========================
-            ref_transfert = f"TRF_{datetime.now().strftime('%Y%m%d%H%M%S')}_{client_id}"
+        # Vérifier le solde
+        if compte_source.solde < montant:
+            raise ValueError(f"Solde insuffisant: {compte_source.solde:,.0f} HTG")
 
-            # =========================
-            # Transaction
-            # =========================
-            # ✅ TRANSACTION ATOMIQUE
-            with db.session.begin_nested():
-                transaction_source = compte_source.retirer(
-                    montant=montant,
-                    description=f"Transfert vers {compte_destination.numero_compte}",
-                    transaction_ref=ref_transfert
-                )
-                transaction_dest = compte_destination.deposer(
-                    montant=montant,
-                    description=f"Transfert depuis {compte_source.numero_compte}",
-                    transaction_ref=ref_transfert
-                )
-                transaction_source.transfert_vers = compte_destination.id
-                transaction_dest.transfert_depuis = compte_source.id
+        # =========================
+        # 7️⃣ GÉNÉRER RÉFÉRENCE
+        # =========================
+        ref_transfert = f"TRF_{datetime.now().strftime('%Y%m%d%H%M%S')}_{client_id}"
 
-            # ✅ CALCUL CORRECT DU SOLDE CLIENT
-            total_solde = db.session.query(db.func.sum(Epargne.solde)).filter_by(client_id=client_id).scalar() or 0
-            client.solde = total_solde
-
-            db.session.commit()
-            flash(f'✅ Transfert de {montant:,.0f} HTG réussi', 'success')
-            return redirect(url_for('transfert_client_form', client_id=client_id))
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f'❌ Erreur: {str(e)}', 'danger')
-            return redirect(request.url)
-
-
-
-# ============================================
-# TRANSFERT VERS UN AUTRE CLIENT
-# ============================================
-
-@app.route('/transfert_client', methods=['GET', 'POST'])
-@login_required
-def transfert_entre_clients():
-    """Transfert d'argent entre deux clients différents"""
-
-    # Vérifier que l'utilisateur est un client
-    if not current_user.client_id:
-        flash('Accès réservé aux clients', 'danger')
-        return redirect(url_for('index'))
-
-    if request.method == 'POST':
-        try:
-            compte_source_id = request.form.get('compte_source')
-            montant = float(request.form.get('montant'))
-            description = request.form.get('description', 'Transfert entre clients')
-            motif = request.form.get('motif', 'autre')
-
-            compte_destination_numero = request.form.get('compte_destination_numero')
-
-            # Construire le numéro complet si nécessaire
-            if compte_destination_numero and not compte_destination_numero.startswith('7-12519-'):
-                import re
-                if re.match(r'^\d{5}-\d{5}$', compte_destination_numero):
-                    compte_destination_numero = f"7-12519-{compte_destination_numero}"
-
-            # VALIDATIONS
-            if montant <= 0:
-                flash('Le montant doit être supérieur à 0', 'danger')
-                return redirect(request.url)
-
-            if not compte_source_id or not compte_destination_numero:
-                flash('Tous les champs sont requis', 'danger')
-                return redirect(request.url)
-
-            # Récupérer le compte source avec lock
-            compte_source = Epargne.query.filter_by(
-                id=compte_source_id,
-                client_id=current_user.client_id,
-                statut='actif'
-            ).with_for_update().first()
-
-            if not compte_source:
-                flash('Compte source non trouvé', 'danger')
-                return redirect(request.url)
-
-            # Vérifier que l'utilisateur a le droit de faire ce transfert
-            if compte_source.client_id != current_user.client_id:
-                flash('Vous n\'êtes pas autorisé à utiliser ce compte', 'danger')
-                return redirect(request.url)
-
-            # Vérifier que le compte source est débloqué
-            if compte_source.bloque:
-                flash('Ce compte est bloqué. Veuillez contacter votre conseiller.', 'danger')
-                return redirect(request.url)
-
-            # Rechercher par numéro de compte (pas par ID)
-
-
-
-            compte_destination = Epargne.query.filter_by(
-                numero_compte=compte_destination_numero,
-                statut='actif'
-            ).filter(Epargne.id != compte_source.id).first()
-
-            if not compte_destination:
-                flash('Compte destination non trouvé ou inactif', 'danger')
-                return redirect(request.url)
-
-            # Vérifier qu'on ne transfère pas à soi-même
-            if compte_destination.client_id == compte_source.client_id:
-                flash('Utilisez le formulaire de transfert entre comptes pour vos propres comptes', 'danger')
-                return redirect(url_for('transfert_client_form', client_id=current_user.client_id))
-
-            # Vérifier les conditions de retrait
-            peut_retirer, message_retrait = compte_source.peut_retirer(montant)
-            if not peut_retirer:
-                flash(message_retrait, 'danger')
-                return redirect(request.url)
-
-            # Générer un numéro de référence unique
-            ref_transfert = f"TRF_EXT_{datetime.now().strftime('%Y%m%d%H%M%S')}_{compte_source.id}_{compte_destination.id}"
-
-            # Effectuer le transfert dans une transaction
-            with db.session.begin_nested():
-                # Retirer du source
-                transaction_source = compte_source.retirer(
-                    montant=montant,
-                    description=f"Transfert à {compte_destination.client.prenom} {compte_destination.client.nom} ({compte_destination.numero_compte}) : {description[:100]}",
-                    transaction_ref=ref_transfert
-                )
-
-                # Ajouter des métadonnées au transfert source
-                transaction_source.type_transaction = 'transfert_sortant'
-                transaction_source.transfert_destination_id = compte_destination.id
-                transaction_source.transfert_ref = ref_transfert
-                transaction_source.transfert_motif = motif
-
-                # Déposer sur destination
-                transaction_dest = compte_destination.deposer(
-                    montant=montant,
-                    description=f"Transfert de {compte_source.client.prenom} {compte_source.client.nom} ({compte_source.numero_compte}) : {description[:100]}",
-                    transaction_ref=ref_transfert
-                )
-
-                # Ajouter des métadonnées au transfert destination
-                transaction_dest.type_transaction = 'transfert_entrant'
-                transaction_dest.transfert_source_id = compte_source.id
-                transaction_dest.transfert_ref = ref_transfert
-                transaction_dest.transfert_motif = motif
-
-            db.session.commit()
-
-            # Envoyer des notifications par email
-            try:
-                envoyer_email_transfert_sortant(compte_source.client, compte_destination.client, montant, ref_transfert)
-                envoyer_email_transfert_entrant(compte_destination.client, compte_source.client, montant, ref_transfert)
-            except Exception as e:
-                current_app.logger.error(f"Erreur envoi email transfert: {str(e)}")
-
-            # Logger l'opération
-            current_app.logger.info(
-                f"Transfert externe - Source: {compte_source.client.prenom} {compte_source.client.nom} ({compte_source.numero_compte}), "
-                f"Destination: {compte_destination.client.prenom} {compte_destination.client.nom} ({compte_destination.numero_compte}), "
-                f"Montant: {montant} HTG, Ref: {ref_transfert}"
+        # =========================
+        # 8️⃣ EFFECTUER LE TRANSFERT (ATOMIQUE)
+        # =========================
+        with db.session.begin_nested():
+            # Débiter le compte source
+            transaction_source = compte_source.retirer(
+                montant=montant,
+                description=f"Transfert vers {compte_destination.numero_compte}",
+                transaction_ref=ref_transfert
             )
+            transaction_source.type_transaction = 'transfert_sortant'
+            transaction_source.transfert_destination_id = compte_destination.id
 
-            flash(
-                f'✅ Transfert de {montant:,.0f} HTG vers {compte_destination.client.prenom} {compte_destination.client.nom} effectué avec succès',
-                'success')
-            return redirect(url_for('client_dashboard'))
+            # Créditer le compte destination
+            transaction_dest = compte_destination.deposer(
+                montant=montant,
+                description=f"Transfert depuis {compte_source.numero_compte}",
+                transaction_ref=ref_transfert
+            )
+            transaction_dest.type_transaction = 'transfert_entrant'
+            transaction_dest.transfert_source_id = compte_source.id
 
-        except ValueError as e:
-            db.session.rollback()
-            flash(str(e), 'danger')
-            return redirect(request.url)
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f"Erreur transfert externe: {str(e)}", exc_info=True)
-            flash(f'❌ Erreur lors du transfert: {str(e)}', 'danger')
-            return redirect(request.url)
+        # =========================
+        # 9️⃣ METTRE À JOUR LE SOLDE CLIENT
+        # =========================
+        total_solde = db.session.query(func.sum(Epargne.solde)).filter_by(client_id=client_id).scalar() or 0
+        client.solde = total_solde
 
-    # GET: Afficher le formulaire
-    comptes_utilisateur = Epargne.query.filter_by(
-        client_id=current_user.client_id,
-        statut='actif',
-        bloque=False
-    ).all()
+        db.session.commit()
 
-    if not comptes_utilisateur:
-        flash('Vous n\'avez aucun compte actif disponible pour effectuer un transfert', 'warning')
-        return redirect(url_for('client_dashboard'))
+        flash(f'✅ Transfert de {montant:,.0f} HTG réussi', 'success')
+        return redirect(url_for('transfert_client_form', client_id=client_id))
 
-    return render_template('transfert_client.html',
-                           client=current_user.client,
-                           comptes=comptes_utilisateur,
-                           now=datetime.now())
+    except ValueError as e:
+        db.session.rollback()
+        flash(f'❌ {str(e)}', 'danger')
+        return redirect(request.url)
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ Erreur technique: {str(e)}', 'danger')
+        return redirect(request.url)
 
-
-
-
-# ============================================
-# TRANSFERT ENTRE CLIENTS (Version Employé)
-# ============================================
 
 @app.route('/employe/transfert_client', methods=['GET', 'POST'])
 @role_required('employe', 'super_admin')
 def employe_transfert_entre_clients():
     """Transfert d'argent entre deux clients (réservé aux employés)"""
 
-    if request.method == 'POST':
-        try:
-            compte_source_id = request.form.get('compte_source')
-            compte_destination_id = request.form.get('compte_destination')
-            montant = float(request.form.get('montant'))
-            description = request.form.get('description', 'Transfert entre clients')
-            employe_id = current_user.id
+    from datetime import datetime
 
-            # Validation
-            if montant <= 0:
-                flash('Le montant doit être supérieur à 0', 'danger')
-                return redirect(request.url)
+    # =========================
+    # GET → AFFICHER FORMULAIRE
+    # =========================
+    if request.method == 'GET':
+        comptes_actifs = Epargne.query.filter_by(
+            statut='actif',
+            bloque=False
+        ).all()
+        return render_template('employe_transfert_client.html', comptes=comptes_actifs)
 
-            # Récupérer les comptes
-            compte_source = Epargne.query.filter_by(
-                id=compte_source_id,
-                statut='actif'
-            ).with_for_update().first()
+    # =========================
+    # POST → TRAITER TRANSFERT
+    # =========================
+    try:
+        compte_source_id = request.form.get('compte_source')
+        compte_destination_id = request.form.get('compte_destination')
+        montant = request.form.get('montant')
+        description = request.form.get('description', 'Transfert entre clients')
+        employe_id = current_user.id
 
-            compte_destination = Epargne.query.filter_by(
-                id=compte_destination_id,
-                statut='actif'
-            ).with_for_update().first()
-
-            if not compte_source or not compte_destination:
-                flash('Compte source ou destination non trouvé', 'danger')
-                return redirect(request.url)
-
-            # Vérifier que ce sont des comptes différents
-            if compte_source.id == compte_destination.id:
-                flash('Les comptes source et destination doivent être différents', 'danger')
-                return redirect(request.url)
-
-            # Générer référence
-            ref_transfert = f"TRF_EMP_{datetime.now().strftime('%Y%m%d%H%M%S')}_{employe_id}"
-
-            # Effectuer le transfert
-            with db.session.begin_nested():
-                transaction_source = compte_source.retirer(
-                    montant=montant,
-                    description=f"Transfert vers {compte_destination.client.prenom} {compte_destination.client.nom} : {description[:100]}",
-                    transaction_ref=ref_transfert
-                )
-                transaction_source.type_transaction = 'transfert_sortant'
-                transaction_source.transfert_destination_id = compte_destination.id
-                transaction_source.transfert_effectue_par = employe_id
-
-                transaction_dest = compte_destination.deposer(
-                    montant=montant,
-                    description=f"Transfert de {compte_source.client.prenom} {compte_source.client.nom} : {description[:100]}",
-                    transaction_ref=ref_transfert
-                )
-                transaction_dest.type_transaction = 'transfert_entrant'
-                transaction_dest.transfert_source_id = compte_source.id
-                transaction_dest.transfert_effectue_par = employe_id
-
-            db.session.commit()
-
-            # Envoyer notifications
-            envoyer_email_transfert_sortant(compte_source.client, compte_destination.client, montant, ref_transfert)
-            envoyer_email_transfert_entrant(compte_destination.client, compte_source.client, montant, ref_transfert)
-
-            flash(f'✅ Transfert de {montant:,.0f} HTG effectué avec succès', 'success')
-            return redirect(url_for('dashboard_employe'))
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Erreur: {str(e)}', 'danger')
+        # =========================
+        # VALIDATION
+        # =========================
+        if not compte_source_id or not compte_destination_id:
+            flash('Compte source et destination requis', 'danger')
             return redirect(request.url)
 
-    # GET: Afficher formulaire
-    comptes_actifs = Epargne.query.filter_by(statut='actif', bloque=False).all()
-    return render_template('employe_transfert_client.html', comptes=comptes_actifs)
+        if not montant:
+            flash('Montant requis', 'danger')
+            return redirect(request.url)
 
+        montant = float(montant)
 
-# ============================================
-# HISTORIQUE DES TRANSFERTS AMÉLIORÉ
-# ============================================
-
-@app.route('/compte/<int:compte_id>/transferts')
-@login_required
-def historique_transferts(compte_id):
-    """Affiche l'historique des transferts d'un compte"""
-
-    compte = Epargne.query.get_or_404(compte_id)
-
-    # Vérifier les droits
-    if compte.client_id != current_user.client_id and not current_user.is_admin() and current_user.role != 'employe':
-        flash('Accès non autorisé', 'danger')
-        return redirect(url_for('index'))
-
-    # Récupérer les transactions de type transfert
-    transferts = TransactionEpargne.query.filter(
-        TransactionEpargne.compte_id == compte_id,
-        TransactionEpargne.type_transaction.in_(['transfert_sortant', 'transfert_entrant', 'depot', 'retrait']),
-        TransactionEpargne.description.like('%Transfert%')
-    ).order_by(TransactionEpargne.date_operation.desc()).limit(1000).all()
-
-    return render_template('historique_transferts.html',
-                           compte=compte,
-                           transferts=transferts)
-
-
-# ============================================
-# VÉRIFICATION AVANT TRANSFERT AMÉLIORÉE (API)
-# ============================================
-
-@app.route('/api/verifier_transfert', methods=['POST'])
-@login_required
-def verifier_transfert():
-    """API pour vérifier si un transfert est possible"""
-
-    print("🔵 DEBUT verifier_transfert", flush=True)
-
-    try:
-        data = request.get_json()
-        print("🔵 DATA =", data, flush=True)
-        compte_source_id = data.get('compte_source_id')
-        montant = float(data.get('montant'))
-
-        compte_destination_numero = data.get('compte_destination_numero', '').strip()
-
-        print("🔵 SOURCE =", compte_source_id, flush=True)
-        print("🔵 MONTANT =", montant, flush=True)
-        print("🔵 DESTINATION =", compte_destination_numero, flush=True)
-
-        # Normaliser le numéro du compte destination
-        import re
-
-        if compte_destination_numero and not compte_destination_numero.startswith('7-12519-'):
-            if re.match(r'^\d{5}-\d{5}$', compte_destination_numero):
-                compte_destination_numero = f"7-12519-{compte_destination_numero}"
-
-        compte = Epargne.query.get(compte_source_id)
-
-        # Pour un client connecté
-        if current_user.client_id:
-            if compte.client_id != current_user.client_id:
-                return jsonify({'possible': False, 'message': 'Accès non autorisé'})
-
-        # Pour un employé
-        elif not current_user.is_admin() and current_user.role != 'employe':
-            return jsonify({'possible': False, 'message': 'Accès non autorisé'})
-
-        if not compte:
-            return jsonify({'possible': False, 'message': 'Compte non trouvé'})
-
-        # Vérifier les droits
-        if compte.client_id != current_user.client_id and not current_user.is_admin():
-            return jsonify({'possible': False, 'message': 'Non autorisé'})
-
-        # Vérifier que le compte est actif
-        if compte.statut != 'actif':
-            return jsonify({'possible': False, 'message': 'Ce compte est inactif'})
-
-        # Vérifier si le compte est bloqué
-        if hasattr(compte, 'bloque') and compte.bloque:
-            return jsonify({'possible': False, 'message': 'Ce compte est bloqué'})
-
-        # Vérifier le montant
         if montant <= 0:
-            return jsonify({'possible': False, 'message': 'Le montant doit être supérieur à 0'})
+            flash('Le montant doit être supérieur à 0', 'danger')
+            return redirect(request.url)
 
-        # Vérifier le solde
-        if compte.solde < montant:
-            return jsonify({
-                'possible': False,
-                'message': f'Solde insuffisant. Solde disponible: {compte.solde:,.0f} HTG',
-                'solde_actuel': compte.solde
-            })
+        if montant < 1000:
+            flash('Le montant minimum est de 1 000 HTG', 'danger')
+            return redirect(request.url)
 
-        # Vérifier le plafond journalier si le modèle a cette propriété
-        if hasattr(compte, 'peut_retirer'):
-            peut_retirer, message = compte.peut_retirer(montant)
-            if not peut_retirer:
-                return jsonify({'possible': False, 'message': message})
+        # =========================
+        # RÉCUPÉRER LES COMPTES
+        # =========================
+        compte_source = Epargne.query.filter_by(
+            id=compte_source_id,
+            statut='actif',
+            bloque=False
+        ).with_for_update().first()
 
-        # Vérifier le compte destination si fourni
-        if compte_destination_numero:
-            compte_dest = Epargne.query.filter_by(
-                numero_compte=compte_destination_numero,
-                statut='actif'
-            ).first()
+        compte_destination = Epargne.query.filter_by(
+            id=compte_destination_id,
+            statut='actif',
+            bloque=False
+        ).with_for_update().first()
 
-            if not compte_dest:
-                return jsonify({'possible': False, 'message': 'Compte destination non trouvé'})
+        if not compte_source or not compte_destination:
+            flash('Compte source ou destination non trouvé', 'danger')
+            return redirect(request.url)
 
-            if compte_dest.id == compte.id:
-                return jsonify({'possible': False, 'message': 'Le compte destination doit être différent'})
+        if compte_source.id == compte_destination.id:
+            flash('Les comptes source et destination doivent être différents', 'danger')
+            return redirect(request.url)
 
-            if compte_dest.client_id == compte.client_id:
-                return jsonify({
-                    'possible': False,
-                    'message': 'Le compte destination appartient au même client'
-                })
+        if compte_source.solde < montant:
+            flash(f'Solde insuffisant: {compte_source.solde:,.0f} HTG', 'danger')
+            return redirect(request.url)
 
-        # Tout est OK
-        return jsonify({
-            'possible': True,
-            'solde_actuel': float(compte.solde),
-            'solde_apres_transfert': float(compte.solde - montant),
-            'montant': montant,
-            'frais': 0  # Ajouter des frais si nécessaire
-        })
+        # =========================
+        # GÉNÉRER RÉFÉRENCE
+        # =========================
+        ref_transfert = f"TRF_EMP_{datetime.now().strftime('%Y%m%d%H%M%S')}_{employe_id}"
 
+        # =========================
+        # EFFECTUER LE TRANSFERT (ATOMIQUE)
+        # =========================
+        with db.session.begin_nested():
+            transaction_source = compte_source.retirer(
+                montant=montant,
+                description=f"Transfert vers {compte_destination.client.prenom} {compte_destination.client.nom}",
+                transaction_ref=ref_transfert
+            )
+            transaction_source.type_transaction = 'transfert_sortant'
+            transaction_source.transfert_destination_id = compte_destination.id
+            transaction_source.transfert_effectue_par = employe_id
+
+            transaction_dest = compte_destination.deposer(
+                montant=montant,
+                description=f"Transfert de {compte_source.client.prenom} {compte_source.client.nom}",
+                transaction_ref=ref_transfert
+            )
+            transaction_dest.type_transaction = 'transfert_entrant'
+            transaction_dest.transfert_source_id = compte_source.id
+            transaction_dest.transfert_effectue_par = employe_id
+
+        db.session.commit()
+
+        # Envoyer emails
+        try:
+            envoyer_email_transfert_sortant(compte_source.client, compte_destination.client, montant, ref_transfert)
+            envoyer_email_transfert_entrant(compte_destination.client, compte_source.client, montant, ref_transfert)
+        except Exception as e:
+            current_app.logger.error(f"Erreur envoi email: {str(e)}")
+
+        flash(f'✅ Transfert de {montant:,.0f} HTG effectué avec succès', 'success')
+        return redirect(url_for('dashboard_employe'))
+
+    except ValueError as e:
+        db.session.rollback()
+        flash(str(e), 'danger')
+        return redirect(request.url)
     except Exception as e:
-        return jsonify({'possible': False, 'message': f'Erreur: {str(e)}'})
+        db.session.rollback()
+        flash(f'Erreur: {str(e)}', 'danger')
+        return redirect(request.url)
 
 
 # ============================================
@@ -25581,6 +25337,13 @@ def verifier_compte():
             numero_compte = f"7-12519-{numero_compte}"
 
     compte = Epargne.query.filter_by(numero_compte=numero_compte).first()
+
+    # Vérifier que ce n'est pas le même client
+    if current_user.client_id and compte.client_id == current_user.client_id:
+        return jsonify({
+            'success': False,
+            'message': 'Ce compte vous appartient déjà'
+        })
 
     if not compte:
         return jsonify({'success': False})
