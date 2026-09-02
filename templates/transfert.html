@@ -36,7 +36,7 @@
 
             <form method="POST" id="transfertForm" class="mt-4">
                   <!-- PROTECTION CSRF -->
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mb-3">
@@ -71,7 +71,7 @@
                                        id="compte_destination_numero"
                                        class="form-control"
                                        required
-                                       placeholder="Exemple: GMES-001234"
+                                       placeholder="Exemple: 00001-001234"
                                        pattern="[A-Za-z0-9\-]+"
                                        title="Format: alphanumérique et tirets">
                             </div>
@@ -203,7 +203,7 @@ async function verifierCompteDestination() {
     destinationData = null;
     btnSubmit.disabled = true;
 
-    if (numeroCompte.length < 5) {
+    if (numeroCompte.length < 10) {
         if (infoDiv) infoDiv.style.display = 'none';
         checkTransfert();
         return;
