@@ -1,4 +1,3 @@
-
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 
@@ -14,9 +13,7 @@ def init_db(app):
             db.session.commit()
             print("✅ Connexion PostgreSQL réussie")
 
-            db.create_all()
-
-            # Ajouter client_id à users si elle n'existe pas
+            # Garder les deux colonnes
             db.session.execute(text("""
                 ALTER TABLE users
                 ADD COLUMN IF NOT EXISTS client_id INTEGER
@@ -24,6 +21,10 @@ def init_db(app):
             db.session.commit()
 
             print("✅ Colonne users.client_id vérifiée/créée")
+            print("✅ Colonne users.id_client conservée")
+
+            db.create_all()
+
             print("✅ Tables vérifiées/créées")
 
         except Exception as e:
