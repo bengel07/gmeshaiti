@@ -208,7 +208,7 @@ async function verifierCompteDestination() {
     erreurDiv.style.display = 'none';
     alerteDiv.style.display = 'none';
     destinationData = null;
-    btnSubmit.disabled = true;
+<!--    btnSubmit.disabled = true;-->
 
     if (numeroCompte.length < 10) {
         if (infoDiv) infoDiv.style.display = 'none';
@@ -369,7 +369,7 @@ async function verifierCompteDestination() {
 
         erreurDiv.style.display = 'block';
 
-        btnSubmit.disabled = true;
+<!--        btnSubmit.disabled = true;-->
     }
 }
 
@@ -379,10 +379,14 @@ function checkTransfert() {
     const sourceId = sourceSelect.value;
     const montant = parseFloat(montantInput.value);
 
+    console.log("SOURCE :", sourceId);
+    console.log("DESTINATION :", destinationData);
+    console.log("MONTANT :", montant);
+
     recapDiv.style.display = 'none';
     alerteDiv.style.display = 'none';
     erreurDiv.style.display = 'none';
-    btnSubmit.disabled = true;
+<!--    btnSubmit.disabled = true;-->
 
     console.log("========== VERIFICATION ==========");
     console.log("sourceId =", sourceId);
@@ -486,7 +490,7 @@ function confirmSubmit(e) {
     }
 
     btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Traitement...';
-    btnSubmit.disabled = true;
+<!--    btnSubmit.disabled = true;-->
     return true;
 }
 
