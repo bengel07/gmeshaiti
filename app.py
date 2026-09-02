@@ -25421,8 +25421,11 @@ def employe_transfert_entre_clients():
             transaction_ref=ref_transfert
         )
 
+        client_source = compte_source.client
+        client_dest = compte_destination.client
+
         transaction_dest.type_transaction = 'transfert_entrant'
-        transaction_dest.transfert_source_id = employe_id
+        transaction_dest.transfert_source_id = compte_source.id
         transaction_dest.transfert_effectue_par = employe_id
 
         # COMMIT UNIQUE
@@ -25430,8 +25433,8 @@ def employe_transfert_entre_clients():
 
         # Envoyer emails
         try:
-            envoyer_email_transfert_sortant(compte_source.client, compte_destination.client, montant, ref_transfert)
-            envoyer_email_transfert_entrant(compte_destination.client, compte_source.client, montant, ref_transfert)
+            envoyer_email_transfert_sortant(client_source, client_dest, montant, ref_transfert)
+            envoyer_email_transfert_entrant(client_dest, client_source, montant, ref_transfert)
         except Exception as e:
             current_app.logger.error(f"Erreur envoi email: {str(e)}")
 
