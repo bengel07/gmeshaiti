@@ -384,9 +384,32 @@ function checkTransfert() {
     erreurDiv.style.display = 'none';
     btnSubmit.disabled = true;
 
-    if(!sourceId || !destinationData || !montant || isNaN(montant)) {
+    console.log("========== VERIFICATION ==========");
+    console.log("sourceId =", sourceId);
+    console.log("destinationData =", destinationData);
+    console.log("montant =", montant);
+    console.log("sourceId OK =", !!sourceId);
+    console.log("destinationData OK =", !!destinationData);
+    console.log("montant OK =", !!montant);
+    console.log("montant nombre =", !isNaN(montant));
+    console.log("==================================");
+
+    if (!sourceId) {
+        console.log("❌ PROBLEME : sourceId");
         return;
     }
+
+    if (!destinationData) {
+        console.log("❌ PROBLEME : destinationData");
+        return;
+    }
+
+    if (!montant || isNaN(montant)) {
+        console.log("❌ PROBLEME : montant");
+        return;
+    }
+
+    console.log("✅ TOUTES LES INFORMATIONS SONT CORRECTES");
 
     const sourceData = comptesData[sourceId];
 
