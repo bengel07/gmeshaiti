@@ -25141,7 +25141,9 @@ def transfert_entre_clients():
         return redirect(url_for('client_dashboard'))
 
     return render_template('transfert_client.html',
-                           comptes_source=comptes_utilisateur)
+                           client=current_user.client,
+                           comptes=comptes_utilisateur,
+                           now=datetime.now())
 
 
 
