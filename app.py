@@ -25257,8 +25257,22 @@ def transfert_client_form(client_id):
 
         client.solde = total_solde
 
+        client_source = compte_source.client
+        client_dest = compte_destination.client
+
         # 🔟 COMMIT UNIQUE
         db.session.commit()
+
+        try:
+            envoyer_email_transfert_sortant(client_source, client_dest, montant, ref_transfert)
+
+            envoyer_email_transfert_entrant(client_dest, client_source, montant, ref_transfert)
+
+        except Exception as e:
+            current_app.logger.error(
+                f"Erreur envoi email transfert: {str(e)}",
+                exc_info=True
+            )
 
         flash(f'✅ Transfert de {montant:,.0f} HTG réussi', 'success')
         return redirect(url_for('transfert_client_form', client_id=client_id))
