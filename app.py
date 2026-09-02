@@ -24870,6 +24870,9 @@ def transfert_client_form(client_id):
         flash('Aucun compte épargne disponible', 'warning')
         return redirect(url_for('voir_client', client_id=client_id))
 
+
+
+
     # =========================
     # GET → afficher page
     # =========================
@@ -24908,13 +24911,13 @@ def transfert_client_form(client_id):
                 raise ValueError("Montant manquant")
 
             compte_source_id = int(compte_source_id)
-            compte_destination_id = (compte_destination_ref)
+            numero_destination = compte_destination_ref.strip()
             montant = float(montant)
 
             if montant <= 0:
                 raise ValueError("Montant invalide")
 
-            if str(compte_source_id) == str(compte_destination_id):
+            if str(compte_source_id) == str(numero_destination):
                 raise ValueError("Les comptes doivent être différents")
 
             # =========================
@@ -24948,6 +24951,13 @@ def transfert_client_form(client_id):
                     f"Solde insuffisant: {compte_source.solde:,.0f} HTG"
                 )
 
+            # ✅ Ajouter avant le transfert
+            if compte_source.bloque:
+                raise ValueError("Le compte source est bloqué")
+
+            if compte_destination.bloque:
+                raise ValueError("Le compte destination est bloqué")
+
             # =========================
             # Référence
             # =========================
@@ -24956,25 +24966,26 @@ def transfert_client_form(client_id):
             # =========================
             # Transaction
             # =========================
-            transaction_source = compte_source.retirer(
-                montant=montant,
-                description=f"Transfert vers {compte_destination.numero_compte}",
-                transaction_ref=ref_transfert
-            )
+            # ✅ TRANSACTION ATOMIQUE
+            with db.session.begin_nested():
+                transaction_source = compte_source.retirer(
+                    montant=montant,
+                    description=f"Transfert vers {compte_destination.numero_compte}",
+                    transaction_ref=ref_transfert
+                )
+                transaction_dest = compte_destination.deposer(
+                    montant=montant,
+                    description=f"Transfert depuis {compte_source.numero_compte}",
+                    transaction_ref=ref_transfert
+                )
+                transaction_source.transfert_vers = compte_destination.id
+                transaction_dest.transfert_depuis = compte_source.id
 
-            transaction_dest = compte_destination.deposer(
-                montant=montant,
-                description=f"Transfert depuis {compte_source.numero_compte}",
-                transaction_ref=ref_transfert
-            )
-
-            transaction_source.transfert_vers = compte_destination.id
-            transaction_dest.transfert_depuis = compte_source.id
+            # ✅ CALCUL CORRECT DU SOLDE CLIENT
+            total_solde = db.session.query(db.func.sum(Epargne.solde)).filter_by(client_id=client_id).scalar() or 0
+            client.solde = total_solde
 
             db.session.commit()
-
-            client.solde = sum(Epargne.solde)
-
             flash(f'✅ Transfert de {montant:,.0f} HTG réussi', 'success')
             return redirect(url_for('transfert_client_form', client_id=client_id))
 
@@ -25026,6 +25037,7 @@ def transfert_entre_clients():
             # Récupérer le compte source avec lock
             compte_source = Epargne.query.filter_by(
                 id=compte_source_id,
+                client_id=current_user.client_id,
                 statut='actif'
             ).with_for_update().first()
 
@@ -25291,6 +25303,15 @@ def verifier_transfert():
                 compte_destination_numero = f"7-12519-{compte_destination_numero}"
 
         compte = Epargne.query.get(compte_source_id)
+
+        # Pour un client connecté
+        if current_user.client_id:
+            if compte.client_id != current_user.client_id:
+                return jsonify({'possible': False, 'message': 'Accès non autorisé'})
+
+        # Pour un employé
+        elif not current_user.is_admin() and current_user.role != 'employe':
+            return jsonify({'possible': False, 'message': 'Accès non autorisé'})
 
         if not compte:
             return jsonify({'possible': False, 'message': 'Compte non trouvé'})
