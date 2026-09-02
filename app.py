@@ -24842,26 +24842,244 @@ def confirmer_retrait(token):
         """
 
 
+# ============================================================
+# 📌 ROUTE: VÉRIFIER COMPTE
+# ============================================================
+@app.route('/api/verifier-compte', methods=['POST'])
+@login_required
+def verifier_compte():
+    """Vérifie si un numéro de compte existe et est accessible"""
+    from models import Epargne, Client
+    import re
+
+    try:
+        # 1️⃣ RÉCUPÉRER ET VALIDER LES DONNÉES
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'Données JSON requises'
+            })
+
+        numero_compte = data.get('numero_compte', '').strip()
+        if not numero_compte:
+            return jsonify({
+                'success': False,
+                'message': 'Numéro de compte requis'
+            })
+
+        # 2️⃣ NORMALISER LE NUMÉRO
+        if not numero_compte.startswith('7-12519-'):
+            if re.match(r'^\d{5}-\d{5}$', numero_compte):
+                numero_compte = f"7-12519-{numero_compte}"
+
+        # 3️⃣ RECHERCHER LE COMPTE
+        compte = Epargne.query.filter_by(
+            numero_compte=numero_compte,
+            statut='actif'
+        ).first()
+
+        if not compte:
+            return jsonify({
+                'success': False,
+                'message': 'Compte non trouvé ou inactif'
+            })
+
+        # 4️⃣ VÉRIFIER QUE LE CLIENT ASSOCIÉ EXISTE
+        if not compte.client:
+            return jsonify({
+                'success': False,
+                'message': 'Client associé introuvable'
+            })
+
+        # 5️⃣ VÉRIFIER QUE CE N'EST PAS LE MÊME CLIENT
+        if current_user.client_id and compte.client_id == current_user.client_id:
+            return jsonify({
+                'success': False,
+                'message': 'Ce compte vous appartient déjà'
+            })
+
+        # 6️⃣ VÉRIFIER QUE LE COMPTE N'EST PAS BLOQUÉ
+        if compte.bloque:
+            return jsonify({
+                'success': False,
+                'message': 'Ce compte est bloqué'
+            })
+
+        # 7️⃣ RÉPONSE SUCCÈS
+        return jsonify({
+            'success': True,
+            'compte': {
+                'id': compte.id,
+                'numero': compte.numero_compte,
+                'client_nom': f"{compte.client.prenom} {compte.client.nom}",
+                'client_id': compte.client_id
+            }
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Erreur vérification compte: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Erreur: {str(e)}'
+        })
+
+
+# ============================================================
+# 📌 ROUTE: VÉRIFIER TRANSFERT (NOUVELLE API)
+# ============================================================
+@app.route('/api/verifier_transfert', methods=['POST'])
+@login_required
+def verifier_transfert():
+    """Vérifie si un transfert est possible"""
+    from models import Epargne
+    import re
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'possible': False,
+                'message': 'Données JSON requises'
+            })
+
+        compte_source_id = data.get('compte_source_id')
+        montant = data.get('montant')
+        compte_destination_numero = data.get('compte_destination_numero', '').strip()
+
+        # Validation des champs
+        if not compte_source_id:
+            return jsonify({
+                'possible': False,
+                'message': 'Compte source requis'
+            })
+
+        if not montant or float(montant) <= 0:
+            return jsonify({
+                'possible': False,
+                'message': 'Montant invalide'
+            })
+
+        if not compte_destination_numero:
+            return jsonify({
+                'possible': False,
+                'message': 'Compte destination requis'
+            })
+
+        montant = float(montant)
+
+        # Normaliser le numéro de destination
+        if not compte_destination_numero.startswith('7-12519-'):
+            if re.match(r'^\d{5}-\d{5}$', compte_destination_numero):
+                compte_destination_numero = f"7-12519-{compte_destination_numero}"
+
+        # Récupérer les comptes
+        compte_source = Epargne.query.filter_by(
+            id=compte_source_id,
+            statut='actif'
+        ).first()
+
+        compte_destination = Epargne.query.filter_by(
+            numero_compte=compte_destination_numero,
+            statut='actif'
+        ).first()
+
+        # Vérifier compte source
+        if not compte_source:
+            return jsonify({
+                'possible': False,
+                'message': 'Compte source introuvable ou inactif'
+            })
+
+        # Vérifier compte destination
+        if not compte_destination:
+            return jsonify({
+                'possible': False,
+                'message': 'Compte destination introuvable ou inactif'
+            })
+
+        # Vérifier que les comptes sont différents
+        if compte_source.id == compte_destination.id:
+            return jsonify({
+                'possible': False,
+                'message': 'Les comptes source et destination doivent être différents'
+            })
+
+        # Vérifier que le compte source appartient au client
+        if current_user.client_id and compte_source.client_id != current_user.client_id:
+            return jsonify({
+                'possible': False,
+                'message': 'Ce compte ne vous appartient pas'
+            })
+
+        # Vérifier les comptes bloqués
+        if compte_source.bloque:
+            return jsonify({
+                'possible': False,
+                'message': 'Le compte source est bloqué'
+            })
+
+        if compte_destination.bloque:
+            return jsonify({
+                'possible': False,
+                'message': 'Le compte destination est bloqué'
+            })
+
+        # Vérifier le solde
+        if compte_source.solde < montant:
+            return jsonify({
+                'possible': False,
+                'message': f'Solde insuffisant: {compte_source.solde:,.0f} HTG'
+            })
+
+        # Vérifier le montant minimum
+        if montant < 1000:
+            return jsonify({
+                'possible': False,
+                'message': 'Le montant minimum est de 1 000 HTG'
+            })
+
+        # Tout est OK
+        return jsonify({
+            'possible': True,
+            'message': 'Transfert possible',
+            'details': {
+                'source_solde': compte_source.solde,
+                'destination_client': f"{compte_destination.client.prenom} {compte_destination.client.nom}" if compte_destination.client else 'Client inconnu'
+            }
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Erreur vérification transfert: {str(e)}")
+        return jsonify({
+            'possible': False,
+            'message': f'Erreur: {str(e)}'
+        })
+
+
+# ============================================================
+# 📌 ROUTE: TRANSFERT CLIENT (PAGE)
+# ============================================================
 @app.route('/client/<int:client_id>/transfert', methods=['GET', 'POST'])
 @login_required
 def transfert_client_form(client_id):
     """Transfert entre comptes d'un même client"""
-
     from models import Client, Epargne
     from datetime import datetime
     from sqlalchemy import func
 
-    # =========================
     # 1️⃣ VÉRIFIER CLIENT
-    # =========================
     client = db.session.get(Client, client_id)
     if not client:
         flash('Client non trouvé', 'danger')
         return redirect(url_for('rechercher_client'))
 
-    # =========================
-    # 2️⃣ COMPTES DU CLIENT
-    # =========================
+    # 2️⃣ VÉRIFIER QUE LE CLIENT APPARTIENT À L'UTILISATEUR CONNECTÉ
+    if current_user.client_id and current_user.client_id != client_id:
+        flash('Vous n\'avez pas accès à ce client', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # 3️⃣ COMPTES DU CLIENT
     comptes_epargne = Epargne.query.filter_by(
         client_id=client_id,
         statut='actif'
@@ -24871,9 +25089,7 @@ def transfert_client_form(client_id):
         flash('Aucun compte épargne disponible', 'warning')
         return redirect(url_for('voir_client', client_id=client_id))
 
-    # =========================
-    # 3️⃣ GET → AFFICHER PAGE
-    # =========================
+    # 4️⃣ GET → AFFICHER PAGE
     if request.method == 'GET':
         return render_template(
             'transfert.html',
@@ -24882,9 +25098,7 @@ def transfert_client_form(client_id):
             now=datetime.now()
         )
 
-    # =========================
-    # 4️⃣ POST → TRAITER TRANSFERT
-    # =========================
+    # 5️⃣ POST → TRAITER TRANSFERT
     try:
         # Récupérer les données du formulaire
         compte_source_id = request.form.get('compte_source')
@@ -24892,9 +25106,9 @@ def transfert_client_form(client_id):
         montant = request.form.get('montant')
         description = request.form.get('description', 'Transfert entre comptes')
 
-        # =========================
-        # 5️⃣ VALIDATION
-        # =========================
+        import re
+
+        # Validation
         if not compte_source_id:
             raise ValueError("Compte source manquant")
 
@@ -24907,8 +25121,7 @@ def transfert_client_form(client_id):
         # Nettoyer le numéro de compte
         compte_destination_numero = compte_destination_numero.strip()
 
-        # Normaliser le numéro (si format court)
-        import re
+        # Normaliser le numéro
         if not compte_destination_numero.startswith('7-12519-'):
             if re.match(r'^\d{5}-\d{5}$', compte_destination_numero):
                 compte_destination_numero = f"7-12519-{compte_destination_numero}"
@@ -24923,9 +25136,7 @@ def transfert_client_form(client_id):
         if montant < 1000:
             raise ValueError("Le montant minimum est de 1 000 HTG")
 
-        # =========================
         # 6️⃣ RÉCUPÉRER LES COMPTES
-        # =========================
         compte_source = Epargne.query.filter_by(
             id=compte_source_id,
             client_id=client_id,
@@ -24962,14 +25173,11 @@ def transfert_client_form(client_id):
         if compte_source.solde < montant:
             raise ValueError(f"Solde insuffisant: {compte_source.solde:,.0f} HTG")
 
-        # =========================
         # 7️⃣ GÉNÉRER RÉFÉRENCE
-        # =========================
-        ref_transfert = f"TRF_{datetime.now().strftime('%Y%m%d%H%M%S')}_{client_id}"
+        ref_transfert = f"TRF_{datetime.now().strftime('%Y%m%d%H%M%S')}_{client_id}_{compte_source_id}"
 
-        # =========================
         # 8️⃣ EFFECTUER LE TRANSFERT (ATOMIQUE)
-        # =========================
+        # Démarrer une transaction
         with db.session.begin_nested():
             # Débiter le compte source
             transaction_source = compte_source.retirer(
@@ -24989,9 +25197,7 @@ def transfert_client_form(client_id):
             transaction_dest.type_transaction = 'transfert_entrant'
             transaction_dest.transfert_source_id = compte_source.id
 
-        # =========================
         # 9️⃣ METTRE À JOUR LE SOLDE CLIENT
-        # =========================
         total_solde = db.session.query(func.sum(Epargne.solde)).filter_by(client_id=client_id).scalar() or 0
         client.solde = total_solde
 
@@ -25006,20 +25212,21 @@ def transfert_client_form(client_id):
         return redirect(request.url)
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f"Erreur transfert: {str(e)}")
         flash(f'❌ Erreur technique: {str(e)}', 'danger')
         return redirect(request.url)
 
 
+# ============================================================
+# 📌 ROUTE: TRANSFERT ENTRE CLIENTS (EMPLOYÉS)
+# ============================================================
 @app.route('/employe/transfert_client', methods=['GET', 'POST'])
 @role_required('employe', 'super_admin')
 def employe_transfert_entre_clients():
     """Transfert d'argent entre deux clients (réservé aux employés)"""
-
     from datetime import datetime
 
-    # =========================
     # GET → AFFICHER FORMULAIRE
-    # =========================
     if request.method == 'GET':
         comptes_actifs = Epargne.query.filter_by(
             statut='actif',
@@ -25027,9 +25234,7 @@ def employe_transfert_entre_clients():
         ).all()
         return render_template('employe_transfert_client.html', comptes=comptes_actifs)
 
-    # =========================
     # POST → TRAITER TRANSFERT
-    # =========================
     try:
         compte_source_id = request.form.get('compte_source')
         compte_destination_id = request.form.get('compte_destination')
@@ -25037,9 +25242,7 @@ def employe_transfert_entre_clients():
         description = request.form.get('description', 'Transfert entre clients')
         employe_id = current_user.id
 
-        # =========================
-        # VALIDATION
-        # =========================
+        # Validation
         if not compte_source_id or not compte_destination_id:
             flash('Compte source et destination requis', 'danger')
             return redirect(request.url)
@@ -25058,9 +25261,7 @@ def employe_transfert_entre_clients():
             flash('Le montant minimum est de 1 000 HTG', 'danger')
             return redirect(request.url)
 
-        # =========================
         # RÉCUPÉRER LES COMPTES
-        # =========================
         compte_source = Epargne.query.filter_by(
             id=compte_source_id,
             statut='actif',
@@ -25085,15 +25286,12 @@ def employe_transfert_entre_clients():
             flash(f'Solde insuffisant: {compte_source.solde:,.0f} HTG', 'danger')
             return redirect(request.url)
 
-        # =========================
         # GÉNÉRER RÉFÉRENCE
-        # =========================
-        ref_transfert = f"TRF_EMP_{datetime.now().strftime('%Y%m%d%H%M%S')}_{employe_id}"
+        ref_transfert = f"TRF_EMP_{datetime.now().strftime('%Y%m%d%H%M%S')}_{employe_id}_{compte_source_id}"
 
-        # =========================
         # EFFECTUER LE TRANSFERT (ATOMIQUE)
-        # =========================
         with db.session.begin_nested():
+            # Débiter le compte source
             transaction_source = compte_source.retirer(
                 montant=montant,
                 description=f"Transfert vers {compte_destination.client.prenom} {compte_destination.client.nom}",
@@ -25103,6 +25301,7 @@ def employe_transfert_entre_clients():
             transaction_source.transfert_destination_id = compte_destination.id
             transaction_source.transfert_effectue_par = employe_id
 
+            # Créditer le compte destination
             transaction_dest = compte_destination.deposer(
                 montant=montant,
                 description=f"Transfert de {compte_source.client.prenom} {compte_source.client.nom}",
@@ -25130,9 +25329,9 @@ def employe_transfert_entre_clients():
         return redirect(request.url)
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f"Erreur transfert employé: {str(e)}")
         flash(f'Erreur: {str(e)}', 'danger')
         return redirect(request.url)
-
 
 # ============================================
 # FONCTIONS D'ENVOI D'EMAIL

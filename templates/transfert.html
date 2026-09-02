@@ -35,11 +35,11 @@
                                 <option value="">Sélectionner un compte</option>
                                 {% for compte in comptes %}
                                 <option value="{{ compte.id }}"
-                                        data-solde="{{ compte.solde_disponible }}"
+                                        data-solde="{{ compte.solde }}"
                                         data-numero="{{ compte.numero_compte }}"
                                         data-type="{{ compte.type_compte }}">
                                     {{ compte.numero_compte }} - {{ compte.type_compte|capitalize }}
-                                    (Solde: {{ compte.solde_disponible|round(0)|int }} HTG)
+                                    (Solde: {{ compte.solde|round(0)|int }} HTG)
                                 </option>
                                 {% endfor %}
                             </select>
@@ -78,7 +78,7 @@
                                        class="form-control"
                                        id="montant"
                                        name="montant"
-                                       step="any"
+                                       step="1"
                                        min="1000"
                                        required
                                        placeholder="Exemple: 50000">
@@ -95,7 +95,8 @@
                                       id="description"
                                       name="description"
                                       rows="2"
-                                      placeholder="Motif du transfert..."></textarea>
+                                      placeholder="Motif du transfert..."
+                                      maxlength="200"></textarea>
                             <div class="form-text">Maximum 200 caractères</div>
                         </div>
 
@@ -129,6 +130,7 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
 {% block scripts %}
 <script>
@@ -140,7 +142,7 @@ const comptesData = {
     "{{ compte.id }}": {
         id: {{ compte.id }},
         numero: "{{ compte.numero_compte }}",
-        solde: {{ compte.solde_disponible }},
+        solde: {{ compte.solde }},
         type: "{{ compte.type_compte }}"
     },
     {% endfor %}
@@ -150,7 +152,7 @@ const comptesData = {
 // 📌 ÉLÉMENTS DOM
 // ============================================================
 const sourceSelect = document.getElementById('compte_source');
-const destinationNumeroInput = document.getElementById('compte_destination_numero');
+const destinationInput = document.getElementById('compte_destination_numero');
 const montantInput = document.getElementById('montant');
 const btnSubmit = document.getElementById('btnSubmit');
 const recapDiv = document.getElementById('recapitulatif');
@@ -159,8 +161,11 @@ const alerteDiv = document.getElementById('alerte');
 const alerteMessage = document.getElementById('alerteMessage');
 const erreurDiv = document.getElementById('erreur');
 const erreurMessage = document.getElementById('erreurMessage');
+const destinataireInfo = document.getElementById('destinataireInfo');
+const destinataireNom = document.getElementById('destinataireNom');
 
 let destinationData = null;
+let verificationTimeout = null;
 
 // ============================================================
 // 📌 FONCTION DE NORMALISATION DU NUMÉRO DE COMPTE
@@ -186,20 +191,17 @@ function normaliserNumeroCompte(numero) {
 // 📌 VÉRIFICATION DU COMPTE DESTINATION
 // ============================================================
 async function verifierCompteDestination() {
-    const numeroBrut = destinationNumeroInput.value.trim();
+    const numeroBrut = destinationInput.value.trim();
     const numeroNormalise = normaliserNumeroCompte(numeroBrut);
-
-    const infoDiv = document.getElementById('destinataireInfo');
-    const destinataireNomSpan = document.getElementById('destinataireNom');
 
     // Réinitialiser
     erreurDiv.style.display = 'none';
     alerteDiv.style.display = 'none';
     destinationData = null;
     btnSubmit.disabled = true;
+    destinataireInfo.style.display = 'none';
 
     if (numeroBrut.length < 10) {
-        if (infoDiv) infoDiv.style.display = 'none';
         checkTransfert();
         return;
     }
@@ -216,9 +218,7 @@ async function verifierCompteDestination() {
     try {
         const csrfToken = document.querySelector('input[name="csrf_token"]').value;
 
-        // =====================================================
         // 1️⃣ VÉRIFICATION DU COMPTE
-        // =====================================================
         const responseCompte = await fetch('/api/verifier-compte', {
             method: 'POST',
             headers: {
@@ -235,11 +235,9 @@ async function verifierCompteDestination() {
         }
 
         const compteData = await responseCompte.json();
-        console.log('API verifier-compte:', compteData);
 
         if (!compteData.success) {
             destinationData = null;
-            if (infoDiv) infoDiv.style.display = 'none';
             erreurMessage.innerHTML = '❌ ' + (compteData.message || 'Compte destination introuvable');
             erreurDiv.style.display = 'block';
             checkTransfert();
@@ -248,12 +246,10 @@ async function verifierCompteDestination() {
 
         // ✅ Compte trouvé
         destinationData = compteData.compte;
-        destinataireNomSpan.textContent = destinationData.client_nom;
-        infoDiv.style.display = 'block';
+        destinataireNom.textContent = destinationData.client_nom;
+        destinataireInfo.style.display = 'block';
 
-        // =====================================================
         // 2️⃣ VÉRIFICATION DU TRANSFERT
-        // =====================================================
         const responseTransfert = await fetch('/api/verifier_transfert', {
             method: 'POST',
             headers: {
@@ -272,7 +268,6 @@ async function verifierCompteDestination() {
         }
 
         const transfertData = await responseTransfert.json();
-        console.log('API verifier_transfert:', transfertData);
 
         if (!transfertData.possible) {
             destinationData = null;
@@ -283,13 +278,12 @@ async function verifierCompteDestination() {
         }
 
         // ✅ Tout est OK
-        console.log('✅ Vérifications réussies');
         checkTransfert();
 
     } catch (error) {
         console.error('Erreur vérification:', error);
         destinationData = null;
-        if (infoDiv) infoDiv.style.display = 'none';
+        destinataireInfo.style.display = 'none';
         erreurMessage.innerHTML = '❌ Erreur: ' + error.message;
         erreurDiv.style.display = 'block';
         btnSubmit.disabled = true;
@@ -309,21 +303,21 @@ function checkTransfert() {
     btnSubmit.disabled = true;
 
     if (!sourceId) {
-        console.log("❌ Pas de compte source");
         return;
     }
 
     if (!destinationData) {
-        console.log("❌ Pas de compte destination");
         return;
     }
 
-    if (!montant || isNaN(montant)) {
-        console.log("❌ Montant invalide");
+    if (!montant || isNaN(montant) || montant <= 0) {
         return;
     }
 
     const sourceData = comptesData[sourceId];
+    if (!sourceData) {
+        return;
+    }
 
     // Vérifier même compte
     if (sourceData.numero === destinationData.numero) {
@@ -334,13 +328,13 @@ function checkTransfert() {
 
     // Validation montant
     if (montant < 1000) {
-        alerteMessage.innerHTML = 'Le montant minimum est de 1 000 HTG';
+        alerteMessage.innerHTML = '⚠️ Le montant minimum est de 1 000 HTG';
         alerteDiv.style.display = 'block';
         return;
     }
 
     if (montant > sourceData.solde) {
-        erreurMessage.innerHTML = `Solde insuffisant. Solde disponible: ${sourceData.solde.toLocaleString()} HTG`;
+        erreurMessage.innerHTML = `❌ Solde insuffisant. Solde disponible: ${sourceData.solde.toLocaleString()} HTG`;
         erreurDiv.style.display = 'block';
         return;
     }
@@ -387,6 +381,11 @@ function confirmSubmit(e) {
     const montant = parseFloat(montantInput.value);
     const sourceData = comptesData[sourceSelect.value];
 
+    if (!sourceData || !destinationData) {
+        e.preventDefault();
+        return false;
+    }
+
     const message = `⚠️ CONFIRMATION ⚠️\n\n` +
                    `Transférer ${montant.toLocaleString()} HTG\n` +
                    `Du: ${sourceData.numero}\n` +
@@ -407,10 +406,45 @@ function confirmSubmit(e) {
 // ============================================================
 // 📌 ÉVÉNEMENTS
 // ============================================================
-sourceSelect.addEventListener('change', verifierCompteDestination);
-destinationNumeroInput.addEventListener('input', verifierCompteDestination);
-montantInput.addEventListener('input', verifierCompteDestination);
+// Debounce pour éviter trop d'appels API
+destinationInput.addEventListener('input', function() {
+    clearTimeout(verificationTimeout);
+    verificationTimeout = setTimeout(verifierCompteDestination, 300);
+});
+
+sourceSelect.addEventListener('change', function() {
+    // Réinitialiser la vérification
+    destinationData = null;
+    destinataireInfo.style.display = 'none';
+    if (destinationInput.value.length >= 10) {
+        verifierCompteDestination();
+    } else {
+        checkTransfert();
+    }
+});
+
+montantInput.addEventListener('input', function() {
+    if (destinationData && destinationInput.value.length >= 10) {
+        verifierCompteDestination();
+    } else {
+        checkTransfert();
+    }
+});
+
 document.getElementById('transfertForm').addEventListener('submit', confirmSubmit);
+
+// ============================================================
+// 📌 FORMATAGE AUTOMATIQUE DU NUMÉRO DE COMPTE
+// ============================================================
+destinationInput.addEventListener('input', function(e) {
+    let value = this.value.replace(/\D/g, '');
+    if (value.length > 5) {
+        value = value.substring(0, 5) + '-' + value.substring(5, 10);
+    }
+    this.value = value;
+});
+
+// Initialisation
+checkTransfert();
 </script>
-{% endblock %}
 {% endblock %}
