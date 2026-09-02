@@ -25269,12 +25269,19 @@ def historique_transferts(compte_id):
 def verifier_transfert():
     """API pour vérifier si un transfert est possible"""
 
+    print("🔵 DEBUT verifier_transfert", flush=True)
+
     try:
         data = request.get_json()
+        print("🔵 DATA =", data, flush=True)
         compte_source_id = data.get('compte_source_id')
         montant = float(data.get('montant'))
 
         compte_destination_numero = data.get('compte_destination_numero', '').strip()
+
+        print("🔵 SOURCE =", compte_source_id, flush=True)
+        print("🔵 MONTANT =", montant, flush=True)
+        print("🔵 DESTINATION =", compte_destination_numero, flush=True)
 
         # Normaliser le numéro du compte destination
         import re
