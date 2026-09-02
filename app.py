@@ -25274,6 +25274,17 @@ def transfert_client_form(client_id):
                 exc_info=True
             )
 
+        try:
+            # Utiliser la transaction_source ou transaction_dest
+            recu_path, recu_nom = recu_transfert(
+                transaction_source,
+                type_transfert='client'  # ou 'employe'
+            )
+            flash(f'✅ Transfert effectué. Reçu disponible.', 'success')
+        except Exception as e:
+            current_app.logger.error(f"Erreur génération reçu: {str(e)}")
+            flash('✅ Transfert effectué mais erreur lors de la génération du reçu', 'warning')
+
         flash(f'✅ Transfert de {montant:,.0f} HTG réussi', 'success')
         return redirect(url_for('transfert_client_form', client_id=client_id))
 
@@ -25452,6 +25463,18 @@ def employe_transfert_entre_clients():
         except Exception as e:
             current_app.logger.error(f"Erreur envoi email: {str(e)}")
 
+        try:
+            # Utiliser la transaction_source ou transaction_dest
+            recu_path, recu_nom = recu_transfert(
+                transaction_source,
+                type_transfert='client'  # ou 'employe'
+            )
+            flash(f'✅ Transfert effectué. Reçu disponible.', 'success')
+        except Exception as e:
+            current_app.logger.error(f"Erreur génération reçu: {str(e)}")
+            flash('✅ Transfert effectué mais erreur lors de la génération du reçu', 'warning')
+
+
         flash(f'✅ Transfert de {montant:,.0f} HTG effectué avec succès', 'success')
         return redirect(url_for('dashboard_employe'))
 
@@ -25464,6 +25487,202 @@ def employe_transfert_entre_clients():
         current_app.logger.error(f"Erreur transfert employé: {str(e)}")
         flash(f'Erreur: {str(e)}', 'danger')
         return redirect(request.url)
+
+
+# ============================================================
+# 📌 FONCTION: GÉNÉRER REÇU DE TRANSFERT
+# ============================================================
+def recu_transfert(transaction, type_transfert='client'):
+    """
+    Génère un reçu pour un transfert
+    type_transfert: 'client' ou 'employe'
+    """
+    from datetime import datetime
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+    import os
+
+    # Créer le dossier des reçus s'il n'existe pas
+    recu_dir = os.path.join(current_app.root_path, 'static', 'recus')
+    os.makedirs(recu_dir, exist_ok=True)
+
+    # Nom du fichier
+    nom_fichier = f"recu_transfert_{transaction.transaction_ref}.pdf"
+    chemin_fichier = os.path.join(recu_dir, nom_fichier)
+
+    # Créer le PDF
+    doc = SimpleDocTemplate(
+        chemin_fichier,
+        pagesize=A4,
+        topMargin=20 * mm,
+        bottomMargin=20 * mm,
+        leftMargin=20 * mm,
+        rightMargin=20 * mm
+    )
+
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Style personnalisé
+    style_titre = ParagraphStyle(
+        'Titre',
+        parent=styles['Heading1'],
+        alignment=TA_CENTER,
+        fontSize=16,
+        textColor=colors.darkblue
+    )
+
+    style_sous_titre = ParagraphStyle(
+        'SousTitre',
+        parent=styles['Heading2'],
+        alignment=TA_CENTER,
+        fontSize=12,
+        textColor=colors.grey
+    )
+
+    style_normal = ParagraphStyle(
+        'Normal',
+        parent=styles['Normal'],
+        fontSize=10
+    )
+
+    # ============================================================
+    # 1️⃣ EN-TÊTE
+    # ============================================================
+    story.append(Paragraph("🏦 BANQUE DIGITALE", style_titre))
+    story.append(Paragraph("RECU DE TRANSFERT", style_sous_titre))
+    story.append(Spacer(1, 10 * mm))
+
+    # ============================================================
+    # 2️⃣ INFORMATIONS DU TRANSFERT
+    # ============================================================
+    data = [
+        ["Référence:", transaction.transaction_ref],
+        ["Date:", datetime.now().strftime('%d/%m/%Y à %H:%M:%S')],
+        ["Type:", "Transfert"],
+        ["Montant:", f"{transaction.montant:,.0f} HTG"],
+        ["Statut:", "✅ Effectué"],
+        ["", ""],
+    ]
+
+    if type_transfert == 'client':
+        data.append(["Type transfert:", "Entre mes comptes"])
+    else:
+        data.append(["Type transfert:", "Entre clients (Employé)"])
+        data.append(["Effectué par:", f"Employé #{transaction.transfert_effectue_par}"])
+
+    # ============================================================
+    # 3️⃣ INFORMATIONS COMPTE SOURCE
+    # ============================================================
+    data.append(["", ""])
+    data.append(["📤 COMPTE SOURCE", ""])
+    data.append(["Numéro:", transaction.compte.numero_compte])
+    data.append(["Client:", f"{transaction.compte.client.prenom} {transaction.compte.client.nom}"])
+    data.append(["Type:", transaction.compte.type_compte])
+
+    # ============================================================
+    # 4️⃣ INFORMATIONS COMPTE DESTINATION
+    # ============================================================
+    if transaction.transfert_destination_id:
+        compte_dest = Epargne.query.get(transaction.transfert_destination_id)
+        if compte_dest:
+            data.append(["", ""])
+            data.append(["📥 COMPTE DESTINATION", ""])
+            data.append(["Numéro:", compte_dest.numero_compte])
+            data.append(["Client:", f"{compte_dest.client.prenom} {compte_dest.client.nom}"])
+            data.append(["Type:", compte_dest.type_compte])
+
+    # ============================================================
+    # 5️⃣ TABLEAU
+    # ============================================================
+    table = Table(data, colWidths=[80, 300])
+    table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('BACKGROUND', (0, 6), (-1, 6), colors.lightblue),
+        ('BACKGROUND', (0, 11), (-1, 11), colors.lightgreen),
+    ]))
+
+    story.append(table)
+    story.append(Spacer(1, 10 * mm))
+
+    # ============================================================
+    # 6️⃣ PIED DE PAGE
+    # ============================================================
+    story.append(Paragraph(
+        "Ce reçu est une preuve de transaction valide.",
+        style_normal
+    ))
+    story.append(Spacer(1, 5 * mm))
+    story.append(Paragraph(
+        "Pour toute question, veuillez contacter notre service client.",
+        style_normal
+    ))
+    story.append(Spacer(1, 10 * mm))
+    story.append(Paragraph(
+        f"Reçu généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}",
+        ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, textColor=colors.grey)
+    ))
+
+    # ============================================================
+    # 7️⃣ GÉNÉRER LE PDF
+    # ============================================================
+    doc.build(story)
+
+    return chemin_fichier, nom_fichier
+
+
+# ============================================================
+# 📌 ROUTE: TÉLÉCHARGER REÇU
+# ============================================================
+@app.route('/telecharger/recu/<reference>')
+@login_required
+def telecharger_recu(reference):
+    """Télécharge le reçu d'un transfert"""
+    from models import Transaction
+    import os
+
+    transaction = Transaction.query.filter_by(transaction_ref=reference).first()
+
+    if not transaction:
+        flash('Transaction non trouvée', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Vérifier que l'utilisateur a accès
+    if current_user.client_id:
+        if transaction.compte.client_id != current_user.client_id:
+            flash('Vous n\'avez pas accès à cette transaction', 'danger')
+            return redirect(url_for('dashboard'))
+
+    # Chemin du fichier
+    recu_dir = os.path.join(current_app.root_path, 'static', 'recus')
+    nom_fichier = f"recu_transfert_{reference}.pdf"
+    chemin_fichier = os.path.join(recu_dir, nom_fichier)
+
+    # Si le fichier n'existe pas, le générer
+    if not os.path.exists(chemin_fichier):
+        try:
+            generer_recu_transfert(transaction)
+        except Exception as e:
+            flash(f'Erreur lors de la génération du reçu: {str(e)}', 'danger')
+            return redirect(request.referrer or url_for('dashboard'))
+
+    return send_file(
+        chemin_fichier,
+        as_attachment=True,
+        download_name=nom_fichier,
+        mimetype='application/pdf'
+    )
+
+
 
 # ============================================
 # FONCTIONS D'ENVOI D'EMAIL
@@ -29228,6 +29447,8 @@ def api_employes_succursale(succursale_id):
             for employe in employes
         ]
     })
+
+
 
 # from views import super_admin_switcher, super_admin_go, super_admin_quick_access, PAGES
 
