@@ -244,7 +244,9 @@ async function verifierCompteDestination() {
                 'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
-                numero_compte: numeroCompte
+                compte_source_id: sourceId,
+                montant: montant,
+                compte_destination_numero: numeroCompteComplet
             })
         });
 
