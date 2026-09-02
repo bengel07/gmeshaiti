@@ -25177,30 +25177,87 @@ def transfert_client_form(client_id):
         ref_transfert = f"TRF_{datetime.now().strftime('%Y%m%d%H%M%S')}_{client_id}_{compte_source_id}"
 
         # 8️⃣ EFFECTUER LE TRANSFERT (ATOMIQUE)
-        # Démarrer une transaction
-        with db.session.begin_nested():
-            # Débiter le compte source
-            transaction_source = compte_source.retirer(
-                montant=montant,
-                description=f"Transfert vers {compte_destination.numero_compte}",
-                transaction_ref=ref_transfert
-            )
-            transaction_source.type_transaction = 'transfert_sortant'
-            transaction_source.transfert_destination_id = compte_destination.id
 
-            # Créditer le compte destination
-            transaction_dest = compte_destination.deposer(
-                montant=montant,
-                description=f"Transfert depuis {compte_source.numero_compte}",
-                transaction_ref=ref_transfert
+        # Verrouiller les deux comptes pendant le transfert
+        compte_source = (
+            Epargne.query
+            .filter_by(
+                id=compte_source_id,
+                client_id=client_id,
+                statut='actif'
             )
-            transaction_dest.type_transaction = 'transfert_entrant'
-            transaction_dest.transfert_source_id = compte_source.id
+            .with_for_update()
+            .first()
+        )
+
+        compte_destination = (
+            Epargne.query
+            .filter_by(
+                numero_compte=compte_destination_numero,
+                statut='actif'
+            )
+            .with_for_update()
+            .first()
+        )
+
+        if not compte_source:
+            raise ValueError("Compte source introuvable ou inactif")
+
+        if not compte_destination:
+            raise ValueError("Compte destination introuvable ou inactif")
+
+        if compte_source.id == compte_destination.id:
+            raise ValueError("Les comptes source et destination doivent être différents")
+
+        if compte_source.bloque:
+            raise ValueError("Le compte source est bloqué")
+
+        if compte_destination.bloque:
+            raise ValueError("Le compte destination est bloqué")
+
+        if compte_source.solde < montant:
+            raise ValueError(
+                f"Solde insuffisant: {compte_source.solde:,.0f} HTG"
+            )
+
+        # Référence unique du transfert
+        ref_transfert = (
+            f"TRF_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            f"_{client_id}_{compte_source_id}"
+        )
+
+        # Débiter le compte source
+        transaction_source = compte_source.retirer(
+            montant=montant,
+            description=f"Transfert vers {compte_destination.numero_compte}",
+            transaction_ref=ref_transfert
+        )
+
+        transaction_source.type_transaction = 'transfert_sortant'
+        transaction_source.transfert_destination_id = compte_destination.id
+
+        # Créditer le compte destination
+        transaction_dest = compte_destination.deposer(
+            montant=montant,
+            description=f"Transfert depuis {compte_source.numero_compte}",
+            transaction_ref=ref_transfert
+        )
+
+        transaction_dest.type_transaction = 'transfert_entrant'
+        transaction_dest.transfert_source_id = compte_source.id
 
         # 9️⃣ METTRE À JOUR LE SOLDE CLIENT
-        total_solde = db.session.query(func.sum(Epargne.solde)).filter_by(client_id=client_id).scalar() or 0
+
+        total_solde = (
+                db.session.query(func.sum(Epargne.solde))
+                .filter_by(client_id=client_id)
+                .scalar()
+                or 0
+        )
+
         client.solde = total_solde
 
+        # 🔟 COMMIT UNIQUE
         db.session.commit()
 
         flash(f'✅ Transfert de {montant:,.0f} HTG réussi', 'success')
@@ -25290,27 +25347,85 @@ def employe_transfert_entre_clients():
         ref_transfert = f"TRF_EMP_{datetime.now().strftime('%Y%m%d%H%M%S')}_{employe_id}_{compte_source_id}"
 
         # EFFECTUER LE TRANSFERT (ATOMIQUE)
-        with db.session.begin_nested():
-            # Débiter le compte source
-            transaction_source = compte_source.retirer(
-                montant=montant,
-                description=f"Transfert vers {compte_destination.client.prenom} {compte_destination.client.nom}",
-                transaction_ref=ref_transfert
-            )
-            transaction_source.type_transaction = 'transfert_sortant'
-            transaction_source.transfert_destination_id = compte_destination.id
-            transaction_source.transfert_effectue_par = employe_id
 
-            # Créditer le compte destination
-            transaction_dest = compte_destination.deposer(
-                montant=montant,
-                description=f"Transfert de {compte_source.client.prenom} {compte_source.client.nom}",
-                transaction_ref=ref_transfert
+        # Verrouiller les deux comptes
+        compte_source = (
+            Epargne.query
+            .filter_by(
+                id=compte_source.id,
+                statut='actif'
             )
-            transaction_dest.type_transaction = 'transfert_entrant'
-            transaction_dest.transfert_source_id = compte_source.id
-            transaction_dest.transfert_effectue_par = employe_id
+            .with_for_update()
+            .first()
+        )
 
+        compte_destination = (
+            Epargne.query
+            .filter_by(
+                id=compte_destination.id,
+                statut='actif'
+            )
+            .with_for_update()
+            .first()
+        )
+
+        if not compte_source:
+            raise ValueError("Compte source introuvable ou inactif")
+
+        if not compte_destination:
+            raise ValueError("Compte destination introuvable ou inactive")
+
+        if compte_source.id == compte_destination.id:
+            raise ValueError("Les comptes source et destination doivent être différents")
+
+        if compte_source.bloque:
+            raise ValueError("Le compte source est bloqué")
+
+        if compte_destination.bloque:
+            raise ValueError("Le compte destination est bloqué")
+
+        if compte_source.solde < montant:
+            raise ValueError(
+                f"Solde insuffisant: {compte_source.solde:,.0f} HTG"
+            )
+
+        # Référence du transfert
+        ref_transfert = (
+            f"TRF_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            f"_{employe_id}_{compte_source.id}"
+        )
+
+        # Débiter le compte source
+        transaction_source = compte_source.retirer(
+            montant=montant,
+            description=(
+                f"Transfert vers "
+                f"{compte_destination.client.prenom} "
+                f"{compte_destination.client.nom}"
+            ),
+            transaction_ref=ref_transfert
+        )
+
+        transaction_source.type_transaction = 'transfert_sortant'
+        transaction_source.transfert_destination_id = compte_destination.id
+        transaction_source.transfert_effectue_par = employe_id
+
+        # Créditer le compte destination
+        transaction_dest = compte_destination.deposer(
+            montant=montant,
+            description=(
+                f"Transfert de "
+                f"{compte_source.client.prenom} "
+                f"{compte_source.client.nom}"
+            ),
+            transaction_ref=ref_transfert
+        )
+
+        transaction_dest.type_transaction = 'transfert_entrant'
+        transaction_dest.transfert_source_id = employe_id
+        transaction_dest.transfert_effectue_par = employe_id
+
+        # COMMIT UNIQUE
         db.session.commit()
 
         # Envoyer emails
