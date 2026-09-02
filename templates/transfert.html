@@ -199,48 +199,173 @@ async function verifierCompteDestination() {
     const destinataireNomSpan = document.getElementById('destinataireNom');
 
     erreurDiv.style.display = 'none';
+    alerteDiv.style.display = 'none';
+    destinationData = null;
+    btnSubmit.disabled = true;
 
-    if(numeroCompte.length < 5) {
-        if(infoDiv) infoDiv.style.display = 'none';
-        destinationData = null;
+    if (numeroCompte.length < 5) {
+        if (infoDiv) infoDiv.style.display = 'none';
         checkTransfert();
         return;
     }
 
-    try {
-        const response = await fetch('/api/verifier-compte', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ numero_compte: numeroCompte })
-        });
+    const sourceId = sourceSelect.value;
+    const montant = parseFloat(montantInput.value) || 0;
 
-        const data = await response.json();
-
-        if(data.success) {
-            destinationData = data.compte;
-            if(destinataireNomSpan) {
-                destinataireNomSpan.textContent = `${data.compte.client_nom}`;
-            }
-            if(infoDiv) infoDiv.style.display = 'block';
-            erreurDiv.style.display = 'none';
-        } else {
-            destinationData = null;
-            if(infoDiv) infoDiv.style.display = 'none';
-            erreurMessage.innerHTML = '❌ Compte destination introuvable';
-            erreurDiv.style.display = 'block';
-        }
-    } catch(error) {
-        console.error('Erreur:', error);
-        destinationData = null;
-        if(infoDiv) infoDiv.style.display = 'none';
-        erreurMessage.innerHTML = '❌ Erreur lors de la vérification';
+    if (!sourceId) {
+        erreurMessage.innerHTML =
+            '❌ Sélectionnez d’abord le compte source';
         erreurDiv.style.display = 'block';
+        return;
     }
 
-    checkTransfert();
+    try {
+
+        // =====================================================
+        // 1️⃣ PREMIÈRE VÉRIFICATION
+        // /api/verifier-compte
+        // =====================================================
+
+        const csrfToken = document.querySelector(
+            'input[name="csrf_token"]'
+        ).value;
+
+        const responseCompte = await fetch('/api/verifier-compte', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                numero_compte: numeroCompte
+            })
+        });
+
+        const compteData = await responseCompte.json();
+
+        console.log('API verifier-compte:', compteData);
+
+        if (!compteData.success) {
+            destinationData = null;
+
+            if (infoDiv) {
+                infoDiv.style.display = 'none';
+            }
+
+            erreurMessage.innerHTML =
+                '❌ ' +
+                (compteData.message ||
+                 'Compte destination introuvable');
+
+            erreurDiv.style.display = 'block';
+
+            checkTransfert();
+            return;
+        }
+
+
+        // =====================================================
+        // COMPTE DESTINATION TROUVÉ
+        // =====================================================
+
+        destinationData = compteData.compte;
+
+        if (destinataireNomSpan) {
+            destinataireNomSpan.textContent =
+                `${destinationData.client_nom}`;
+        }
+
+        if (infoDiv) {
+            infoDiv.style.display = 'block';
+        }
+
+
+        // =====================================================
+        // 2️⃣ DEUXIÈME VÉRIFICATION
+        // /api/verifier_transfert
+        // =====================================================
+
+        const responseTransfert = await fetch(
+            '/api/verifier_transfert',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    compte_source_id: sourceId,
+                    montant: montant,
+                    compte_destination_numero: numeroCompte
+                })
+            }
+        );
+
+        const transfertData = await responseTransfert.json();
+
+        console.log(
+            'API verifier_transfert:',
+            transfertData
+        );
+
+
+        // =====================================================
+        // TRANSFERT REFUSÉ
+        // =====================================================
+
+        if (!transfertData.possible) {
+
+            destinationData = null;
+
+            erreurMessage.innerHTML =
+                '❌ ' +
+                (transfertData.message ||
+                 'Ce transfert n’est pas autorisé');
+
+            erreurDiv.style.display = 'block';
+
+            checkTransfert();
+            return;
+        }
+
+
+        // =====================================================
+        // LES DEUX VÉRIFICATIONS SONT OK
+        // =====================================================
+
+        console.log(
+            '✅ Compte destination vérifié'
+        );
+
+        console.log(
+            '✅ Transfert vérifié'
+        );
+
+        checkTransfert();
+
+    } catch (error) {
+
+        console.error(
+            'Erreur vérification transfert:',
+            error
+        );
+
+        destinationData = null;
+
+        if (infoDiv) {
+            infoDiv.style.display = 'none';
+        }
+
+        erreurMessage.innerHTML =
+            '❌ Erreur lors de la vérification : ' +
+            error.message;
+
+        erreurDiv.style.display = 'block';
+
+        btnSubmit.disabled = true;
+    }
 }
+
 
 // Vérifier le transfert
 function checkTransfert() {
@@ -336,9 +461,9 @@ function confirmSubmit(e) {
 }
 
 // Événements
-sourceSelect.addEventListener('change', checkTransfert);
+sourceSelect.addEventListener('change', verifierCompteDestination);
 destinationNumeroInput.addEventListener('input', verifierCompteDestination);
-montantInput.addEventListener('input', checkTransfert);
+montantInput.addEventListener('input', verifierCompteDestination);
 document.getElementById('transfertForm').addEventListener('submit', confirmSubmit);
 
 

@@ -25324,6 +25324,12 @@ def verifier_transfert():
             if compte_dest.id == compte.id:
                 return jsonify({'possible': False, 'message': 'Le compte destination doit être différent'})
 
+            if compte_dest.client_id == compte.client_id:
+                return jsonify({
+                    'possible': False,
+                    'message': 'Le compte destination appartient au même client'
+                })
+
         # Tout est OK
         return jsonify({
             'possible': True,
