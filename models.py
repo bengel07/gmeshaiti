@@ -4513,7 +4513,7 @@ class Retrait(db.Model):
         db.ForeignKey('transactions_epargne.id'),
         nullable=True
     )
-    succursale_id = db.Column(db.Integer, db.ForeignKey('succursales.id'))
+    succursale_id = db.Column(db.Integer, db.ForeignKey('succursale.id'))
 
     employe_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
