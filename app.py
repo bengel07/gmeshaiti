@@ -216,6 +216,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 app.register_blueprint(accueil_bp)
 app.register_blueprint(employees_bp)
 app.register_blueprint(prets_bp)
+app.register_blueprint(clients_bp)
 
 
 app.register_blueprint(super_admin_bp)
