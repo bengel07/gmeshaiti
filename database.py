@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
-
+from models import *
 db = SQLAlchemy()
 
 
@@ -8,10 +8,10 @@ def init_db(app):
     db.init_app(app)
 
     with app.app_context():
-        print("🗑️ Suppression de toutes les tables...")
-        db.drop_all()
+        print("📦 Modèles SQLAlchemy chargés :")
+        for table in db.metadata.sorted_tables:
+            print(f"   ✅ {table.name}")
 
-        print("🏗️ Recréation de toutes les tables...")
         db.create_all()
 
-        print("✅ Toutes les tables ont été recréées.")
+        print("✅ Toutes les tables ont été créées.")
