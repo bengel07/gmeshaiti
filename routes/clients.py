@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, jsonify, session, abort, 
 from flask_login import login_required, current_user, login_user
 from werkzeug.security import generate_password_hash
 
-from email import envoyer_email_activation_client
+from emails import envoyer_email_activation_client
 from models import User, Transaction, Epargne, TransactionEpargne, Pret
 from database import db
 from models import Client, Succursale

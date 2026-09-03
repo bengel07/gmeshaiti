@@ -53,7 +53,7 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.pdfgen import canvas
 
 
-from email import envoyer_email_activation_client
+from emails import envoyer_email_activation_client
 
 
 # ==================== QR / IMAGE ====================
