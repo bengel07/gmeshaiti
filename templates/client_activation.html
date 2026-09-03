@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-5">
+
+    <div class="row justify-content-center">
+
+        <div class="col-md-6">
+
+            <div class="card shadow">
+
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        Activer mon espace client
+                    </h4>
+                </div>
+
+                <div class="card-body">
+
+                    {% if expired %}
+
+                        <div class="alert alert-danger">
+                            <strong>Lien expiré.</strong>
+                            <br>
+                            Ce lien d'activation n'est plus valide.
+                        </div>
+
+                    {% else %}
+
+                        <div class="alert alert-info">
+
+                            Bienvenue
+                            <strong>
+                                {{ client.prenom }}
+                                {{ client.nom }}
+                            </strong>
+
+                            <br>
+
+                            Votre ID client :
+                            <strong>
+                                {{ client.id_client }}
+                            </strong>
+
+                        </div>
+
+                        <form method="POST">
+
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    Email
+                                </label>
+
+                                <input
+                                    type="email"
+                                    class="form-control"
+                                    value="{{ client.email }}"
+                                    readonly
+                                >
+
+                            </div>
+
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    Créer votre mot de passe
+                                </label>
+
+                                <input
+                                    type="password"
+                                    name="password"
+                                    class="form-control"
+                                    minlength="8"
+                                    required
+                                >
+
+                                <small class="text-muted">
+                                    Minimum 8 caractères.
+                                </small>
+
+                            </div>
+
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    Confirmer le mot de passe
+                                </label>
+
+                                <input
+                                    type="password"
+                                    name="password_confirm"
+                                    class="form-control"
+                                    minlength="8"
+                                    required
+                                >
+
+                            </div>
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary w-100"
+                            >
+                                Activer mon compte
+                            </button>
+
+                        </form>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

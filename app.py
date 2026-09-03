@@ -116,7 +116,7 @@ from routes.prets import prets_bp
 from routes.accueil import accueil_bp
 from routes.employees import employees_bp
 from routes.terms import terms_bp
-from routes.clients import clients_bp
+from routes.clients import clients_bp, creer_acces_client
 from routes.functions import functions_bp
 
 # ==================== UTILS ====================
@@ -3971,7 +3971,129 @@ def generer_token_conditions(client):
 
     return token  # ⚠️ IL MANQUE CETTE LIGNE !
 
+def envoyer_email_activation_client(client, activation_link):
 
+    api_key = os.environ.get(
+        "BREVO_API_KEY"
+    )
+
+    from_email = os.environ.get(
+        "FROM_EMAIL"
+    )
+
+    from_name = os.environ.get(
+        "FROM_NAME",
+        "GMES Microcrédit"
+    )
+
+    url = "https://api.brevo.com/v3/smtp/email"
+
+    headers = {
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json"
+    }
+
+    data = {
+        "sender": {
+            "name": from_name,
+            "email": from_email
+        },
+        "to": [
+            {
+                "email": client.email,
+                "name": (
+                    f"{client.prenom} "
+                    f"{client.nom}"
+                )
+            }
+        ],
+        "subject": "Activation de votre espace client GMES",
+        "htmlContent": f"""
+        <html>
+        <body>
+
+        <h2>Bienvenue chez GMES Microcrédit</h2>
+
+        <p>
+        Bonjour
+        <strong>
+        {client.prenom} {client.nom}
+        </strong>,
+        </p>
+
+        <p>
+        Votre compte client a été créé.
+        </p>
+
+        <p>
+        <strong>ID client :</strong>
+        {client.id_client}
+        </p>
+
+        <p>
+        Pour activer votre espace client et créer
+        votre mot de passe :
+        </p>
+
+        <p>
+        <a href="{activation_link}"
+           style="
+           background:#0d6efd;
+           color:white;
+           padding:12px 20px;
+           text-decoration:none;
+           border-radius:5px;
+           display:inline-block;
+           ">
+           ACTIVER MON ESPACE CLIENT
+        </a>
+        </p>
+
+        <p>
+        Ou copiez ce lien dans votre navigateur :
+        </p>
+
+        <p>
+        {activation_link}
+        </p>
+
+        <p>
+        <strong>
+        Ce lien est valable pendant 24 heures.
+        </strong>
+        </p>
+
+        <p>
+        Cordialement,<br>
+        GMES Microcrédit
+        </p>
+
+        </body>
+        </html>
+        """
+    }
+
+    response = requests.post(
+        url,
+        headers=headers,
+        json=data,
+        timeout=20
+    )
+
+    if response.status_code not in [200, 201, 202]:
+        print(
+            "❌ Erreur Brevo :",
+            response.text
+        )
+
+        return False
+
+    print(
+        f"✅ Email activation envoyé à {client.email}"
+    )
+
+    return True
 
 
 @app.route('/conseiller/creer-dossier', methods=['GET', 'POST'])
@@ -4314,6 +4436,18 @@ def creer_dossier():
             db.session.flush()
 
             nouveau_client.id_client = f"GMES-{nouveau_client.id:06d}"
+
+            activation_link = creer_acces_client(
+                nouveau_client
+            )
+
+            envoyer_email_activation_client(
+                nouveau_client,
+                activation_link
+            )
+
+
+
 
             nouveau_compte = Epargne(
                 client_id=nouveau_client.id,
@@ -25471,6 +25605,8 @@ def employe_transfert_entre_clients():
                 transaction_source,
                 type_transfert='client'  # ou 'employe'
             )
+
+
             flash(f'✅ Transfert effectué. Reçu disponible.', 'success')
         except Exception as e:
             current_app.logger.error(f"Erreur génération reçu: {str(e)}")
