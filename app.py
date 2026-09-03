@@ -52,6 +52,10 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.pdfgen import canvas
 
+
+from email import envoyer_email_activation_client
+
+
 # ==================== QR / IMAGE ====================
 import qrcode
 import cv2
@@ -3972,130 +3976,6 @@ def generer_token_conditions(client):
     )
 
     return token  # ⚠️ IL MANQUE CETTE LIGNE !
-
-def envoyer_email_activation_client(client, activation_link):
-
-    api_key = os.environ.get(
-        "BREVO_API_KEY"
-    )
-
-    from_email = os.environ.get(
-        "FROM_EMAIL"
-    )
-
-    from_name = os.environ.get(
-        "FROM_NAME",
-        "GMES Microcrédit"
-    )
-
-    url = "https://api.brevo.com/v3/smtp/email"
-
-    headers = {
-        "accept": "application/json",
-        "api-key": api_key,
-        "content-type": "application/json"
-    }
-
-    data = {
-        "sender": {
-            "name": from_name,
-            "email": from_email
-        },
-        "to": [
-            {
-                "email": client.email,
-                "name": (
-                    f"{client.prenom} "
-                    f"{client.nom}"
-                )
-            }
-        ],
-        "subject": "Activation de votre espace client GMES",
-        "htmlContent": f"""
-        <html>
-        <body>
-
-        <h2>Bienvenue chez GMES Microcrédit</h2>
-
-        <p>
-        Bonjour
-        <strong>
-        {client.prenom} {client.nom}
-        </strong>,
-        </p>
-
-        <p>
-        Votre compte client a été créé.
-        </p>
-
-        <p>
-        <strong>ID client :</strong>
-        {client.id_client}
-        </p>
-
-        <p>
-        Pour activer votre espace client et créer
-        votre mot de passe :
-        </p>
-
-        <p>
-        <a href="{activation_link}"
-           style="
-           background:#0d6efd;
-           color:white;
-           padding:12px 20px;
-           text-decoration:none;
-           border-radius:5px;
-           display:inline-block;
-           ">
-           ACTIVER MON ESPACE CLIENT
-        </a>
-        </p>
-
-        <p>
-        Ou copiez ce lien dans votre navigateur :
-        </p>
-
-        <p>
-        {activation_link}
-        </p>
-
-        <p>
-        <strong>
-        Ce lien est valable pendant 24 heures.
-        </strong>
-        </p>
-
-        <p>
-        Cordialement,<br>
-        GMES Microcrédit
-        </p>
-
-        </body>
-        </html>
-        """
-    }
-
-    response = requests.post(
-        url,
-        headers=headers,
-        json=data,
-        timeout=20
-    )
-
-    if response.status_code not in [200, 201, 202]:
-        print(
-            "❌ Erreur Brevo :",
-            response.text
-        )
-
-        return False
-
-    print(
-        f"✅ Email activation envoyé à {client.email}"
-    )
-
-    return True
 
 
 @app.route('/conseiller/creer-dossier', methods=['GET', 'POST'])
