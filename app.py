@@ -431,6 +431,7 @@ def envoyer_email_conditions(client):
         import os
         import requests
         # Générer un token unique pour ce client
+        from datetime import datetime, timedelta
         from itsdangerous import URLSafeTimedSerializer
 
         serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
@@ -440,11 +441,15 @@ def envoyer_email_conditions(client):
             salt="terms-accept"
         )
 
+        # ✅ SAUVEGARDER LE TOKEN COMME POUR LE RENVOI
+        client.token_signature = token
+        client.date_expiration_token = datetime.utcnow() + timedelta(days=7)
 
-        # Créer le lien d'acceptation
-        APP_URL = os.environ.get(
+        db.session.commit()
+
+        APP_URL = app.config.get(
             "APP_URL",
-            "https://gmeshaiti-aeo3.onrender.com"
+            "https://gmeshaiti.onrender.com"
         ).rstrip("/")
 
         lien_acceptation = f"{APP_URL}/client/terms/{token}"
@@ -734,138 +739,11 @@ def accepter_conditions_pret(token):
         flash("Une erreur est survenue.", "danger")
         return render_template("erreurs/500.html")
 
-@app.route('/renvoyer-conditions-pret/<int:pret_id>', methods=['GET','POST'])
+
+
+@app.route('/renvoyer-conditions-pret/<int:pret_id>', methods=['GET', 'POST'])
 @login_required
-# def renvoyer_conditions_pret(pret_id):
-#     """Renvoyer au client le lien d'acceptation des conditions du prêt"""
-#
-#     import jwt
-#     from datetime import datetime, timedelta
-#     from flask import current_app, flash, redirect, url_for
-#
-#     from models import Pret, Client
-#
-#     # ==========================================
-#     # VÉRIFICATION DES PERMISSIONS
-#     # ==========================================
-#
-#     if current_user.role not in [
-#         'super_admin',
-#         'direction',
-#         'admin_succursale',
-#         'agent_credit',
-#         'conseiller',
-#         'employe'
-#     ]:
-#         flash('⛔ Accès non autorisé.', 'danger')
-#         return redirect(url_for('dashboard_redirect'))
-#
-#     # ==========================================
-#     # RÉCUPÉRER LE PRÊT
-#     # ==========================================
-#
-#     pret = Pret.query.get_or_404(pret_id)
-#
-#     # ==========================================
-#     # RÉCUPÉRER LE CLIENT
-#     # ==========================================
-#
-#     client = Client.query.get_or_404(pret.client_id)
-#
-#     # ==========================================
-#     # VÉRIFIER L'EMAIL
-#     # ==========================================
-#
-#     if not client.email:
-#         flash(
-#             '❌ Ce client n’a pas d’adresse email.',
-#             'danger'
-#         )
-#         return redirect(url_for('directeur_tous_les_dossiers'))
-#
-#     # ==========================================
-#     # VÉRIFIER SI DÉJÀ ACCEPTÉ
-#     # ==========================================
-#
-#     if getattr(pret, 'conditions_acceptees', False):
-#         flash(
-#             'ℹ️ Les conditions de ce prêt ont déjà été acceptées par le client.',
-#             'info'
-#         )
-#         return redirect(url_for('directeur_tous_les_dossiers'))
-#
-#     # ==========================================
-#     # CRÉER UN NOUVEAU TOKEN
-#     # ==========================================
-#
-#     payload = {
-#         'type': 'conditions_pret',
-#         'client_id': client.id,
-#         'pret_id': pret.id,
-#         'exp': datetime.utcnow() + timedelta(hours=48)
-#     }
-#
-#     token = jwt.encode(
-#         payload,
-#         current_app.config["SECRET_KEY"],
-#         algorithm="HS256"
-#     )
-#
-#     # ==========================================
-#     # CRÉER LE LIEN
-#     # ==========================================
-#
-#     lien_acceptation = url_for(
-#         'accepter_conditions_pret',
-#         token=token,
-#         _external=True
-#     )
-#
-#     print("========================================")
-#     print("📧 RENVOI CONDITIONS PRÊT")
-#     print("CLIENT ID :", client.id)
-#     print("CLIENT :", client.prenom, client.nom)
-#     print("EMAIL :", client.email)
-#     print("PRÊT ID :", pret.id)
-#     print("NUMÉRO PRÊT :", getattr(pret, 'numero_pret', None))
-#     print("LIEN :", lien_acceptation)
-#     print("========================================")
-#
-#     # ==========================================
-#     # ENVOYER EMAIL
-#     # ==========================================
-#
-#     try:
-#
-#         envoyer_email_demande_pret(
-#             client=client,
-#             pret=pret,
-#             lien_acceptation=lien_acceptation
-#         )
-#
-#         flash(
-#             f'✅ Le lien d’acceptation des conditions a été renvoyé à {client.email}.',
-#             'success'
-#         )
-#
-#     except Exception as e:
-#
-#         current_app.logger.exception(
-#             "Erreur lors du renvoi des conditions du prêt"
-#         )
-#
-#         flash(
-#             f'❌ Impossible d’envoyer l’email : {str(e)}',
-#             'danger'
-#         )
-#
-#     return redirect(
-#         url_for('directeur_tous_les_dossiers')
-#     )
-
-
-
-def renvoyer_email_conditions_pret(client, pret):
+def renvoyer_email_conditions_pret(pret_id):
     """
     Génère TOUJOURS un nouveau token et renvoie
     les conditions du prêt au client.
@@ -884,6 +762,10 @@ def renvoyer_email_conditions_pret(client, pret):
         # =====================================================
         # VÉRIFICATIONS
         # =====================================================
+
+        pret = Pret.query.get(pret_id)
+
+        client = Client.query.get(pret.client_id)
 
         if not client:
             raise ValueError("Client introuvable.")
