@@ -7799,6 +7799,12 @@ class RetraitAttente(db.Model):
         nullable=True
     )
 
+    succursale_id = db.Column(
+        db.Integer,
+        db.ForeignKey('succursale.id'),
+        nullable=False
+    )
+
 
 
 
