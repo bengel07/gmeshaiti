@@ -449,7 +449,7 @@ def envoyer_email_conditions(client):
 
         APP_URL = app.config.get(
             "APP_URL",
-            "https://gmeshaiti.onrender.com"
+            "https://gmeshaiti-aeo3.onrender.com"
         ).rstrip("/")
 
         lien_acceptation = f"{APP_URL}/client/terms/{token}"
@@ -462,7 +462,7 @@ def envoyer_email_conditions(client):
         BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
         FROM_EMAIL = os.environ.get('FROM_EMAIL', 'gmeshaiti@gmail.com')
         FROM_NAME = os.environ.get('FROM_NAME', 'GMES Microcrédit')
-        APP_URL = os.environ.get('APP_URL', 'https://gmeshaiti.onrender.com')
+        APP_URL = os.environ.get('APP_URL', 'https://gmeshaiti-aeo3.onrender.com')
 
         print(f"📧 Envoi depuis: {FROM_EMAIL}")
         print(f"🔑 Clé API Brevo: {'✅ Définie' if BREVO_API_KEY else '❌ Manquante'}")
