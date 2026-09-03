@@ -427,414 +427,414 @@ def envoyer_email_conditions(client):
         print(f"ℹ️ Client {client.email} a déjà accepté, pas d'envoi")
         return False
 
-        try:
-            import jwt
-            import os
-            import requests
-            from datetime import datetime, timedelta
-            from flask import current_app
+    try:
+        import jwt
+        import os
+        import requests
+        from datetime import datetime, timedelta
+        from flask import current_app
 
-            # =====================================================
-            # VÉRIFICATIONS
-            # =====================================================
+        # =====================================================
+        # VÉRIFICATIONS
+        # =====================================================
 
-            pret = Pret.query.get(pret_id)
+        pret = Pret.query.get(pret_id)
 
-            client = Client.query.get(pret.client_id)
+        client = Client.query.get(pret.client_id)
 
-            if not client:
-                raise ValueError("Client introuvable.")
+        if not client:
+            raise ValueError("Client introuvable.")
 
-            if not pret:
-                raise ValueError("Prêt introuvable.")
+        if not pret:
+            raise ValueError("Prêt introuvable.")
 
-            if not client.email:
-                raise ValueError(
-                    "Le client n'a pas d'adresse email."
-                )
-
-            # =====================================================
-            # NOUVELLE VERSION DES CONDITIONS
-            # =====================================================
-
-            # Le prêt doit être signé à nouveau.
-            pret.conditions_acceptees = False
-            pret.date_signature = None
-
-            # =====================================================
-            # NOUVEAU TOKEN
-            # =====================================================
-
-            maintenant = datetime.utcnow()
-
-            token = jwt.encode(
-                {
-                    "client_id": client.id,
-                    "pret_id": pret.id,
-                    "type": "conditions_pret",
-
-                    # Chaque génération possède son propre moment
-                    # de création.
-                    "iat": maintenant,
-
-                    # Nouveau lien valable 48 heures
-                    "exp": maintenant + timedelta(hours=48)
-                },
-                current_app.config["SECRET_KEY"],
-                algorithm="HS256"
+        if not client.email:
+            raise ValueError(
+                "Le client n'a pas d'adresse email."
             )
 
-            # =====================================================
-            # URL
-            # =====================================================
+        # =====================================================
+        # NOUVELLE VERSION DES CONDITIONS
+        # =====================================================
 
-            APP_URL = os.environ.get(
-                "APP_URL",
-                "https://gmeshaiti.onrender.com"
-            ).rstrip("/")
+        # Le prêt doit être signé à nouveau.
+        pret.conditions_acceptees = False
+        pret.date_signature = None
 
-            lien_signature = (
-                f"{APP_URL}/accepter-conditions-pret/{token}"
+        # =====================================================
+        # NOUVEAU TOKEN
+        # =====================================================
+
+        maintenant = datetime.utcnow()
+
+        token = jwt.encode(
+            {
+                "client_id": client.id,
+                "pret_id": pret.id,
+                "type": "conditions_pret",
+
+                # Chaque génération possède son propre moment
+                # de création.
+                "iat": maintenant,
+
+                # Nouveau lien valable 48 heures
+                "exp": maintenant + timedelta(hours=48)
+            },
+            current_app.config["SECRET_KEY"],
+            algorithm="HS256"
+        )
+
+        # =====================================================
+        # URL
+        # =====================================================
+
+        APP_URL = os.environ.get(
+            "APP_URL",
+            "https://gmeshaiti.onrender.com"
+        ).rstrip("/")
+
+        lien_signature = (
+            f"{APP_URL}/accepter-conditions-pret/{token}"
+        )
+
+        print("========================================")
+        print("📧 NOUVEAU LIEN DE SIGNATURE")
+        print("CLIENT :", client.id)
+        print("PRET :", pret.id)
+        print("LIEN :", lien_signature)
+        print("========================================")
+
+        # =====================================================
+        # BREVO
+        # =====================================================
+
+        BREVO_API_KEY = os.environ.get("BREVO_API_KEY")
+
+        FROM_EMAIL = os.environ.get(
+            "FROM_EMAIL",
+            "gmeshaiti@gmail.com"
+        )
+
+        FROM_NAME = os.environ.get(
+            "FROM_NAME",
+            "GMES Microcrédit"
+        )
+
+        if not BREVO_API_KEY:
+            raise ValueError(
+                "BREVO_API_KEY manquant."
             )
 
-            print("========================================")
-            print("📧 NOUVEAU LIEN DE SIGNATURE")
-            print("CLIENT :", client.id)
-            print("PRET :", pret.id)
-            print("LIEN :", lien_signature)
-            print("========================================")
+        # =====================================================
+        # EMAIL HTML
+        # =====================================================
 
-            # =====================================================
-            # BREVO
-            # =====================================================
+        numero_pret = (
+                pret.numero_dossier
+                or pret.id
+        )
 
-            BREVO_API_KEY = os.environ.get("BREVO_API_KEY")
+        corps_html = f"""
+        <!DOCTYPE html>
+        <html lang="fr">
 
-            FROM_EMAIL = os.environ.get(
-                "FROM_EMAIL",
-                "gmeshaiti@gmail.com"
-            )
+        <head>
+            <meta charset="UTF-8">
 
-            FROM_NAME = os.environ.get(
-                "FROM_NAME",
-                "GMES Microcrédit"
-            )
+            <style>
 
-            if not BREVO_API_KEY:
-                raise ValueError(
-                    "BREVO_API_KEY manquant."
-                )
+                body {{
+                    font-family: Arial, sans-serif;
+                    background: #f4f6f9;
+                    color: #333;
+                }}
 
-            # =====================================================
-            # EMAIL HTML
-            # =====================================================
+                .container {{
+                    max-width: 600px;
+                    margin: auto;
+                    background: white;
+                    border-radius: 10px;
+                    overflow: hidden;
+                }}
 
-            numero_pret = (
-                    pret.numero_dossier
-                    or pret.id
-            )
+                .header {{
+                    background: #4e73df;
+                    color: white;
+                    text-align: center;
+                    padding: 25px;
+                }}
 
-            corps_html = f"""
-            <!DOCTYPE html>
-            <html lang="fr">
+                .content {{
+                    padding: 30px;
+                }}
 
-            <head>
-                <meta charset="UTF-8">
+                .resume {{
+                    background: #f8f9fc;
+                    padding: 15px;
+                    border-left: 4px solid #4e73df;
+                    margin: 20px 0;
+                    border-radius: 5px;
+                }}
 
-                <style>
+                .button {{
+                    display: inline-block;
+                    background: #28a745;
+                    color: white;
+                    text-decoration: none;
+                    padding: 15px 30px;
+                    border-radius: 5px;
+                    font-weight: bold;
+                    margin-top: 20px;
+                }}
 
-                    body {{
-                        font-family: Arial, sans-serif;
-                        background: #f4f6f9;
-                        color: #333;
-                    }}
+                .warning {{
+                    background: #fff3cd;
+                    border-left: 4px solid #ffc107;
+                    padding: 15px;
+                    margin: 20px 0;
+                }}
 
-                    .container {{
-                        max-width: 600px;
-                        margin: auto;
-                        background: white;
-                        border-radius: 10px;
-                        overflow: hidden;
-                    }}
+                .footer {{
+                    text-align: center;
+                    color: #777;
+                    font-size: 12px;
+                    padding: 20px;
+                }}
 
-                    .header {{
-                        background: #4e73df;
-                        color: white;
-                        text-align: center;
-                        padding: 25px;
-                    }}
+            </style>
+        </head>
 
-                    .content {{
-                        padding: 30px;
-                    }}
+        <body>
 
-                    .resume {{
-                        background: #f8f9fc;
-                        padding: 15px;
-                        border-left: 4px solid #4e73df;
-                        margin: 20px 0;
-                        border-radius: 5px;
-                    }}
+        <div class="container">
 
-                    .button {{
-                        display: inline-block;
-                        background: #28a745;
-                        color: white;
-                        text-decoration: none;
-                        padding: 15px 30px;
-                        border-radius: 5px;
-                        font-weight: bold;
-                        margin-top: 20px;
-                    }}
+            <div class="header">
+                <h1>🏦 GMES Microcrédit</h1>
+            </div>
 
-                    .warning {{
-                        background: #fff3cd;
-                        border-left: 4px solid #ffc107;
-                        padding: 15px;
-                        margin: 20px 0;
-                    }}
+            <div class="content">
 
-                    .footer {{
-                        text-align: center;
-                        color: #777;
-                        font-size: 12px;
-                        padding: 20px;
-                    }}
+                <h2>
+                    Bonjour {client.prenom} {client.nom},
+                </h2>
 
-                </style>
-            </head>
+                <p>
+                    Les conditions de votre demande de prêt
+                    ont été mises à jour.
+                </p>
 
-            <body>
+                <p>
+                    Vous devez donc examiner et signer à nouveau
+                    les conditions du prêt.
+                </p>
 
-            <div class="container">
+                <div class="warning">
 
-                <div class="header">
-                    <h1>🏦 GMES Microcrédit</h1>
-                </div>
-
-                <div class="content">
-
-                    <h2>
-                        Bonjour {client.prenom} {client.nom},
-                    </h2>
+                    <strong>⚠️ Important</strong>
 
                     <p>
-                        Les conditions de votre demande de prêt
-                        ont été mises à jour.
-                    </p>
-
-                    <p>
-                        Vous devez donc examiner et signer à nouveau
-                        les conditions du prêt.
-                    </p>
-
-                    <div class="warning">
-
-                        <strong>⚠️ Important</strong>
-
-                        <p>
-                            Votre précédente signature ne s'applique
-                            plus aux nouvelles conditions.
-                        </p>
-
-                        <p>
-                            Veuillez utiliser le nouveau lien
-                            ci-dessous pour effectuer une nouvelle
-                            signature.
-                        </p>
-
-                    </div>
-
-                    <div class="resume">
-
-                        <h3>📋 Récapitulatif du prêt</h3>
-
-                        <p>
-                            <strong>N° dossier :</strong>
-                            {numero_pret}
-                        </p>
-
-                        <p>
-                            <strong>Montant :</strong>
-                            {pret.montant:,.2f} HTG
-                        </p>
-
-                        <p>
-                            <strong>Durée :</strong>
-                            {pret.duree_mois} mois
-                        </p>
-
-                        <p>
-                            <strong>Taux :</strong>
-                            {pret.taux_interet}%
-                        </p>
-
-                        <p>
-                            <strong>Mensualité :</strong>
-                            {pret.mensualite:,.2f} HTG
-                        </p>
-
-                    </div>
-
-                    <p>
-                        Cliquez sur le bouton ci-dessous pour consulter
-                        et signer les nouvelles conditions du prêt.
-                    </p>
-
-                    <div style="text-align:center;">
-
-                        <a
-                            href="{lien_signature}"
-                            class="button"
-                        >
-                            ✍️ Examiner et signer
-                        </a>
-
-                    </div>
-
-                    <p style="margin-top:25px;">
-                        Ce nouveau lien est valable pendant
-                        <strong>48 heures</strong>.
+                        Votre précédente signature ne s'applique
+                        plus aux nouvelles conditions.
                     </p>
 
                     <p>
-                        Si le bouton ne fonctionne pas, copiez ce lien
-                        dans votre navigateur :
-                    </p>
-
-                    <p style="color:#4e73df;font-size:13px;">
-                        {lien_signature}
+                        Veuillez utiliser le nouveau lien
+                        ci-dessous pour effectuer une nouvelle
+                        signature.
                     </p>
 
                 </div>
 
-                <div class="footer">
+                <div class="resume">
 
-                    © 2026 GMES Microcrédit<br>
+                    <h3>📋 Récapitulatif du prêt</h3>
 
-                    Cet email a été envoyé automatiquement.
+                    <p>
+                        <strong>N° dossier :</strong>
+                        {numero_pret}
+                    </p>
+
+                    <p>
+                        <strong>Montant :</strong>
+                        {pret.montant:,.2f} HTG
+                    </p>
+
+                    <p>
+                        <strong>Durée :</strong>
+                        {pret.duree_mois} mois
+                    </p>
+
+                    <p>
+                        <strong>Taux :</strong>
+                        {pret.taux_interet}%
+                    </p>
+
+                    <p>
+                        <strong>Mensualité :</strong>
+                        {pret.mensualite:,.2f} HTG
+                    </p>
 
                 </div>
+
+                <p>
+                    Cliquez sur le bouton ci-dessous pour consulter
+                    et signer les nouvelles conditions du prêt.
+                </p>
+
+                <div style="text-align:center;">
+
+                    <a
+                        href="{lien_signature}"
+                        class="button"
+                    >
+                        ✍️ Examiner et signer
+                    </a>
+
+                </div>
+
+                <p style="margin-top:25px;">
+                    Ce nouveau lien est valable pendant
+                    <strong>48 heures</strong>.
+                </p>
+
+                <p>
+                    Si le bouton ne fonctionne pas, copiez ce lien
+                    dans votre navigateur :
+                </p>
+
+                <p style="color:#4e73df;font-size:13px;">
+                    {lien_signature}
+                </p>
 
             </div>
 
-            </body>
-            </html>
-            """
+            <div class="footer">
 
-            # =====================================================
-            # TEXTE
-            # =====================================================
+                © 2026 GMES Microcrédit<br>
 
-            corps_texte = f"""
-    Bonjour {client.prenom} {client.nom},
+                Cet email a été envoyé automatiquement.
 
-    Les conditions de votre demande de prêt ont été mises à jour.
+            </div>
 
-    Votre précédente signature ne s'applique plus aux nouvelles
-    conditions.
+        </div>
 
-    Vous devez examiner et signer à nouveau le prêt.
+        </body>
+        </html>
+        """
 
-    N° dossier : {numero_pret}
+        # =====================================================
+        # TEXTE
+        # =====================================================
 
-    Montant : {pret.montant:,.2f} HTG
-    Durée : {pret.duree_mois} mois
-    Taux : {pret.taux_interet} %
-    Mensualité : {pret.mensualite:,.2f} HTG
+        corps_texte = f"""
+Bonjour {client.prenom} {client.nom},
 
-    NOUVEAU LIEN DE SIGNATURE :
+Les conditions de votre demande de prêt ont été mises à jour.
 
-    {lien_signature}
+Votre précédente signature ne s'applique plus aux nouvelles
+conditions.
 
-    Ce lien est valable pendant 48 heures.
+Vous devez examiner et signer à nouveau le prêt.
 
-    GMES Microcrédit
-    """
+N° dossier : {numero_pret}
 
-            # =====================================================
-            # ENVOI BREVO
-            # =====================================================
+Montant : {pret.montant:,.2f} HTG
+Durée : {pret.duree_mois} mois
+Taux : {pret.taux_interet} %
+Mensualité : {pret.mensualite:,.2f} HTG
 
-            response = requests.post(
-                "https://api.brevo.com/v3/smtp/email",
+NOUVEAU LIEN DE SIGNATURE :
 
-                json={
-                    "sender": {
-                        "name": FROM_NAME,
-                        "email": FROM_EMAIL
-                    },
+{lien_signature}
 
-                    "to": [
-                        {
-                            "email": client.email,
-                            "name": (
-                                f"{client.prenom} "
-                                f"{client.nom}"
-                            )
-                        }
-                    ],
+Ce lien est valable pendant 48 heures.
 
-                    "subject": (
-                        f"📄 Nouvelles conditions du prêt "
-                        f"{numero_pret}"
-                    ),
+GMES Microcrédit
+"""
 
-                    "htmlContent": corps_html,
-                    "textContent": corps_texte
+        # =====================================================
+        # ENVOI BREVO
+        # =====================================================
+
+        response = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+
+            json={
+                "sender": {
+                    "name": FROM_NAME,
+                    "email": FROM_EMAIL
                 },
 
-                headers={
-                    "api-key": BREVO_API_KEY,
-                    "Content-Type": "application/json",
-                    "Accept": "application/json"
-                },
+                "to": [
+                    {
+                        "email": client.email,
+                        "name": (
+                            f"{client.prenom} "
+                            f"{client.nom}"
+                        )
+                    }
+                ],
 
-                timeout=30
-            )
+                "subject": (
+                    f"📄 Nouvelles conditions du prêt "
+                    f"{numero_pret}"
+                ),
 
-            # =====================================================
-            # VÉRIFICATION
-            # =====================================================
+                "htmlContent": corps_html,
+                "textContent": corps_texte
+            },
 
-            if response.status_code != 201:
-                print(
-                    "❌ Erreur Brevo :",
-                    response.status_code
-                )
+            headers={
+                "api-key": BREVO_API_KEY,
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
 
-                print(response.text)
+            timeout=30
+        )
 
-                raise Exception(
-                    f"Brevo erreur {response.status_code}: "
-                    f"{response.text}"
-                )
+        # =====================================================
+        # VÉRIFICATION
+        # =====================================================
 
-            # =====================================================
-            # SAUVEGARDER LE NOUVEL ÉTAT
-            # =====================================================
-
-            db.session.commit()
-
+        if response.status_code != 201:
             print(
-                f"✅ Nouveau lien envoyé à {client.email}"
+                "❌ Erreur Brevo :",
+                response.status_code
             )
 
-            return {
-                "success": True,
-                "email_envoye": True,
-                "lien_signature": lien_signature
-            }
+            print(response.text)
 
-        except Exception as e:
-
-            db.session.rollback()
-
-            current_app.logger.exception(
-                "Erreur renvoi conditions prêt"
+            raise Exception(
+                f"Brevo erreur {response.status_code}: "
+                f"{response.text}"
             )
 
-            raise
+        # =====================================================
+        # SAUVEGARDER LE NOUVEL ÉTAT
+        # =====================================================
+
+        db.session.commit()
+
+        print(
+            f"✅ Nouveau lien envoyé à {client.email}"
+        )
+
+        return {
+            "success": True,
+            "email_envoye": True,
+            "lien_signature": lien_signature
+        }
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        current_app.logger.exception(
+            "Erreur renvoi conditions prêt"
+        )
+
+        raise
 
 
 @app.route('/accepter-conditions-pret/<token>', methods=['GET'])
