@@ -33,6 +33,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy import inspect, text
+from tensorflow.dtensor.python.config import client_id
 
 # ==================== SECURITY ====================
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -421,194 +422,178 @@ def envoyer_email_conditions(client):
     """
     Envoie un email au client avec un lien pour accepter les conditions d'utilisation
     """
+    import requests
+    import os
     if client.terms_accepted:
         flash(f"ℹ️ Client {client.email} a déjà accepté, pas d'envoi")
 
         print(f"ℹ️ Client {client.email} a déjà accepté, pas d'envoi")
         return False
 
+
+    # Vérifier les permissions
+    if current_user.role != 'employe' or current_user.fonction != 'conseiller':
+        return jsonify({'success': False, 'message': '⛔ Permission non autorisée'}), 403
+
+    # Récupérer le client
+    client = Client.query.get_or_404(client_id)
+
+    # Vérifier que ce client appartient bien à ce conseiller
+    if client.cree_par_id != current_user.id:
+        return jsonify({'success': False, 'message': '⛔ Ce client ne vous appartient pas'}), 403
+
+    # Vérifier que le client est bien en attente de signature
+    if client.statut != 'en_attente_terms':
+        return jsonify({'success': False, 'message': f'⚠️ Ce client est en statut "{client.statut}"'}), 400
+
+    # Vérifier que le token existe
+    if not client.token_signature:
+        return jsonify({'success': False, 'message': '❌ Aucun token trouvé pour ce client'}), 400
+
     try:
-        import os
-        import requests
-        # Générer un token unique pour ce client
-        from datetime import datetime, timedelta
+        # 1. Générer le lien
         from itsdangerous import URLSafeTimedSerializer
-
         serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+        nouveau_token = serializer.dumps(client.id, salt="terms-accept")
+        lien_terms = url_for('client_terms', token=nouveau_token, _external=True)
 
-        token = serializer.dumps(
-            client.id,
-            salt="terms-accept"
-        )
-
-        # ✅ SAUVEGARDER LE TOKEN COMME POUR LE RENVOI
-        client.token_signature = token
-        client.date_expiration_token = datetime.utcnow() + timedelta(days=7)
-
-        db.session.commit()
-
-        APP_URL = app.config.get(
+        # 2. Remplacer localhost par l'IP réelle pour les clients externes
+        APP_URL = os.environ.get(
             "APP_URL",
             "https://gmeshaiti-aeo3.onrender.com"
-        ).rstrip("/")
+        )
 
-        lien_acceptation = f"{APP_URL}/client/terms/{token}"
+        lien_terms = f"{APP_URL}/client/terms/{nouveau_token}"
 
-        print("🔗 Lien acceptation :", lien_acceptation)
-        # try:
+        client.token_signature = nouveau_token
+        db.session.commit()
 
-        # 3. ENVOYER L'EMAIL VIA API BREVO (solution intégrée)
-        # Configuration email API Brevo
-        BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
-        FROM_EMAIL = os.environ.get('FROM_EMAIL', 'gmeshaiti@gmail.com')
-        FROM_NAME = os.environ.get('FROM_NAME', 'GMES Microcrédit')
-        APP_URL = os.environ.get('APP_URL', 'https://gmeshaiti-aeo3.onrender.com')
-
-        print(f"📧 Envoi depuis: {FROM_EMAIL}")
-        print(f"🔑 Clé API Brevo: {'✅ Définie' if BREVO_API_KEY else '❌ Manquante'}")
-
-        # Corps de l'email (version HTML)
-        corps_html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                          color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
-                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
-                .button {{ display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                          color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; 
-                          margin: 20px 0; font-weight: bold; }}
-                .button:hover {{ transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }}
-                .footer {{ margin-top: 30px; font-size: 0.9em; color: #666; text-align: center; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1>🏦 GMES Microcrédit</h1>
-                </div>
-                <div class="content">
-                    <h2>Bonjour {client.prenom} {client.nom},</h2>
-
-                    <p>Pour finaliser la création de votre compte et pouvoir bénéficier de nos services, 
-                       vous devez accepter nos conditions générales d'utilisation.</p>
-
-                    <p>Veuillez cliquer sur le bouton ci-dessous pour lire et accepter nos conditions :</p>
-
-                    <div style="text-align: center;">
-                        <a href="{lien_acceptation}" class="button">
-                            ✅ Accepter les conditions
-                        </a>
+        # Version HTML du message
+        html = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                    .header {{ background: #0b3b4f; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
+                    .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+                    .btn {{ display: inline-block; background: #28a745; color: white; padding: 12px 30px; 
+                           text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+                    .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>GMES Microcrédit</h1>
                     </div>
+                    <div class="content">
+                        <h2>Bonjour {client.prenom} {client.nom},</h2>
+                        <p>Vous avez demandé un nouveau lien pour signer vos conditions générales.</p>
+                        <p>Cliquez sur le bouton ci-dessous pour accéder à votre espace de signature :</p>
 
-                    <p><strong>Ce lien est valable pendant 7 jours.</strong></p>
+                        <div style="text-align: center;">
+                            <a href="{lien_terms}" class="btn">✅ Signer mes conditions</a>
+                        </div>
 
-                    <p>Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :<br>
-                    <small style="color: #667eea;">{lien_acceptation}</small></p>
+                        <p>Ou copiez ce lien dans votre navigateur :</p>
+                        <p style="word-break: break-all; background: #eee; padding: 10px; border-radius: 5px;">
+                            <a href="{lien_terms}">{lien_terms}</a>
+                        </p>
 
-                    <p>Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet email.</p>
+                        <p><strong>Ce lien expirera le {client.date_expiration_token.strftime('%d/%m/%Y à %H:%M') if client.date_expiration_token else 'dans 7 jours'}.</strong></p>
+
+                        <p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
+
+                        <p>Cordialement,<br>L'équipe GMES Microcrédit</p>
+                    </div>
+                    <div class="footer">
+                        <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
+                        <p>© 2025 GMES Microcrédit. Tous droits réservés.</p>
+                    </div>
                 </div>
-                <div class="footer">
-                    <p>© 2024 GMES Microcrédit - Tous droits réservés</p>
-                    <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
-                </div>
-            </div>
-        </body>
-        </html>
-        """
+            </body>
+            </html>
+            """
 
-        # Corps de l'email (version texte)
-        corps_texte = f"""
-        Bonjour {client.prenom} {client.nom},
+        # Version texte simple
+        text = f"""
+            Bonjour {client.prenom} {client.nom},
 
-        Pour finaliser la création de votre compte et pouvoir bénéficier de nos services, 
-        vous devez accepter nos conditions générales d'utilisation.
+            Vous avez demandé un nouveau lien pour signer vos conditions générales.
 
-        Veuillez cliquer sur ce lien pour accepter nos conditions :
-        {lien_acceptation}
+            Cliquez sur ce lien : {lien_terms}
 
-        Ce lien est valable pendant 7 jours.
+            Ce lien expirera dans 7 jours.
 
-        Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet email.
+            Cordialement,
+            L'équipe GMES Microcrédit
+            """
 
-        ---
-        GMES Microcrédit
-        """
+        # 3. ENVOYER L'EMAIL VIA SMTP (solution intégrée)
 
-        # Configuration
+        # Configuration email (à mettre dans vos variables d'environnement)
+
         BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
         FROM_EMAIL = os.environ.get('FROM_EMAIL', 'gmeshaiti@gmail.com')
         FROM_NAME = os.environ.get('FROM_NAME', 'GMES Microcrédit')
 
-        # Envoyer l'email
-        try:
-            if not BREVO_API_KEY:
-                print("❌ BREVO_API_KEY manquant")
-                flash("Configuration email manquante", "danger")
-                email_envoye = False
-            else:
-                url = "https://api.brevo.com/v3/smtp/email"
+        email_envoye = False
 
-                headers = {
-                    "api-key": BREVO_API_KEY,
-                    "Content-Type": "application/json",
-                    "Accept": "application/json"
+        url = "https://api.brevo.com/v3/smtp/email"
+
+        headers = {
+            "api-key": BREVO_API_KEY,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+
+        data = {
+            "sender": {
+                "name": FROM_NAME,
+                "email": FROM_EMAIL
+            },
+            "to": [
+                {
+                    "email": client.email,
+                    "name": client.email.split("@")[0]
                 }
+            ],
+            "subject": "🔐 GMES - Lien de signature de vos conditions générales",
+            "htmlContent": html
+        }
 
-                data = {
-                    "sender": {
-                        "name": FROM_NAME,
-                        "email": FROM_EMAIL
-                    },
-                    "to": [
-                        {
-                            "email": client.email,
-                            "name": f"{client.prenom} {client.nom}"
-                        }
-                    ],
-                    "subject": "📋 GMES Microcrédit - Acceptation des conditions d'utilisation",
-                    "htmlContent": corps_html,
-                    "textContent": corps_texte
-                }
+        response = requests.post(
+            url,
+            json=data,
+            headers=headers,
+            timeout=30
+        )
 
-                response = requests.post(url, json=data, headers=headers, timeout=30)
-
-                if response.status_code == 201:
-                    email_envoye = True
-                    print(f"✅ Email envoyé avec succès à {client.email}")
-                else:
-                    email_envoye = False
-                    print(f"❌ Erreur envoi email: {response.status_code} - {response.text}")
-
-        except Exception as e:
-            email_envoye = False
-            print(f"❌ Erreur envoi email: {e}")
+        print("📤 FROM :", FROM_EMAIL)
+        print("📥 TO :", client.email)
+        print("BREVO :", response.status_code, response.text)
 
         # 4. Créer une notification dans la base
+        from datetime import datetime
         from models import Notification, Action
-        from datetime import datetime, timedelta
 
-        # Créer une action valide
-        action = Action.query.filter_by(
-            assignee_a_id=current_user.id
-        ).first()
-
-        if not action:
-            action = Action(
-                titre="Signature conditions client",
+        # Récupérer une action par défaut
+        action_defaut = Action.query.first()
+        if not action_defaut:
+            # Créer une action par défaut si aucune n'existe
+            action_defaut = Action(
+                titre="Action système",
                 assignee_a_id=current_user.id,
                 creee_par_id=current_user.id,
-                date_echeance=datetime.now() + timedelta(days=7),
-                type_action="tache",
-                priorite="moyenne",
-                statut="a_faire",
+                date_echeance=datetime.now() + timedelta(days=30),
+                type_action='tache',
+                priorite='moyenne',
+                statut='a_faire',
                 progression=0
             )
-            db.session.add(action)
+            db.session.add(action_defaut)
             db.session.flush()
 
         nouvelle_notification = Notification(
@@ -616,51 +601,42 @@ def envoyer_email_conditions(client):
             acteur_id=current_user.id,
 
             client_id=client.id,
-
             titre="🔔 Nouveau lien de signature",
-            message=f"Bonjour {client.prenom}, voici votre nouveau lien pour signer vos conditions : {lien_acceptation}",
-
+            message=f"Bonjour {client.prenom}, voici votre nouveau lien pour signer vos conditions : {lien_terms}",
             type_notification='terms',
-            type='info',
-            niveau='info',
-            level='info',
-
-            lien=lien_acceptation,
-
+            lien=lien_terms,
             date_envoi=datetime.now(),
-            date_creation=datetime.now(),
-
             lue=False,
-            is_read=False,
-
+            date_creation=datetime.now(),
             destinataire_id=current_user.id,
-
-            action_id=action.id
+            action_id=action_defaut.id  # ← CORRIGÉ !
         )
-
         db.session.add(nouvelle_notification)
         db.session.commit()
 
         # 5. Message flash pour le conseiller
-        flash(f'✅ Lien de signature renvoyé à {client.prenom} {client.nom} ({client.email})', 'success')
+        flash(
+            f'✅ Lien de signature renvoyé à {client.prenom} {client.nom} ({client.email})',
+            'success'
+        )
 
         if email_envoye:
             return jsonify({
                 'success': True,
-                'message': f'✅ Email envoyé à {client.email}',
+                'message': f'✅ Email envoyé avec succès à {client.email}',
                 'email_envoye': True
             })
         else:
             return jsonify({
                 'success': True,
-                'message': f'⚠️ Notification créée mais email non envoyé (vérifiez config SMTP)',
+                'message': f'⚠️ Notification créée mais l’email Brevo n’a pas été envoyé. Vérifiez BREVO_API_KEY.',
                 'email_envoye': False
             })
 
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Erreur envoi email conditions à {client.email}: {e}")
-        flash(f"❌ Erreur: {str(e)}", "danger")
+        print("MAIL PASSWORD:", repr(os.environ.get('MAIL_PASSWORD')))
+        print(f"❌ Erreur renvoi lien: {e}")
         return jsonify({'success': False, 'message': f'❌ Erreur: {str(e)}'}), 500
 
 
