@@ -7879,6 +7879,8 @@ class ProduitEpargne(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
 
+
+
     def __repr__(self):
         return f'<ProduitEpargne {self.code}: {self.nom}>'
 
