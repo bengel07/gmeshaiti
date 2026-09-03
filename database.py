@@ -9,7 +9,7 @@ def init_db(app):
 
     with app.app_context():
         try:
-            # Ajouter la colonne si elle n'existe pas
+            # Ajouter la colonne manquante si nécessaire
             db.session.execute(text("""
                 ALTER TABLE transactions_caisse
                 ADD COLUMN IF NOT EXISTS succursale_id INTEGER;
@@ -17,8 +17,8 @@ def init_db(app):
 
             db.session.commit()
 
-            print("✅ Colonne succursale_id vérifiée/ajoutée dans transactions_caisse")
+            print("✅ Colonne succursale_id vérifiée")
 
         except Exception as e:
             db.session.rollback()
-            print(f"⚠️ Erreur ajout succursale_id : {e}")
+            print(f"⚠️ Migration succursale_id : {e}")
