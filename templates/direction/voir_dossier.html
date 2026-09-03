@@ -277,16 +277,17 @@
                 <div class="card shadow">
                     <div class="card-body">
                         <div class="d-flex justify-content-center gap-3 flex-wrap">
-                            <button type="submit"
-                                    class="btn btn-success btn-lg px-5"
-                                    name="action"
-                                    value="save_send_terms"
-                                    onclick="return confirm('Sauvegarder les modifications et envoyer les Terms & Conditions au client ?')">
-
-                                <i class="fas fa-save me-2"></i>
-                                Sauvegarder et envoyer Terms & Conditions
-
-                            </button>
+                            {% if pret and pret.statut == 'approuve' %}
+                                <button type="button" class="btn btn-secondary" disabled>
+                                    <i class="fas fa-lock"></i>
+                                    Déjà approuvé
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i>
+                                    Sauvegarder et envoyer termes
+                                </button>
+                            {% endif %}
 
                             <a href="{{ url_for('directeur_tous_les_dossiers') }}" class="btn btn-secondary btn-lg px-5">
                                 <i class="fas fa-arrow-left me-2"></i> Retour
