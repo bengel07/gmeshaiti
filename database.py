@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
 
 db = SQLAlchemy()
 
@@ -7,23 +8,17 @@ def init_db(app):
     db.init_app(app)
 
     with app.app_context():
-        # IMPORTANT :
-        # charger les modèles APRÈS que db existe
-        import models
+        try:
+            # Ajouter la colonne si elle n'existe pas
+            db.session.execute(text("""
+                ALTER TABLE transactions_caisse
+                ADD COLUMN IF NOT EXISTS succursale_id INTEGER;
+            """))
 
-        print("========================================")
-        print("📦 MODÈLES SQLALCHEMY CHARGÉS")
-        print("========================================")
+            db.session.commit()
 
-        for table in db.metadata.sorted_tables:
-            print(f"   ✅ {table.name}")
+            print("✅ Colonne succursale_id vérifiée/ajoutée dans transactions_caisse")
 
-        print("========================================")
-        print(f"📊 TOTAL : {len(db.metadata.tables)} tables")
-        print("========================================")
-
-        db.create_all()
-
-        print("========================================")
-        print("✅ TOUTES LES TABLES ONT ÉTÉ CRÉÉES/VÉRIFIÉES")
-        print("========================================")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Erreur ajout succursale_id : {e}")
