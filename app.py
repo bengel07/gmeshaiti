@@ -1841,6 +1841,8 @@ def demande_pret():
             db.session.add(nouveau_pret)
             db.session.flush()  # Pour obtenir l'ID
 
+            nouveau_pret.id_pret = f"PRET-{nouveau_pret.id:06d}"
+
             if not client.terms_accepted:
                 session['pret_data'] = request.form.to_dict()
                 session['pret_data']['client_id'] = client.id
@@ -4311,7 +4313,7 @@ def creer_dossier():
             db.session.add(nouveau_client)
             db.session.flush()
 
-            nouveau_client.id_client = f"CLI-{nouveau_client.id:06d}"
+            nouveau_client.id_client = f"GMES-{nouveau_client.id:06d}"
 
             nouveau_compte = Epargne(
                 client_id=nouveau_client.id,
