@@ -24,7 +24,7 @@ print("DATABASE_URL =", os.environ.get("DATABASE_URL"))
 # ==================== CONFIGURATION DE BASE ====================
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'f101f28e0e79a76b6f296fd0a213b623fc5551a3762d555397572b0eeaf748a0'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///gmes.db1'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///gmes.db2'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     UPLOAD_FOLDER = 'static/uploads/profils'
