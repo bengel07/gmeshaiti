@@ -1,6 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text
-from models import *
+
 db = SQLAlchemy()
 
 
@@ -8,10 +7,23 @@ def init_db(app):
     db.init_app(app)
 
     with app.app_context():
-        print("📦 Modèles SQLAlchemy chargés :")
+        # IMPORTANT :
+        # charger les modèles APRÈS que db existe
+        import models
+
+        print("========================================")
+        print("📦 MODÈLES SQLALCHEMY CHARGÉS")
+        print("========================================")
+
         for table in db.metadata.sorted_tables:
             print(f"   ✅ {table.name}")
 
+        print("========================================")
+        print(f"📊 TOTAL : {len(db.metadata.tables)} tables")
+        print("========================================")
+
         db.create_all()
 
-        print("✅ Toutes les tables ont été créées.")
+        print("========================================")
+        print("✅ TOUTES LES TABLES ONT ÉTÉ CRÉÉES/VÉRIFIÉES")
+        print("========================================")
