@@ -1988,6 +1988,8 @@ def demande_pret():
     show_for_director = False
     current_pret = None
 
+    eligibilite = verifier_eligibilite_pret(client) if client else None
+
     # ⬇️⬇️⬇️ UN SEUL RETURN POUR TOUS LES CAS ⬇️⬇️⬇️
     return render_template(
         'prets/demande_pret.html',
@@ -2002,7 +2004,7 @@ def demande_pret():
         form_data=form_data,
         show_for_director=show_for_director,
         pret=current_pret,
-        verifier_eligibilite_pret = verifier_eligibilite_pret  # ← AJOUTEZ CETTE LIGNE
+        eligibilite=eligibilite
     )
 
 

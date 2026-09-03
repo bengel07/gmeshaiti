@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request, jsonify, session, abort, 
 from flask_login import login_required, current_user, login_user
 from werkzeug.security import generate_password_hash
 
+from app import envoyer_email_activation_client
 from models import User, Transaction, Epargne, TransactionEpargne, Pret
 from database import db
 from models import Client, Succursale
@@ -392,3 +393,110 @@ def creer_acces_client(client):
     )
 
     return activation_link
+
+
+@clients_bp.route('/<int:client_id>/envoyer-lien', methods=['POST'])
+@login_required
+def envoyer_lien_activation(client_id):
+
+    # Réservé aux employés/admins
+    if current_user.role not in [
+        'employee',
+        'employe',
+        'admin_succursale',
+        'admin_principal',
+        'super_admin'
+    ]:
+        abort(403)
+
+    client = Client.query.get_or_404(client_id)
+
+    if not client.email:
+        return jsonify({
+            'success': False,
+            'message': "Ce client n'a pas d'adresse email."
+        }), 400
+
+    try:
+        # Chercher le User du client
+        user = User.query.filter_by(
+            client_id=client.id
+        ).first()
+
+        # Créer le User s'il n'existe pas
+        if not user:
+            user = User(
+                username=client.email,
+                email=client.email,
+                nom=client.nom,
+                prenom=client.prenom,
+                nom_complet=client.nom_complet,
+                telephone=client.telephone,
+                role='client',
+                statut='en_attente',
+                actif=False,
+                est_actif=False,
+                terms_accepted=False,
+                client_id=client.id
+            )
+
+            db.session.add(user)
+            db.session.flush()
+
+        else:
+            # Mettre à jour les informations
+            user.email = client.email
+            user.username = client.email
+            user.role = 'client'
+            user.client_id = client.id
+
+        # Nouveau token
+        user.activation_token = secrets.token_urlsafe(48)
+
+        # Nouveau délai de 24 heures
+        user.activation_expiration = (
+            datetime.utcnow() + timedelta(hours=24)
+        )
+
+        user.statut = 'en_attente'
+        user.actif = False
+        user.est_actif = False
+
+        db.session.commit()
+
+        # Générer le lien
+        activation_link = url_for(
+            'clients.activation_client',
+            token=user.activation_token,
+            _external=True
+        )
+
+        # Envoyer l'email
+        success = envoyer_email_activation_client(
+            client,
+            activation_link
+        )
+
+        if not success:
+            return jsonify({
+                'success': False,
+                'message': "Le lien a été créé, mais l'email n'a pas pu être envoyé."
+            }), 500
+
+        return jsonify({
+            'success': True,
+            'message': f"Le lien d'activation a été envoyé à {client.email}."
+        })
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        print(
+            f"❌ ERREUR ENVOI LIEN CLIENT : {str(e)}"
+        )
+
+        return jsonify({
+            'success': False,
+            'message': "Erreur lors de l'envoi du lien."
+        }), 500
