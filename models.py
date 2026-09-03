@@ -4089,7 +4089,8 @@ class Pret(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
 
-    id_pret = db.Column(db.String(20),unique=True, nullable=False )
+    id_pret = db.Column(db.String(50),unique=True, nullable=False )
+
 
     groupe_id = db.Column(db.Integer)
     montant = db.Column(db.Float, default=0)
@@ -4098,15 +4099,15 @@ class Pret(db.Model):
     date_demande = db.Column(db.DateTime, default=datetime.utcnow)
     date_approbation = db.Column(db.DateTime)
     statut = db.Column(db.String(200), default='en_attente')
-    motif = db.Column(db.String(100))
+    motif = db.Column(db.String(800))
     montant_interet = db.Column(db.Float)
     montant_total = db.Column(db.Float)
     montant_rembourse = db.Column(db.Float, default=0)
     penalite = db.Column(db.Float, default=0)
     mensualite = db.Column(db.Float)
     actif = db.Column(db.Boolean, default=True)
-    type_pret = db.Column(db.String(50), default='classique')
-    autre_type_pret = db.Column(db.String(50), default='classique')
+    type_pret = db.Column(db.String(1000), default='classique')
+    autre_type_pret = db.Column(db.String(100), default='classique')
     garantie = db.Column(db.String(200), nullable=True)
     info_garant = db.Column(db.String(200), nullable=True)
     agent_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # ← avec un 's'
@@ -4126,12 +4127,12 @@ class Pret(db.Model):
     date_reception = db.Column(db.DateTime, nullable=True)
     date_debut = db.Column(db.DateTime, nullable=True)
     date_creation = db.Column(db.DateTime, nullable=True)
-    decision = db.Column(db.String(50), nullable=True)  # approuve, refuse, en_attente
+    decision = db.Column(db.String(150), nullable=True)  # approuve, refuse, en_attente
     montant_demande = db.Column(db.Float, nullable=True)
     montant_accorde = db.Column(db.Float, nullable=True)
     signature_responsable = db.Column(db.String(25500), nullable=True)
     motif_refus = db.Column(db.Text, nullable=True)
-    numero_pret = db.Column(db.VARCHAR(50), unique=True)  # ou db.VARCHAR(50)
+    numero_pret = db.Column(db.VARCHAR(150), unique=True)  # ou db.VARCHAR(50)
     date_echeance = db.Column(db.DateTime)  # ← Ajouter cette ligne
     date_decaissement = db.Column(db.DateTime, nullable=True)  # ← ADD THIS LINE
 
@@ -4155,7 +4156,7 @@ class Pret(db.Model):
 
     # succursale = db.relationship("Succursale", back_populates="prets")
 
-    code_pret = db.Column(db.String(20))  # BR001-PR001
+    code_pret = db.Column(db.String(100))  # BR001-PR001
 
 
 
