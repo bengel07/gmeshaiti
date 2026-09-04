@@ -165,7 +165,7 @@ class User(UserMixin, db.Model):
     carte_numero = db.Column(db.String(500), unique=True, nullable=True)
     est_actif = db.Column(db.Boolean, default=True)
 
-    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=True)
 
     # Relation avec Partner
 
