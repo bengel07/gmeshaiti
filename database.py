@@ -1,17 +1,7 @@
-init_db(app)
+from flask_sqlalchemy import SQLAlchemy
 
-with app.app_context():
-    creer_produit_epargne_defaut()
+db = SQLAlchemy()
 
-    db.create_all()
 
-    print("✅ Tables vérifiées/créées")
-
-    # Vérifier les clients disponibles
-    client_admin = Client.query.first()
-
-    print(
-        f"👤 Client disponible : {client_admin.id}"
-        if client_admin
-        else "⚠️ Aucun client dans la base"
-    )
+def init_db(app):
+    db.init_app(app)
