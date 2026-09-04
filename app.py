@@ -29351,7 +29351,7 @@ with app.app_context():
                 role="super_admin",
                 fonction="admin_general",
                 statut="actif",
-                client_id=0,
+                client_id=1,
                 premier_connexion=False
 
             )
