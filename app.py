@@ -29370,10 +29370,11 @@ with app.app_context():
             result = check_password_hash(super_admin.password_hash, default_password)
             print(f"🔐 Vérification mot de passe: {result}")
 
-        except IntegrityError:
-            # Si l'erreur de doublon se produit, on annule la transaction
+
+        except IntegrityError as e:
             db.session.rollback()
-            print("ℹ️ Le super admin a déjà été créé par un autre processus.")
+            print("❌ IntegrityError lors de la création du super admin :")
+            print(e)
 
     else:
 
