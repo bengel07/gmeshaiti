@@ -29353,28 +29353,24 @@ with app.app_context():
                 statut="actif",
                 premier_connexion=False
             )
+
             super_admin.password_hash = generate_password_hash(default_password)
 
             db.session.add(super_admin)
-            db.session.flush()
             db.session.commit()
 
-            print(f"✅ Super admin créé avec succès!")
-            print(f"   Email: super_admin@gmes.com")
-            print(f"   Identifiant: super_admin")
-            print(f"   Mot de passe: {default_password}")
-
-            # Vérification après création
-            from werkzeug.security import check_password_hash
-
-            result = check_password_hash(super_admin.password_hash, default_password)
-            print(f"🔐 Vérification mot de passe: {result}")
-
+            print("✅ Super admin créé avec succès")
 
         except IntegrityError as e:
             db.session.rollback()
-            print("❌ IntegrityError lors de la création du super admin :")
-            print(e)
+            print("❌ ERREUR INTEGRITYERROR")
+            print(f"❌ Détail : {e}")
+
+        except Exception as e:
+            db.session.rollback()
+            print("❌ ERREUR INATTENDUE")
+            print(f"❌ Type : {type(e).__name__}")
+            print(f"❌ Détail : {e}")
 
     else:
 
