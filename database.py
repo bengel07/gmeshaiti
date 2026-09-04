@@ -1,4 +1,3 @@
-# database.py - Version finale
 from flask_sqlalchemy import SQLAlchemy
 import logging
 
@@ -17,24 +16,22 @@ def init_db(app):
 
             # Vérifier si la table produits_epargne existe
             if not inspect(db.engine).has_table('produits_epargne'):
-                logger.warning("⚠️ Table produits_epargne inexistante - Création en cours...")
+                logger.warning("⚠️ Création des tables...")
 
                 # Créer TOUTES les tables
                 db.create_all()
-                logger.info("✅ Toutes les tables créées avec succès")
+                logger.info("✅ Toutes les tables créées")
 
                 # Créer le produit d'épargne par défaut
                 try:
                     from models import ProduitEpargne
                     from datetime import date
 
-                    produit = ProduitEpargne.query.filter_by(code='EP-DEFAULT').first()
-                    if not produit:
-                        logger.info("📝 Création du produit d'épargne par défaut...")
+                    if not ProduitEpargne.query.filter_by(code='EP-DEFAULT').first():
                         produit = ProduitEpargne(
                             code='EP-DEFAULT',
                             nom='Épargne Standard',
-                            description='Compte d\'épargne standard pour les clients',
+                            description='Compte d\'épargne standard',
                             type_produit='classique',
                             taux_interet_annuel=2.5,
                             date_lancement=date.today()
@@ -43,10 +40,10 @@ def init_db(app):
                         db.session.commit()
                         logger.info("✅ Produit d'épargne par défaut créé")
                 except Exception as e:
-                    logger.warning(f"⚠️ Erreur produit: {e}")
+                    logger.warning(f"⚠️ Produit non créé: {e}")
             else:
-                logger.info("✅ Base de données déjà initialisée")
+                logger.info("✅ Tables déjà existantes")
 
         except Exception as e:
-            logger.error(f"❌ Erreur d'initialisation: {e}")
+            logger.error(f"❌ Erreur: {e}")
             raise
