@@ -29326,20 +29326,23 @@ def api_employes_succursale(succursale_id):
 
 
 # from views import super_admin_switcher, super_admin_go, super_admin_quick_access, PAGES
-
-# === CRÉATION DES TABLES ET ADMIN AU DÉMARRAGE ===
+# === CRÉATION DES TABLES ET SUPER ADMIN AU DÉMARRAGE ===
 with app.app_context():
-    db.create_all()
-    print("✅ Tables vérifiées/créées")
+    try:
+        # Créer les tables si elles n'existent pas
+        db.create_all()
+        print("✅ Tables vérifiées/créées")
 
-    # Vérifier si super_admin existe
-    super_admin = User.query.filter_by(role='super_admin').first()
+        # Vérifier si un super_admin existe déjà
+        super_admin = User.query.filter_by(role="super_admin").first()
 
-    if not super_admin:
-        print("⚡ Création du super admin...")
+        if not super_admin:
+            print("⚡ Création du premier super admin...")
 
-        try:
-            default_password = os.environ.get("SUPER_ADMIN_PASSWORD", "Spadmin123")
+            default_password = os.environ.get(
+                "SUPER_ADMIN_PASSWORD",
+                "Spadmin123"
+            )
 
             super_admin = User(
                 username="super_admin",
@@ -29350,70 +29353,74 @@ with app.app_context():
                 fonction="admin_general",
                 statut="actif",
                 premier_connexion=False,
-
-                # Activation
-                actif = True,
-                est_actif = True
+                actif=True,
+                est_actif=True
             )
-            super_admin.password_hash = generate_password_hash(default_password)
+
+            super_admin.password_hash = generate_password_hash(
+                default_password
+            )
 
             db.session.add(super_admin)
-            db.session.flush()
             db.session.commit()
 
-            print(f"✅ Super admin créé avec succès!")
-            print(f"   Email: super_admin@gmes.com")
-            print(f"   Identifiant: super_admin")
-            print(f"   Mot de passe: {default_password}")
+            print("✅ Premier super admin créé avec succès")
+            print("   Email : super_admin@gmes.com")
+            print("   Identifiant : super_admin")
 
-            # Vérification après création
-            from werkzeug.security import check_password_hash
+        else:
+            # Le super_admin existe déjà.
+            # NE PAS réinitialiser son mot de passe à chaque démarrage.
+            print(
+                f"ℹ️ Super admin déjà existant: "
+                f"{super_admin.email}"
+            )
 
-            result = check_password_hash(super_admin.password_hash, default_password)
-            print(f"🔐 Vérification mot de passe: {result}")
+            # Corriger uniquement les paramètres nécessaires
+            modified = False
 
+            if super_admin.role != "super_admin":
+                super_admin.role = "super_admin"
+                modified = True
 
-        except IntegrityError as e:
-            db.session.rollback()
-            print("❌ IntegrityError lors de la création du super admin :")
-            print(e)
+            if super_admin.statut != "actif":
+                super_admin.statut = "actif"
+                modified = True
 
-    else:
+            if hasattr(super_admin, "actif") and not super_admin.actif:
+                super_admin.actif = True
+                modified = True
 
-        print(f"ℹ️ Super admin déjà existant: {super_admin.email}")
+            if hasattr(super_admin, "est_actif") and not super_admin.est_actif:
+                super_admin.est_actif = True
+                modified = True
 
-        # 🔐 RÉINITIALISER LE MOT DE PASSE ICI 🔐
-        # Correction statut super_admin
-        super_admin.statut = "actif"
+            if modified:
+                db.session.commit()
+                print("✅ Statut/rôle du super_admin corrigé")
+            else:
+                print("✅ Super admin déjà correctement configuré")
 
-        # ✅ FORCER LE BON RÔLE
+        # Vérification des utilisateurs
+        users = User.query.all()
 
-        super_admin.role = 'super_admin'
+        print(f"📋 Total utilisateurs dans la base: {len(users)}")
 
-        from werkzeug.security import generate_password_hash, check_password_hash
+        for u in users:
+            print(
+                f"   - {u.username} ({u.email}) "
+                f"- Rôle: {u.role}"
+            )
 
-        # Réinitialiser le mot de passe
+    except IntegrityError as e:
+        db.session.rollback()
+        print("❌ IntegrityError lors de l'initialisation:")
+        print(e)
 
-        new_password = "admin123"
-
-        super_admin.password_hash = generate_password_hash(new_password)
-
-        db.session.commit()
-
-        # Vérifier que le nouveau mot de passe fonctionne
-
-        result = check_password_hash(super_admin.password_hash, new_password)
-
-        print(f"🔐 Mot de passe réinitialisé à '{new_password}': {result}")
-        print("✅ Statut super_admin corrigé: actif")
-
-    # Lister tous les utilisateurs pour vérifier
-    users = User.query.all()
-    print(f"📋 Total utilisateurs dans la base: {len(users)}")
-    for u in users:
-        print(f"   - {u.username} ({u.email}) - Rôle: {u.role}")
-
-
+    except Exception as e:
+        db.session.rollback()
+        print("❌ Erreur lors de l'initialisation:")
+        print(e)
 
 
 if __name__ == '__main__':
