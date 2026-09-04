@@ -29349,7 +29349,11 @@ with app.app_context():
                 role="super_admin",
                 fonction="admin_general",
                 statut="actif",
-                premier_connexion=False
+                premier_connexion=False,
+
+                # Activation
+                actif = True,
+                est_actif = True
             )
             super_admin.password_hash = generate_password_hash(default_password)
 
