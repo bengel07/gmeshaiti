@@ -29324,144 +29324,91 @@ def api_employes_succursale(succursale_id):
     })
 
 
-from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy.exc import IntegrityError
 
+# from views import super_admin_switcher, super_admin_go, super_admin_quick_access, PAGES
 
-# ============================================================
-# CRÉATION DES TABLES + SUPER ADMIN + PREMIER CLIENT
-# ============================================================
-
+# === CRÉATION DES TABLES ET ADMIN AU DÉMARRAGE ===
 with app.app_context():
-
-    # 1️⃣ Produit d'épargne par défaut
-    creer_produit_epargne_defaut()
-
-    # 2️⃣ Créer toutes les tables
     db.create_all()
     print("✅ Tables vérifiées/créées")
 
-    # ========================================================
-    # 3️⃣ CRÉER LE SUPER ADMIN EN PREMIER
-    # ========================================================
-
-    super_admin = User.query.filter_by(
-        role="super_admin"
-    ).first()
+    # Vérifier si super_admin existe
+    super_admin = User.query.filter_by(role='super_admin').first()
 
     if not super_admin:
-
         print("⚡ Création du super admin...")
 
-        super_admin = User(
-            username="super_admin",
-            email="super_admin@gmes.com",
-            role="super_admin",
-            statut="actif",
-            nom_complet="Begin Geler",
-            nom="Geler",
-            prenom="Begin"
-        )
+        try:
+            default_password = os.environ.get("SUPER_ADMIN_PASSWORD", "Spadmin123")
 
-        # IMPORTANT :
-        # adapte cette ligne si ton modèle User utilise
-        # generate_password_hash directement.
-        super_admin.password_hash = generate_password_hash(
-            os.environ.get(
-                "SUPER_ADMIN_PASSWORD",
-                "ChangeMoi123!"
+            super_admin = User(
+                username="super_admin",
+                prenom="Geler",
+                nom="Begin",
+                email="super_admin@gmes.com",
+                role="super_admin",
+                fonction="admin_general",
+                statut="actif",
+                premier_connexion=False
             )
-        )
+            super_admin.password_hash = generate_password_hash(default_password)
 
-        db.session.add(super_admin)
+            db.session.add(super_admin)
+            db.session.flush()
+            db.session.commit()
 
-        # ⭐ TRÈS IMPORTANT
-        # Le super_admin doit être enregistré AVANT
-        # de créer le client.
-        db.session.commit()
+            print(f"✅ Super admin créé avec succès!")
+            print(f"   Email: super_admin@gmes.com")
+            print(f"   Identifiant: super_admin")
+            print(f"   Mot de passe: {default_password}")
 
-        print("✅ Super admin créé")
-        print(f"🆔 ID super admin : {super_admin.id}")
+            # Vérification après création
+            from werkzeug.security import check_password_hash
 
-    else:
+            result = check_password_hash(super_admin.password_hash, default_password)
+            print(f"🔐 Vérification mot de passe: {result}")
 
-        print(
-            f"ℹ️ Super admin déjà existant : "
-            f"{super_admin.email}"
-        )
 
-    # ========================================================
-    # 4️⃣ VÉRIFIER LE PREMIER CLIENT
-    # ========================================================
-
-    premier_client = Client.query.first()
-
-    if not premier_client:
-
-        print("👤 Aucun client trouvé.")
-        print("⚡ Création du premier client pour le super admin...")
-
-        premier_client = Client(
-
-            # ⭐⭐⭐ CORRECTION PRINCIPALE ⭐⭐⭐
-            cree_par_id=super_admin.id,
-            employe_id=super_admin.id,
-
-            nom="Begin",
-            prenom="Geler",
-            email="super_admin@gmes.com",
-
-            statut="actif",
-            role="client",
-
-            compte_actif=True,
-
-            nationalite="Haïtienne",
-
-            terms_accepted=False,
-
-            verification_faciale=False,
-            score_verification=0,
-
-            nb_enfants=0,
-            depenses_mensuelles=0,
-            capacite_remboursement=0,
-
-            solde=0.0,
-
-            date_inscription=datetime.utcnow(),
-            date_creation=datetime.utcnow()
-        )
-
-        db.session.add(premier_client)
-        db.session.commit()
-
-        print(
-            f"✅ Premier client créé : "
-            f"{premier_client.id}"
-        )
-
-        print(
-            f"👨‍💼 Employé responsable : "
-            f"{super_admin.id}"
-        )
+        except IntegrityError as e:
+            db.session.rollback()
+            print("❌ IntegrityError lors de la création du super admin :")
+            print(e)
 
     else:
 
-        print(
-            f"ℹ️ Client déjà existant : "
-            f"{premier_client.id}"
-        )
+        print(f"ℹ️ Super admin déjà existant: {super_admin.email}")
 
-    # ========================================================
-    # 5️⃣ VÉRIFICATION FINALE
-    # ========================================================
+        # 🔐 RÉINITIALISER LE MOT DE PASSE ICI 🔐
+        # Correction statut super_admin
+        super_admin.statut = "actif"
 
-    total_users = User.query.count()
-    total_clients = Client.query.count()
+        # ✅ FORCER LE BON RÔLE
 
-    print(f"📋 Total utilisateurs dans la base : {total_users}")
-    print(f"👥 Total clients dans la base : {total_clients}")
+        super_admin.role = 'super_admin'
+
+        from werkzeug.security import generate_password_hash, check_password_hash
+
+        # Réinitialiser le mot de passe
+
+        new_password = "admin123"
+
+        super_admin.password_hash = generate_password_hash(new_password)
+
+        db.session.commit()
+
+        # Vérifier que le nouveau mot de passe fonctionne
+
+        result = check_password_hash(super_admin.password_hash, new_password)
+
+        print(f"🔐 Mot de passe réinitialisé à '{new_password}': {result}")
+        print("✅ Statut super_admin corrigé: actif")
+
+    # Lister tous les utilisateurs pour vérifier
+    users = User.query.all()
+    print(f"📋 Total utilisateurs dans la base: {len(users)}")
+    for u in users:
+        print(f"   - {u.username} ({u.email}) - Rôle: {u.role}")
+
 
 
 
