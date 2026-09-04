@@ -29341,7 +29341,21 @@ with app.app_context():
         print("⚡ Création du super admin...")
 
         try:
-            default_password = os.environ.get("SUPER_ADMIN_PASSWORD", "Spadmin123")
+            default_password = os.environ.get(
+                "SUPER_ADMIN_PASSWORD",
+                "Spadmin123"
+            )
+
+            # 🔎 Chercher un client existant
+            client_admin = Client.query.first()
+
+            if not client_admin:
+                raise RuntimeError(
+                    "Aucun client n'existe dans la table clients. "
+                    "Impossible de créer le super admin."
+                )
+
+            print(f"👤 Client associé : ID {client_admin.id}")
 
             super_admin = User(
                 username="super_admin",
@@ -29351,12 +29365,16 @@ with app.app_context():
                 role="super_admin",
                 fonction="admin_general",
                 statut="actif",
-                client_id=1,
-                premier_connexion=False
 
+                # ✅ Utiliser un vrai ID de la table clients
+                client_id=client_admin.id,
+
+                premier_connexion=False
             )
 
-            super_admin.password_hash = generate_password_hash(default_password)
+            super_admin.password_hash = generate_password_hash(
+                default_password
+            )
 
             db.session.add(super_admin)
             db.session.commit()
