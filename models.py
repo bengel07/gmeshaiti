@@ -6966,7 +6966,7 @@ class TransactionCaisse(db.Model):
     transaction_id = db.Column(db.Integer, db.ForeignKey('transactions.id'), nullable=True)
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=True)
     agent_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    succursale_id = db.Column(db.Integer, db.ForeignKey('succursales.id'))
+    succursale_id = db.Column(db.Integer, db.ForeignKey('succursale.id'))
     employe_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
     # Description
