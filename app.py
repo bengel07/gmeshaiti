@@ -29323,19 +29323,16 @@ def api_employes_succursale(succursale_id):
         ]
     })
 
-
-
-# from views import super_admin_switcher, super_admin_go, super_admin_quick_access, PAGES
-
 # === CRÉATION DES TABLES ET ADMIN AU DÉMARRAGE ===
 with app.app_context():
     creer_produit_epargne_defaut()
+
     # Créer toutes les tables si elles n'existent pas
     db.create_all()
     print("✅ Tables vérifiées/créées")
 
     # Vérifier si super_admin existe
-    super_admin = User.query.filter_by(role='super_admin').first()
+    super_admin = User.query.filter_by(role="super_admin").first()
 
     if not super_admin:
         print("⚡ Création du super admin...")
@@ -29346,17 +29343,43 @@ with app.app_context():
                 "Spadmin123"
             )
 
-            # 🔎 Chercher un client existant
+            # ============================================================
+            # 1️⃣ CHERCHER LE PREMIER CLIENT
+            # ============================================================
             client_admin = Client.query.first()
 
+            # ============================================================
+            # 2️⃣ SI AUCUN CLIENT → CRÉER LE CLIENT DU SUPER ADMIN
+            # ============================================================
             if not client_admin:
-                raise RuntimeError(
-                    "Aucun client n'existe dans la table clients. "
-                    "Impossible de créer le super admin."
+                print("👤 Aucun client trouvé.")
+                print("⚡ Création du premier client pour le super admin...")
+
+                client_admin = Client(
+                    nom="Begin",
+                    prenom="Geler",
+                    email="super_admin@gmes.com",
+                    telephone=None,
+                    adresse=None
                 )
 
-            print(f"👤 Client associé : ID {client_admin.id}")
+                db.session.add(client_admin)
+                db.session.flush()
 
+                print(
+                    f"✅ Premier client créé : "
+                    f"ID {client_admin.id}"
+                )
+
+            else:
+                print(
+                    f"👤 Premier client existant utilisé : "
+                    f"ID {client_admin.id}"
+                )
+
+            # ============================================================
+            # 3️⃣ CRÉER LE SUPER ADMIN
+            # ============================================================
             super_admin = User(
                 username="super_admin",
                 prenom="Geler",
@@ -29366,7 +29389,7 @@ with app.app_context():
                 fonction="admin_general",
                 statut="actif",
 
-                # ✅ Utiliser un vrai ID de la table clients
+                # 🔗 Le super admin devient le premier client
                 client_id=client_admin.id,
 
                 premier_connexion=False
@@ -29379,7 +29402,10 @@ with app.app_context():
             db.session.add(super_admin)
             db.session.commit()
 
+            print("✅ Premier client créé/associé au super admin")
             print("✅ Super admin créé avec succès")
+            print(f"👤 Client ID : {client_admin.id}")
+            print(f"🔐 Username : {super_admin.username}")
 
         except IntegrityError as e:
             db.session.rollback()
@@ -29393,39 +29419,72 @@ with app.app_context():
             print(f"❌ Détail : {e}")
 
     else:
+        print(
+            f"ℹ️ Super admin déjà existant: "
+            f"{super_admin.email}"
+        )
 
-        print(f"ℹ️ Super admin déjà existant: {super_admin.email}")
-
-        # 🔐 RÉINITIALISER LE MOT DE PASSE ICI 🔐
-        # Correction statut super_admin
+        # ============================================================
+        # 🔐 CORRIGER LE STATUT ET LE RÔLE
+        # ============================================================
         super_admin.statut = "actif"
+        super_admin.role = "super_admin"
 
-        # ✅ FORCER LE BON RÔLE
+        # ============================================================
+        # 🔗 S'ASSURER QUE LE SUPER ADMIN A UN CLIENT
+        # ============================================================
+        if not super_admin.client_id:
+            client_admin = Client.query.first()
 
-        super_admin.role = 'super_admin'
+            if not client_admin:
+                print(
+                    "⚡ Aucun client trouvé. "
+                    "Création du premier client..."
+                )
 
-        from werkzeug.security import generate_password_hash, check_password_hash
+                client_admin = Client(
+                    nom="Begin",
+                    prenom="Geler",
+                    email="super_admin@gmes.com",
+                    telephone=None,
+                    adresse=None
+                )
 
-        # Réinitialiser le mot de passe
+                db.session.add(client_admin)
+                db.session.flush()
 
-        new_password = "admin123"
+                print(
+                    f"✅ Premier client créé : "
+                    f"ID {client_admin.id}"
+                )
 
-        super_admin.password_hash = generate_password_hash(new_password)
+            super_admin.client_id = client_admin.id
+
+            print(
+                f"🔗 Super admin associé au client ID "
+                f"{client_admin.id}"
+            )
 
         db.session.commit()
 
-        # Vérifier que le nouveau mot de passe fonctionne
-
-        result = check_password_hash(super_admin.password_hash, new_password)
-
-        print(f"🔐 Mot de passe réinitialisé à '{new_password}': {result}")
         print("✅ Statut super_admin corrigé: actif")
 
-    # Lister tous les utilisateurs pour vérifier
+    # ============================================================
+    # 📋 LISTER TOUS LES UTILISATEURS
+    # ============================================================
     users = User.query.all()
-    print(f"📋 Total utilisateurs dans la base: {len(users)}")
+
+    print(
+        f"📋 Total utilisateurs dans la base: "
+        f"{len(users)}"
+    )
+
     for u in users:
-        print(f"   - {u.username} ({u.email}) - Rôle: {u.role}")
+        print(
+            f"   - {u.username} ({u.email}) "
+            f"- Rôle: {u.role} "
+            f"- Client ID: {u.client_id}"
+        )
 
 
 
