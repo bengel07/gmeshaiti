@@ -29327,121 +29327,142 @@ def api_employes_succursale(succursale_id):
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError
 
+
 # ============================================================
-# === CRÉATION DES TABLES ET DU PREMIER EMPLOYÉ / ADMIN ===
+# CRÉATION DES TABLES + SUPER ADMIN + PREMIER CLIENT
 # ============================================================
 
 with app.app_context():
 
+    # 1️⃣ Produit d'épargne par défaut
     creer_produit_epargne_defaut()
 
-    # Créer toutes les tables si elles n'existent pas
+    # 2️⃣ Créer toutes les tables
     db.create_all()
     print("✅ Tables vérifiées/créées")
 
-    # ============================================================
-    # 👑 LE SUPER ADMIN EST LE PREMIER EMPLOYÉ
-    # ============================================================
+    # ========================================================
+    # 3️⃣ CRÉER LE SUPER ADMIN EN PREMIER
+    # ========================================================
 
     super_admin = User.query.filter_by(
-        email="super_admin@gmes.com"
+        role="super_admin"
     ).first()
 
     if not super_admin:
 
-        print("⚡ Aucun super admin trouvé...")
-        print("⚡ Création du premier employé : SUPER ADMIN...")
+        print("⚡ Création du super admin...")
 
-        try:
+        super_admin = User(
+            username="super_admin",
+            email="super_admin@gmes.com",
+            role="super_admin",
+            statut="actif",
+            nom_complet="Begin Geler",
+            nom="Geler",
+            prenom="Begin"
+        )
 
-            default_password = os.environ.get(
+        # IMPORTANT :
+        # adapte cette ligne si ton modèle User utilise
+        # generate_password_hash directement.
+        super_admin.password_hash = generate_password_hash(
+            os.environ.get(
                 "SUPER_ADMIN_PASSWORD",
-                "Spadmin123"
+                "ChangeMoi123!"
             )
+        )
 
-            super_admin = User(
-                username="super_admin",
-                prenom="Geler",
-                nom="Begin",
-                email="super_admin@gmes.com",
+        db.session.add(super_admin)
 
-                # 👑 Il est le premier employé
-                role="super_admin",
+        # ⭐ TRÈS IMPORTANT
+        # Le super_admin doit être enregistré AVANT
+        # de créer le client.
+        db.session.commit()
 
-                fonction="admin_general",
-                statut="actif",
-
-                # Première connexion
-                premier_connexion=False
-            )
-
-            super_admin.password_hash = generate_password_hash(
-                default_password
-            )
-
-            db.session.add(super_admin)
-            db.session.commit()
-
-            print("==============================================")
-            print("✅ PREMIER EMPLOYÉ CRÉÉ")
-            print("==============================================")
-            print("👑 Rôle        : super_admin")
-            print("👤 Identifiant : super_admin")
-            print("📧 Email       : super_admin@gmes.com")
-            print(f"🔐 Mot de passe: {default_password}")
-            print("==============================================")
-
-            # Vérification du mot de passe
-            result = check_password_hash(
-                super_admin.password_hash,
-                default_password
-            )
-
-            print(f"🔐 Vérification mot de passe : {result}")
-
-        except IntegrityError as e:
-
-            db.session.rollback()
-
-            print("❌ Erreur lors de la création du premier employé")
-            print(e)
+        print("✅ Super admin créé")
+        print(f"🆔 ID super admin : {super_admin.id}")
 
     else:
 
         print(
-            f"ℹ️ Premier employé déjà existant : "
-            f"{super_admin.username}"
+            f"ℹ️ Super admin déjà existant : "
+            f"{super_admin.email}"
         )
 
-        # Garantir que le compte reste administrateur
-        super_admin.role = "super_admin"
-        super_admin.fonction = "admin_general"
-        super_admin.statut = "actif"
+    # ========================================================
+    # 4️⃣ VÉRIFIER LE PREMIER CLIENT
+    # ========================================================
 
+    premier_client = Client.query.first()
+
+    if not premier_client:
+
+        print("👤 Aucun client trouvé.")
+        print("⚡ Création du premier client pour le super admin...")
+
+        premier_client = Client(
+
+            # ⭐⭐⭐ CORRECTION PRINCIPALE ⭐⭐⭐
+            cree_par_id=super_admin.id,
+            employe_id=super_admin.id,
+
+            nom="Begin",
+            prenom="Geler",
+            email="super_admin@gmes.com",
+
+            statut="actif",
+            role="client",
+
+            compte_actif=True,
+
+            nationalite="Haïtienne",
+
+            terms_accepted=False,
+
+            verification_faciale=False,
+            score_verification=0,
+
+            nb_enfants=0,
+            depenses_mensuelles=0,
+            capacite_remboursement=0,
+
+            solde=0.0,
+
+            date_inscription=datetime.utcnow(),
+            date_creation=datetime.utcnow()
+        )
+
+        db.session.add(premier_client)
         db.session.commit()
 
-        print("✅ Premier employé confirmé comme super_admin")
-
-    # ============================================================
-    # 📋 VÉRIFICATION DES UTILISATEURS
-    # ============================================================
-
-    users = User.query.all()
-
-    print(
-        f"📋 Total utilisateurs dans la base : "
-        f"{len(users)}"
-    )
-
-    for u in users:
+        print(
+            f"✅ Premier client créé : "
+            f"{premier_client.id}"
+        )
 
         print(
-            f"   - {u.username} "
-            f"({u.email}) "
-            f"- Rôle : {u.role} "
-            f"- Fonction : {u.fonction} "
-            f"- Statut : {u.statut}"
+            f"👨‍💼 Employé responsable : "
+            f"{super_admin.id}"
         )
+
+    else:
+
+        print(
+            f"ℹ️ Client déjà existant : "
+            f"{premier_client.id}"
+        )
+
+    # ========================================================
+    # 5️⃣ VÉRIFICATION FINALE
+    # ========================================================
+
+    total_users = User.query.count()
+    total_clients = Client.query.count()
+
+    print(f"📋 Total utilisateurs dans la base : {total_users}")
+    print(f"👥 Total clients dans la base : {total_clients}")
+
 
 
 if __name__ == '__main__':
