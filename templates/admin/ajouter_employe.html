@@ -353,6 +353,9 @@
 
                 <form method="POST" enctype="multipart/form-data">
                     <!-- Section Identité -->
+
+                    <!-- PROTECTION CSRF -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="section-title">
                         <i class="fas fa-user"></i> Identité
                     </div>
