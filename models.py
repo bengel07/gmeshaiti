@@ -3854,6 +3854,8 @@ class Client(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     employe_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     id_client = db.Column(db.String(200), unique=True)
+
+
     nom = db.Column(db.String(500))
     prenom = db.Column(db.String(500))
     nom_complet = db.Column(db.String(500))
@@ -3875,6 +3877,8 @@ class Client(db.Model):
     compte_actif = db.Column(db.Boolean, default=True)
 
     user = db.relationship('User', backref='client_profile', foreign_keys=[employe_id])
+
+
 
     terms_signature_ip = db.Column(db.String(450))
     terms_signature_user_agent = db.Column(db.Text)
@@ -3953,6 +3957,19 @@ class Client(db.Model):
     ville = db.Column(db.String(1000), nullable=True)  # ✅ Le champ doit exister
     code_postal = db.Column(db.String(1000), nullable=True)  # ✅ Le champ doit exister
     # Dans votre modèle Client
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        unique=True,
+        nullable=True
+    )
+
+    user_compte = db.relationship(
+        'User',
+        foreign_keys=[user_id],
+        backref=db.backref('client_personnel', uselist=False)
+    )
 
     @property
     def statut_affichage(self):
@@ -7497,6 +7514,7 @@ class Epargne(db.Model):
         # Réinitialiser les totaux si nouveau jour
         self._reinitialiser_totaux_journaliers()
 
+
         # Créer la transaction
         transaction = TransactionEpargne(
             compte_id=self.id,
@@ -7507,6 +7525,7 @@ class Epargne(db.Model):
             description=description,
             transaction_externe_ref=transaction_ref
         )
+
         db.session.add(transaction)
         db.session.commit()
 

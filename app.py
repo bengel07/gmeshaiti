@@ -3641,6 +3641,8 @@ def creer_dossier():
     # Récupérer la succursale du conseiller connecté
     succursale = db.session.get(Succursale, current_user.succursale_id)
 
+
+
     # EXTRAIRE LES 5 CHIFFRES DU NOM DE LA SUCCURSALE
     def extract_branch_code(succursale_obj):
         if not succursale_obj:
@@ -4102,6 +4104,17 @@ def creer_dossier():
             default_suffix=str(random.randint(10000, 99999))
 
         )
+
+def verifier_operation_client(employe, client, operation):
+    # L'employé est lui-même ce client
+    if client.user_id == employe.id:
+        return False, "Vous ne pouvez pas effectuer cette opération sur votre propre compte."
+
+    # L'employé est responsable du client
+    if client.employe_id != employe.id:
+        return False, "Vous n'êtes pas responsable de ce client."
+
+    return True, None
 
 
 
@@ -23388,6 +23401,16 @@ def retrait_client_form(client_id):
         flash('Aucun compte épargne disponible pour le retrait', 'warning')
         return redirect(url_for('retrait_client_form', client_id=client_id))
 
+    autorise, message = verifier_operation_client(
+        current_user,
+        client,
+        "retrait"
+    )
+
+    if not autorise:
+        flash(message, "danger")
+        return redirect(url_for('retrait_client_form', client_id=client_id))
+
     # Pour chaque compte, vérifier si un retrait est possible avec les plafonds
     comptes_eligibles = []
     for compte in comptes_epargne:
@@ -23418,6 +23441,7 @@ def retirer(self, montant, description="", transaction_ref=None):
 
     if montant > (self.plafond_retrait_journalier - self.total_retrait_jour):
         raise ValueError("Plafond de retrait journalier atteint")
+
 
     # Mettre à jour le solde
     self.solde -= montant
@@ -23974,6 +23998,16 @@ def traiter_depot(client_id):
     # =========================
     if compte.statut != 'actif':
         flash(f"❌ Le compte est {compte.statut}", "danger")
+        return redirect(url_for('depot_client_form', client_id=client_id))
+
+    autorise, message = verifier_operation_client(
+        current_user,
+        client,
+        "retrait"
+    )
+
+    if not autorise:
+        flash(message, "danger")
         return redirect(url_for('depot_client_form', client_id=client_id))
 
     # =========================
@@ -24946,6 +24980,17 @@ def transfert_client_form(client_id):
     if not client:
         flash('Client non trouvé', 'danger')
         return redirect(url_for('rechercher_client'))
+
+    autorise, message = verifier_operation_client(
+        current_user,
+        client,
+        "retrait"
+    )
+
+    if not autorise:
+        flash(message, "danger")
+        return redirect(url_for('rechercher_client'))
+
 
     # 2️⃣ VÉRIFIER QUE LE CLIENT APPARTIENT À L'UTILISATEUR CONNECTÉ
     if current_user.client_id and current_user.client_id != client_id:
