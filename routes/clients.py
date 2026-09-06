@@ -324,6 +324,7 @@ def activation_client(token):
         token=token
     )
 
+
 def creer_acces_client(client):
 
     # Vérifier email
@@ -332,13 +333,64 @@ def creer_acces_client(client):
             "Le client doit avoir une adresse email."
         )
 
-    # Vérifier si User existe déjà
+    # ==========================================================
+    # 1. Chercher d'abord le User déjà lié à ce client
+    # ==========================================================
     user = User.query.filter_by(
         client_id=client.id
     ).first()
 
-    # Si aucun User, créer
+    # ==========================================================
+    # 2. Si aucun User lié au client,
+    #    chercher un User avec le même email
+    # ==========================================================
     if not user:
+        user = User.query.filter_by(
+            email=client.email
+        ).first()
+
+    # ==========================================================
+    # 3. Si un User existe déjà
+    # ==========================================================
+    if user:
+
+        print(
+            f"👤 User existant trouvé : "
+            f"id={user.id}, email={user.email}, role={user.role}"
+        )
+
+        # ------------------------------------------------------
+        # IMPORTANT :
+        # On ne crée PAS un deuxième User.
+        #
+        # Si c'est un employé qui devient client,
+        # on conserve son compte User existant.
+        # ------------------------------------------------------
+
+        # Relier le profil Client à ce User
+        client.user_id = user.id
+
+        # Si le User n'était pas encore lié à ce client,
+        # on établit le lien.
+        user.client_id = client.id
+
+        # ------------------------------------------------------
+        # NE PAS changer le rôle d'un employé ici.
+        # ------------------------------------------------------
+        #
+        # On ne fait PAS :
+        #
+        # user.role = 'client'
+        #
+        # car un employé qui devient client doit conserver
+        # son rôle employé.
+        #
+        # ------------------------------------------------------
+
+    # ==========================================================
+    # 4. Aucun User trouvé : créer un nouveau User client
+    # ==========================================================
+    else:
 
         user = User(
             username=client.email,
@@ -358,19 +410,17 @@ def creer_acces_client(client):
         db.session.add(user)
         db.session.flush()
 
-    else:
+        # Relier le Client au nouveau User
+        client.user_id = user.id
 
-        user.email = client.email
-        user.username = client.email
-        user.role = 'client'
-        user.client_id = client.id
-        user.statut = 'en_attente'
-        user.actif = False
-        user.est_actif = False
+        print(
+            f"✅ Nouveau User client créé : "
+            f"id={user.id}, email={user.email}"
+        )
 
-    # ==============================
-    # Générer le token
-    # ==============================
+    # ==========================================================
+    # 5. Générer le token d'activation
+    # ==========================================================
 
     token = secrets.token_urlsafe(48)
 
@@ -382,9 +432,9 @@ def creer_acces_client(client):
 
     db.session.commit()
 
-    # ==============================
-    # Créer le lien
-    # ==============================
+    # ==========================================================
+    # 6. Créer le lien d'activation
+    # ==========================================================
 
     activation_link = url_for(
         'clients.activation_client',
@@ -393,6 +443,8 @@ def creer_acces_client(client):
     )
 
     return activation_link
+
+
 
 
 @clients_bp.route('/<int:client_id>/envoyer-lien', methods=['POST'])
