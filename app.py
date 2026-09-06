@@ -4328,9 +4328,12 @@ def client_terms(token):
 
                 # Créer ou récupérer l'utilisateur
                 user = User.query.filter_by(email=client.email).first()
+
                 if not user:
+
                     from werkzeug.security import generate_password_hash
                     import uuid
+
                     user = User(
                         prenom=client.prenom,
                         nom=client.nom,
@@ -4342,12 +4345,27 @@ def client_terms(token):
                         statut='en_attente_approbation',
                         succursale_id=client.succursale_id,
                         cree_par_id=client.cree_par_id,
+                        client_id=client.id,
                         date_creation=datetime.now()
                     )
+
                     db.session.add(user)
+                    db.session.flush()
+
                 else:
+
+                    # Relier le profil Client au User existant
+                    client.user_id = user.id
+
+                    # IMPORTANT :
+                    # Ne pas transformer un employé existant en client
+                    if user.role == 'client':
+                        user.statut = 'en_attente_approbation'
+
                     user.terms_accepted = True
-                    user.statut = 'en_attente_approbation'
+
+                # Si un nouveau User vient d'être créé
+                client.user_id = user.id
 
                 # Enregistrer l'acceptation
                 acceptance = TermsAcceptance(
