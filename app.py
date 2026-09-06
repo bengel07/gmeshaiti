@@ -4248,13 +4248,24 @@ def client_terms(token):
 
         serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
-        client_id = serializer.loads(
+        data = serializer.loads(
             token,
             salt="terms-accept",
             max_age=7 * 24 * 60 * 60
         )
 
+        # Le token contient {"client_id": ...}
+        if isinstance(data, dict):
+            client_id = data.get("client_id")
+        else:
+            # Compatibilité avec tes anciens tokens
+            client_id = data
+
+        if not client_id:
+            raise ValueError("Token invalide : client_id manquant")
+
         client = db.session.get(Client, int(client_id))
+
 
         if not client:
             flash('❌ Client non trouvé.', 'danger')
