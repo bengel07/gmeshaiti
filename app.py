@@ -21376,7 +21376,7 @@ def exporter_attentes():
 @app.route('/admin/approuver-compte/<int:employe_id>')
 @login_required
 def approuver_compte(employe_id):
-    """Approuver un compte en attente"""
+    """Approuver un compte en attente et envoyer le lien d'activation client."""
 
     if current_user.role not in ['super_admin', 'admin']:
         flash("⛔ Accès non autorisé", "danger")
@@ -21387,96 +21387,215 @@ def approuver_compte(employe_id):
     if user.statut != 'en_attente':
         flash(
             f"❌ Ce compte n'est pas en attente "
-            f"(statut: {user.statut})",
+            f"(statut : {user.statut})",
             "warning"
         )
         return redirect(url_for('admin_dashboard'))
 
     # ==========================================================
-    # Approuver le compte
+    # 1️⃣ Récupérer le client AVANT de modifier le statut
     # ==========================================================
-    user.statut = 'actif'
-    db.session.commit()
 
-    # ==========================================================
-    # Récupérer le Client associé à ce User
-    # ==========================================================
     nouveau_client = None
+
+    print("=" * 70)
+    print("🔎 APPROBATION DU COMPTE")
+    print(f"👤 User ID       : {user.id}")
+    print(f"👤 Username      : {user.username}")
+    print(f"📧 User email    : {user.email}")
+    print(f"🆔 user.client_id: {user.client_id}")
 
     if user.client_id:
         nouveau_client = Client.query.get(user.client_id)
 
-    # ==========================================================
-    # Envoyer les emails
-    # ==========================================================
-    try:
-
-        # Email d'approbation du compte User
-        send_approval_email(user)
-
-        # ------------------------------------------------------
-        # Si le User possède un profil Client
-        # ------------------------------------------------------
         if nouveau_client:
-
-            activation_link = creer_acces_client(
-                nouveau_client
-            )
-
-            if activation_link:
-                envoyer_email_activation_client(
-                    nouveau_client,
-                    activation_link
-                )
-
-                print(
-                    f"📧 Email d'activation client envoyé à "
-                    f"{nouveau_client.email}"
-                )
-            else:
-                print(
-                    "ℹ️ Aucun nouveau User client créé : "
-                    "User existant réutilisé."
-                )
-
+            print(f"✅ Client trouvé : ID={nouveau_client.id}")
+            print(f"📧 Client email  : {nouveau_client.email}")
         else:
             print(
-                f"ℹ️ User #{user.id} n'a pas encore de profil Client."
+                f"❌ Aucun Client trouvé avec ID={user.client_id}"
             )
+    else:
+        print("❌ user.client_id est NULL")
+
+    print("=" * 70)
+
+    # ==========================================================
+    # 2️⃣ Vérifier qu'un client existe
+    # ==========================================================
+
+    if not nouveau_client:
+        flash(
+            "❌ Impossible d'envoyer le lien : "
+            "aucun profil Client n'est associé à ce compte.",
+            "danger"
+        )
+
+        print(
+            f"❌ APPROBATION ANNULÉE : "
+            f"User #{user.id} sans Client associé."
+        )
+
+        return redirect(url_for('liste_users'))
+
+    # ==========================================================
+    # 3️⃣ Approuver le compte
+    # ==========================================================
+
+    try:
+        user.statut = 'actif'
+        db.session.commit()
+
+        print(
+            f"✅ User #{user.id} activé."
+        )
 
     except Exception as e:
         db.session.rollback()
 
-        print(f"❌ Erreur approbation/email : {e}")
+        print(
+            f"❌ Erreur activation User #{user.id} : {e}"
+        )
 
         flash(
-            f"❌ Erreur lors de l'envoi de l'email : {str(e)}",
+            f"❌ Erreur lors de l'activation : {str(e)}",
             "danger"
         )
 
         return redirect(url_for('liste_users'))
 
+    # ==========================================================
+    # 4️⃣ Envoyer email d'approbation du User
+    # ==========================================================
+
+    try:
+
+        print("📧 Envoi email d'approbation User...")
+
+        send_approval_email(user)
+
+        print(
+            f"✅ Email d'approbation envoyé à {user.email}"
+        )
+
+    except Exception as e:
+
+        print(
+            f"❌ Erreur email approbation User : {e}"
+        )
+
+    # ==========================================================
+    # 5️⃣ Créer le lien d'accès client
+    # ==========================================================
+
+    try:
+
+        print("🔐 Création du lien d'activation client...")
+
+        activation_link = creer_acces_client(
+            nouveau_client
+        )
+
+        print(
+            f"🔗 activation_link = {activation_link}"
+        )
+
+        if not activation_link:
+
+            print(
+                "❌ creer_acces_client() n'a retourné aucun lien."
+            )
+
+            flash(
+                "⚠️ Compte activé, mais le lien client "
+                "n'a pas pu être créé.",
+                "warning"
+            )
+
+            return redirect(url_for('liste_users'))
+
+    except Exception as e:
+
+        print(
+            f"❌ ERREUR creer_acces_client() : {e}"
+        )
+
+        flash(
+            f"⚠️ Compte activé, mais erreur création du lien : {str(e)}",
+            "warning"
+        )
+
+        return redirect(url_for('liste_users'))
+
+    # ==========================================================
+    # 6️⃣ Envoyer le lien au client
+    # ==========================================================
+
+    try:
+
+        print("📨 Envoi email activation client...")
+        print(f"📧 Destinataire : {nouveau_client.email}")
+        print(f"🔗 Lien : {activation_link}")
+
+        envoyer_email_activation_client(
+            nouveau_client,
+            activation_link
+        )
+
+        print(
+            f"✅ EMAIL D'ACTIVATION CLIENT ENVOYÉ À "
+            f"{nouveau_client.email}"
+        )
+
+    except Exception as e:
+
+        print(
+            f"❌ ERREUR ENVOI EMAIL CLIENT : {e}"
+        )
+
+        flash(
+            f"⚠️ Compte activé, mais le lien n'a pas été envoyé : "
+            f"{str(e)}",
+            "warning"
+        )
+
+        return redirect(url_for('liste_users'))
+
+    # ==========================================================
+    # 7️⃣ Historique
+    # ==========================================================
+
+    try:
+
+        HistoriqueAction.ajouter(
+            employe_id=current_user.id,
+            action="approbation_compte",
+            details=(
+                f"Approbation du compte "
+                f"{user.username} (ID: {user.id})"
+            ),
+            request=request
+        )
+
+    except Exception as e:
+
+        print(
+            f"⚠️ Erreur historique : {e}"
+        )
+
+    # ==========================================================
+    # 8️⃣ Message final
+    # ==========================================================
+
     flash(
         f"✅ Compte de {user.prenom} {user.nom} "
-        f"approuvé et activé",
+        f"approuvé et activé. "
+        f"Le lien d'activation a été envoyé à "
+        f"{nouveau_client.email}.",
         "success"
     )
 
-    # ==========================================================
-    # Log l'action
-    # ==========================================================
-    HistoriqueAction.ajouter(
-        employe_id=current_user.id,
-        action="approbation_compte",
-        details=(
-            f"Approbation du compte "
-            f"{user.username} (ID: {user.id})"
-        ),
-        request=request
-    )
-
     return redirect(url_for('liste_users'))
-
 
 
 @app.route('/admin/rejeter-compte/<int:employe_id>')
