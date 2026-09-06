@@ -29653,7 +29653,83 @@ def api_employes_succursale(succursale_id):
         ]
     })
 
+@app.route('/api/verifier-email')
+@login_required
+def verifier_email():
 
+    email = request.args.get('email', '').strip().lower()
+
+    if not email:
+        return jsonify({
+            "existe": False
+        })
+
+    user = User.query.filter(
+        db.func.lower(User.email) == email
+    ).first()
+
+    return jsonify({
+        "existe": user is not None
+    })
+
+@app.route('/api/verifier-telephone')
+@login_required
+def verifier_telephone():
+
+    telephone = request.args.get('telephone', '').strip().lower()
+
+    if not telephone:
+        return jsonify({
+            "existe": False
+        })
+
+    user = User.query.filter(
+        db.func.lower(User.telephone) == telephone
+    ).first()
+
+    return jsonify({
+        "existe": user is not None
+    })
+
+
+@app.route('/api/verifier-username')
+@login_required
+def verifier_username():
+
+    username = request.args.get('username', '').strip().lower()
+
+    if not username:
+        return jsonify({
+            "existe": False
+        })
+
+    user = User.query.filter(
+        db.func.lower(User.username) == username
+    ).first()
+
+    return jsonify({
+        "existe": user is not None
+    })
+
+
+@app.route('/api/verifier-id_number')
+@login_required
+def verifier_id_number():
+
+    id_number = request.args.get('id_number', '').strip().lower()
+
+    if not id_number:
+        return jsonify({
+            "existe": False
+        })
+
+    user = User.query.filter(
+        db.func.lower(User.id_number) == id_number
+    ).first()
+
+    return jsonify({
+        "existe": user is not None
+    })
 
 # from views import super_admin_switcher, super_admin_go, super_admin_quick_access, PAGES
 # === CRÉATION DES TABLES ET SUPER ADMIN AU DÉMARRAGE ===

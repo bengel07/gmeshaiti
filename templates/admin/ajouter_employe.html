@@ -364,11 +364,13 @@
                         <div>
                             <label class="form-label required-field">Nom d'utilisateur</label>
                             <input type="text" class="form-control" name="username" required placeholder="ex: jean.dupont">
+                            <div id="username-feedback" class="mt-1"></div>
                         </div>
 
                         <div>
                             <label class="form-label required-field">Email</label>
                             <input type="email" class="form-control" name="email" required placeholder="ex: jean.dupont@gmes.com">
+                            <div id="email-feedback" class="mt-1"></div>
                         </div>
                     </div>
 
@@ -385,6 +387,7 @@
                         <div>
                             <label class="form-label required-field">Telephone</label>
                             <input type="text" class="form-control" name="telephone" required placeholder="+509 4490 1264">
+                            <div id="telephone-feedback" class="mt-1"></div>
                         </div>
                         <div>
                             <label class="form-label required-field">Adresse</label>
@@ -474,6 +477,7 @@
                         <div>
                             <label class="form-label required-field">Numéro de pièce</label>
                             <input type="text" class="form-control" name="id_number" required placeholder="ex: CIN-123456">
+                            <div id="id_number-feedback" class="mt-1"></div>
                         </div>
                     </div>
 
@@ -815,6 +819,80 @@
                 btn.classList.add('btn-outline-info');
             }
         }
+
+        const usernameInput = document.getElementById("username");
+        const usernameFeedback = document.getElementById("username-feedback");
+
+        let usernameTimer;
+
+        usernameInput.addEventListener("input", function () {
+
+            clearTimeout(usernameTimer);
+
+            const username = this.value.trim();
+
+            usernameFeedback.innerHTML = "";
+
+            if (!username) {
+                return;
+            }
+
+
+        const emailInput = document.getElementById("email");
+        const emailFeedback = document.getElementById("email-feedback");
+
+        let emailTimer;
+
+        emailInput.addEventListener("input", function () {
+
+            clearTimeout(emailTimer);
+
+            const email = this.value.trim();
+
+            emailFeedback.innerHTML = "";
+
+            if (!email) {
+                return;
+            }
+
+
+        const telephoneInput = document.getElementById("telephone");
+        const telephoneFeedback = document.getElementById("telephone-feedback");
+
+        let telephoneTimer;
+
+        telephoneInput.addEventListener("input", function () {
+
+            clearTimeout(telephoneTimer);
+
+            const telephone = this.value.trim();
+
+            telephoneFeedback.innerHTML = "";
+
+            if (!telephone) {
+                return;
+            }
+
+
+        const id_numberInput = document.getElementById("id_number");
+        const id_numberFeedback = document.getElementById("id_number-feedback");
+
+        let id_numberTimer;
+
+        id_numberInput.addEventListener("input", function () {
+
+            clearTimeout(id_numberTimer);
+
+            const id_number = this.value.trim();
+
+            id_numberFeedback.innerHTML = "";
+
+            if (!id_number) {
+                return;
+            }
+
+
+
 
     </script>
 
