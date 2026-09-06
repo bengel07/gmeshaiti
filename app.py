@@ -31,6 +31,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 
 # ==================== DATABASE ====================
 from flask_sqlalchemy import SQLAlchemy
+from itsdangerous import BadSignature
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy import inspect, text
 
@@ -4305,8 +4306,6 @@ def client_terms(token):
 
         return redirect(url_for('connexion'))
 
-
-
     except BadSignature as e:
         print(f"❌ Token invalide: {e}")
         flash(
@@ -4315,9 +4314,10 @@ def client_terms(token):
         )
         return redirect(url_for('connexion'))
 
+
     except Exception as e:
         print(f"❌ Erreur décodage token: {e}")
-        flash('❌ Impossible de vérifier ce lien.', 'danger')
+        flash('❌ Impossible de vérifier le lien.', 'danger')
         return redirect(url_for('connexion'))
 
 
