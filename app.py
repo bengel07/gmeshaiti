@@ -4240,46 +4240,72 @@ def client_terms(token):
 
     client = None
 
-    # ===== 1. DÉCODER LE TOKEN ITSdangerous =====
-    from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+
+    # ===== 1. DÉCODER LE TOKEN JWT =====
+    import jwt
+    from datetime import datetime, timezone
 
     try:
         token = token.strip()
 
-        serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-
-        data = serializer.loads(
+        # Décoder le JWT
+        payload = jwt.decode(
             token,
-            salt="terms-accept",
-            max_age=7 * 24 * 60 * 60
+            app.config['SECRET_KEY'],
+            algorithms=['HS256']
         )
 
-        # Le token contient {"client_id": ...}
-        if isinstance(data, dict):
-            client_id = data.get("client_id")
-        else:
-            # Compatibilité avec tes anciens tokens
-            client_id = data
+        print(f"🔐 Payload JWT : {payload}")
+
+        # Récupérer client_id
+        client_id = payload.get('client_id')
 
         if not client_id:
-            raise ValueError("Token invalide : client_id manquant")
+            raise ValueError("client_id absent du token")
 
+        # Récupérer le client
         client = db.session.get(Client, int(client_id))
-
 
         if not client:
             flash('❌ Client non trouvé.', 'danger')
             return redirect(url_for('connexion'))
 
-        print(f"✅ Token valide - Client trouvé: {client.email}")
+        print(
+            f"✅ Token JWT valide - "
+            f"Client trouvé: {client.email}"
+        )
 
-    except SignatureExpired:
-        print("❌ Token expiré")
+    except jwt.ExpiredSignatureError:
+        print("❌ Token JWT expiré")
+
         flash(
-            '⚠️ Le lien a expiré (7 jours). Veuillez demander un nouveau lien.',
+            '⚠️ Le lien a expiré. Veuillez demander un nouveau lien.',
             'danger'
         )
+
         return redirect(url_for('connexion'))
+
+    except jwt.InvalidTokenError as e:
+        print(f"❌ Token JWT invalide: {e}")
+
+        flash(
+            '❌ Lien invalide. Veuillez contacter votre conseiller.',
+            'danger'
+        )
+
+        return redirect(url_for('connexion'))
+
+    except Exception as e:
+        print(f"❌ Erreur décodage JWT: {e}")
+
+        flash(
+            '❌ Impossible de vérifier ce lien.',
+            'danger'
+        )
+
+        return redirect(url_for('connexion'))
+
+
 
     except BadSignature as e:
         print(f"❌ Token invalide: {e}")
