@@ -29754,7 +29754,7 @@ def verifier_id_number():
 with app.app_context():
     try:
         # Créer les tables si elles n'existent pas
-        db.create_all()
+        # db.create_all()
         # print("✅ Tables vérifiées/créées")
 
         # Vérifier si un super_admin existe déjà
