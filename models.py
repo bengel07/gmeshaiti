@@ -7,6 +7,9 @@
 
 from database import db
 from datetime import datetime, date
+import threading
+import time
+import calendar
 
 user_permissions = db.Table(
     'user_permissions',
@@ -9757,6 +9760,271 @@ class Satisfaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
     note = db.Column(db.Integer)
+
+
+class BackgroundScheduler:
+    def __init__(self):
+        self.jobs = []
+        self.running = False
+        self.thread = None
+
+    def add_job(self, func, trigger=None, id=None, replace_existing=False):
+        if replace_existing and id:
+            self.jobs = [
+                job for job in self.jobs
+                if job["id"] != id
+            ]
+
+        self.jobs.append({
+            "func": func,
+            "trigger": trigger,
+            "id": id
+        })
+
+        print(f"📅 Job ajouté : {id}")
+
+    def start(self):
+        if self.running:
+            print("⚠️ Scheduler déjà démarré")
+            return
+
+        self.running = True
+
+        self.thread = threading.Thread(
+            target=self._run,
+            daemon=True
+        )
+
+        self.thread.start()
+
+        print("✅ BackgroundScheduler démarré")
+
+    def shutdown(self):
+        self.running = False
+        print("🛑 BackgroundScheduler arrêté")
+
+    def _run(self):
+        while self.running:
+
+            maintenant = datetime.now()
+
+            for job in self.jobs:
+                try:
+                    self._execute_if_needed(job, maintenant)
+                except Exception as e:
+                    print(
+                        f"❌ Erreur job {job['id']}: {e}"
+                    )
+
+            time.sleep(30)
+
+    def _execute_if_needed(self, job, maintenant):
+        trigger = job["trigger"]
+
+        # Vérifier si le trigger correspond à la date/heure actuelle
+        if not trigger.matches(maintenant):
+            return
+
+        # Éviter de lancer le même job plusieurs fois
+        # pendant la même minute
+        derniere_execution = job.get("derniere_execution")
+
+        minute_actuelle = maintenant.replace(
+            second=0,
+            microsecond=0
+        )
+
+        if derniere_execution == minute_actuelle:
+            return
+
+        # Mémoriser l'exécution
+        job["derniere_execution"] = minute_actuelle
+
+        print(
+            f"🚀 Exécution du job : {job['id']} "
+            f"à {maintenant.strftime('%Y-%m-%d %H:%M:%S')}"
+        )
+
+        try:
+            # Exécuter la fonction
+            job["func"]()
+
+            print(
+                f"✅ Job terminé : {job['id']}"
+            )
+
+        except Exception as e:
+            print(
+                f"❌ Erreur pendant le job "
+                f"{job['id']} : {e}"
+            )
+
+class CronTrigger:
+    """
+    Déclencheur simple de type Cron.
+
+    Exemples :
+        CronTrigger(hour=18, minute=0)
+        CronTrigger(day_of_week="mon", hour=8, minute=0)
+        CronTrigger(day=1, hour=9, minute=0)
+        CronTrigger(day="last", hour=23, minute=59)
+        CronTrigger(month="1,4,7,10", day=1, hour=10, minute=0)
+    """
+
+    JOURS = {
+        "mon": 0,
+        "tue": 1,
+        "wed": 2,
+        "thu": 3,
+        "fri": 4,
+        "sat": 5,
+        "sun": 6
+    }
+
+    def __init__(
+        self,
+        year=None,
+        month=None,
+        day=None,
+        week=None,
+        day_of_week=None,
+        hour=None,
+        minute=None,
+        second=0
+    ):
+        self.year = year
+        self.month = month
+        self.day = day
+        self.week = week
+        self.day_of_week = day_of_week
+        self.hour = hour
+        self.minute = minute
+        self.second = second
+
+    def _correspond(self, valeur, actuel):
+        """
+        Vérifie une valeur Cron.
+
+        Accepte :
+            5
+            "1,4,7,10"
+            "mon,fri"
+            None
+        """
+
+        if valeur is None:
+            return True
+
+        if isinstance(valeur, int):
+            return actuel == valeur
+
+        if isinstance(valeur, str):
+
+            valeurs = [
+                v.strip().lower()
+                for v in valeur.split(",")
+            ]
+
+            # Jours de la semaine
+            if isinstance(actuel, str):
+                return actuel.lower() in valeurs
+
+            # Nombres
+            try:
+                nombres = [int(v) for v in valeurs]
+                return actuel in nombres
+            except ValueError:
+                return False
+
+        return False
+
+    def matches(self, date=None):
+        """
+        Retourne True si la date correspond au CronTrigger.
+        """
+
+        if date is None:
+            date = datetime.now()
+
+        # Année
+        if not self._correspond(self.year, date.year):
+            return False
+
+        # Mois
+        if not self._correspond(self.month, date.month):
+            return False
+
+        # Jour du mois
+        if self.day is not None:
+
+            if self.day == "last":
+                dernier_jour = calendar.monthrange(
+                    date.year,
+                    date.month
+                )[1]
+
+                if date.day != dernier_jour:
+                    return False
+
+            elif not self._correspond(self.day, date.day):
+                return False
+
+        # Jour de la semaine
+        if self.day_of_week is not None:
+
+            jours = self.day_of_week
+
+            if isinstance(jours, str):
+                jours = jours.lower()
+
+                valeurs = [
+                    self.JOURS.get(j.strip())
+                    for j in jours.split(",")
+                ]
+
+                if date.weekday() not in valeurs:
+                    return False
+
+            elif isinstance(jours, int):
+
+                if date.weekday() != jours:
+                    return False
+
+        # Heure
+        if self.hour is not None:
+
+            if isinstance(self.hour, str):
+                heures = [
+                    int(v.strip())
+                    for v in self.hour.split(",")
+                ]
+
+                if date.hour not in heures:
+                    return False
+
+            elif date.hour != self.hour:
+                return False
+
+        # Minute
+        if self.minute is not None:
+
+            if isinstance(self.minute, str):
+                minutes = [
+                    int(v.strip())
+                    for v in self.minute.split(",")
+                ]
+
+                if date.minute not in minutes:
+                    return False
+
+            elif date.minute != self.minute:
+                return False
+
+        # Seconde
+        if date.second != self.second:
+            return False
+
+        return True
 
 
 
