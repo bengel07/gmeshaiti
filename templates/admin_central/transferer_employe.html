@@ -254,10 +254,6 @@
             if (!select.value) {
                 e.preventDefault();
                 alert('Veuillez sélectionner une succursale');
-            } else {
-                // Mettre à jour l'action du formulaire avec la bonne succursale
-                const action = "{{ url_for('transferer_employe', employe_id=employe.id }}";
-                form.action = action.replace('0', select.value);
             }
         });
     });
