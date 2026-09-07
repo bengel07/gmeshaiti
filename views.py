@@ -640,7 +640,7 @@ ENDPOINTS_MANQUANTS = {
     "collecteur_dashboard": "❌ Pas d'équivalent direct",
     "formateur_dashboard": "❌ Pas d'équivalent direct",
 }
-print(f"📊 TOTAL PAGES: {len(PAGES)}")
+# print(f"📊 TOTAL PAGES: {len(PAGES)}")
 # =============================================
 # SUPPRIMEZ ICI TOUTES LES ROUTES @app.route
 # =============================================
