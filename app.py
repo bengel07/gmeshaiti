@@ -9048,6 +9048,11 @@ def dashboard_redirect():
     if current_user.role == 'super_admin':
         return redirect(url_for('admin_dashboard'))
 
+    # 🔑 Directeur General
+    elif current_user.role == 'admin_general':
+        return redirect(url_for('dashboard_central'))
+
+
     # 🔑 ADMIN CENTRAL
     elif current_user.role == 'admin_central':
         return redirect(url_for('admin_succursale_dashboard',succursale_code=current_user.succursale.code if current_user.succursale else None))
