@@ -776,298 +776,360 @@
             }
         }
 
-        // Ajouter ces champs à la validation du formulaire
-        document.querySelector('form').addEventListener('submit', function(e) {
-            const password = document.querySelector('input[name="password"]').value;
-            const idNumber = document.querySelector('input[name="id_number"]').value;
-            const recto = document.getElementById('rectoInput').files.length;
-            const verso = document.getElementById('versoInput').files.length;
 
-            if (password.length < 8) {
-                e.preventDefault();
-                alert('Le mot de passe doit contenir au moins 8 caractères');
-                return;
-            }
+        document.addEventListener("DOMContentLoaded", function () {
 
-            if (!idNumber) {
-                e.preventDefault();
-                alert('Le numéro de pièce d\'identité est obligatoire');
-                return;
-            }
+            const form = document.querySelector("form");
+            const submitButton = form.querySelector('button[type="submit"]');
 
-            if (recto === 0 || verso === 0) {
-                e.preventDefault();
-                alert('Vous devez uploader le recto ET le verso de la pièce d\'identité');
-                return;
-            }
-        });
+            const usernameInput = document.getElementById("username");
+            const emailInput = document.getElementById("email");
+            const telephoneInput = document.getElementById("telephone");
+            const idNumberInput = document.getElementById("id_number");
 
+            const usernameFeedback = document.getElementById("username-feedback");
+            const emailFeedback = document.getElementById("email-feedback");
+            const telephoneFeedback = document.getElementById("telephone-feedback");
+            const idNumberFeedback = document.getElementById("id_number-feedback");
 
-        function toggleQuestions() {
-            const div = document.getElementById('questionsSecretes');
-            const btn = document.getElementById('toggleQuestionsBtn');
+            let usernameExiste = false;
+            let emailExiste = false;
+            let telephoneExiste = false;
+            let idNumberExiste = false;
 
-            if (div.style.display === 'none') {
-                div.style.display = 'block';
-                btn.innerHTML = '<i class="fas fa-question-circle"></i> Masquer les questions secrètes';
-                btn.classList.remove('btn-outline-info');
-                btn.classList.add('btn-info');
-            } else {
-                div.style.display = 'none';
-                btn.innerHTML = '<i class="fas fa-question-circle"></i> Ajouter des questions secrètes (optionnel)';
-                btn.classList.remove('btn-info');
-                btn.classList.add('btn-outline-info');
-            }
-        }
+            let timers = {};
 
-        const usernameInput = document.getElementById("username");
-        const usernameFeedback = document.getElementById("username-feedback");
+            // =========================================================
+            // VÉRIFICATION EN TEMPS RÉEL
+            // =========================================================
 
-        let usernameTimer;
+            function verifierChamp(input, feedback, url, parametre, type) {
 
-        usernameInput.addEventListener("input", function () {
+                input.addEventListener("input", function () {
 
-            clearTimeout(usernameTimer);
+                    const valeur = this.value.trim();
 
-            const username = this.value.trim();
+                    clearTimeout(timers[type]);
 
-            usernameFeedback.innerHTML = "";
+                    // Réinitialiser
+                    feedback.innerHTML = "";
+                    input.classList.remove("is-valid", "is-invalid");
 
-            if (!username) {
-                return;
-            }
+                    if (type === "username") usernameExiste = false;
+                    if (type === "email") emailExiste = false;
+                    if (type === "telephone") telephoneExiste = false;
+                    if (type === "id_number") idNumberExiste = false;
 
-        // Attendre un peu avant d'interroger le serveur
-            usernameTimer = setTimeout(async () => {
+                    mettreAJourBouton();
 
-                try {
-
-                    const response = await fetch(
-                        `/api/verifier-username?username=${encodeURIComponent(username)}`
-                    );
-
-                    const data = await response.json();
-
-                    if (data.existe) {
-
-                        usernameFeedback.innerHTML =
-                            `<span class="text-danger">
-                                ❌ Cet username est déjà utilisé.
-                            </span>`;
-
-                        usernameInput.classList.add("is-invalid");
-                        usernameInput.classList.remove("is-valid");
-
-                    } else {
-
-                        usernameFeedback.innerHTML =
-                            `<span class="text-success">
-                                ✅ Username disponible.
-                            </span>`;
-
-                        usernameInput.classList.remove("is-invalid");
-                        usernameInput.classList.add("is-valid");
+                    if (!valeur) {
+                        return;
                     }
 
-                } catch (error) {
+                    timers[type] = setTimeout(async function () {
 
-                    console.error(error);
+                        try {
 
-                    usernameFeedback.innerHTML =
-                        `<span class="text-warning">
-                            ⚠️ Impossible de vérifier l'username.
-                        </span>`;
-                }
+                            const response = await fetch(
+                                url + "?" + parametre + "=" + encodeURIComponent(valeur)
+                            );
 
-            }, 300);
-        });
+                            if (!response.ok) {
+                                throw new Error("HTTP " + response.status);
+                            }
 
+                            const data = await response.json();
 
-        const emailInput = document.getElementById("email");
-        const emailFeedback = document.getElementById("email-feedback");
+                            if (data.existe === true) {
 
-        let emailTimer;
+                                input.classList.add("is-invalid");
 
-        emailInput.addEventListener("input", function () {
+                                if (type === "username") {
+                                    usernameExiste = true;
+                                    feedback.innerHTML =
+                                        '<span class="text-danger fw-bold">❌ Cet username est déjà utilisé.</span>';
+                                }
 
-            clearTimeout(emailTimer);
+                                if (type === "email") {
+                                    emailExiste = true;
+                                    feedback.innerHTML =
+                                        '<span class="text-danger fw-bold">❌ Cet email est déjà utilisé.</span>';
+                                }
 
-            const email = this.value.trim();
+                                if (type === "telephone") {
+                                    telephoneExiste = true;
+                                    feedback.innerHTML =
+                                        '<span class="text-danger fw-bold">❌ Ce téléphone est déjà utilisé.</span>';
+                                }
 
-            emailFeedback.innerHTML = "";
+                                if (type === "id_number") {
+                                    idNumberExiste = true;
+                                    feedback.innerHTML =
+                                        '<span class="text-danger fw-bold">❌ Ce numéro de pièce est déjà utilisé.</span>';
+                                }
 
-            if (!email) {
-                return;
+                            } else {
+
+                                input.classList.add("is-valid");
+
+                                feedback.innerHTML =
+                                    '<span class="text-success">✅ Disponible.</span>';
+                            }
+
+                            mettreAJourBouton();
+
+                        } catch (error) {
+
+                            console.error("Erreur vérification " + type + " :", error);
+
+                            feedback.innerHTML =
+                                '<span class="text-warning">⚠️ Impossible de vérifier maintenant.</span>';
+
+                            /*
+                             * On ne bloque pas la création ici.
+                             * Le serveur fera la vérification finale.
+                             */
+                        }
+
+                    }, 300);
+                });
             }
 
-        // Attendre un peu avant d'interroger le serveur
-            emailTimer = setTimeout(async () => {
 
-                try {
+            verifierChamp(
+                usernameInput,
+                usernameFeedback,
+                "/api/verifier-username",
+                "username",
+                "username"
+            );
 
-                    const response = await fetch(
-                        `/api/verifier-email?email=${encodeURIComponent(email)}`
-                    );
+            verifierChamp(
+                emailInput,
+                emailFeedback,
+                "/api/verifier-email",
+                "email",
+                "email"
+            );
 
-                    const data = await response.json();
+            verifierChamp(
+                telephoneInput,
+                telephoneFeedback,
+                "/api/verifier-telephone",
+                "telephone",
+                "telephone"
+            );
 
-                    if (data.existe) {
+            verifierChamp(
+                idNumberInput,
+                idNumberFeedback,
+                "/api/verifier-id_number",
+                "id_number",
+                "id_number"
+            );
 
-                        emailFeedback.innerHTML =
-                            `<span class="text-danger">
-                                ❌ Cet email est déjà utilisé.
-                            </span>`;
 
-                        emailInput.classList.add("is-invalid");
-                        emailInput.classList.remove("is-valid");
+            // =========================================================
+            // BOUTON
+            // =========================================================
 
-                    } else {
+            function mettreAJourBouton() {
 
-                        emailFeedback.innerHTML =
-                            `<span class="text-success">
-                                ✅ Email disponible.
-                            </span>`;
+                if (
+                    usernameExiste ||
+                    emailExiste ||
+                    telephoneExiste ||
+                    idNumberExiste
+                ) {
 
-                        emailInput.classList.remove("is-invalid");
-                        emailInput.classList.add("is-valid");
-                    }
+                    submitButton.disabled = true;
+                    submitButton.innerHTML =
+                        '<i class="fas fa-ban me-2"></i>Donnée déjà utilisée';
 
-                } catch (error) {
+                } else {
 
-                    console.error(error);
-
-                    emailFeedback.innerHTML =
-                        `<span class="text-warning">
-                            ⚠️ Impossible de vérifier l'email.
-                        </span>`;
+                    submitButton.disabled = false;
+                    submitButton.innerHTML =
+                        '<i class="fas fa-check-circle me-2"></i>Créer l\'utilisateur';
                 }
-
-            }, 300);
-        });
-
-
-        const telephoneInput = document.getElementById("telephone");
-        const telephoneFeedback = document.getElementById("telephone-feedback");
-
-        let telephoneTimer;
-
-        telephoneInput.addEventListener("input", function () {
-
-            clearTimeout(telephoneTimer);
-
-            const telephone = this.value.trim();
-
-            telephoneFeedback.innerHTML = "";
-
-            if (!telephone) {
-                return;
             }
-        // Attendre un peu avant d'interroger le serveur
-            telephoneTimer = setTimeout(async () => {
 
-                try {
 
-                    const response = await fetch(
-                        `/api/verifier-telephone?telephone=${encodeURIComponent(telephone)}`
+            // =========================================================
+            // VALIDATION AVANT ENVOI
+            // =========================================================
+
+            form.addEventListener("submit", function (e) {
+
+                console.log("🔥 SUBMIT DU FORMULAIRE");
+
+                const password =
+                    document.querySelector('input[name="password"]').value.trim();
+
+                const idNumber =
+                    idNumberInput.value.trim();
+
+                const recto =
+                    document.getElementById("rectoInput");
+
+                const verso =
+                    document.getElementById("versoInput");
+
+                // -------------------------
+                // Doublons
+                // -------------------------
+
+                if (
+                    usernameExiste ||
+                    emailExiste ||
+                    telephoneExiste ||
+                    idNumberExiste
+                ) {
+
+                    e.preventDefault();
+
+                    alert(
+                        "❌ Impossible de créer l'employé.\n\n" +
+                        "Une ou plusieurs données sont déjà utilisées."
                     );
 
-                    const data = await response.json();
-
-                    if (data.existe) {
-
-                        telephoneFeedback.innerHTML =
-                            `<span class="text-danger">
-                                ❌ Cet telephone est déjà utilisé.
-                            </span>`;
-
-                        telephoneInput.classList.add("is-invalid");
-                        telephoneInput.classList.remove("is-valid");
-
-                    } else {
-
-                        telephoneFeedback.innerHTML =
-                            `<span class="text-success">
-                                ✅ Telephone disponible.
-                            </span>`;
-
-                        telephoneInput.classList.remove("is-invalid");
-                        telephoneInput.classList.add("is-valid");
-                    }
-
-                } catch (error) {
-
-                    console.error(error);
-
-                    telephoneFeedback.innerHTML =
-                        `<span class="text-warning">
-                            ⚠️ Impossible de vérifier le telephone.
-                        </span>`;
+                    return;
                 }
 
-            }, 300);
-        });
+                // -------------------------
+                // Mot de passe
+                // -------------------------
 
+                if (password.length < 8) {
 
-        const id_numberInput = document.getElementById("id_number");
-        const id_numberFeedback = document.getElementById("id_number-feedback");
+                    e.preventDefault();
 
-        let id_numberTimer;
-
-        id_numberInput.addEventListener("input", function () {
-
-            clearTimeout(id_numberTimer);
-
-            const id_number = this.value.trim();
-
-            id_numberFeedback.innerHTML = "";
-
-            if (!id_number) {
-                return;
-            }
-        // Attendre un peu avant d'interroger le serveur
-            id_numberTimer = setTimeout(async () => {
-
-                try {
-
-                    const response = await fetch(
-                        `/api/verifier-id_number?id_number=${encodeURIComponent(id_number)}`
+                    alert(
+                        "❌ Le mot de passe doit contenir au moins 8 caractères."
                     );
 
-                    const data = await response.json();
-
-                    if (data.existe) {
-
-                        id_numberFeedback.innerHTML =
-                            `<span class="text-danger">
-                                ❌ Cet id_number est déjà utilisé.
-                            </span>`;
-
-                        id_numberInput.classList.add("is-invalid");
-                        id_numberInput.classList.remove("is-valid");
-
-                    } else {
-
-                        id_numberFeedback.innerHTML =
-                            `<span class="text-success">
-                                ✅ Id_number disponible.
-                            </span>`;
-
-                        id_numberInput.classList.remove("is-invalid");
-                        id_numberInput.classList.add("is-valid");
-                    }
-
-                } catch (error) {
-
-                    console.error(error);
-
-                    id_numberFeedback.innerHTML =
-                        `<span class="text-warning">
-                            ⚠️ Impossible de vérifier l'id_number.
-                        </span>`;
+                    return;
                 }
 
-            }, 300);
+                // -------------------------
+                // Numéro de pièce
+                // -------------------------
+
+                if (!idNumber) {
+
+                    e.preventDefault();
+
+                    alert(
+                        "❌ Le numéro de pièce d'identité est obligatoire."
+                    );
+
+                    idNumberInput.focus();
+
+                    return;
+                }
+
+                // -------------------------
+                // Recto
+                // -------------------------
+
+                if (!recto.files || recto.files.length === 0) {
+
+                    e.preventDefault();
+
+                    alert(
+                        "❌ Vous devez uploader le RECTO de la pièce d'identité."
+                    );
+
+                    return;
+                }
+
+                // -------------------------
+                // Verso
+                // -------------------------
+
+                if (!verso.files || verso.files.length === 0) {
+
+                    e.preventDefault();
+
+                    alert(
+                        "❌ Vous devez uploader le VERSO de la pièce d'identité."
+                    );
+
+                    return;
+                }
+
+                // -------------------------
+                // Succursale
+                // -------------------------
+
+                const succursale =
+                    document.querySelector('select[name="succursale_id"]').value;
+
+                if (!succursale) {
+
+                    e.preventDefault();
+
+                    alert(
+                        "❌ Veuillez sélectionner une succursale."
+                    );
+
+                    return;
+                }
+
+                // -------------------------
+                // Rôle
+                // -------------------------
+
+                const role =
+                    document.getElementById("roleSelect").value;
+
+                if (!role) {
+
+                    e.preventDefault();
+
+                    alert(
+                        "❌ Veuillez sélectionner le type de compte."
+                    );
+
+                    return;
+                }
+
+                // -------------------------
+                // Fonction
+                // -------------------------
+
+                const fonction =
+                    document.getElementById("functionSelect").value;
+
+                if (!fonction) {
+
+                    e.preventDefault();
+
+                    alert(
+                        "❌ Veuillez sélectionner une fonction."
+                    );
+
+                    return;
+                }
+
+                // =====================================================
+                // TOUT EST BON
+                // =====================================================
+
+                submitButton.disabled = true;
+
+                submitButton.innerHTML =
+                    '<i class="fas fa-spinner fa-spin me-2"></i>Création en cours...';
+
+                console.log("✅ FORMULAIRE VALIDE");
+                console.log("📤 Envoi vers Flask...");
+
+                // NE PAS faire e.preventDefault()
+                // Flask reçoit donc normalement le POST.
+            });
+
         });
+
 
 
 
