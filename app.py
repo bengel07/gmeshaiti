@@ -19972,17 +19972,19 @@ def humanize_unique_error(error):
 @app.route('/admin/ajouter_admin', methods=['GET', 'POST'])
 @login_required
 def ajouter_admin():
-    print("🔥 ROUTE AJOUTER_ADMIN APPELÉE")
+    print("🔥🔥🔥 ROUTE AJOUTER_EMPLOYE APPELÉE 🔥🔥🔥")
 
-    succursale_id_url = request.args.get('succursale_id')
-
+    print("========== DEBUG AJOUT EMPLOYÉ ==========")
     print("User ID :", current_user.id)
-    print("Username :", current_user.username)
+    print("Username :", getattr(current_user, 'username', getattr(current_user, 'nom_utilisateur', 'N/A')))
+
     print("Role :", current_user.role)
     print("Succursale user :", current_user.succursale_id)
-    print("Succursale ID URL :", succursale_id_url)
+    print("Succursale code URL :", succursale_code)
     print("Méthode :", request.method)
-
+    # 🔍 DEBUG (tu peux enlever après)
+    print("👉 ROUTE ajouter_employe APPELÉE")
+    print("succursale_code =", succursale_code)
 
     # print(f"🔍 DEBUG RÔLE UTILISATEUR: {current_user.role}")
     # print(f"🔍 DEBUG ATTRIBUTS UTILISATEUR: {dir(current_user)}")
@@ -19997,13 +19999,11 @@ def ajouter_admin():
 
     # 🎯 Déterminer la succursale cible
     succursale = None
-    if succursale_id_url:
-        succursale = Succursale.query.get(int(succursale_id_url))
-
+    if succursale_code:
+        succursale = Succursale.query.filter_by(code=succursale_code).first()
         if not succursale:
-            flash("Succursale invalide", "danger")
-            return redirect(url_for('admin_dashboard'))
-
+            flash("Succursale invalide", 'danger')
+            return redirect(url_for('dashboard'))
     else:
         succursale = current_user.succursale
 
@@ -20124,15 +20124,21 @@ def ajouter_admin():
             )
         print("tel")
 
-        if cin_nif and User.query.filter_by(cin_nif=cin_nif).first():  # ← Changé
-            flash("Numéro de CIN/NIF déjà utilisé", "danger")
-            return render_template(
-                'admin/ajouter_employe.html',
-                succursales=succursales,
-                succursale=succursale,
-                employees=[]
-            )
-        print("cin")
+        cin_nif = request.form.get("id_number", "").strip().upper()
+
+        if cin_nif:
+            cin_existant = User.query.filter(
+                db.func.upper(db.func.trim(User.cin_nif)) == cin_nif
+            ).first()
+
+            if cin_existant:
+                flash("❌ Numéro de CIN/NIF déjà utilisé", "danger")
+                return render_template(
+                    'admin/ajouter_employe.html',
+                    succursales=succursales,
+                    succursale=succursale,
+                    employees=[]
+                )
 
         password = request.form.get('password')
 
