@@ -854,6 +854,40 @@
                 let timers = {};
 
                 // =========================================================
+                // AFFICHER / MASQUER LES QUESTIONS SECRÈTES
+                // =========================================================
+
+                function toggleQuestions() {
+
+                    const section = document.getElementById("questionsSecretes");
+                    const button = document.getElementById("toggleQuestionsBtn");
+
+                    if (section.style.display === "none" || section.style.display === "") {
+
+                        // Afficher
+                        section.style.display = "block";
+
+                        button.innerHTML =
+                            '<i class="fas fa-eye-slash"></i> Masquer les questions secrètes';
+
+                        button.classList.remove("btn-outline-info");
+                        button.classList.add("btn-info", "text-white");
+
+                    } else {
+
+                        // Masquer
+                        section.style.display = "none";
+
+                        button.innerHTML =
+                            '<i class="fas fa-question-circle"></i> Ajouter des questions secrètes (obligatoire)';
+
+                        button.classList.remove("btn-info", "text-white");
+                        button.classList.add("btn-outline-info");
+                    }
+                }
+
+
+                // =========================================================
                 // VÉRIFICATION EN TEMPS RÉEL
                 // =========================================================
 
