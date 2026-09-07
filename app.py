@@ -19719,7 +19719,7 @@ def transferer_employe(employe_id):
     from models import Succursale
     succursales = Succursale.query.filter(Succursale.id != user.succursale_id).all()
     return render_template('admin_central/transferer_employe.html',
-                           user=user,
+                           employe=user,
                            succursales=succursales)
 
 

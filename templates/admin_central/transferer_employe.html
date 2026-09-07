@@ -26,28 +26,28 @@
                             <strong>Employé sélectionné :</strong>
                             <div class="mt-1">
                                 <span class="badge bg-primary me-2">#{{ employe.id }}</span>
-                                <span class="fw-bold">{{ user.prenom }} {{ user.nom }}</span>
+                                <span class="fw-bold">{{ employe.prenom }} {{ employe.nom }}</span>
                             </div>
                             <div class="mt-2">
                                 <i class="fas fa-building me-1"></i> Succursale actuelle :
-                                {% if user.succursale %}
-                                    <span class="badge bg-info">{{ user.succursale.nom }} ({{ user.succursale.code }})</span>
+                                {% if employe.succursale %}
+                                    <span class="badge bg-info">{{ employe.succursale.nom }} ({{ employe.succursale.code }})</span>
                                 {% else %}
                                     <span class="badge bg-secondary">Aucune succursale</span>
                                 {% endif %}
                             </div>
                             <div class="mt-1">
                                 <i class="fas fa-user-tag me-1"></i> Rôle :
-                                <span class="badge bg-secondary">{{ user.role }}</span>
-                                {% if user.fonction %}
-                                    <span class="badge bg-light text-dark ms-1">{{ user.fonction }}</span>
+                                <span class="badge bg-secondary">{{ employe.role }}</span>
+                                {% if employe.fonction %}
+                                    <span class="badge bg-light text-dark ms-1">{{ employe.fonction }}</span>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
 
                     <!-- Formulaire de transfert -->
-                    <form method="POST" action="{{ url_for('transferer_employe', employe_id=user.id, succursale_id=0) }}" id="transferForm">
+                    <form method="POST" action="{{ url_for('transferer_employe', employe_id=employe.id) }}" id="transferForm">
                         <div class="mb-4">
                             <label class="form-label required">
                                 <i class="fas fa-building me-1"></i>
@@ -57,11 +57,11 @@
                                 <option value="" selected disabled>Choisir une succursale...</option>
                                 {% for succursale in succursales %}
                                     <option value="{{ succursale.id }}"
-                                            {% if user.succursale and user.succursale.id == succursale.id %}disabled{% endif %}
+                                            {% if employe.succursale and employe.succursale.id == succursale.id %}disabled{% endif %}
                                             data-code="{{ succursale.code }}"
                                             data-ville="{{ succursale.ville }}">
                                         {{ succursale.nom }} ({{ succursale.code }}) - {{ succursale.ville }}
-                                        {% if user.succursale and user.succursale.id == succursale.id %}
+                                        {% if employe.succursale and employe.succursale.id == succursale.id %}
                                             (actuelle)
                                         {% endif %}
                                     </option>
@@ -81,7 +81,7 @@
                             <div class="row mt-2">
                                 <div class="col-sm-6">
                                     <small class="text-muted">De :</small>
-                                    <div class="fw-bold">{{ user.succursale.nom if user.succursale else 'Aucune' }}</div>
+                                    <div class="fw-bold">{{ employe.succursale.nom if employe.succursale else 'Aucune' }}</div>
                                 </div>
                                 <div class="col-sm-6">
                                     <small class="text-muted">Vers :</small>
@@ -130,7 +130,7 @@
                 <div class="card-body">
                     <div class="row">
                         {% for succursale in succursales %}
-                            {% if not user.succursale or user.succursale.id != succursale.id %}
+                            {% if not employe.succursale or employe.succursale.id != succursale.id %}
                             <div class="col-md-6 mb-2">
                                 <div class="d-flex align-items-center p-2 border rounded">
                                     <i class="fas fa-building text-primary me-2"></i>
@@ -256,7 +256,7 @@
                 alert('Veuillez sélectionner une succursale');
             } else {
                 // Mettre à jour l'action du formulaire avec la bonne succursale
-                const action = "{{ url_for('transferer_employe', employe_id=user.id, succursale_id=0) }}";
+                const action = "{{ url_for('transferer_employe', employe_id=employe.id }}";
                 form.action = action.replace('0', select.value);
             }
         });
