@@ -16567,7 +16567,7 @@ def verifier_conformite_brh():
 # Lancer la vérification quotidiennement
 def schedule_brh_check():
     schedule.every().day.at("08:00").do(verifier_conformite_brh)
-    print("⏰ Scheduler BRH démarré...")
+    # print("⏰ Scheduler BRH démarré...")
     while True:
         schedule.run_pending()
         time.sleep(60)
