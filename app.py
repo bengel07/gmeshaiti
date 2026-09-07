@@ -21905,7 +21905,7 @@ def admin_dashboard():
     ).all()
 
     return render_template(
-        'admin_central/dashboard.html',
+        'succursale/dashboard.html',
         succursales=succursales,
         stats_par_succursale=stats_par_succursale,
         total_admins=total_admins,
