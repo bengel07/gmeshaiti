@@ -29755,7 +29755,7 @@ with app.app_context():
     try:
         # Créer les tables si elles n'existent pas
         db.create_all()
-        print("✅ Tables vérifiées/créées")
+        # print("✅ Tables vérifiées/créées")
 
         # Vérifier si un super_admin existe déjà
         super_admin = User.query.filter_by(role="super_admin").first()
@@ -29795,10 +29795,10 @@ with app.app_context():
         else:
             # Le super_admin existe déjà.
             # NE PAS réinitialiser son mot de passe à chaque démarrage.
-            print(
-                f"ℹ️ Super admin déjà existant: "
-                f"{super_admin.email}"
-            )
+            # print(
+            #     f"ℹ️ Super admin déjà existant: "
+            #     f"{super_admin.email}"
+            # )
 
             # Corriger uniquement les paramètres nécessaires
             modified = False
@@ -29828,7 +29828,7 @@ with app.app_context():
         # Vérification des utilisateurs
         users = User.query.all()
 
-        print(f"📋 Total utilisateurs dans la base: {len(users)}")
+        # print(f"📋 Total utilisateurs dans la base: {len(users)}")
 
         for u in users:
             print(
