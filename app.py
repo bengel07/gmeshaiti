@@ -16733,15 +16733,31 @@ def ajouter_employe(succursale_code):
             )
         print("tel")
 
-        if cin_nif and User.query.filter_by(cin_nif=cin_nif).first():  # ← Changé
-            flash("Numéro de CIN/NIF déjà utilisé", "danger")
-            return render_template(
-                'admin/ajouter_employe.html',
-                succursales=succursales,
-                succursale=succursale,
-                employees=[]
-            )
-        print("cin")
+        cin_nif = request.form.get("id_number", "").strip().upper()
+
+        if cin_nif:
+            cin_existant = User.query.filter(
+                db.func.upper(db.func.trim(User.cin_nif)) == cin_nif
+            ).first()
+
+            if cin_existant:
+                flash("❌ Numéro de CIN/NIF déjà utilisé", "danger")
+                return render_template(
+                    'admin/ajouter_employe.html',
+                    succursales=succursales,
+                    succursale=succursale,
+                    employees=[]
+                )
+
+        # if cin_nif and User.query.filter_by(cin_nif=cin_nif).first():  # ← Changé
+        #     flash("Numéro de CIN/NIF déjà utilisé", "danger")
+        #     return render_template(
+        #         'admin/ajouter_employe.html',
+        #         succursales=succursales,
+        #         succursale=succursale,
+        #         employees=[]
+        #     )
+        # print("cin")
 
         password = request.form.get('password')
 
@@ -29705,23 +29721,19 @@ def verifier_username():
         "existe": existe
     })
 
-
-@app.route('/api/verifier-id_number')
+@app.route("/api/verifier-id_number")
 @login_required
 def verifier_id_number():
-
-    id_number = request.args.get('id_number', '').strip()
+    id_number = request.args.get("id_number", "").strip().upper()
 
     if not id_number:
         return jsonify({"existe": False})
 
-    existe = User.query.filter_by(
-        id_number=id_number
+    existe = User.query.filter(
+        db.func.upper(db.func.trim(User.cin_nif)) == id_number
     ).first() is not None
 
-    return jsonify({
-        "existe": existe
-    })
+    return jsonify({"existe": existe})
 
 # from views import super_admin_switcher, super_admin_go, super_admin_quick_access, PAGES
 # === CRÉATION DES TABLES ET SUPER ADMIN AU DÉMARRAGE ===
