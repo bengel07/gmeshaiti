@@ -29749,105 +29749,85 @@ def verifier_id_number():
 
     return jsonify({"existe": existe})
 
-# from views import super_admin_switcher, super_admin_go, super_admin_quick_access, PAGES
-# === CRÉATION DES TABLES ET SUPER ADMIN AU DÉMARRAGE ===
-with app.app_context():
-    try:
-        # Créer les tables si elles n'existent pas
-        # db.create_all()
-        # print("✅ Tables vérifiées/créées")
 
-        # Vérifier si un super_admin existe déjà
-        super_admin = User.query.filter_by(role="super_admin").first()
+# === FONCTION D'INITIALISATION DE LA BASE ===
+def init_app_data():
+    """Vérifie et configure le super admin uniquement en cas de besoin."""
+    with app.app_context():
+        try:
+            # Vérification du super_admin
+            super_admin = User.query.filter_by(role="super_admin").first()
 
-        if not super_admin:
-            print("⚡ Création du premier super admin...")
+            if not super_admin:
+                print("⚡ Création du premier super admin...")
+                default_password = os.environ.get("SUPER_ADMIN_PASSWORD", "Spadmin123")
 
-            default_password = os.environ.get(
-                "SUPER_ADMIN_PASSWORD",
-                "Spadmin123"
-            )
+                super_admin = User(
+                    username="super_admin",
+                    prenom="Geler",
+                    nom="Begin",
+                    email="super_admin@gmes.com",
+                    role="super_admin",
+                    fonction="admin_general",
+                    statut="actif",
+                    premier_connexion=False,
+                    actif=True,
+                    est_actif=True
+                )
+                super_admin.password_hash = generate_password_hash(default_password)
 
-            super_admin = User(
-                username="super_admin",
-                prenom="Geler",
-                nom="Begin",
-                email="super_admin@gmes.com",
-                role="super_admin",
-                fonction="admin_general",
-                statut="actif",
-                premier_connexion=False,
-                actif=True,
-                est_actif=True
-            )
-
-            super_admin.password_hash = generate_password_hash(
-                default_password
-            )
-
-            db.session.add(super_admin)
-            db.session.commit()
-
-            print("✅ Premier super admin créé avec succès")
-            print("   Email : super_admin@gmes.com")
-            print("   Identifiant : super_admin")
-
-        else:
-            # Le super_admin existe déjà.
-            # NE PAS réinitialiser son mot de passe à chaque démarrage.
-            # print(
-            #     f"ℹ️ Super admin déjà existant: "
-            #     f"{super_admin.email}"
-            # )
-
-            # Corriger uniquement les paramètres nécessaires
-            modified = False
-
-            if super_admin.role != "super_admin":
-                super_admin.role = "super_admin"
-                modified = True
-
-            if super_admin.statut != "actif":
-                super_admin.statut = "actif"
-                modified = True
-
-            if hasattr(super_admin, "actif") and not super_admin.actif:
-                super_admin.actif = True
-                modified = True
-
-            if hasattr(super_admin, "est_actif") and not super_admin.est_actif:
-                super_admin.est_actif = True
-                modified = True
-
-            if modified:
+                db.session.add(super_admin)
                 db.session.commit()
-                print("✅ Statut/rôle du super_admin corrigé")
+
+                print("✅ Premier super admin créé avec succès")
+                print("   Email : super_admin@gmes.com")
+                print("   Identifiant : super_admin")
+
             else:
-                print("✅ Super admin déjà correctement configuré")
+                # Corriger uniquement les paramètres nécessaires si modifié
+                modified = False
 
-        # Vérification des utilisateurs
-        users = User.query.all()
+                if super_admin.role != "super_admin":
+                    super_admin.role = "super_admin"
+                    modified = True
 
-        # print(f"📋 Total utilisateurs dans la base: {len(users)}")
+                if super_admin.statut != "actif":
+                    super_admin.statut = "actif"
+                    modified = True
 
-        for u in users:
-            print(
-                f"   - {u.username} ({u.email}) "
-                f"- Rôle: {u.role}"
-            )
+                if hasattr(super_admin, "actif") and not super_admin.actif:
+                    super_admin.actif = True
+                    modified = True
 
-    except IntegrityError as e:
-        db.session.rollback()
-        print("❌ IntegrityError lors de l'initialisation:")
-        print(e)
+                if hasattr(super_admin, "est_actif") and not super_admin.est_actif:
+                    super_admin.est_actif = True
+                    modified = True
 
-    except Exception as e:
-        db.session.rollback()
-        print("❌ Erreur lors de l'initialisation:")
-        print(e)
+                if modified:
+                    db.session.commit()
+                    print("✅ Statut/rôle du super_admin corrigé")
+                else:
+                    print("✅ Super admin déjà correctement configuré")
+
+            # 💡 SUPPRESSION DE LA BOUCLE 'for u in users:'
+            # Charger tous les utilisateurs en mémoire à chaque boot causait l'erreur SIGKILL.
+
+        except IntegrityError as e:
+            db.session.rollback()
+            print("❌ IntegrityError lors de l'initialisation:")
+            print(e)
+
+        except Exception as e:
+            db.session.rollback()
+            print("❌ Erreur lors de l'initialisation:")
+            print(e)
 
 
 if __name__ == '__main__':
     import os
+
+    # Exécuter l'initialisation uniquement lors du lancement local
+    init_app_data()
+
     port = int(os.environ.get("PORT", 10000))
     socketio.run(app, host='0.0.0.0', port=port, debug=False, use_reloader=False)
