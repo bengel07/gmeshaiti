@@ -919,128 +919,193 @@ def envoyer_email_decision_rejet(client, motif):
     )
 
     return response.json()
-
-
 def envoyer_email_activation_client(client, activation_link):
 
-    api_key = os.environ.get(
-        "BREVO_API_KEY"
-    )
+    try:
+        api_key = os.environ.get("BREVO_API_KEY")
+        from_email = os.environ.get("FROM_EMAIL")
+        from_name = os.environ.get(
+            "FROM_NAME",
+            "GMES Microcrédit"
+        )
 
-    from_email = os.environ.get(
-        "FROM_EMAIL"
-    )
+        print("=" * 70)
+        print("📧 BREVO - ENVOI ACTIVATION CLIENT")
+        print(f"📧 FROM       : {from_email}")
+        print(f"📧 TO         : {client.email}")
+        print(f"👤 CLIENT     : {client.prenom} {client.nom}")
+        print(f"🆔 ID CLIENT  : {client.id_client}")
+        print(f"🔗 LIEN       : {activation_link}")
+        print("=" * 70)
 
-    from_name = os.environ.get(
-        "FROM_NAME",
-        "GMES Microcrédit"
-    )
+        if not api_key:
+            print("❌ BREVO_API_KEY est absente")
+            return False
 
-    url = "https://api.brevo.com/v3/smtp/email"
+        if not from_email:
+            print("❌ FROM_EMAIL est absent")
+            return False
 
-    headers = {
-        "accept": "application/json",
-        "api-key": api_key,
-        "content-type": "application/json"
-    }
+        if not client.email:
+            print("❌ Le client n'a pas d'adresse email")
+            return False
 
-    data = {
-        "sender": {
-            "name": from_name,
-            "email": from_email
-        },
-        "to": [
-            {
-                "email": client.email,
-                "name": (
-                    f"{client.prenom} "
-                    f"{client.nom}"
-                )
-            }
-        ],
-        "subject": "Activation de votre espace client GMES",
-        "htmlContent": f"""
-        <html>
-        <body>
+        if not activation_link:
+            print("❌ Le lien d'activation est vide")
+            return False
 
-        <h2>Bienvenue chez GMES Microcrédit</h2>
+        url = "https://api.brevo.com/v3/smtp/email"
 
-        <p>
+        headers = {
+            "accept": "application/json",
+            "api-key": api_key,
+            "content-type": "application/json"
+        }
+
+        data = {
+            "sender": {
+                "name": from_name,
+                "email": from_email
+            },
+
+            "to": [
+                {
+                    "email": client.email,
+                    "name": f"{client.prenom} {client.nom}"
+                }
+            ],
+
+            "subject": "Activation de votre espace client GMES",
+
+            "htmlContent": f"""
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Activation de votre espace client GMES</title>
+</head>
+
+<body>
+
+    <h2>Bienvenue chez GMES Microcrédit</h2>
+
+    <p>
         Bonjour
-        <strong>
-        {client.prenom} {client.nom}
-        </strong>,
-        </p>
+        <strong>{client.prenom} {client.nom}</strong>,
+    </p>
 
-        <p>
-        Votre compte client a été créé.
-        </p>
+    <p>
+        Votre compte client a été créé avec succès.
+    </p>
 
-        <p>
+    <p>
         <strong>ID client :</strong>
         {client.id_client}
-        </p>
+    </p>
 
-        <p>
-        Pour activer votre espace client et créer
-        votre mot de passe :
-        </p>
+    <p>
+        Pour activer votre espace client et créer votre
+        mot de passe, cliquez sur le bouton ci-dessous :
+    </p>
 
-        <p>
-        <a href="{activation_link}"
-           style="
-           background:#0d6efd;
-           color:white;
-           padding:12px 20px;
-           text-decoration:none;
-           border-radius:5px;
-           display:inline-block;
-           ">
-           ACTIVER MON ESPACE CLIENT
+    <p>
+        <a
+            href="{activation_link}"
+            style="
+                background-color:#0d6efd;
+                color:#ffffff;
+                padding:12px 20px;
+                text-decoration:none;
+                border-radius:5px;
+                display:inline-block;
+                font-weight:bold;
+            "
+        >
+            ACTIVER MON ESPACE CLIENT
         </a>
-        </p>
+    </p>
 
-        <p>
-        Ou copiez ce lien dans votre navigateur :
-        </p>
+    <p>
+        Si le bouton ne fonctionne pas, copiez ce lien dans
+        votre navigateur :
+    </p>
 
-        <p>
-        {activation_link}
-        </p>
+    <p>
+        <a href="{activation_link}">
+            {activation_link}
+        </a>
+    </p>
 
-        <p>
+    <p>
         <strong>
-        Ce lien est valable pendant 24 heures.
+            Ce lien est valable pendant 24 heures.
         </strong>
-        </p>
+    </p>
 
-        <p>
+    <p>
         Cordialement,<br>
-        GMES Microcrédit
-        </p>
+        <strong>GMES Microcrédit</strong>
+    </p>
 
-        </body>
-        </html>
-        """
-    }
+</body>
+</html>
+"""
+        }
 
-    response = requests.post(
-        url,
-        headers=headers,
-        json=data,
-        timeout=20
-    )
+        print("📨 Envoi de la requête à Brevo...")
 
-    if response.status_code not in [200, 201, 202]:
+        response = requests.post(
+            url,
+            headers=headers,
+            json=data,
+            timeout=20
+        )
+
         print(
-            "❌ Erreur Brevo :",
-            response.text
+            f"📡 BREVO STATUS : {response.status_code}"
+        )
+
+        print(
+            f"📡 BREVO RESPONSE : {response.text}"
+        )
+
+        if response.status_code not in [200, 201, 202]:
+
+            print(
+                "❌ Brevo a refusé l'envoi."
+            )
+
+            return False
+
+        print(
+            f"✅ EMAIL ACTIVATION ENVOYÉ À "
+            f"{client.email}"
+        )
+
+        return True
+
+    except requests.exceptions.Timeout:
+
+        print(
+            "❌ BREVO TIMEOUT : "
+            "le serveur Brevo n'a pas répondu à temps."
         )
 
         return False
 
-    print(
-        f"✅ Email activation envoyé à {client.email}"
-    )
+    except requests.exceptions.RequestException as e:
 
-    return True
+        print(
+            f"❌ ERREUR REQUÊTE BREVO : {repr(e)}"
+        )
+
+        return False
+
+    except Exception as e:
+
+        print(
+            f"❌ ERREUR EMAIL ACTIVATION : {repr(e)}"
+        )
+
+        return False

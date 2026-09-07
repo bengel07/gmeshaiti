@@ -21546,24 +21546,41 @@ def approuver_compte(employe_id):
 
     try:
 
-        print("📨 Envoi email activation client...")
+        print("=" * 70)
+        print("📨 ENVOI EMAIL ACTIVATION CLIENT")
         print(f"📧 Destinataire : {nouveau_client.email}")
         print(f"🔗 Lien : {activation_link}")
+        print("=" * 70)
 
-        envoyer_email_activation_client(
+        resultat = envoyer_email_activation_client(
             nouveau_client,
             activation_link
         )
 
+        if not resultat:
+            print(
+                "❌ L'envoi Brevo a échoué."
+            )
+
+            flash(
+                f"⚠️ Le compte est activé, "
+                f"mais l'email n'a pas été envoyé à "
+                f"{nouveau_client.email}.",
+                "warning"
+            )
+
+            return redirect(url_for('liste_users'))
+
         print(
-            f"✅ EMAIL D'ACTIVATION CLIENT ENVOYÉ À "
+            f"✅ Email envoyé avec succès à "
             f"{nouveau_client.email}"
         )
 
     except Exception as e:
 
         print(
-            f"❌ ERREUR ENVOI EMAIL CLIENT : {e}"
+            f"❌ ERREUR ENVOI EMAIL CLIENT : "
+            f"{repr(e)}"
         )
 
         flash(
