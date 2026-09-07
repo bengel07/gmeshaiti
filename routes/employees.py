@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, abort
 from flask_login import login_required, current_user
 
 from database import db
-from models import Employe, Succursale, User
+from models import Employe, Succursale, User, Client
 from sqlalchemy import or_
 # from app import db
 

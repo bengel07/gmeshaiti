@@ -16749,15 +16749,7 @@ def ajouter_employe(succursale_code):
                     employees=[]
                 )
 
-        # if cin_nif and User.query.filter_by(cin_nif=cin_nif).first():  # ← Changé
-        #     flash("Numéro de CIN/NIF déjà utilisé", "danger")
-        #     return render_template(
-        #         'admin/ajouter_employe.html',
-        #         succursales=succursales,
-        #         succursale=succursale,
-        #         employees=[]
-        #     )
-        # print("cin")
+
 
         password = request.form.get('password')
 
