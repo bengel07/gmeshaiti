@@ -837,6 +837,51 @@
                 return;
             }
 
+        // Attendre un peu avant d'interroger le serveur
+            usernameTimer = setTimeout(async () => {
+
+                try {
+
+                    const response = await fetch(
+                        `/api/verifier-username?username=${encodeURIComponent(username)}`
+                    );
+
+                    const data = await response.json();
+
+                    if (data.existe) {
+
+                        usernameFeedback.innerHTML =
+                            `<span class="text-danger">
+                                ❌ Cet username est déjà utilisé.
+                            </span>`;
+
+                        usernameInput.classList.add("is-invalid");
+                        usernameInput.classList.remove("is-valid");
+
+                    } else {
+
+                        usernameFeedback.innerHTML =
+                            `<span class="text-success">
+                                ✅ Username disponible.
+                            </span>`;
+
+                        usernameInput.classList.remove("is-invalid");
+                        usernameInput.classList.add("is-valid");
+                    }
+
+                } catch (error) {
+
+                    console.error(error);
+
+                    usernameFeedback.innerHTML =
+                        `<span class="text-warning">
+                            ⚠️ Impossible de vérifier l'username.
+                        </span>`;
+                }
+
+            }, 300);
+        });
+
 
         const emailInput = document.getElementById("email");
         const emailFeedback = document.getElementById("email-feedback");
@@ -855,6 +900,51 @@
                 return;
             }
 
+        // Attendre un peu avant d'interroger le serveur
+            emailTimer = setTimeout(async () => {
+
+                try {
+
+                    const response = await fetch(
+                        `/api/verifier-email?email=${encodeURIComponent(email)}`
+                    );
+
+                    const data = await response.json();
+
+                    if (data.existe) {
+
+                        emailFeedback.innerHTML =
+                            `<span class="text-danger">
+                                ❌ Cet email est déjà utilisé.
+                            </span>`;
+
+                        emailInput.classList.add("is-invalid");
+                        emailInput.classList.remove("is-valid");
+
+                    } else {
+
+                        emailFeedback.innerHTML =
+                            `<span class="text-success">
+                                ✅ Email disponible.
+                            </span>`;
+
+                        emailInput.classList.remove("is-invalid");
+                        emailInput.classList.add("is-valid");
+                    }
+
+                } catch (error) {
+
+                    console.error(error);
+
+                    emailFeedback.innerHTML =
+                        `<span class="text-warning">
+                            ⚠️ Impossible de vérifier l'email.
+                        </span>`;
+                }
+
+            }, 300);
+        });
+
 
         const telephoneInput = document.getElementById("telephone");
         const telephoneFeedback = document.getElementById("telephone-feedback");
@@ -872,6 +962,50 @@
             if (!telephone) {
                 return;
             }
+        // Attendre un peu avant d'interroger le serveur
+            telephoneTimer = setTimeout(async () => {
+
+                try {
+
+                    const response = await fetch(
+                        `/api/verifier-telephone?telephone=${encodeURIComponent(telephone)}`
+                    );
+
+                    const data = await response.json();
+
+                    if (data.existe) {
+
+                        telephoneFeedback.innerHTML =
+                            `<span class="text-danger">
+                                ❌ Cet telephone est déjà utilisé.
+                            </span>`;
+
+                        telephoneInput.classList.add("is-invalid");
+                        telephoneInput.classList.remove("is-valid");
+
+                    } else {
+
+                        telephoneFeedback.innerHTML =
+                            `<span class="text-success">
+                                ✅ Telephone disponible.
+                            </span>`;
+
+                        telephoneInput.classList.remove("is-invalid");
+                        telephoneInput.classList.add("is-valid");
+                    }
+
+                } catch (error) {
+
+                    console.error(error);
+
+                    telephoneFeedback.innerHTML =
+                        `<span class="text-warning">
+                            ⚠️ Impossible de vérifier le telephone.
+                        </span>`;
+                }
+
+            }, 300);
+        });
 
 
         const id_numberInput = document.getElementById("id_number");
@@ -890,6 +1024,50 @@
             if (!id_number) {
                 return;
             }
+        // Attendre un peu avant d'interroger le serveur
+            id_numberTimer = setTimeout(async () => {
+
+                try {
+
+                    const response = await fetch(
+                        `/api/verifier-id_number?id_number=${encodeURIComponent(id_number)}`
+                    );
+
+                    const data = await response.json();
+
+                    if (data.existe) {
+
+                        id_numberFeedback.innerHTML =
+                            `<span class="text-danger">
+                                ❌ Cet id_number est déjà utilisé.
+                            </span>`;
+
+                        id_numberInput.classList.add("is-invalid");
+                        id_numberInput.classList.remove("is-valid");
+
+                    } else {
+
+                        id_numberFeedback.innerHTML =
+                            `<span class="text-success">
+                                ✅ Id_number disponible.
+                            </span>`;
+
+                        id_numberInput.classList.remove("is-invalid");
+                        id_numberInput.classList.add("is-valid");
+                    }
+
+                } catch (error) {
+
+                    console.error(error);
+
+                    id_numberFeedback.innerHTML =
+                        `<span class="text-warning">
+                            ⚠️ Impossible de vérifier l'id_number.
+                        </span>`;
+                }
+
+            }, 300);
+        });
 
 
 
