@@ -29676,19 +29676,17 @@ def verifier_email():
 @login_required
 def verifier_telephone():
 
-    telephone = request.args.get('telephone', '').strip().lower()
+    telephone = request.args.get('telephone', '').strip()
 
     if not telephone:
-        return jsonify({
-            "existe": False
-        })
+        return jsonify({"existe": False})
 
-    user = User.query.filter(
-        db.func.lower(User.telephone) == telephone
-    ).first()
+    existe = User.query.filter_by(
+        telephone=telephone
+    ).first() is not None
 
     return jsonify({
-        "existe": user is not None
+        "existe": existe
     })
 
 
@@ -29696,19 +29694,15 @@ def verifier_telephone():
 @login_required
 def verifier_username():
 
-    username = request.args.get('username', '').strip().lower()
+    username = request.args.get('username', '').strip()
 
     if not username:
-        return jsonify({
-            "existe": False
-        })
+        return jsonify({"existe": False})
 
-    user = User.query.filter(
-        db.func.lower(User.username) == username
-    ).first()
+    existe = User.query.filter_by(username=username).first() is not None
 
     return jsonify({
-        "existe": user is not None
+        "existe": existe
     })
 
 
@@ -29716,19 +29710,17 @@ def verifier_username():
 @login_required
 def verifier_id_number():
 
-    id_number = request.args.get('id_number', '').strip().lower()
+    id_number = request.args.get('id_number', '').strip()
 
     if not id_number:
-        return jsonify({
-            "existe": False
-        })
+        return jsonify({"existe": False})
 
-    user = User.query.filter(
-        db.func.lower(User.id_number) == id_number
-    ).first()
+    existe = User.query.filter_by(
+        id_number=id_number
+    ).first() is not None
 
     return jsonify({
-        "existe": user is not None
+        "existe": existe
     })
 
 # from views import super_admin_switcher, super_admin_go, super_admin_quick_access, PAGES
