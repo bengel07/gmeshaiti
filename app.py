@@ -20246,7 +20246,7 @@ def ajouter_admin():
             # ✅ ENVOYER L'EMAIL DE BIENVENUE
             send_welcome_email(employe, mot_de_passe_temp)
 
-            flash(f"✅ Employé {employe.prenom} {employe.nom} créé avec succès !", "success")
+            flash(f"✅ Admin {employe.prenom} {employe.nom} créé avec succès !", "success")
 
             return redirect(url_for('gerer_employes'))
 
