@@ -19972,22 +19972,6 @@ def humanize_unique_error(error):
 @app.route('/admin/ajouter_admin', methods=['GET', 'POST'])
 @login_required
 def ajouter_admin():
-    print("🔥🔥🔥 ROUTE AJOUTER_EMPLOYE APPELÉE 🔥🔥🔥")
-
-    print("========== DEBUG AJOUT EMPLOYÉ ==========")
-    print("User ID :", current_user.id)
-    print("Username :", getattr(current_user, 'username', getattr(current_user, 'nom_utilisateur', 'N/A')))
-
-    print("Role :", current_user.role)
-    print("Succursale user :", current_user.succursale_id)
-    print("Succursale code URL :", succursale_code)
-    print("Méthode :", request.method)
-    # 🔍 DEBUG (tu peux enlever après)
-    print("👉 ROUTE ajouter_employe APPELÉE")
-    print("succursale_code =", succursale_code)
-
-    # print(f"🔍 DEBUG RÔLE UTILISATEUR: {current_user.role}")
-    # print(f"🔍 DEBUG ATTRIBUTS UTILISATEUR: {dir(current_user)}")
 
     # 🔐 Vérification des rôles
     if current_user.role not in ['admin_succursale', 'directeur', 'direction', 'super_admin']:
@@ -19999,13 +19983,31 @@ def ajouter_admin():
 
     # 🎯 Déterminer la succursale cible
     succursale = None
-    if succursale_code:
-        succursale = Succursale.query.filter_by(code=succursale_code).first()
+
+    # Récupérer la succursale depuis l'URL
+    succursale_id = request.args.get('succursale_id', type=int)
+
+    print("Succursale ID URL :", succursale_id)
+
+    if succursale_id:
+        succursale = Succursale.query.get(succursale_id)
+
         if not succursale:
-            flash("Succursale invalide", 'danger')
+            flash("Succursale invalide", "danger")
             return redirect(url_for('dashboard'))
+
+        print("Succursale trouvée :", succursale.id)
+        print("Succursale code :", succursale.code)
+
     else:
+        # Si aucune succursale n'est passée dans l'URL,
+        # utiliser celle de l'utilisateur connecté
         succursale = current_user.succursale
+
+        if succursale:
+            succursale_id = succursale.id
+            print("Succursale utilisateur :", succursale.id)
+            print("Succursale code :", succursale.code)
 
     # 📩 POST
     if request.method == 'POST':
@@ -20070,7 +20072,7 @@ def ajouter_admin():
         if not succursale_id:
             flash("Veuillez sélectionner une succursale", "danger")
             return render_template(
-                'admin/ajouter_employe.html',
+                'admin_central/ajouter_admin.html',
                 succursales=succursales,
                 succursale=succursale,
                 employees=[]
@@ -20094,7 +20096,7 @@ def ajouter_admin():
         if User.query.filter_by(username=request.form.get('username')).first():
             flash("Nom d'utilisateur déjà utilisé", "danger")
             return render_template(
-                'admin/ajouter_employe.html',
+                'admin_central/ajouter_admin.html',
                 succursales=succursales,
                 succursale=succursale,
                 employees=[]
@@ -20107,7 +20109,7 @@ def ajouter_admin():
             print("Email déjà utilisé", "danger")
 
             return render_template(
-                'admin/ajouter_employe.html',
+                'admin_central/ajouter_admin.html',
                 succursales=succursales,
                 succursale=succursale,
                 employees=[]
@@ -20117,7 +20119,7 @@ def ajouter_admin():
         if User.query.filter_by(telephone=request.form.get('telephone')).first():
             flash(" numero de telephone a ete déjà utilisé", "danger")
             return render_template(
-                'admin/ajouter_employe.html',
+                'admin_central/ajouter_admin.html',
                 succursales=succursales,
                 succursale=succursale,
                 employees=[]
@@ -20134,7 +20136,7 @@ def ajouter_admin():
             if cin_existant:
                 flash("❌ Numéro de CIN/NIF déjà utilisé", "danger")
                 return render_template(
-                    'admin/ajouter_employe.html',
+                    'admin_central/ajouter_admin.html',
                     succursales=succursales,
                     succursale=succursale,
                     employees=[]
