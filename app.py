@@ -15975,27 +15975,27 @@ def export_remboursements_csv(succursale_code):
     return response
 
 
-@app.route('/admin/dashboard-global')
-@login_required
-def dashboard_global():
-
-    # Vérification
-    if current_user.role != 'super_admin':
-        abort(403)
-
-    # prendre une succursale par défaut
-    succursale = current_user.succursale
-    # ✅ Récupérer toutes les succursales pour le filtre
-    succursales = Succursale.query.all()
-
-    if not succursale:
-        succursale = Succursale.query.first()
-
-    return render_template(
-        'direction/dashboard_global.html',
-        succursale=succursale,
-        succursales = succursales  # ← Ajouter cette ligne
-    )
+# @app.route('/admin/dashboard-global')
+# @login_required
+# def dashboard_global():
+#
+#     # Vérification
+#     if current_user.role != 'super_admin':
+#         abort(403)
+#
+#     # prendre une succursale par défaut
+#     succursale = current_user.succursale
+#     # ✅ Récupérer toutes les succursales pour le filtre
+#     succursales = Succursale.query.all()
+#
+#     if not succursale:
+#         succursale = Succursale.query.first()
+#
+#     return render_template(
+#         'direction/dashboard_global.html',
+#         succursale=succursale,
+#         succursales = succursales  # ← Ajouter cette ligne
+#     )
 
 @app.route('/<string:succursale_code>/api/dashboard-data')
 @login_required
