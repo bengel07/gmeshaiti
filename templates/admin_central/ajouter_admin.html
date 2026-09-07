@@ -317,9 +317,92 @@
                 width: 100%;
             }
         }
+
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            width: min(450px, calc(100% - 40px));
+        }
+
+        .flash-message {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 18px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            background: white;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            font-weight: 500;
+        }
+
+        .flash-success {
+            border-left: 5px solid #198754;
+        }
+
+        .flash-danger,
+        .flash-error {
+            border-left: 5px solid #dc3545;
+        }
+
+        .flash-warning {
+            border-left: 5px solid #ffc107;
+        }
+
+        .flash-info {
+            border-left: 5px solid #0dcaf0;
+        }
+
+        .flash-icon {
+            font-size: 20px;
+        }
+
+        .flash-close {
+            margin-left: auto;
+            border: none;
+            background: transparent;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
     </style>
 </head>
 <body>
+
+    <!-- Messages Flash Flask -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">
+                        {% if category == 'success' %}
+                            <span class="flash-icon">✅</span>
+                        {% elif category == 'danger' or category == 'error' %}
+                            <span class="flash-icon">❌</span>
+                        {% elif category == 'warning' %}
+                            <span class="flash-icon">⚠️</span>
+                        {% elif category == 'info' %}
+                            <span class="flash-icon">ℹ️</span>
+                        {% else %}
+                            <span class="flash-icon">📢</span>
+                        {% endif %}
+
+                        <span>{{ message }}</span>
+
+                        <button type="button"
+                                class="flash-close"
+                                onclick="this.parentElement.remove()">
+                            ×
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+
     <div class="form-wrapper">
         <a href="{{ url_for('gerer_employes') }}" class="back-link">
             <i class="fas fa-arrow-left"></i> Retour à la liste des admins
