@@ -375,13 +375,9 @@
     <div class="card-box">
 
         <h3>
-
             <i class="fas fa-folder-open"></i>
-
             Documents reçus
-
         </h3>
-
 
         {% if documents %}
 
@@ -391,22 +387,18 @@
 
                     <div class="row align-items-center">
 
-                        <div class="col-md-7">
+                        <div class="col-md-6">
 
                             <div class="d-flex align-items-center">
 
                                 <div class="document-icon">
-
                                     <i class="fas {{ document.icone }}"></i>
-
                                 </div>
 
                                 <div>
 
                                     <strong>
-
                                         {{ document.nom }}
-
                                     </strong>
 
                                     <br>
@@ -428,32 +420,28 @@
                         </div>
 
 
-                        <div class="col-md-3">
+                        <!-- STATUT -->
+
+                        <div class="col-md-2">
 
                             {% if document.statut == 'vérifié' %}
 
                                 <span class="badge bg-success">
-
                                     <i class="fas fa-check"></i>
-
                                     Vérifié
-
                                 </span>
 
                             {% elif document.statut == 'rejeté' %}
 
                                 <span class="badge bg-danger">
-
+                                    <i class="fas fa-times"></i>
                                     Rejeté
-
                                 </span>
 
                             {% else %}
 
                                 <span class="badge bg-info">
-
                                     Reçu
-
                                 </span>
 
                             {% endif %}
@@ -461,7 +449,9 @@
                         </div>
 
 
-                        <div class="col-md-2 text-end">
+                        <!-- VOIR -->
+
+                        <div class="col-md-2">
 
                             <a
                                 href="{{ url_for(
@@ -473,10 +463,87 @@
                             >
 
                                 <i class="fas fa-eye"></i>
-
                                 Voir
 
                             </a>
+
+                        </div>
+
+
+                        <!-- ACTIONS -->
+
+                        <div class="col-md-2 text-end">
+
+                            {% if document.statut == 'reçu' %}
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for(
+                                        'verifier_document',
+                                        document_id=document.id
+                                    ) }}"
+                                    class="d-inline"
+                                >
+
+                                    <input
+                                        type="hidden"
+                                        name="csrf_token"
+                                        value="{{ csrf_token() }}"
+                                    >
+
+                                    <input
+                                        type="hidden"
+                                        name="decision"
+                                        value="valide"
+                                    >
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-success btn-sm"
+                                        title="Vérifier le document"
+                                    >
+
+                                        <i class="fas fa-check"></i>
+
+                                    </button>
+
+                                </form>
+
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for(
+                                        'verifier_document',
+                                        document_id=document.id
+                                    ) }}"
+                                    class="d-inline"
+                                >
+
+                                    <input
+                                        type="hidden"
+                                        name="csrf_token"
+                                        value="{{ csrf_token() }}"
+                                    >
+
+                                    <input
+                                        type="hidden"
+                                        name="decision"
+                                        value="rejete"
+                                    >
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-danger btn-sm"
+                                        title="Rejeter le document"
+                                    >
+
+                                        <i class="fas fa-times"></i>
+
+                                    </button>
+
+                                </form>
+
+                            {% endif %}
 
                         </div>
 
@@ -490,14 +557,10 @@
 
             <div class="text-center text-muted py-5">
 
-                <i
-                    class="fas fa-folder-open fa-3x mb-3"
-                ></i>
+                <i class="fas fa-folder-open fa-3x mb-3"></i>
 
                 <h5>
-
                     Aucun document reçu
-
                 </h5>
 
             </div>
