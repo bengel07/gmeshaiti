@@ -29764,6 +29764,22 @@ def verifier_id_number():
 
     return jsonify({"existe": existe})
 
+@app.route('/conseiller/documents/<int:id>')
+@login_required
+def conseiller_documents(id):
+    from models import Client, Document
+
+    # Récupérer le client/dossier
+    dossier = Client.query.get_or_404(id)
+
+    # Récupérer tous ses documents
+    documents = Document.get_by_client(dossier.id)
+
+    return render_template(
+        'employees/conseiller_documents.html',
+        dossier=dossier,
+        documents=documents
+    )
 
 # === FONCTION D'INITIALISATION DE LA BASE ===
 def init_app_data():

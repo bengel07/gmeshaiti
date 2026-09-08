@@ -5679,7 +5679,6 @@ class Document(db.Model):
     # === VÉRIFICATION ===
     est_verifie = db.Column(db.Boolean, default=False)
     date_verification = db.Column(db.DateTime, nullable=True)
-    verified_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     commentaire_verification = db.Column(db.Text, nullable=True)
     score_authenticite = db.Column(db.Integer, default=0)  # Score 0-100
 

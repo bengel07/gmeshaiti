@@ -1,0 +1,314 @@
+```html
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Documents - {{ dossier.prenom }} {{ dossier.nom }}</title>
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    >
+
+    <style>
+        body {
+            background: #f5f7fa;
+        }
+
+        .page-container {
+            max-width: 1200px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .card-box {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, .08);
+        }
+
+        .client-name {
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        .document-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 15px;
+        }
+
+        .document-icon {
+            width: 55px;
+            height: 55px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #eef2ff;
+            font-size: 25px;
+            margin-right: 15px;
+        }
+
+        .document-header {
+            display: flex;
+            align-items: center;
+        }
+
+        .document-name {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .document-meta {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #777;
+        }
+
+        .empty-state i {
+            font-size: 55px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="page-container">
+
+    <!-- RETOUR -->
+    <a href="javascript:history.back()" class="btn btn-outline-secondary mb-3">
+        <i class="fas fa-arrow-left"></i>
+        Retour
+    </a>
+
+
+    <!-- INFORMATIONS CLIENT -->
+    <div class="card-box">
+
+        <div class="client-name">
+            {{ dossier.prenom }} {{ dossier.nom }}
+        </div>
+
+        <div class="text-muted mb-4">
+            Client :
+            <strong>{{ dossier.id_client or dossier.id }}</strong>
+        </div>
+
+        <div class="row">
+
+            <div class="col-md-3">
+                <small class="text-muted">Téléphone</small>
+                <div>
+                    {{ dossier.telephone or 'Non renseigné' }}
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <small class="text-muted">Email</small>
+                <div>
+                    {{ dossier.email or 'Non renseigné' }}
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <small class="text-muted">CIN</small>
+                <div>
+                    {{ dossier.cin or 'Non renseigné' }}
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <small class="text-muted">Statut</small>
+                <div>
+                    {{ dossier.statut or 'Non renseigné' }}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- DOCUMENTS -->
+    <div class="card-box">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+
+            <h3 class="mb-0">
+                <i class="fas fa-folder-open"></i>
+                Documents du dossier
+            </h3>
+
+            <span class="badge bg-primary">
+                {{ documents|length }} document(s)
+            </span>
+
+        </div>
+
+
+        {% if documents %}
+
+            {% for document in documents %}
+
+                <div class="document-item">
+
+                    <div class="row align-items-center">
+
+                        <!-- INFORMATIONS -->
+                        <div class="col-md-7">
+
+                            <div class="document-header">
+
+                                <div class="document-icon">
+                                    <i class="fas {{ document.icone }}"></i>
+                                </div>
+
+                                <div>
+
+                                    <div class="document-name">
+                                        {{ document.nom }}
+                                    </div>
+
+                                    <div class="document-meta">
+                                        {{ document.type_document }}
+                                        {% if document.categorie %}
+                                            • {{ document.categorie }}
+                                        {% endif %}
+                                    </div>
+
+                                    {% if document.filename %}
+                                        <div class="document-meta">
+                                            <i class="fas fa-file"></i>
+                                            {{ document.filename }}
+                                        </div>
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- INFORMATIONS SUPPLEMENTAIRES -->
+                        <div class="col-md-3">
+
+                            {% if document.numero %}
+                                <div>
+                                    <small class="text-muted">Numéro</small><br>
+                                    <strong>{{ document.numero }}</strong>
+                                </div>
+                            {% endif %}
+
+                            {% if document.date_expiration %}
+                                <div class="mt-2">
+
+                                    <small class="text-muted">
+                                        Expiration
+                                    </small><br>
+
+                                    {% set expiration = document.statut_expiration %}
+
+                                    <span class="badge bg-{{ expiration.couleur }}">
+                                        {{ expiration.texte }}
+                                    </span>
+
+                                </div>
+                            {% endif %}
+
+                        </div>
+
+
+                        <!-- ACTIONS -->
+                        <div class="col-md-2 text-end">
+
+                            {% if document.file_path %}
+
+                                <a
+                                    href="{{ document.file_path }}"
+                                    target="_blank"
+                                    class="btn btn-primary"
+                                >
+                                    <i class="fas fa-eye"></i>
+                                    Voir
+                                </a>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- VERIFICATION -->
+                    <div class="mt-3">
+
+                        {% if document.est_verifie %}
+
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle"></i>
+                                Vérifié
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-clock"></i>
+                                En attente de vérification
+                            </span>
+
+                        {% endif %}
+
+                        {% if document.date_upload %}
+                            <small class="text-muted ms-2">
+                                Ajouté le
+                                {{ document.date_upload.strftime('%d/%m/%Y à %H:%M') }}
+                            </small>
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            {% endfor %}
+
+        {% else %}
+
+            <div class="empty-state">
+
+                <i class="fas fa-folder-open"></i>
+
+                <h4>Aucun document</h4>
+
+                <p>
+                    Aucun document n'est enregistré pour ce dossier.
+                </p>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+</body>
+</html>
+```
