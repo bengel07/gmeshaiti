@@ -680,52 +680,30 @@
             window.location.href = `/conseiller/dossier/${id}`;
         }
 
-       function renvoyerLien(id) {
-            if (!confirm('Renvoyer le lien de signature au client ?')) {
-                return;
+        function renvoyerLien(id) {
+            if (confirm('Renvoyer le lien de signature au client ?')) {
+
+                const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
+
+                fetch(`/conseiller/renvoyer-lien/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('✅ Lien renvoyé avec succès');
+                    } else {
+                        alert('❌ Erreur: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert('❌ Erreur lors du renvoi du lien.');
+                });
             }
-
-            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
-
-            console.log("ID dossier :", id);
-            console.log("CSRF :", csrfToken ? "présent" : "ABSENT");
-
-            fetch(`/conseiller/renvoyer-lien/${id}`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(async response => {
-                const text = await response.text();
-
-                console.log("HTTP :", response.status);
-                console.log("Réponse Flask :", text);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status} : ${text}`);
-                }
-
-                try {
-                    return JSON.parse(text);
-                } catch (e) {
-                    throw new Error("Flask n'a pas retourné du JSON : " + text);
-                }
-            })
-            .then(data => {
-                console.log("DATA :", data);
-
-                if (data.success) {
-                    alert('✅ Lien renvoyé avec succès');
-                } else {
-                    alert('❌ Erreur : ' + (data.message || 'Erreur inconnue'));
-                }
-            })
-            .catch(error => {
-                console.error("ERREUR COMPLETE :", error);
-                alert('❌ ' + error.message);
-            });
         }
 
         function voirDocuments(id) {
