@@ -682,15 +682,27 @@
 
         function renvoyerLien(id) {
             if (confirm('Renvoyer le lien de signature au client ?')) {
-                fetch(`/conseiller/renvoyer-lien/${id}`, { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('✅ Lien renvoyé avec succès');
-                        } else {
-                            alert('❌ Erreur: ' + data.message);
-                        }
-                    });
+
+                const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
+
+                fetch(`/conseiller/renvoyer-lien/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('✅ Lien renvoyé avec succès');
+                    } else {
+                        alert('❌ Erreur: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert('❌ Erreur lors du renvoi du lien.');
+                });
             }
         }
 
