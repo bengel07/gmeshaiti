@@ -5696,44 +5696,24 @@ class Document(db.Model):
     client = db.relationship('Client', foreign_keys=[client_id], backref='documents')
     verificateur = db.relationship('User', foreign_keys=[verified_by], backref='documents_verifies')
 
-    token = db.Column(
-        db.String(100),
-        unique=True,
-        nullable=False,
-        default=lambda: secrets.token_urlsafe(48)
-    )
-
-    message = db.Column(
-        db.Text,
-        nullable=True
-    )
-
+    # === DEMANDE DE DOCUMENT ===
     statut = db.Column(
-        db.String(30),
-        default='en attente',
+        db.String(20),
+        default='reçu',
         nullable=False
     )
-
-    date_creation = db.Column(
-        db.DateTime,
-        default=datetime.utcnow
-    )
-
-    date_envoi = db.Column(
-        db.DateTime,
-        nullable=True
-    )
-
-    date_completion = db.Column(
-        db.DateTime,
-        nullable=True
-    )
-
 
     demande_item_id = db.Column(
         db.Integer,
         db.ForeignKey('demande_documents_items.id'),
         nullable=True
+    )
+
+    demande_item = db.relationship(
+        'DemandeDocumentItem',
+        foreign_keys=[demande_item_id],
+        backref='document_recu',
+        uselist=False
     )
 
 
