@@ -696,7 +696,7 @@
                                         👤 Administrateur succursale
                                     </option>
                                    <option value="admin_general">
-                                        👤 Administrateur General
+                                        👑 Admin Général
                                     </option>
                                 </select>
                             </div>
@@ -738,11 +738,18 @@
         <script>
             // Options de fonction selon le rôle
             const functionOptions = {
+
                 admin_succursale: {
-                    'admin_general': '👑 Directeur général - Admin générale',
-                    'admin_succursale': '💼 Directeur financier - Admin succursale',
+                    'admin_general': '👑 Directeur général - Admin générale'
+
+                },
+
+                admin_general: {
+                    'admin_succursale': '💼 Directeur financier - Admin succursale'
 
                 }
+
+
             };
 
             function updateFunctionOptions() {

@@ -21834,8 +21834,8 @@ def gestion_utilisateurs():
     )
 
 
-from sqlalchemy import func
 
+# route pour admin_succursale
 @app.route('/admin-succursale/dashboard')
 @login_required
 def admin_succursale_dashboard():
@@ -21860,6 +21860,8 @@ def admin_succursale_dashboard():
     )
 
 
+
+# route pour super_admin
 @app.route('/admin/dashboard')
 @login_required
 def admin_dashboard():
@@ -21904,6 +21906,9 @@ def admin_dashboard():
         statut="en_attente"
     ).all()
 
+    # Derniers dossiers
+    dossiers = []
+
     return render_template(
         'admin_central/dashboard.html',
         succursales=succursales,
@@ -21912,6 +21917,7 @@ def admin_dashboard():
         total_agents=total_agents,
         total_clients=total_clients,
         pages=PAGES,
+        dossiers=dossiers,
         role=session.get('role'),  # 👈 AJOUTE CECI
         username=session.get('user'),  # 👈 AJOUTE CECI
         comptes_en_attente=comptes_en_attente
@@ -21925,11 +21931,12 @@ def synchroniser_donnees():
     return redirect(request.referrer or url_for('liste_succursales'))
 
 
+# route pour admin_general
 @app.route('/succursale/dashboard')
 @login_required
 def dashboard_central():
     # Récupérer la succursale de l'utilisateur connecté
-    from models import Succursale, User, Client, Credit, Remboursement
+    from models import Succursale, User, Client, Credit, Remboursement, Pret
     from sqlalchemy import func
 
     # Si l'utilisateur est super_admin, prendre la première succursale ou une succursale par défaut
