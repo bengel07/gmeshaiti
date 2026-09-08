@@ -1109,3 +1109,164 @@ def envoyer_email_activation_client(client, activation_link):
         )
 
         return False
+
+
+def envoyer_email_demande_documents(
+    client,
+    demande,
+    lien
+):
+
+    import requests
+    import os
+
+    api_key = os.environ.get(
+        'BREVO_API_KEY'
+    )
+
+    from_email = os.environ.get(
+        'FROM_EMAIL'
+    )
+
+    from_name = os.environ.get(
+        'FROM_NAME',
+        'GMES Microcrédit'
+    )
+
+    if not api_key:
+        raise Exception(
+            'BREVO_API_KEY manquante'
+        )
+
+    if not from_email:
+        raise Exception(
+            'FROM_EMAIL manquant'
+        )
+
+    documents_html = ''
+
+    for item in demande.items:
+
+        documents_html += f"""
+        <li style="margin-bottom:8px;">
+            <strong>{item.description}</strong>
+        </li>
+        """
+
+    prenom = getattr(
+        client,
+        'prenom',
+        ''
+    )
+
+    message = demande.message or ''
+
+    html_content = f"""
+    <html>
+    <body style="font-family:Arial,sans-serif;">
+
+        <div style="
+            max-width:650px;
+            margin:auto;
+            padding:30px;
+            border:1px solid #ddd;
+            border-radius:12px;
+        ">
+
+            <h2>
+                GMES Microcrédit
+            </h2>
+
+            <p>
+                Bonjour <strong>{prenom}</strong>,
+            </p>
+
+            <p>
+                Votre conseiller vous demande de fournir
+                les documents suivants :
+            </p>
+
+            <ul>
+                {documents_html}
+            </ul>
+
+            {"<p><strong>Message du conseiller :</strong><br>" + message + "</p>" if message else ""}
+
+            <p>
+                Cliquez sur le bouton ci-dessous pour
+                transmettre vos documents de manière sécurisée.
+            </p>
+
+            <p style="text-align:center;">
+
+                <a href="{lien}"
+                   style="
+                    display:inline-block;
+                    padding:14px 25px;
+                    background:#0d6efd;
+                    color:white;
+                    text-decoration:none;
+                    border-radius:8px;
+                   ">
+
+                    Envoyer mes documents
+
+                </a>
+
+            </p>
+
+            <p style="font-size:12px;color:#777;">
+                Ce lien est personnel. Ne le partagez pas.
+            </p>
+
+        </div>
+
+    </body>
+    </html>
+    """
+
+    payload = {
+        "sender": {
+            "name": from_name,
+            "email": from_email
+        },
+        "to": [
+            {
+                "email": client.email,
+                "name": f"{client.prenom} {client.nom}"
+            }
+        ],
+        "subject": "GMES Microcrédit - Documents requis",
+        "htmlContent": html_content
+    }
+
+    response = requests.post(
+        "https://api.brevo.com/v3/smtp/email",
+        headers={
+            "accept": "application/json",
+            "api-key": api_key,
+            "content-type": "application/json"
+        },
+        json=payload,
+        timeout=20
+    )
+
+    if response.status_code not in [200, 201, 202]:
+
+        print(
+            "BREVO STATUS:",
+            response.status_code
+        )
+
+        print(
+            "BREVO RESPONSE:",
+            response.text
+        )
+
+        raise Exception(
+            f"Brevo erreur {response.status_code}"
+        )
+
+    print(
+        "✅ Email demande documents envoyé"
+    )

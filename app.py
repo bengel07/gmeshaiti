@@ -54,8 +54,7 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.pdfgen import canvas
 
 
-from emails import envoyer_email_activation_client
-
+from emails import envoyer_email_activation_client, envoyer_email_demande_documents
 
 # ==================== QR / IMAGE ====================
 import qrcode
@@ -364,6 +363,14 @@ caissier_bp = Blueprint(
 @app.route('/')
 def accueil():
     return "Bienvenue sur GMES"
+
+def document_extension_autorisee(filename):
+    return (
+        '.' in filename
+        and filename.rsplit('.', 1)[1].lower()
+        in ALLOWED_DOCUMENT_EXTENSIONS
+    )
+
 
 
 def compare_faces(id_image_path, selfie_image_path):
@@ -29767,18 +29774,387 @@ def verifier_id_number():
 @app.route('/conseiller/documents/<int:id>')
 @login_required
 def conseiller_documents(id):
-    from models import Client, Document
 
-    # Récupérer le client/dossier
+    from models import (
+        Client,
+        Document,
+        DemandeDocument
+    )
+
     dossier = Client.query.get_or_404(id)
 
-    # Récupérer tous ses documents
-    documents = Document.get_by_client(dossier.id)
+    documents = Document.get_by_client(
+        dossier.id
+    )
+
+    demandes = DemandeDocument.query.filter_by(
+        client_id=dossier.id
+    ).order_by(
+        DemandeDocument.date_creation.desc()
+    ).all()
 
     return render_template(
         'employees/conseiller_documents.html',
         dossier=dossier,
-        documents=documents
+        documents=documents,
+        demandes=demandes
+    )
+
+
+
+@app.route(
+    '/conseiller/documents/demander/<int:client_id>',
+    methods=['POST']
+)
+@login_required
+def demander_documents(client_id):
+
+    from models import (
+        Client,
+        DemandeDocument,
+        DemandeDocumentItem
+    )
+
+    client = Client.query.get_or_404(client_id)
+
+    types_documents = request.form.getlist(
+        'documents'
+    )
+
+    message = request.form.get(
+        'message',
+        ''
+    ).strip()
+
+    if not types_documents:
+        flash(
+            'Veuillez sélectionner au moins un document.',
+            'warning'
+        )
+
+        return redirect(
+            url_for(
+                'conseiller_documents',
+                id=client.id
+            )
+        )
+
+    demande = DemandeDocument(
+        client_id=client.id,
+        employe_id=current_user.id,
+        message=message,
+        statut='en attente'
+    )
+
+    db.session.add(demande)
+    db.session.flush()
+
+    descriptions = {
+        'cin': 'Carte d’identité nationale',
+        'passeport': 'Passeport',
+        'permis': 'Permis de conduire',
+        'domicile': 'Attestation de domicile',
+        'professionnel': 'Document professionnel',
+        'financier': 'Document financier'
+    }
+
+    categories = {
+        'cin': 'identite',
+        'passeport': 'identite',
+        'permis': 'identite',
+        'domicile': 'domicile',
+        'professionnel': 'professionnel',
+        'financier': 'financier'
+    }
+
+    for type_document in types_documents:
+
+        item = DemandeDocumentItem(
+            demande_id=demande.id,
+            type_document=type_document,
+            categorie=categories.get(
+                type_document,
+                'identite'
+            ),
+            description=descriptions.get(
+                type_document,
+                type_document
+            ),
+            statut='en attente'
+        )
+
+        db.session.add(item)
+
+    db.session.commit()
+
+    # Envoyer le mail
+    try:
+
+        lien = url_for(
+            'client_deposer_documents',
+            token=demande.token,
+            _external=True
+        )
+
+        envoyer_email_demande_documents(
+            client,
+            demande,
+            lien
+        )
+
+        demande.statut = 'envoyée'
+        demande.date_envoi = datetime.utcnow()
+
+        db.session.commit()
+
+        flash(
+            '✅ La demande de documents a été envoyée au client.',
+            'success'
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        print(
+            "❌ Erreur envoi demande documents:",
+            e
+        )
+
+        flash(
+            '❌ La demande a été créée mais le courriel n’a pas pu être envoyé.',
+            'danger'
+        )
+
+    return redirect(
+        url_for(
+            'conseiller_documents',
+            id=client.id
+        )
+    )
+
+
+@app.route(
+    '/client/documents/<token>',
+    methods=['GET', 'POST']
+)
+@csrf.exempt
+def client_deposer_documents(token):
+
+    from models import (
+        DemandeDocument,
+        Document
+    )
+
+    demande = DemandeDocument.query.filter_by(
+        token=token
+    ).first_or_404()
+
+    if request.method == 'POST':
+
+        fichiers_reçus = 0
+
+        for item in demande.items:
+
+            field_name = f'document_{item.id}'
+
+            fichier = request.files.get(
+                field_name
+            )
+
+            if not fichier:
+                continue
+
+            if not fichier.filename:
+                continue
+
+            if not document_extension_autorisee(
+                fichier.filename
+            ):
+                flash(
+                    f'Format non autorisé pour {item.description}.',
+                    'danger'
+                )
+                continue
+
+            filename_original = secure_filename(
+                fichier.filename
+            )
+
+            extension = ''
+
+            if '.' in filename_original:
+                extension = filename_original.rsplit(
+                    '.',
+                    1
+                )[1].lower()
+
+            nouveau_nom = (
+                f"{uuid.uuid4().hex}.{extension}"
+            )
+
+            chemin = os.path.join(
+                app.config['UPLOAD_FOLDER'],
+                nouveau_nom
+            )
+
+            fichier.save(chemin)
+
+            taille = os.path.getsize(
+                chemin
+            )
+
+            document = Document(
+                employe_id=demande.employe_id,
+                client_id=demande.client_id,
+                demande_item_id=item.id,
+                type_document=item.type_document,
+                categorie=item.categorie,
+                nom=item.description,
+                filename=filename_original,
+                file_path=chemin,
+                file_size=taille,
+                mime_type=fichier.mimetype,
+                statut='reçu',
+                est_verifie=False
+            )
+
+            db.session.add(document)
+
+            item.statut = 'reçu'
+            item.date_reception = datetime.utcnow()
+
+            fichiers_reçus += 1
+
+        # Vérifier si tout a été reçu
+        tous_recus = all(
+            item.statut == 'reçu'
+            for item in demande.items
+        )
+
+        if tous_recus:
+            demande.statut = 'reçu'
+            demande.date_completion = datetime.utcnow()
+
+        db.session.commit()
+
+        if fichiers_reçus:
+            return render_template(
+                'employees/documents_envoyes.html',
+                demande=demande
+            )
+
+        flash(
+            'Aucun document reçu.',
+            'warning'
+        )
+
+    return render_template(
+        'employees/client_deposer_documents.html',
+        demande=demande
+    )
+
+
+@app.route(
+    '/conseiller/document/<int:document_id>'
+)
+@login_required
+def ouvrir_document(document_id):
+
+    from models import Document
+
+    document = Document.query.get_or_404(
+        document_id
+    )
+
+    return send_file(
+        document.file_path,
+        mimetype=document.mime_type,
+        as_attachment=False,
+        download_name=document.filename
+    )
+
+@app.route(
+    '/conseiller/document/<int:document_id>/verifier',
+    methods=['POST']
+)
+@login_required
+def verifier_document(document_id):
+
+    from models import Document
+
+    document = Document.query.get_or_404(
+        document_id
+    )
+
+    decision = request.form.get(
+        'decision'
+    )
+
+    commentaire = request.form.get(
+        'commentaire',
+        ''
+    ).strip()
+
+    if decision == 'valide':
+
+        document.est_verifie = True
+        document.statut = 'vérifié'
+        document.verified_by = current_user.id
+        document.date_verification = datetime.utcnow()
+        document.commentaire_verification = commentaire
+
+    elif decision == 'rejete':
+
+        document.est_verifie = False
+        document.statut = 'rejeté'
+        document.verified_by = current_user.id
+        document.date_verification = datetime.utcnow()
+        document.commentaire_verification = commentaire
+
+    else:
+
+        flash(
+            'Décision invalide.',
+            'danger'
+        )
+
+        return redirect(
+            url_for(
+                'conseiller_documents',
+                id=document.client_id
+            )
+        )
+
+    # Mettre à jour l'élément de demande
+    if document.demande_item:
+
+        document.demande_item.statut = (
+            'vérifié'
+            if decision == 'valide'
+            else 'rejeté'
+        )
+
+        document.demande_item.date_verification = (
+            datetime.utcnow()
+        )
+
+        document.demande_item.commentaire = (
+            commentaire
+        )
+
+    db.session.commit()
+
+    flash(
+        '✅ Document mis à jour.',
+        'success'
+    )
+
+    return redirect(
+        url_for(
+            'conseiller_documents',
+            id=document.client_id
+        )
     )
 
 # === FONCTION D'INITIALISATION DE LA BASE ===

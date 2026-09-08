@@ -1,4 +1,4 @@
-
+import secrets
 
 # import sys
 #
@@ -5696,6 +5696,47 @@ class Document(db.Model):
     client = db.relationship('Client', foreign_keys=[client_id], backref='documents')
     verificateur = db.relationship('User', foreign_keys=[verified_by], backref='documents_verifies')
 
+    token = db.Column(
+        db.String(100),
+        unique=True,
+        nullable=False,
+        default=lambda: secrets.token_urlsafe(48)
+    )
+
+    message = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    statut = db.Column(
+        db.String(30),
+        default='en attente',
+        nullable=False
+    )
+
+    date_creation = db.Column(
+        db.DateTime,
+        default=datetime.utcnow
+    )
+
+    date_envoi = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
+    date_completion = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
+
+    demande_item_id = db.Column(
+        db.Integer,
+        db.ForeignKey('demande_documents_items.id'),
+        nullable=True
+    )
+
+
     def __repr__(self):
         return f'<Document {self.id}: {self.type_document} - {self.nom}>'
 
@@ -5811,6 +5852,119 @@ class Document(db.Model):
         self.date_expiration_notification = datetime.now()
         db.session.commit()
 
+
+class DemandeDocumentItem(db.Model):
+    __tablename__ = 'demande_documents_items'
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    demande_id = db.Column(
+        db.Integer,
+        db.ForeignKey('demande_documents.id'),
+        nullable=False
+    )
+
+    type_document = db.Column(
+        db.String(50),
+        nullable=False
+    )
+
+    categorie = db.Column(
+        db.String(30),
+        default='identite'
+    )
+
+    description = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
+    statut = db.Column(
+        db.String(30),
+        default='en attente',
+        nullable=False
+    )
+
+    date_reception = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
+    date_verification = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
+    commentaire = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+class DemandeDocument(db.Model):
+    __tablename__ = 'demande_documents'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    client_id = db.Column(
+        db.Integer,
+        db.ForeignKey('clients.id'),
+        nullable=False
+    )
+
+    employe_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=False
+    )
+
+    token = db.Column(
+        db.String(100),
+        unique=True,
+        nullable=False,
+        default=lambda: secrets.token_urlsafe(48)
+    )
+
+    message = db.Column(db.Text, nullable=True)
+
+    statut = db.Column(
+        db.String(30),
+        default='en attente',
+        nullable=False
+    )
+
+    date_creation = db.Column(
+        db.DateTime,
+        default=datetime.utcnow
+    )
+
+    date_envoi = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
+    date_completion = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
+    client = db.relationship(
+        'Client',
+        backref='demandes_documents'
+    )
+
+    employe = db.relationship(
+        'User',
+        backref='demandes_documents_creees'
+    )
+
+    items = db.relationship(
+        'DemandeDocumentItem',
+        backref='demande',
+        cascade='all, delete-orphan'
+    )
 
 class VerificationAnnuelle(db.Model):
     __tablename__ = 'verifications_annuelles'

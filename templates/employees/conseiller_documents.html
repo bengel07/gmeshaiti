@@ -1,11 +1,17 @@
 ```html
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Documents - {{ dossier.prenom }} {{ dossier.nom }}</title>
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>
+        Documents - {{ dossier.prenom }} {{ dossier.nom }}
+    </title>
 
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
@@ -18,14 +24,15 @@
     >
 
     <style>
+
         body {
             background: #f5f7fa;
         }
 
-        .page-container {
+        .container-page {
             max-width: 1200px;
             margin: 35px auto;
-            padding: 0 20px;
+            padding: 20px;
         }
 
         .card-box {
@@ -33,112 +40,91 @@
             border-radius: 15px;
             padding: 25px;
             margin-bottom: 25px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, .08);
+            box-shadow: 0 4px 15px rgba(0,0,0,.07);
+        }
+
+        .document-item {
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 12px;
+        }
+
+        .document-icon {
+            font-size: 25px;
+            width: 50px;
         }
 
         .client-name {
             font-size: 26px;
-            font-weight: 700;
+            font-weight: bold;
         }
 
-        .document-item {
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 18px;
-            margin-bottom: 15px;
+        .status {
+            font-weight: bold;
         }
 
-        .document-icon {
-            width: 55px;
-            height: 55px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #eef2ff;
-            font-size: 25px;
-            margin-right: 15px;
-        }
-
-        .document-header {
-            display: flex;
-            align-items: center;
-        }
-
-        .document-name {
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        .document-meta {
-            color: #6c757d;
-            font-size: 14px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #777;
-        }
-
-        .empty-state i {
-            font-size: 55px;
-            margin-bottom: 20px;
-        }
     </style>
+
 </head>
 
 <body>
 
-<div class="page-container">
+<div class="container-page">
 
-    <!-- RETOUR -->
-    <a href="javascript:history.back()" class="btn btn-outline-secondary mb-3">
+    <a href="javascript:history.back()"
+       class="btn btn-outline-secondary mb-3">
+
         <i class="fas fa-arrow-left"></i>
         Retour
+
     </a>
 
 
-    <!-- INFORMATIONS CLIENT -->
+    <!-- CLIENT -->
+
     <div class="card-box">
 
         <div class="client-name">
-            {{ dossier.prenom }} {{ dossier.nom }}
+
+            {{ dossier.prenom }}
+            {{ dossier.nom }}
+
         </div>
 
-        <div class="text-muted mb-4">
+        <div class="text-muted">
+
             Client :
-            <strong>{{ dossier.id_client or dossier.id }}</strong>
+            {{ dossier.id_client or dossier.id }}
+
         </div>
+
+        <hr>
 
         <div class="row">
 
-            <div class="col-md-3">
-                <small class="text-muted">Téléphone</small>
-                <div>
-                    {{ dossier.telephone or 'Non renseigné' }}
-                </div>
+            <div class="col-md-4">
+
+                <strong>Téléphone</strong><br>
+
+                {{ dossier.telephone or 'Non renseigné' }}
+
             </div>
 
-            <div class="col-md-3">
-                <small class="text-muted">Email</small>
-                <div>
-                    {{ dossier.email or 'Non renseigné' }}
-                </div>
+            <div class="col-md-4">
+
+                <strong>Email</strong><br>
+
+                {{ dossier.email or 'Non renseigné' }}
+
             </div>
 
-            <div class="col-md-3">
-                <small class="text-muted">CIN</small>
-                <div>
-                    {{ dossier.cin or 'Non renseigné' }}
-                </div>
-            </div>
+            <div class="col-md-4">
 
-            <div class="col-md-3">
-                <small class="text-muted">Statut</small>
-                <div>
-                    {{ dossier.statut or 'Non renseigné' }}
-                </div>
+                <strong>CIN</strong><br>
+
+                {{ dossier.cin or 'Non renseigné' }}
+
             </div>
 
         </div>
@@ -146,21 +132,255 @@
     </div>
 
 
-    <!-- DOCUMENTS -->
+    <!-- DEMANDER DOCUMENTS -->
+
     <div class="card-box">
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>
 
-            <h3 class="mb-0">
-                <i class="fas fa-folder-open"></i>
-                Documents du dossier
-            </h3>
+            <i class="fas fa-file-circle-plus"></i>
 
-            <span class="badge bg-primary">
-                {{ documents|length }} document(s)
-            </span>
+            Demander des documents
 
-        </div>
+        </h3>
+
+        <p class="text-muted">
+
+            Sélectionnez les documents que le client doit fournir.
+
+        </p>
+
+
+        <form method="POST"
+              action="{{ url_for(
+                  'demander_documents',
+                  client_id=dossier.id
+              ) }}">
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+            >
+
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+
+                    <div class="form-check">
+
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            name="documents"
+                            value="cin"
+                            id="doc_cin"
+                        >
+
+                        <label
+                            class="form-check-label"
+                            for="doc_cin"
+                        >
+
+                            <i class="fas fa-id-card"></i>
+
+                            Carte d'identité nationale
+
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-6 mb-3">
+
+                    <div class="form-check">
+
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            name="documents"
+                            value="passeport"
+                            id="doc_passport"
+                        >
+
+                        <label
+                            class="form-check-label"
+                            for="doc_passport"
+                        >
+
+                            <i class="fas fa-passport"></i>
+
+                            Passeport
+
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-6 mb-3">
+
+                    <div class="form-check">
+
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            name="documents"
+                            value="permis"
+                            id="doc_permis"
+                        >
+
+                        <label
+                            class="form-check-label"
+                            for="doc_permis"
+                        >
+
+                            <i class="fas fa-id-card"></i>
+
+                            Permis de conduire
+
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-6 mb-3">
+
+                    <div class="form-check">
+
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            name="documents"
+                            value="domicile"
+                            id="doc_domicile"
+                        >
+
+                        <label
+                            class="form-check-label"
+                            for="doc_domicile"
+                        >
+
+                            <i class="fas fa-house"></i>
+
+                            Attestation de domicile
+
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-6 mb-3">
+
+                    <div class="form-check">
+
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            name="documents"
+                            value="professionnel"
+                            id="doc_professionnel"
+                        >
+
+                        <label
+                            class="form-check-label"
+                            for="doc_professionnel"
+                        >
+
+                            <i class="fas fa-briefcase"></i>
+
+                            Document professionnel
+
+                        </label>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-6 mb-3">
+
+                    <div class="form-check">
+
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            name="documents"
+                            value="financier"
+                            id="doc_financier"
+                        >
+
+                        <label
+                            class="form-check-label"
+                            for="doc_financier"
+                        >
+
+                            <i class="fas fa-money-bill"></i>
+
+                            Document financier
+
+                        </label>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="mb-3">
+
+                <label class="form-label">
+
+                    Message au client
+
+                </label>
+
+                <textarea
+                    name="message"
+                    class="form-control"
+                    rows="4"
+                    placeholder="Expliquez au client pourquoi ces documents sont nécessaires..."
+                ></textarea>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+
+                <i class="fas fa-paper-plane"></i>
+
+                Envoyer la demande au client
+
+            </button>
+
+        </form>
+
+    </div>
+
+
+    <!-- DOCUMENTS RECUS -->
+
+    <div class="card-box">
+
+        <h3>
+
+            <i class="fas fa-folder-open"></i>
+
+            Documents reçus
+
+        </h3>
 
 
         {% if documents %}
@@ -171,34 +391,35 @@
 
                     <div class="row align-items-center">
 
-                        <!-- INFORMATIONS -->
                         <div class="col-md-7">
 
-                            <div class="document-header">
+                            <div class="d-flex align-items-center">
 
                                 <div class="document-icon">
+
                                     <i class="fas {{ document.icone }}"></i>
+
                                 </div>
 
                                 <div>
 
-                                    <div class="document-name">
+                                    <strong>
+
                                         {{ document.nom }}
-                                    </div>
 
-                                    <div class="document-meta">
+                                    </strong>
+
+                                    <br>
+
+                                    <small class="text-muted">
+
                                         {{ document.type_document }}
-                                        {% if document.categorie %}
-                                            • {{ document.categorie }}
-                                        {% endif %}
-                                    </div>
 
-                                    {% if document.filename %}
-                                        <div class="document-meta">
-                                            <i class="fas fa-file"></i>
-                                            {{ document.filename }}
-                                        </div>
-                                    {% endif %}
+                                        {% if document.filename %}
+                                            · {{ document.filename }}
+                                        {% endif %}
+
+                                    </small>
 
                                 </div>
 
@@ -207,81 +428,57 @@
                         </div>
 
 
-                        <!-- INFORMATIONS SUPPLEMENTAIRES -->
                         <div class="col-md-3">
 
-                            {% if document.numero %}
-                                <div>
-                                    <small class="text-muted">Numéro</small><br>
-                                    <strong>{{ document.numero }}</strong>
-                                </div>
-                            {% endif %}
+                            {% if document.statut == 'vérifié' %}
 
-                            {% if document.date_expiration %}
-                                <div class="mt-2">
+                                <span class="badge bg-success">
 
-                                    <small class="text-muted">
-                                        Expiration
-                                    </small><br>
+                                    <i class="fas fa-check"></i>
 
-                                    {% set expiration = document.statut_expiration %}
+                                    Vérifié
 
-                                    <span class="badge bg-{{ expiration.couleur }}">
-                                        {{ expiration.texte }}
-                                    </span>
+                                </span>
 
-                                </div>
+                            {% elif document.statut == 'rejeté' %}
+
+                                <span class="badge bg-danger">
+
+                                    Rejeté
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge bg-info">
+
+                                    Reçu
+
+                                </span>
+
                             {% endif %}
 
                         </div>
 
 
-                        <!-- ACTIONS -->
                         <div class="col-md-2 text-end">
 
-                            {% if document.file_path %}
+                            <a
+                                href="{{ url_for(
+                                    'ouvrir_document',
+                                    document_id=document.id
+                                ) }}"
+                                target="_blank"
+                                class="btn btn-sm btn-primary"
+                            >
 
-                                <a
-                                    href="{{ document.file_path }}"
-                                    target="_blank"
-                                    class="btn btn-primary"
-                                >
-                                    <i class="fas fa-eye"></i>
-                                    Voir
-                                </a>
+                                <i class="fas fa-eye"></i>
 
-                            {% endif %}
+                                Voir
+
+                            </a>
 
                         </div>
-
-                    </div>
-
-
-                    <!-- VERIFICATION -->
-                    <div class="mt-3">
-
-                        {% if document.est_verifie %}
-
-                            <span class="badge bg-success">
-                                <i class="fas fa-check-circle"></i>
-                                Vérifié
-                            </span>
-
-                        {% else %}
-
-                            <span class="badge bg-warning text-dark">
-                                <i class="fas fa-clock"></i>
-                                En attente de vérification
-                            </span>
-
-                        {% endif %}
-
-                        {% if document.date_upload %}
-                            <small class="text-muted ms-2">
-                                Ajouté le
-                                {{ document.date_upload.strftime('%d/%m/%Y à %H:%M') }}
-                            </small>
-                        {% endif %}
 
                     </div>
 
@@ -291,15 +488,17 @@
 
         {% else %}
 
-            <div class="empty-state">
+            <div class="text-center text-muted py-5">
 
-                <i class="fas fa-folder-open"></i>
+                <i
+                    class="fas fa-folder-open fa-3x mb-3"
+                ></i>
 
-                <h4>Aucun document</h4>
+                <h5>
 
-                <p>
-                    Aucun document n'est enregistré pour ce dossier.
-                </p>
+                    Aucun document reçu
+
+                </h5>
 
             </div>
 
@@ -307,8 +506,153 @@
 
     </div>
 
+
+    <!-- DEMANDES PRECEDENTES -->
+
+    {% if demandes %}
+
+    <div class="card-box">
+
+        <h3>
+
+            <i class="fas fa-clock-rotate-left"></i>
+
+            Demandes précédentes
+
+        </h3>
+
+
+        {% for demande in demandes %}
+
+            <div class="border rounded p-3 mb-3">
+
+                <div class="d-flex justify-content-between">
+
+                    <strong>
+
+                        Demande #{{ demande.id }}
+
+                    </strong>
+
+                    <span class="badge bg-secondary">
+
+                        {{ demande.statut }}
+
+                    </span>
+
+                </div>
+
+                <small class="text-muted">
+
+                    {{ demande.date_creation.strftime('%d/%m/%Y %H:%M') }}
+
+                </small>
+
+                <div class="mt-2">
+
+                    {% for item in demande.items %}
+
+                        <span class="badge bg-light text-dark">
+
+                            {{ item.description }}
+
+                            :
+
+                            {{ item.statut }}
+
+                        </span>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        {% endfor %}
+
+        {% if document.statut == 'reçu' %}
+
+        <div class="mt-3">
+
+            <form
+                method="POST"
+                action="{{ url_for(
+                    'verifier_document',
+                    document_id=document.id
+                ) }}"
+                class="d-inline"
+            >
+
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="{{ csrf_token() }}"
+                >
+
+                <input
+                    type="hidden"
+                    name="decision"
+                    value="valide"
+                >
+
+                <button
+                    type="submit"
+                    class="btn btn-success btn-sm"
+                >
+
+                    <i class="fas fa-check"></i>
+
+                    Vérifier
+
+                </button>
+
+            </form>
+
+
+            <form
+                method="POST"
+                action="{{ url_for(
+                    'verifier_document',
+                    document_id=document.id
+                ) }}"
+                class="d-inline"
+            >
+
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="{{ csrf_token() }}"
+                >
+
+                <input
+                    type="hidden"
+                    name="decision"
+                    value="rejete"
+                >
+
+                <button
+                    type="submit"
+                    class="btn btn-danger btn-sm"
+                >
+
+                    <i class="fas fa-times"></i>
+
+                    Rejeter
+
+                </button>
+
+            </form>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+    {% endif %}
+
 </div>
 
 </body>
 </html>
-```
+
