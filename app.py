@@ -4991,6 +4991,640 @@ def directeur_voir_dossier(dossier_id):
     return render_template('direction/voir_dossier.html', dossier=dossier, client=client)
 
 
+
+```python
+@app.route('/direction/modifier-dossier/<int:dossier_id>', methods=['POST'])
+@login_required
+def directeur_modifier_dossier(dossier_id):
+    """Modifier un dossier par le directeur"""
+
+    # =========================
+    # VÉRIFICATION DU RÔLE
+    # =========================
+    if current_user.role not in ['direction', 'admin_succursale', 'super_admin']:
+        flash('⛔ Accès non autorisé', 'danger')
+        return redirect(url_for('connexion'))
+
+    dossier = Client.query.get_or_404(dossier_id)
+    action = request.form.get('action')
+
+    try:
+        # =========================
+        # INFORMATIONS CLIENT
+        # =========================
+        dossier.prenom = request.form.get('prenom')
+        dossier.nom = request.form.get('nom')
+        dossier.email = request.form.get('email')
+        dossier.telephone = request.form.get('telephone')
+        dossier.adresse = request.form.get('adresse')
+        dossier.ville = request.form.get('ville')
+        dossier.code_postal = request.form.get('code_postal')
+        dossier.cin = request.form.get('cin')
+        dossier.profession = request.form.get('profession')
+        dossier.sexe = request.form.get('sexe')
+
+        # =========================
+        # DATE DE NAISSANCE
+        # =========================
+        date_naissance = request.form.get('date_naissance')
+
+        if date_naissance:
+            dossier.date_naissance = datetime.strptime(
+                date_naissance,
+                '%Y-%m-%d'
+            )
+
+        # =========================
+        # INFORMATIONS FINANCIÈRES
+        # =========================
+        dossier.revenu_mensuel = float(
+            request.form.get('revenu_mensuel') or 0
+        )
+
+        dossier.depenses_mensuelles = float(
+            request.form.get('depenses_mensuelles') or 0
+        )
+
+        dossier.capacite_remboursement = float(
+            request.form.get('capacite_remboursement') or 0
+        )
+
+        # =========================
+        # GESTION DES PHOTOS CLIENT
+        # =========================
+        from werkzeug.utils import secure_filename
+        import os
+        import time
+
+        upload_folder = os.path.join(
+            app.root_path,
+            'static',
+            'uploads',
+            'clients'
+        )
+
+        os.makedirs(upload_folder, exist_ok=True)
+
+        # -------------------------
+        # PHOTO FACE
+        # -------------------------
+        if 'photo_face' in request.files:
+            file = request.files['photo_face']
+
+            if file and file.filename:
+                filename = secure_filename(
+                    f"face_{dossier.id}_{int(time.time())}.jpg"
+                )
+
+                file_path = os.path.join(
+                    upload_folder,
+                    filename
+                )
+
+                file.save(file_path)
+                dossier.photo_face = filename
+
+        # -------------------------
+        # PHOTO DOS
+        # -------------------------
+        if 'photo_dos' in request.files:
+            file = request.files['photo_dos']
+
+            if file and file.filename:
+                filename = secure_filename(
+                    f"dos_{dossier.id}_{int(time.time())}.jpg"
+                )
+
+                file_path = os.path.join(
+                    upload_folder,
+                    filename
+                )
+
+                file.save(file_path)
+                dossier.photo_dos = filename
+
+        # -------------------------
+        # SELFIE
+        # -------------------------
+        if 'selfie_reference' in request.files:
+            file = request.files['selfie_reference']
+
+            if file and file.filename:
+                filename = secure_filename(
+                    f"selfie_{dossier.id}_{int(time.time())}.jpg"
+                )
+
+                file_path = os.path.join(
+                    upload_folder,
+                    filename
+                )
+
+                file.save(file_path)
+                dossier.selfie_reference = filename
+
+        # =========================
+        # ACTION : SAUVEGARDER
+        # =========================
+        if action == "save":
+
+            db.session.commit()
+
+            flash(
+                "✅ Modifications enregistrées avec succès.",
+                "success"
+            )
+
+        # =========================
+        # ACTION :
+        # SAUVEGARDER + ENVOYER
+        # LES NOUVELLES CONDITIONS
+        # =========================
+        elif action == "save_send_terms":
+
+            # Le client doit accepter à nouveau
+            dossier.terms_accepted = False
+
+            # Nouveau statut
+            dossier.statut = "en_attente_terms"
+
+            # Date d'envoi
+            dossier.date_envoi_terms = datetime.now()
+
+            # Sauvegarder les modifications AVANT l'envoi
+            db.session.commit()
+
+            # =========================
+            # ENVOI EMAIL
+            # =========================
+            email_envoye = envoyer_email_conditions(dossier)
+
+            if email_envoye:
+
+                flash(
+                    "✅ Dossier modifié et nouvelles conditions "
+                    "envoyées au client.",
+                    "success"
+                )
+
+            else:
+
+                flash(
+                    "⚠️ Dossier modifié, mais l'email n'a pas été envoyé.",
+                    "warning"
+                )
+
+        # =========================
+        # ACTION INCONNUE
+        # =========================
+        else:
+
+            flash(
+                "⚠️ Aucune action valide n'a été sélectionnée.",
+                "warning"
+            )
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        print(
+            f"❌ Erreur modification dossier {dossier_id} : {e}"
+        )
+
+        flash(
+            f"❌ Erreur : {str(e)}",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                'directeur_voir_dossier',
+                dossier_id=dossier.id
+            )
+        )
+
+    return redirect(
+        url_for(
+            'directeur_voir_dossier',
+            dossier_id=dossier.id
+        )
+    )
+
+
+# ============================================================
+# ENVOYER / RENVOYER LES CONDITIONS PAR EMAIL
+# ============================================================
+
+def envoyer_email_conditions2(client):
+    """
+    Génère un nouveau token de signature et envoie
+    le lien au client par Brevo.
+
+    Retourne :
+        True  = email accepté par Brevo
+        False = erreur d'envoi
+    """
+
+    import requests
+    import os
+
+    try:
+
+        # ====================================================
+        # VÉRIFICATIONS DE BASE
+        # ====================================================
+
+        if not client.email:
+            print("❌ Aucun email pour ce client.")
+            return False
+
+        if client.statut != 'en_attente_terms':
+            print(
+                f"❌ Statut incorrect pour l'envoi : "
+                f"{client.statut}"
+            )
+            return False
+
+        # ====================================================
+        # GÉNÉRER UN NOUVEAU TOKEN
+        # ====================================================
+
+        from itsdangerous import URLSafeTimedSerializer
+
+        serializer = URLSafeTimedSerializer(
+            app.config['SECRET_KEY']
+        )
+
+        nouveau_token = serializer.dumps(
+            client.id,
+            salt="terms-accept"
+        )
+
+        # ====================================================
+        # CONSTRUIRE LE LIEN
+        # ====================================================
+
+        APP_URL = os.environ.get(
+            "APP_URL",
+            "https://gmeshaiti-aeo3.onrender.com"
+        ).rstrip("/")
+
+        lien_terms = (
+            f"{APP_URL}/client/terms/{nouveau_token}"
+        )
+
+        # Sauvegarder le nouveau token
+        client.token_signature = nouveau_token
+
+        db.session.commit()
+
+        # ====================================================
+        # CONFIGURATION BREVO
+        # ====================================================
+
+        BREVO_API_KEY = os.environ.get(
+            'BREVO_API_KEY'
+        )
+
+        FROM_EMAIL = os.environ.get(
+            'FROM_EMAIL',
+            'gmeshaiti@gmail.com'
+        )
+
+        FROM_NAME = os.environ.get(
+            'FROM_NAME',
+            'GMES Microcrédit'
+        )
+
+        # ====================================================
+        # VÉRIFIER LA CLÉ BREVO
+        # ====================================================
+
+        if not BREVO_API_KEY:
+
+            print(
+                "❌ BREVO_API_KEY est manquante."
+            )
+
+            return False
+
+        # ====================================================
+        # CONTENU HTML
+        # ====================================================
+
+        html = f"""
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+            <meta charset="UTF-8">
+
+            <meta name="viewport"
+                  content="width=device-width, initial-scale=1.0">
+
+            <title>GMES - Conditions générales</title>
+        </head>
+
+        <body style="
+            margin:0;
+            padding:0;
+            background:#f4f6f8;
+            font-family:Arial,Helvetica,sans-serif;
+        ">
+
+            <div style="
+                max-width:600px;
+                margin:30px auto;
+                background:#ffffff;
+                border-radius:10px;
+                overflow:hidden;
+                box-shadow:0 2px 10px rgba(0,0,0,0.08);
+            ">
+
+                <div style="
+                    background:#4361ee;
+                    color:white;
+                    padding:25px;
+                    text-align:center;
+                ">
+
+                    <h1 style="margin:0;">
+                        GMES Microcrédit
+                    </h1>
+
+                    <p style="margin:10px 0 0;">
+                        GMES youn sipote lot
+                    </p>
+
+                </div>
+
+                <div style="padding:30px;">
+
+                    <h2>
+                        Bonjour {client.prenom} {client.nom},
+                    </h2>
+
+                    <p>
+                        Vos informations ont été mises à jour
+                        par GMES Microcrédit.
+                    </p>
+
+                    <p>
+                        De nouvelles conditions vous ont été
+                        préparées. Veuillez consulter et accepter
+                        les conditions générales en utilisant
+                        le bouton ci-dessous.
+                    </p>
+
+                    <div style="
+                        text-align:center;
+                        margin:30px 0;
+                    ">
+
+                        <a href="{lien_terms}"
+                           style="
+                               display:inline-block;
+                               padding:14px 25px;
+                               background:#4361ee;
+                               color:#ffffff;
+                               text-decoration:none;
+                               border-radius:6px;
+                               font-weight:bold;
+                           ">
+
+                            Consulter et accepter les conditions
+
+                        </a>
+
+                    </div>
+
+                    <p style="
+                        font-size:13px;
+                        color:#666;
+                    ">
+
+                        Si le bouton ne fonctionne pas, copiez
+                        et collez ce lien dans votre navigateur :
+
+                    </p>
+
+                    <p style="
+                        font-size:12px;
+                        word-break:break-all;
+                        color:#4361ee;
+                    ">
+
+                        {lien_terms}
+
+                    </p>
+
+                    <p>
+                        Merci de votre confiance.
+                    </p>
+
+                    <p>
+                        <strong>
+                            GMES Microcrédit
+                        </strong>
+                    </p>
+
+                </div>
+
+            </div>
+
+        </body>
+        </html>
+        """
+
+        # ====================================================
+        # ENVOI BREVO
+        # ====================================================
+
+        url = "https://api.brevo.com/v3/smtp/email"
+
+        headers = {
+            "api-key": BREVO_API_KEY,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+
+        data = {
+            "sender": {
+                "name": FROM_NAME,
+                "email": FROM_EMAIL
+            },
+
+            "to": [
+                {
+                    "email": client.email,
+                    "name": (
+                        f"{client.prenom} {client.nom}"
+                    )
+                }
+            ],
+
+            "subject":
+                "GMES - Nouvelles conditions générales",
+
+            "htmlContent": html
+        }
+
+        # ====================================================
+        # REQUÊTE BREVO
+        # ====================================================
+
+        response = requests.post(
+            url,
+            json=data,
+            headers=headers,
+            timeout=30
+        )
+
+        # ====================================================
+        # LOGS
+        # ====================================================
+
+        print(
+            "📤 FROM :",
+            FROM_EMAIL
+        )
+
+        print(
+            "📥 TO :",
+            client.email
+        )
+
+        print(
+            "📨 BREVO STATUS :",
+            response.status_code
+        )
+
+        print(
+            "📨 BREVO RESPONSE :",
+            response.text
+        )
+
+        # ====================================================
+        # VÉRIFIER SI BREVO A ACCEPTÉ L'EMAIL
+        # ====================================================
+
+        email_envoye = False
+
+        if response.status_code in [200, 201]:
+
+            email_envoye = True
+
+            print(
+                "✅ Brevo a accepté l'email."
+            )
+
+        else:
+
+            print(
+                "❌ Brevo a refusé l'email."
+            )
+
+        # ====================================================
+        # CRÉATION DE LA NOTIFICATION
+        # ====================================================
+
+        from datetime import datetime, timedelta
+        from models import Notification, Action
+
+        action_defaut = Action.query.first()
+
+        if not action_defaut:
+
+            action_defaut = Action(
+                titre="Action système",
+                assignee_a_id=current_user.id,
+                creee_par_id=current_user.id,
+                date_echeance=(
+                    datetime.now() +
+                    timedelta(days=30)
+                ),
+                type_action='tache',
+                priorite='moyenne',
+                statut='a_faire',
+                progression=0
+            )
+
+            db.session.add(action_defaut)
+
+            db.session.flush()
+
+        nouvelle_notification = Notification(
+
+            employe_id=current_user.id,
+
+            acteur_id=current_user.id,
+
+            client_id=client.id,
+
+            titre="🔔 Nouveau lien de signature",
+
+            message=(
+                f"Bonjour {client.prenom}, "
+                f"voici votre nouveau lien pour signer "
+                f"vos conditions : {lien_terms}"
+            ),
+
+            type_notification='terms',
+
+            lien=lien_terms,
+
+            date_envoi=datetime.now(),
+
+            lue=False,
+
+            date_creation=datetime.now(),
+
+            destinataire_id=current_user.id,
+
+            action_id=action_defaut.id
+        )
+
+        db.session.add(
+            nouvelle_notification
+        )
+
+        db.session.commit()
+
+        # ====================================================
+        # RÉSULTAT
+        # ====================================================
+
+        if email_envoye:
+
+            print(
+                f"✅ Email envoyé à {client.email}"
+            )
+
+            return True
+
+        else:
+
+            print(
+                f"⚠️ Notification créée, "
+                f"mais email non envoyé à {client.email}"
+            )
+
+            return False
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        print(
+            "❌ ERREUR ENVOI EMAIL CONDITIONS :",
+            str(e)
+        )
+
+        return False
+
+
+
+
+
 @app.route('/direction/modifier-dossier/<int:dossier_id>', methods=['POST'])
 @login_required
 def directeur_modifier_dossier(dossier_id):
@@ -5123,18 +5757,12 @@ def directeur_modifier_dossier(dossier_id):
 
             db.session.commit()
 
-            email_envoye = envoyer_email_conditions(dossier)
+            envoyer_email_conditions2(dossier)
 
-            if email_envoye:
-                flash(
-                    "✅ Dossier modifié et nouvelles conditions envoyées au client.",
-                    "success"
-                )
-            else:
-                flash(
-                    "⚠️ Dossier modifié, mais l'email n'a pas été envoyé.",
-                    "warning"
-                )
+            flash(
+                f"✅ Dossier modifié et nouvelles conditions envoyées au client {dossier.email}.",
+                "success"
+            )
 
     except Exception as e:
         db.session.rollback()
@@ -22649,11 +23277,11 @@ def envoyer_email_conditions(client):
     """Renvoie le lien de signature au client (avec email réel)"""
 
     # Vérifier les permissions
-    # if current_user.role != 'employe' or current_user.fonction != 'conseiller':
-    #     return jsonify({'success': False, 'message': '⛔ Permission non autorisée'}), 403
+    if current_user.role != 'employe' or current_user.fonction != 'conseiller':
+        return jsonify({'success': False, 'message': '⛔ Permission non autorisée'}), 403
 
     # Récupérer le client
-    # client = Client.query.get_or_404(client_id)
+
 
     # Vérifier que ce client appartient bien à ce conseiller
     if client.cree_par_id != current_user.id:
