@@ -676,562 +676,511 @@
                     </div>
 
                     <div class="form-row">
-                            <div>
-                                <label class="form-label required-field">Type de compte</label>
-                                <select class="form-select" name="role" id="roleSelect" required>
-                                    <option value="admin_succursale" selected>
-                                        🏦 Admin succursale
-                                    </option>
-                                    <option value="dashboard_central">
-                                        🏦 Admin general succursale
-                                    </option>
-                                </select>
-                            </div>
+                        <div>
+                            <label class="form-label required-field">Type de compte</label>
+                            <select class="form-select" name="role" id="roleSelect" onchange="updateFunctionOptions()" required>
+                                <option value="">Choisir un type</option>
+                                <option value="admin_succursale">👥 Admin</option>
+                                <option value="admin_general">👨‍💼 Administrateur</option>
 
-
-                            <div>
-                                <label class="form-label required-field">Fonction</label>
-                               <select class="form-select" name="fonction" id="functionSelect" required>
-                                    <option value="admin" selected>
-                                        👤 Administrateur succursale
-                                    </option>
-                                   <option value="admin_general">
-                                        👑 Admin Général
-                                    </option>
-                                </select>
-                            </div>
-
+                            </select>
                         </div>
 
-                        <!-- Statut (caché) -->
-                        <input type="hidden" name="statut" value="en_attente">
-
-                        <!-- Section Statut -->
-                        <div class="section-title">
-                            <i class="fas fa-info-circle"></i> Statut initial
+                        <div>
+                            <label class="form-label required-field">Fonction</label>
+                            <select class="form-select" name="fonction" id="functionSelect" required>
+                                <option value="">Choisir d'abord le type</option>
+                            </select>
                         </div>
+                    </div>
 
-                        <div class="alert-info d-flex align-items-center">
-                            <i class="fas fa-clock fs-4 me-3"></i>
-                            <div>
-                                <strong>⏳ En attente d'approbation</strong>
-                                <p class="mb-0 mt-1 small">
-                                    Le compte sera créé en attente. Vous devrez l'approuver manuellement avant qu'il puisse se connecter.
-                                </p>
-                            </div>
-                        </div>
+                    <!-- Statut (caché) -->
+                    <input type="hidden" name="statut" value="en_attente">
 
-                        <!-- Boutons d'action -->
-                        <div class="action-buttons">
-                            <a href="{{ url_for('gerer_employes') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-2"></i>Annuler
-                            </a>
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-check-circle me-2"></i>Créer l'utilisateur
-                            </button>
+                    <!-- Section Statut -->
+                    <div class="section-title">
+                        <i class="fas fa-info-circle"></i> Statut initial
+                    </div>
+
+                    <div class="alert-info d-flex align-items-center">
+                        <i class="fas fa-clock fs-4 me-3"></i>
+                        <div>
+                            <strong>⏳ En attente d'approbation</strong>
+                            <p class="mb-0 mt-1 small">
+                                Le compte sera créé en attente. Vous devrez l'approuver manuellement avant qu'il puisse se connecter.
+                            </p>
                         </div>
-                    </form>
-                </div>
+                    </div>
+
+                    <!-- Boutons d'action -->
+                    <div class="action-buttons">
+                        <a href="{{ url_for('gerer_employes') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check-circle me-2"></i>Créer l'utilisateur
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
+    </div>
 
-        <script>
-            // Options de fonction selon le rôle
-            const functionOptions = {
-
-                admin_succursale: {
-                    'admin_general': '👑 Directeur général - Admin générale'
-
-                },
-
-                admin_general: {
-                    'admin_succursale': '💼 Directeur financier - Admin succursale'
-
+    <script>
+        // Options de fonction selon le rôle
+        const functionOptions = {
+            admin_succursale: {
+                'admin_succursale': '🏦 admin_succursale - Gestion de succursale',
+                'admin_general': '📊 admin_general - Gestion des succursales',
                 }
+        };
 
+        function updateFunctionOptions() {
+            const roleSelect = document.getElementById('roleSelect');
+            const functionSelect = document.getElementById('functionSelect');
+            const selectedRole = roleSelect.value;
 
-            };
+            // Vider les options actuelles
+            functionSelect.innerHTML = '';
 
-            function updateFunctionOptions() {
-                const roleSelect = document.getElementById('roleSelect');
-                const functionSelect = document.getElementById('functionSelect');
-                const selectedRole = roleSelect.value;
-
-                // Vider les options actuelles
-                functionSelect.innerHTML = '';
-
-                if (selectedRole && functionOptions[selectedRole]) {
-                    // Ajouter les options selon le rôle
-                    for (const [key, value] of Object.entries(functionOptions[selectedRole])) {
-                        const option = document.createElement('option');
-                        option.value = key;
-                        option.textContent = value;
-                        functionSelect.appendChild(option);
-                    }
-                } else {
+            if (selectedRole && functionOptions[selectedRole]) {
+                // Ajouter les options selon le rôle
+                for (const [key, value] of Object.entries(functionOptions[selectedRole])) {
                     const option = document.createElement('option');
-                    option.value = '';
-                    option.textContent = 'Choisir d\'abord le type';
+                    option.value = key;
+                    option.textContent = value;
                     functionSelect.appendChild(option);
                 }
+            } else {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'Choisir d\'abord le type';
+                functionSelect.appendChild(option);
             }
+        }
 
-            // Initialiser au chargement
-            document.addEventListener('DOMContentLoaded', function() {
-                updateFunctionOptions();
-            });
+        // Initialiser au chargement
+        document.addEventListener('DOMContentLoaded', function() {
+            updateFunctionOptions();
+        });
 
-            // Fonctions pour la gestion des photos
-            function previewProfilePhoto(input) {
-                if (input.files && input.files[0]) {
-                    const reader = new FileReader();
+        // Fonctions pour la gestion des photos
+        function previewProfilePhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
 
-                    reader.onload = function(e) {
-                        const preview = document.getElementById('profilePreview');
-                        preview.src = e.target.result;
-                        document.getElementById('profilePreviewContainer').style.display = 'block';
-                        document.querySelector('.photo-upload-area').style.display = 'none';
-                    };
+                reader.onload = function(e) {
+                    const preview = document.getElementById('profilePreview');
+                    preview.src = e.target.result;
+                    document.getElementById('profilePreviewContainer').style.display = 'block';
+                    document.querySelector('.photo-upload-area').style.display = 'none';
+                };
 
-                    reader.readAsDataURL(input.files[0]);
-                }
+                reader.readAsDataURL(input.files[0]);
             }
+        }
 
-            function previewPhoto(input, previewId) {
-                if (input.files && input.files[0]) {
-                    const reader = new FileReader();
-                    const containerId = previewId + 'Container';
+        function previewPhoto(input, previewId) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                const containerId = previewId + 'Container';
 
-                    reader.onload = function(e) {
-                        const preview = document.getElementById(previewId);
-                        preview.src = e.target.result;
-                        document.getElementById(containerId).style.display = 'block';
+                reader.onload = function(e) {
+                    const preview = document.getElementById(previewId);
+                    preview.src = e.target.result;
+                    document.getElementById(containerId).style.display = 'block';
 
-                        // Cacher la zone d'upload correspondante
-                        if (previewId === 'rectoPreview') {
-                            document.querySelector('.photo-upload-area.small').style.display = 'none';
-                        } else if (previewId === 'versoPreview') {
-                            document.querySelectorAll('.photo-upload-area.small')[1].style.display = 'none';
-                        }
-                    };
-
-                    reader.readAsDataURL(input.files[0]);
-                }
-            }
-
-            function removeProfilePhoto() {
-                document.getElementById('profilePreviewContainer').style.display = 'none';
-                document.getElementById('profilePhotoInput').value = '';
-                document.querySelector('.photo-upload-area').style.display = 'block';
-            }
-
-            function removePhoto(type) {
-                if (type === 'recto') {
-                    document.getElementById('rectoPreviewContainer').style.display = 'none';
-                    document.getElementById('rectoInput').value = '';
-                    document.querySelector('.photo-upload-area.small').style.display = 'block';
-                } else if (type === 'verso') {
-                    document.getElementById('versoPreviewContainer').style.display = 'none';
-                    document.getElementById('versoInput').value = '';
-                    document.querySelectorAll('.photo-upload-area.small')[1].style.display = 'block';
-                }
-            }
-
-
-            document.addEventListener("DOMContentLoaded", function () {
-
-                const form = document.querySelector("form");
-                const submitButton = form.querySelector('button[type="submit"]');
-
-                const usernameInput = document.getElementById("username");
-                const emailInput = document.getElementById("email");
-                const telephoneInput = document.getElementById("telephone");
-                const idNumberInput = document.getElementById("id_number");
-
-                const usernameFeedback = document.getElementById("username-feedback");
-                const emailFeedback = document.getElementById("email-feedback");
-                const telephoneFeedback = document.getElementById("telephone-feedback");
-                const idNumberFeedback = document.getElementById("id_number-feedback");
-
-                let usernameExiste = false;
-                let emailExiste = false;
-                let telephoneExiste = false;
-                let idNumberExiste = false;
-
-                let timers = {};
-
-                // =========================================================
-                // AFFICHER / MASQUER LES QUESTIONS SECRÈTES
-                // =========================================================
-
-                function toggleQuestions() {
-
-                    const section = document.getElementById("questionsSecretes");
-                    const button = document.getElementById("toggleQuestionsBtn");
-
-                    if (section.style.display === "none" || section.style.display === "") {
-
-                        // Afficher
-                        section.style.display = "block";
-
-                        button.innerHTML =
-                            '<i class="fas fa-eye-slash"></i> Masquer les questions secrètes';
-
-                        button.classList.remove("btn-outline-info");
-                        button.classList.add("btn-info", "text-white");
-
-                    } else {
-
-                        // Masquer
-                        section.style.display = "none";
-
-                        button.innerHTML =
-                            '<i class="fas fa-question-circle"></i> Ajouter des questions secrètes (obligatoire)';
-
-                        button.classList.remove("btn-info", "text-white");
-                        button.classList.add("btn-outline-info");
+                    // Cacher la zone d'upload correspondante
+                    if (previewId === 'rectoPreview') {
+                        document.querySelector('.photo-upload-area.small').style.display = 'none';
+                    } else if (previewId === 'versoPreview') {
+                        document.querySelectorAll('.photo-upload-area.small')[1].style.display = 'none';
                     }
-                }
+                };
+
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function removeProfilePhoto() {
+            document.getElementById('profilePreviewContainer').style.display = 'none';
+            document.getElementById('profilePhotoInput').value = '';
+            document.querySelector('.photo-upload-area').style.display = 'block';
+        }
+
+        function removePhoto(type) {
+            if (type === 'recto') {
+                document.getElementById('rectoPreviewContainer').style.display = 'none';
+                document.getElementById('rectoInput').value = '';
+                document.querySelector('.photo-upload-area.small').style.display = 'block';
+            } else if (type === 'verso') {
+                document.getElementById('versoPreviewContainer').style.display = 'none';
+                document.getElementById('versoInput').value = '';
+                document.querySelectorAll('.photo-upload-area.small')[1].style.display = 'block';
+            }
+        }
 
 
-                // =========================================================
-                // VÉRIFICATION EN TEMPS RÉEL
-                // =========================================================
+        document.addEventListener("DOMContentLoaded", function () {
 
-                function verifierChamp(input, feedback, url, parametre, type) {
+            const form = document.querySelector("form");
+            const submitButton = form.querySelector('button[type="submit"]');
 
-                    input.addEventListener("input", function () {
+            const usernameInput = document.getElementById("username");
+            const emailInput = document.getElementById("email");
+            const telephoneInput = document.getElementById("telephone");
+            const idNumberInput = document.getElementById("id_number");
 
-                        const valeur = this.value.trim();
+            const usernameFeedback = document.getElementById("username-feedback");
+            const emailFeedback = document.getElementById("email-feedback");
+            const telephoneFeedback = document.getElementById("telephone-feedback");
+            const idNumberFeedback = document.getElementById("id_number-feedback");
 
-                        clearTimeout(timers[type]);
+            let usernameExiste = false;
+            let emailExiste = false;
+            let telephoneExiste = false;
+            let idNumberExiste = false;
 
-                        // Réinitialiser
-                        feedback.innerHTML = "";
-                        input.classList.remove("is-valid", "is-invalid");
+            let timers = {};
 
-                        if (type === "username") usernameExiste = false;
-                        if (type === "email") emailExiste = false;
-                        if (type === "telephone") telephoneExiste = false;
-                        if (type === "id_number") idNumberExiste = false;
+            // =========================================================
+            // VÉRIFICATION EN TEMPS RÉEL
+            // =========================================================
 
-                        mettreAJourBouton();
+            function verifierChamp(input, feedback, url, parametre, type) {
 
-                        if (!valeur) {
-                            return;
-                        }
+                input.addEventListener("input", function () {
 
-                        timers[type] = setTimeout(async function () {
+                    const valeur = this.value.trim();
 
-                            try {
+                    clearTimeout(timers[type]);
 
-                                const response = await fetch(
-                                    url + "?" + parametre + "=" + encodeURIComponent(valeur)
-                                );
+                    // Réinitialiser
+                    feedback.innerHTML = "";
+                    input.classList.remove("is-valid", "is-invalid");
 
-                                if (!response.ok) {
-                                    throw new Error("HTTP " + response.status);
-                                }
+                    if (type === "username") usernameExiste = false;
+                    if (type === "email") emailExiste = false;
+                    if (type === "telephone") telephoneExiste = false;
+                    if (type === "id_number") idNumberExiste = false;
 
-                                const data = await response.json();
+                    mettreAJourBouton();
 
-                                if (data.existe === true) {
+                    if (!valeur) {
+                        return;
+                    }
 
-                                    input.classList.add("is-invalid");
+                    timers[type] = setTimeout(async function () {
 
-                                    if (type === "username") {
-                                        usernameExiste = true;
-                                        feedback.innerHTML =
-                                            '<span class="text-danger fw-bold">❌ Cet username est déjà utilisé.</span>';
-                                    }
+                        try {
 
-                                    if (type === "email") {
-                                        emailExiste = true;
-                                        feedback.innerHTML =
-                                            '<span class="text-danger fw-bold">❌ Cet email est déjà utilisé.</span>';
-                                    }
+                            const response = await fetch(
+                                url + "?" + parametre + "=" + encodeURIComponent(valeur)
+                            );
 
-                                    if (type === "telephone") {
-                                        telephoneExiste = true;
-                                        feedback.innerHTML =
-                                            '<span class="text-danger fw-bold">❌ Ce téléphone est déjà utilisé.</span>';
-                                    }
-
-                                    if (type === "id_number") {
-                                        idNumberExiste = true;
-                                        feedback.innerHTML =
-                                            '<span class="text-danger fw-bold">❌ Ce numéro de pièce est déjà utilisé.</span>';
-                                    }
-
-                                } else {
-
-                                    input.classList.add("is-valid");
-
-                                    feedback.innerHTML =
-                                        '<span class="text-success">✅ Disponible.</span>';
-                                }
-
-                                mettreAJourBouton();
-
-                            } catch (error) {
-
-                                console.error("Erreur vérification " + type + " :", error);
-
-                                feedback.innerHTML =
-                                    '<span class="text-warning">⚠️ Impossible de vérifier maintenant.</span>';
-
-                                /*
-                                 * On ne bloque pas la création ici.
-                                 * Le serveur fera la vérification finale.
-                                 */
+                            if (!response.ok) {
+                                throw new Error("HTTP " + response.status);
                             }
 
-                        }, 300);
-                    });
-                }
-
-
-                verifierChamp(
-                    usernameInput,
-                    usernameFeedback,
-                    "/api/verifier-username",
-                    "username",
-                    "username"
-                );
-
-                verifierChamp(
-                    emailInput,
-                    emailFeedback,
-                    "/api/verifier-email",
-                    "email",
-                    "email"
-                );
-
-                verifierChamp(
-                    telephoneInput,
-                    telephoneFeedback,
-                    "/api/verifier-telephone",
-                    "telephone",
-                    "telephone"
-                );
-
-                verifierChamp(
-                    idNumberInput,
-                    idNumberFeedback,
-                    "/api/verifier-id_number",
-                    "id_number",
-                    "id_number"
-                );
-
-
-                // =========================================================
-                // BOUTON
-                // =========================================================
-
-                function mettreAJourBouton() {
-
-                    if (
-                        usernameExiste ||
-                        emailExiste ||
-                        telephoneExiste ||
-                        idNumberExiste
-                    ) {
-
-                        submitButton.disabled = true;
-                        submitButton.innerHTML =
-                            '<i class="fas fa-ban me-2"></i>Donnée déjà utilisée';
-
-                    } else {
-
-                        submitButton.disabled = false;
-                        submitButton.innerHTML =
-                            '<i class="fas fa-check-circle me-2"></i>Créer l\'utilisateur';
-                    }
-                }
-
-
-                // =========================================================
-                // VALIDATION AVANT ENVOI
-                // =========================================================
-
-                form.addEventListener("submit", function (e) {
-
-                    console.log("🔥 SUBMIT DU FORMULAIRE");
-
-                    const password =
-                        document.querySelector('input[name="password"]').value.trim();
-
-                    const idNumber =
-                        idNumberInput.value.trim();
-
-                    const recto =
-                        document.getElementById("rectoInput");
-
-                    const verso =
-                        document.getElementById("versoInput");
-
-                    // -------------------------
-                    // Doublons
-                    // -------------------------
-
-                    if (
-                        usernameExiste ||
-                        emailExiste ||
-                        telephoneExiste ||
-                        idNumberExiste
-                    ) {
-
-                        e.preventDefault();
-
-                        alert(
-                            "❌ Impossible de créer l'employé.\n\n" +
-                            "Une ou plusieurs données sont déjà utilisées."
-                        );
-
-                        return;
-                    }
-
-                    // -------------------------
-                    // Mot de passe
-                    // -------------------------
-
-                    if (password.length < 8) {
-
-                        e.preventDefault();
-
-                        alert(
-                            "❌ Le mot de passe doit contenir au moins 8 caractères."
-                        );
-
-                        return;
-                    }
-
-                    // -------------------------
-                    // Numéro de pièce
-                    // -------------------------
-
-                    if (!idNumber) {
-
-                        e.preventDefault();
-
-                        alert(
-                            "❌ Le numéro de pièce d'identité est obligatoire."
-                        );
-
-                        idNumberInput.focus();
-
-                        return;
-                    }
-
-                    // -------------------------
-                    // Recto
-                    // -------------------------
-
-                    if (!recto.files || recto.files.length === 0) {
-
-                        e.preventDefault();
-
-                        alert(
-                            "❌ Vous devez uploader le RECTO de la pièce d'identité."
-                        );
-
-                        return;
-                    }
-
-                    // -------------------------
-                    // Verso
-                    // -------------------------
-
-                    if (!verso.files || verso.files.length === 0) {
-
-                        e.preventDefault();
-
-                        alert(
-                            "❌ Vous devez uploader le VERSO de la pièce d'identité."
-                        );
-
-                        return;
-                    }
-
-                    // -------------------------
-                    // Succursale
-                    // -------------------------
-
-                    const succursale =
-                        document.querySelector('select[name="succursale_id"]').value;
-
-                    if (!succursale) {
-
-                        e.preventDefault();
-
-                        alert(
-                            "❌ Veuillez sélectionner une succursale."
-                        );
-
-                        return;
-                    }
-
-                    // -------------------------
-                    // Rôle
-                    // -------------------------
-
-                    const role =
-                        document.getElementById("roleSelect").value;
-
-                    if (!role) {
-
-                        e.preventDefault();
-
-                        alert(
-                            "❌ Veuillez sélectionner le type de compte."
-                        );
-
-                        return;
-                    }
-
-                    // -------------------------
-                    // Fonction
-                    // -------------------------
-
-                    const fonction =
-                        document.getElementById("functionSelect").value;
-
-                    if (!fonction) {
-
-                        e.preventDefault();
-
-                        alert(
-                            "❌ Veuillez sélectionner une fonction."
-                        );
-
-                        return;
-                    }
-
-                    // =====================================================
-                    // TOUT EST BON
-                    // =====================================================
+                            const data = await response.json();
+
+                            if (data.existe === true) {
+
+                                input.classList.add("is-invalid");
+
+                                if (type === "username") {
+                                    usernameExiste = true;
+                                    feedback.innerHTML =
+                                        '<span class="text-danger fw-bold">❌ Cet username est déjà utilisé.</span>';
+                                }
+
+                                if (type === "email") {
+                                    emailExiste = true;
+                                    feedback.innerHTML =
+                                        '<span class="text-danger fw-bold">❌ Cet email est déjà utilisé.</span>';
+                                }
+
+                                if (type === "telephone") {
+                                    telephoneExiste = true;
+                                    feedback.innerHTML =
+                                        '<span class="text-danger fw-bold">❌ Ce téléphone est déjà utilisé.</span>';
+                                }
+
+                                if (type === "id_number") {
+                                    idNumberExiste = true;
+                                    feedback.innerHTML =
+                                        '<span class="text-danger fw-bold">❌ Ce numéro de pièce est déjà utilisé.</span>';
+                                }
+
+                            } else {
+
+                                input.classList.add("is-valid");
+
+                                feedback.innerHTML =
+                                    '<span class="text-success">✅ Disponible.</span>';
+                            }
+
+                            mettreAJourBouton();
+
+                        } catch (error) {
+
+                            console.error("Erreur vérification " + type + " :", error);
+
+                            feedback.innerHTML =
+                                '<span class="text-warning">⚠️ Impossible de vérifier maintenant.</span>';
+
+                            /*
+                             * On ne bloque pas la création ici.
+                             * Le serveur fera la vérification finale.
+                             */
+                        }
+
+                    }, 300);
+                });
+            }
+
+
+            verifierChamp(
+                usernameInput,
+                usernameFeedback,
+                "/api/verifier-username",
+                "username",
+                "username"
+            );
+
+            verifierChamp(
+                emailInput,
+                emailFeedback,
+                "/api/verifier-email",
+                "email",
+                "email"
+            );
+
+            verifierChamp(
+                telephoneInput,
+                telephoneFeedback,
+                "/api/verifier-telephone",
+                "telephone",
+                "telephone"
+            );
+
+            verifierChamp(
+                idNumberInput,
+                idNumberFeedback,
+                "/api/verifier-id_number",
+                "id_number",
+                "id_number"
+            );
+
+
+            // =========================================================
+            // BOUTON
+            // =========================================================
+
+            function mettreAJourBouton() {
+
+                if (
+                    usernameExiste ||
+                    emailExiste ||
+                    telephoneExiste ||
+                    idNumberExiste
+                ) {
 
                     submitButton.disabled = true;
-
                     submitButton.innerHTML =
-                        '<i class="fas fa-spinner fa-spin me-2"></i>Création en cours...';
+                        '<i class="fas fa-ban me-2"></i>Donnée déjà utilisée';
 
-                    console.log("✅ FORMULAIRE VALIDE");
-                    console.log("📤 Envoi vers Flask...");
+                } else {
 
-                    // NE PAS faire e.preventDefault()
-                    // Flask reçoit donc normalement le POST.
-                });
+                    submitButton.disabled = false;
+                    submitButton.innerHTML =
+                        '<i class="fas fa-check-circle me-2"></i>Créer l\'utilisateur';
+                }
+            }
 
+
+            // =========================================================
+            // VALIDATION AVANT ENVOI
+            // =========================================================
+
+            form.addEventListener("submit", function (e) {
+
+                console.log("🔥 SUBMIT DU FORMULAIRE");
+
+                const password =
+                    document.querySelector('input[name="password"]').value.trim();
+
+                const idNumber =
+                    idNumberInput.value.trim();
+
+                const recto =
+                    document.getElementById("rectoInput");
+
+                const verso =
+                    document.getElementById("versoInput");
+
+                // -------------------------
+                // Doublons
+                // -------------------------
+
+                if (
+                    usernameExiste ||
+                    emailExiste ||
+                    telephoneExiste ||
+                    idNumberExiste
+                ) {
+
+                    e.preventDefault();
+
+                    alert(
+                        "❌ Impossible de créer l'employé.\n\n" +
+                        "Une ou plusieurs données sont déjà utilisées."
+                    );
+
+                    return;
+                }
+
+                // -------------------------
+                // Mot de passe
+                // -------------------------
+
+                if (password.length < 8) {
+
+                    e.preventDefault();
+
+                    alert(
+                        "❌ Le mot de passe doit contenir au moins 8 caractères."
+                    );
+
+                    return;
+                }
+
+                // -------------------------
+                // Numéro de pièce
+                // -------------------------
+
+                if (!idNumber) {
+
+                    e.preventDefault();
+
+                    alert(
+                        "❌ Le numéro de pièce d'identité est obligatoire."
+                    );
+
+                    idNumberInput.focus();
+
+                    return;
+                }
+
+                // -------------------------
+                // Recto
+                // -------------------------
+
+                if (!recto.files || recto.files.length === 0) {
+
+                    e.preventDefault();
+
+                    alert(
+                        "❌ Vous devez uploader le RECTO de la pièce d'identité."
+                    );
+
+                    return;
+                }
+
+                // -------------------------
+                // Verso
+                // -------------------------
+
+                if (!verso.files || verso.files.length === 0) {
+
+                    e.preventDefault();
+
+                    alert(
+                        "❌ Vous devez uploader le VERSO de la pièce d'identité."
+                    );
+
+                    return;
+                }
+
+                // -------------------------
+                // Succursale
+                // -------------------------
+
+                const succursale =
+                    document.querySelector('select[name="succursale_id"]').value;
+
+                if (!succursale) {
+
+                    e.preventDefault();
+
+                    alert(
+                        "❌ Veuillez sélectionner une succursale."
+                    );
+
+                    return;
+                }
+
+                // -------------------------
+                // Rôle
+                // -------------------------
+
+                const role =
+                    document.getElementById("roleSelect").value;
+
+                if (!role) {
+
+                    e.preventDefault();
+
+                    alert(
+                        "❌ Veuillez sélectionner le type de compte."
+                    );
+
+                    return;
+                }
+
+                // -------------------------
+                // Fonction
+                // -------------------------
+
+                const fonction =
+                    document.getElementById("functionSelect").value;
+
+                if (!fonction) {
+
+                    e.preventDefault();
+
+                    alert(
+                        "❌ Veuillez sélectionner une fonction."
+                    );
+
+                    return;
+                }
+
+                // =====================================================
+                // TOUT EST BON
+                // =====================================================
+
+                submitButton.disabled = true;
+
+                submitButton.innerHTML =
+                    '<i class="fas fa-spinner fa-spin me-2"></i>Création en cours...';
+
+                console.log("✅ FORMULAIRE VALIDE");
+                console.log("📤 Envoi vers Flask...");
+
+                // NE PAS faire e.preventDefault()
+                // Flask reçoit donc normalement le POST.
             });
 
+        });
 
 
 
 
-        </script>
 
-        <!-- Bootstrap JS -->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    </body>
-    </html>tml>
+    </script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
