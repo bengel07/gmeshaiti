@@ -1173,28 +1173,11 @@ def demande_pret():
 
             for field in required_fields:
                 value = request.form.get(field)
-
-                print(
-                    f"FIELD [{field}] "
-                    f"VALUE=[{value}] "
-                    f"TYPE={type(value).__name__} "
-                    f"LONGUEUR={len(value) if value else 0}"
-                )
-
                 if not value or not value.strip():
-                    print("\n❌❌❌ CHAMP MANQUANT ❌❌❌")
-                    print(f"❌ Champ = {field}")
-                    print(f"❌ Valeur = {repr(value)}")
-                    print("=" * 80)
-
+                    print(f"❌ Champ manquant : {field}")
                     flash(f'⛔ Le champ {field} est requis', 'danger')
-
-                    return redirect(
-                        url_for('demande_pret', client_id=client.id)
-                    )
-
-            print("✅ TOUS LES CHAMPS OBLIGATOIRES SONT PRÉSENTS")
-            print("=" * 80)
+                    # ✅ CORRECTION : Rediriger avec les bons paramètres
+                    return redirect(url_for('demande_pret', client_id=client.id))
 
 
             for field in required_fields:
@@ -1540,16 +1523,26 @@ def demande_pret():
             print(f"✍️ SIGNATURE PRÉSENTE     = {bool(nouveau_pret.signature)}")
 
             db.session.add(nouveau_pret)
-            db.session.flush()  # Pour obtenir l'ID
 
-            print("\n❌❌❌ ERREUR PENDANT FLUSH ❌❌❌")
-            print(f"TYPE ERREUR               = {type(e).__name__}")
-            print(f"MESSAGE                   = {str(e)}")
+            try:
+                print("\n🟡 AVANT FLUSH DU PRÊT")
+                db.session.flush()
 
-            import traceback
-            traceback.print_exc()
+                print("\n🟢 FLUSH DU PRÊT RÉUSSI")
+                print(f"🆔 ID SQL                 = {nouveau_pret.id}")
+                print(f"🔢 NUMERO PRET            = {nouveau_pret.numero_pret}")
+                print(f"👤 CLIENT ID              = {nouveau_pret.client_id}")
 
-            db.session.rollback()
+            except Exception as e:
+                print("\n❌❌❌ ERREUR PENDANT FLUSH ❌❌❌")
+                print(f"TYPE ERREUR               = {type(e).__name__}")
+                print(f"MESSAGE                   = {str(e)}")
+
+                import traceback
+                traceback.print_exc()
+
+                db.session.rollback()
+                raise
 
             # nouveau_pret.id_pret = f"PRET-{nouveau_pret.id:06d}"
 
