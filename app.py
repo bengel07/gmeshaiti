@@ -5126,7 +5126,7 @@ def directeur_modifier_dossier(dossier_id):
             envoyer_email_conditions(dossier)
 
             flash(
-                "✅ Dossier modifié et nouvelles conditions envoyées au client.",
+                f"✅ Dossier modifié et nouvelles conditions envoyées au client {dossier.email}.",
                 "success"
             )
 
