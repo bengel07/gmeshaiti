@@ -1170,13 +1170,31 @@ def demande_pret():
 
             # ✅ AJOUTEZ CE LOG POUR VOIR TOUS LES CHAMPS REÇUS
             print("📋 Tous les champs reçus :")
+
             for field in required_fields:
                 value = request.form.get(field)
+
+                print(
+                    f"FIELD [{field}] "
+                    f"VALUE=[{value}] "
+                    f"TYPE={type(value).__name__} "
+                    f"LONGUEUR={len(value) if value else 0}"
+                )
+
                 if not value or not value.strip():
-                    print(f"❌ Champ manquant : {field}")
+                    print("\n❌❌❌ CHAMP MANQUANT ❌❌❌")
+                    print(f"❌ Champ = {field}")
+                    print(f"❌ Valeur = {repr(value)}")
+                    print("=" * 80)
+
                     flash(f'⛔ Le champ {field} est requis', 'danger')
-                    # ✅ CORRECTION : Rediriger avec les bons paramètres
-                    return redirect(url_for('demande_pret', client_id=client.id))
+
+                    return redirect(
+                        url_for('demande_pret', client_id=client.id)
+                    )
+
+            print("✅ TOUS LES CHAMPS OBLIGATOIRES SONT PRÉSENTS")
+            print("=" * 80)
 
 
             for field in required_fields:
