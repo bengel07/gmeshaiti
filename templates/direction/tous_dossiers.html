@@ -552,6 +552,7 @@
                             <th>Client</th>
                             <th>Contact</th>
                             <th>Code client</th>
+                            <th>Numéro de compte</th>
                             <th>Agent</th>
                             <th>Date création</th>
                             <th>Statut</th>
@@ -595,6 +596,13 @@
                                     {{ dossier.id_client }}
                                 </span>
                             </td>
+
+                            <td>
+                                <span style="background: #e8f5e9; color: #2e7d32; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">
+                                    {{ dossier.numero_compte or 'Non attribué' }}
+                                </span>
+                            </td>
+
                             <td>
                                 <span class="agent-badge">
                                     <i class="fas fa-user-tie"></i>
@@ -673,22 +681,6 @@
 
                                     </form>
                                     {% endif %}
-<!--                                    {% if dossier.statut == 'en_attente_terms' %}-->
-<!--                                    <form action="{{ url_for('resend_conditions_email', client_id=dossier.id) }}"-->
-<!--                                          method="POST"-->
-<!--                                          style="display:inline;">-->
-<!--                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">-->
-<!--                                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">-->
-
-<!--                                        <button type="submit"-->
-<!--                                                class="btn-action btn-email"-->
-<!--                                                title="Renvoyer lien conditions">-->
-<!--                                            <i class="fas fa-envelope"></i>-->
-<!--                                        </button>-->
-
-<!--                                    </form>-->
-<!--                                    {% endif %}-->
-
 
                                 </div>
                             </td>
@@ -789,24 +781,29 @@
                 .trim()
                 .replace(/"/g, '""');
 
+             // numero Compte
+            const numeroCompte = cols[3].textContent
+                .trim()
+                .replace(/"/g, '""');
+
             // Agent
-            const agent = cols[3].textContent
+            const agent = cols[4].textContent
                 .trim()
                 .replace(/"/g, '""');
 
             // Date création
-            const dateCreation = cols[4].textContent
+            const dateCreation = cols[5].textContent
                 .trim()
                 .replace(/\s+/g, ' ')
                 .replace(/"/g, '""');
 
             // Statut
-            const statut = cols[5].textContent
+            const statut = cols[6].textContent
                 .trim()
                 .replace(/\s+/g, ' ')
                 .replace(/"/g, '""');
 
-            csv += `"${client}","${email}","${telephone}","${cin}","${codeClient}","${agent}","${dateCreation}","${statut}"\n`;
+            csv += `"${client}","${email}","${telephone}","${cin}","${codeClient}","${numeroCompte}","${agent}","${dateCreation}","${statut}"\n`;
 
             count++;
         });
