@@ -727,12 +727,38 @@
     </div>
 
     <script>
+        // =========================================================
+        // QUESTIONS SECRÈTES : AFFICHER / MASQUER
+        // =========================================================
+        function toggleQuestions() {
+            const section = document.getElementById("questionsSecretes");
+            const bouton = document.getElementById("toggleQuestionsBtn");
+
+            if (section.style.display === "none" || section.style.display === "") {
+
+                section.style.display = "block";
+
+                bouton.innerHTML =
+                    '<i class="fas fa-eye-slash"></i> Masquer les questions secrètes';
+
+            } else {
+
+                section.style.display = "none";
+
+                bouton.innerHTML =
+                    '<i class="fas fa-question-circle"></i> Ajouter des questions secrètes (obligatoire)';
+            }
+        }
+
         // Options de fonction selon le rôle
         const functionOptions = {
             admin_succursale: {
-                'admin_succursale': '🏦 admin_succursale - Gestion de succursale',
-                'admin_general': '📊 admin_general - Gestion des succursales',
-                }
+                admin_succursale: '🏦 Admin de succursale - Gestion de succursale'
+            },
+
+            admin_general: {
+                admin_general: '📊 Administrateur général - Gestion des succursales'
+            }
         };
 
         function updateFunctionOptions() {
