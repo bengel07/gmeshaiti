@@ -17680,6 +17680,68 @@ def gerer_employes():
 
     return render_template('employees/gerer_employes.html', utilisateurs=utilisateurs, stats=stats)
 
+
+# ============================================================
+# ✅ APPROUVER UN ADMIN PAR LE SUPER_ADMIN
+# ============================================================
+@app.route('/admin/approuver-admin/<int:employe_id>')
+@login_required
+def approuver_admin(employe_id):
+
+    # Seul le super_admin peut approuver un admin
+    if current_user.role != 'super_admin':
+        abort(403)
+
+    employe = User.query.get_or_404(employe_id)
+
+    # Vérifier que c'est bien un compte admin
+    if employe.role not in ['admin_succursale', 'admin_general', 'admin']:
+        flash("❌ Cet utilisateur n'est pas un administrateur.", "danger")
+        return redirect(url_for('gerer_employes'))
+
+    # Vérifier qu'il est bien en attente
+    if employe.statut != 'en_attente':
+        flash(
+            f"⚠️ Le compte de {employe.prenom} {employe.nom} "
+            f"n'est plus en attente.",
+            "warning"
+        )
+        return redirect(url_for('gerer_employes'))
+
+    try:
+        # ✅ APPROBATION
+        employe.statut = 'actif'
+        employe.approuve_par = current_user.id
+        employe.date_approbation = datetime.utcnow()
+
+        db.session.commit()
+
+        flash(
+            f"✅ Admin {employe.prenom} {employe.nom} "
+            f"a été approuvé avec succès.",
+            "success"
+        )
+
+        print(
+            f"✅ ADMIN APPROUVÉ : "
+            f"{employe.prenom} {employe.nom} "
+            f"(ID={employe.id}) "
+            f"par {current_user.username}"
+        )
+
+    except Exception as e:
+        db.session.rollback()
+
+        print("❌ ERREUR APPROBATION ADMIN :", e)
+
+        flash(
+            f"❌ Erreur lors de l'approbation : {str(e)}",
+            "danger"
+        )
+
+    return redirect(url_for('gerer_employes'))
+
+
 # ✅ APPROUVER un employé
 @app.route('/admin/approuver-employe/<int:employe_id>')
 @login_required
@@ -21400,61 +21462,195 @@ def exporter_attentes():
 #
 
 
-
 @app.route('/admin/approuver-compte/<int:employe_id>')
 @login_required
 def approuver_compte(employe_id):
-    """Approuver un compte en attente et envoyer le lien d'activation client."""
+    """
+    Approuver un compte en attente.
 
-    if current_user.role not in ['super_admin', 'admin']:
-        flash("⛔ Accès non autorisé", "danger")
-        return redirect(url_for('admin_dashboard'))
+    RÈGLES :
+    - super_admin peut approuver TOUS les rôles.
+    - directeur peut approuver uniquement les employés
+      de sa propre succursale.
+    - admin_succursale peut approuver uniquement les employés
+      de sa propre succursale.
+    """
+
+    # ==========================================================
+    # 1️⃣ RÉCUPÉRER LE COMPTE À APPROUVER
+    # ==========================================================
 
     user = User.query.get_or_404(employe_id)
 
+    print("=" * 70)
+    print("🔎 DEMANDE D'APPROBATION")
+    print(f"👑 Approbateur       : {current_user.username}")
+    print(f"🎭 Rôle approbateur  : {current_user.role}")
+    print(f"👤 User ID           : {user.id}")
+    print(f"👤 Username          : {user.username}")
+    print(f"📧 User email        : {user.email}")
+    print(f"🎭 Rôle utilisateur  : {user.role}")
+    print(f"🏢 Succursale user   : {user.succursale_id}")
+    print(f"🏢 Succursale approb.: {current_user.succursale_id}")
+    print(f"📌 Statut            : {user.statut}")
+    print("=" * 70)
+
+    # ==========================================================
+    # 2️⃣ VÉRIFIER LE STATUT
+    # ==========================================================
+
     if user.statut != 'en_attente':
+
         flash(
             f"❌ Ce compte n'est pas en attente "
-            f"(statut : {user.statut})",
+            f"(statut : {user.statut}).",
             "warning"
         )
+
+        return redirect(url_for('liste_users'))
+
+    # ==========================================================
+    # 3️⃣ VÉRIFIER LES DROITS D'APPROBATION
+    # ==========================================================
+
+    # ----------------------------------------------------------
+    # 👑 SUPER ADMIN
+    # ----------------------------------------------------------
+    # Le super_admin peut approuver TOUT LE MONDE.
+    # Aucun contrôle de rôle ou de succursale ici.
+
+    if current_user.role == 'super_admin':
+
+        print(
+            "✅ SUPER_ADMIN : approbation autorisée "
+            "pour tous les rôles."
+        )
+
+    # ----------------------------------------------------------
+    # 🏢 DIRECTEUR / ADMIN_SUCCURSALE
+    # ----------------------------------------------------------
+    # Ils peuvent uniquement approuver un employé
+    # appartenant à leur propre succursale.
+
+    elif current_user.role in ['directeur', 'admin_succursale']:
+
+        # Vérifier que la personne à approuver est un employé
+        if user.role != 'employe':
+
+            flash(
+                "⛔ Vous pouvez uniquement approuver "
+                "un employé de votre succursale.",
+                "danger"
+            )
+
+            print(
+                f"🚨 APPROBATION REFUSÉE : "
+                f"{current_user.role} ne peut pas approuver "
+                f"le rôle {user.role}."
+            )
+
+            return redirect(url_for('liste_users'))
+
+        # Vérifier que les deux appartiennent à la même succursale
+        if user.succursale_id != current_user.succursale_id:
+
+            flash(
+                "⛔ Cet employé n'appartient pas "
+                "à votre succursale.",
+                "danger"
+            )
+
+            print(
+                "🚨 APPROBATION REFUSÉE : "
+                "succursales différentes."
+            )
+
+            return redirect(url_for('liste_users'))
+
+        print(
+            "✅ APPROBATION AUTORISÉE : "
+            f"{current_user.role} → employé "
+            "de la même succursale."
+        )
+
+    # ----------------------------------------------------------
+    # ❌ AUTRE RÔLE
+    # ----------------------------------------------------------
+
+    else:
+
+        flash(
+            "⛔ Accès non autorisé. "
+            "Vous n'avez pas le droit d'approuver des comptes.",
+            "danger"
+        )
+
+        print(
+            f"🚨 APPROBATION REFUSÉE : "
+            f"rôle approbateur = {current_user.role}"
+        )
+
         return redirect(url_for('admin_dashboard'))
 
     # ==========================================================
-    # 1️⃣ Récupérer le client AVANT de modifier le statut
+    # 4️⃣ RÉCUPÉRER LE CLIENT AVANT DE MODIFIER LE STATUT
     # ==========================================================
 
     nouveau_client = None
 
     print("=" * 70)
-    print("🔎 APPROBATION DU COMPTE")
-    print(f"👤 User ID       : {user.id}")
-    print(f"👤 Username      : {user.username}")
-    print(f"📧 User email    : {user.email}")
-    print(f"🆔 user.client_id: {user.client_id}")
+    print("🔎 RECHERCHE DU PROFIL CLIENT")
+    print(f"🆔 user.client_id : {user.client_id}")
 
     if user.client_id:
-        nouveau_client = Client.query.get(user.client_id)
 
-        if nouveau_client:
-            print(f"✅ Client trouvé : ID={nouveau_client.id}")
-            print(f"📧 Client email  : {nouveau_client.email}")
-        else:
+        try:
+
+            nouveau_client = Client.query.get(user.client_id)
+
+            if nouveau_client:
+
+                print(
+                    f"✅ Client trouvé : ID={nouveau_client.id}"
+                )
+
+                print(
+                    f"📧 Client email : {nouveau_client.email}"
+                )
+
+            else:
+
+                print(
+                    f"⚠️ Aucun Client trouvé "
+                    f"avec ID={user.client_id}"
+                )
+
+        except Exception as e:
+
             print(
-                f"❌ Aucun Client trouvé avec ID={user.client_id}"
+                f"❌ Erreur recherche Client : {repr(e)}"
             )
+
     else:
-        print("❌ user.client_id est NULL")
+
+        print(
+            "ℹ️ user.client_id est NULL."
+        )
 
     print("=" * 70)
 
     # ==========================================================
-    # 2️⃣ Vérifier qu'un client existe
+    # 5️⃣ VÉRIFIER LE CLIENT
     # ==========================================================
+    #
+    # IMPORTANT :
+    # On garde ta logique originale.
+    # Aucun compte ne sera activé sans profil Client.
 
     if not nouveau_client:
+
         flash(
-            "❌ Impossible d'envoyer le lien : "
+            "❌ Impossible d'approuver ce compte : "
             "aucun profil Client n'est associé à ce compte.",
             "danger"
         )
@@ -21467,22 +21663,34 @@ def approuver_compte(employe_id):
         return redirect(url_for('liste_users'))
 
     # ==========================================================
-    # 3️⃣ Approuver le compte
+    # 6️⃣ ACTIVER LE COMPTE
     # ==========================================================
 
     try:
+
         user.statut = 'actif'
+
         db.session.commit()
 
+        print("=" * 70)
         print(
             f"✅ User #{user.id} activé."
         )
+        print(
+            f"👤 Username : {user.username}"
+        )
+        print(
+            f"🎭 Rôle : {user.role}"
+        )
+        print("=" * 70)
 
     except Exception as e:
+
         db.session.rollback()
 
         print(
-            f"❌ Erreur activation User #{user.id} : {e}"
+            f"❌ Erreur activation User #{user.id} : "
+            f"{repr(e)}"
         )
 
         flash(
@@ -21493,32 +21701,49 @@ def approuver_compte(employe_id):
         return redirect(url_for('liste_users'))
 
     # ==========================================================
-    # 4️⃣ Envoyer email d'approbation du User
+    # 7️⃣ ENVOYER EMAIL D'APPROBATION DU USER
     # ==========================================================
 
     try:
 
-        print("📧 Envoi email d'approbation User...")
+        print("=" * 70)
+        print("📧 ENVOI EMAIL D'APPROBATION USER")
+        print(
+            f"📧 Destinataire : {user.email}"
+        )
+        print("=" * 70)
 
         send_approval_email(user)
 
         print(
-            f"✅ Email d'approbation envoyé à {user.email}"
+            f"✅ Email d'approbation envoyé à "
+            f"{user.email}"
         )
 
     except Exception as e:
 
         print(
-            f"❌ Erreur email approbation User : {e}"
+            f"⚠️ Erreur email approbation User : "
+            f"{repr(e)}"
         )
 
+        # Le compte reste actif même si l'email échoue.
+
     # ==========================================================
-    # 5️⃣ Créer le lien d'accès client
+    # 8️⃣ CRÉER LE LIEN D'ACCÈS CLIENT
     # ==========================================================
 
     try:
 
-        print("🔐 Création du lien d'activation client...")
+        print("=" * 70)
+        print("🔐 CRÉATION DU LIEN D'ACTIVATION CLIENT")
+        print(
+            f"👤 Client ID : {nouveau_client.id}"
+        )
+        print(
+            f"📧 Email : {nouveau_client.email}"
+        )
+        print("=" * 70)
 
         activation_link = creer_acces_client(
             nouveau_client
@@ -21531,12 +21756,13 @@ def approuver_compte(employe_id):
         if not activation_link:
 
             print(
-                "❌ creer_acces_client() n'a retourné aucun lien."
+                "❌ creer_acces_client() "
+                "n'a retourné aucun lien."
             )
 
             flash(
-                "⚠️ Compte activé, mais le lien client "
-                "n'a pas pu être créé.",
+                "⚠️ Compte activé, mais le lien "
+                "d'activation client n'a pas pu être créé.",
                 "warning"
             )
 
@@ -21544,27 +21770,38 @@ def approuver_compte(employe_id):
 
     except Exception as e:
 
+        print("=" * 70)
         print(
-            f"❌ ERREUR creer_acces_client() : {e}"
+            "❌ ERREUR creer_acces_client()"
         )
+        print(
+            f"❌ {repr(e)}"
+        )
+        print("=" * 70)
 
         flash(
-            f"⚠️ Compte activé, mais erreur création du lien : {str(e)}",
+            "⚠️ Compte activé, mais erreur création "
+            f"du lien : {str(e)}",
             "warning"
         )
 
         return redirect(url_for('liste_users'))
 
     # ==========================================================
-    # 6️⃣ Envoyer le lien au client
+    # 9️⃣ ENVOYER LE LIEN D'ACTIVATION AU CLIENT
     # ==========================================================
 
     try:
 
         print("=" * 70)
         print("📨 ENVOI EMAIL ACTIVATION CLIENT")
-        print(f"📧 Destinataire : {nouveau_client.email}")
-        print(f"🔗 Lien : {activation_link}")
+        print(
+            f"📧 Destinataire : "
+            f"{nouveau_client.email}"
+        )
+        print(
+            f"🔗 Lien : {activation_link}"
+        )
         print("=" * 70)
 
         resultat = envoyer_email_activation_client(
@@ -21573,6 +21810,7 @@ def approuver_compte(employe_id):
         )
 
         if not resultat:
+
             print(
                 "❌ L'envoi Brevo a échoué."
             )
@@ -21593,21 +21831,25 @@ def approuver_compte(employe_id):
 
     except Exception as e:
 
+        print("=" * 70)
         print(
-            f"❌ ERREUR ENVOI EMAIL CLIENT : "
-            f"{repr(e)}"
+            "❌ ERREUR ENVOI EMAIL CLIENT"
         )
+        print(
+            f"❌ {repr(e)}"
+        )
+        print("=" * 70)
 
         flash(
-            f"⚠️ Compte activé, mais le lien n'a pas été envoyé : "
-            f"{str(e)}",
+            "⚠️ Compte activé, mais le lien "
+            f"n'a pas été envoyé : {str(e)}",
             "warning"
         )
 
         return redirect(url_for('liste_users'))
 
     # ==========================================================
-    # 7️⃣ Historique
+    # 🔟 HISTORIQUE
     # ==========================================================
 
     try:
@@ -21617,31 +21859,57 @@ def approuver_compte(employe_id):
             action="approbation_compte",
             details=(
                 f"Approbation du compte "
-                f"{user.username} (ID: {user.id})"
+                f"{user.username} "
+                f"(ID: {user.id}, "
+                f"rôle: {user.role}) "
+                f"par {current_user.username} "
+                f"(rôle: {current_user.role})"
             ),
             request=request
+        )
+
+        print(
+            "✅ Historique d'approbation enregistré."
         )
 
     except Exception as e:
 
         print(
-            f"⚠️ Erreur historique : {e}"
+            f"⚠️ Erreur historique : {repr(e)}"
         )
 
     # ==========================================================
-    # 8️⃣ Message final
+    # 1️⃣1️⃣ MESSAGE FINAL
     # ==========================================================
 
     flash(
         f"✅ Compte de {user.prenom} {user.nom} "
-        f"approuvé et activé. "
+        f"({user.role}) approuvé et activé. "
         f"Le lien d'activation a été envoyé à "
         f"{nouveau_client.email}.",
         "success"
     )
 
-    return redirect(url_for('liste_users'))
+    print("=" * 70)
+    print("🎉 APPROBATION TERMINÉE AVEC SUCCÈS")
+    print(
+        f"👤 Compte : {user.username}"
+    )
+    print(
+        f"🎭 Rôle : {user.role}"
+    )
+    print(
+        f"👑 Approuvé par : {current_user.username}"
+    )
+    print(
+        f"🏢 Succursale : {user.succursale_id}"
+    )
+    print(
+        f"📧 Email client : {nouveau_client.email}"
+    )
+    print("=" * 70)
 
+    return redirect(url_for('liste_users'))
 
 @app.route('/admin/rejeter-compte/<int:employe_id>')
 @login_required
