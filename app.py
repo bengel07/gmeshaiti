@@ -1000,7 +1000,7 @@ def generer_numero_pret():
 
     date_actuelle = datetime.now().strftime("%Y%m%d")
     chiffres_aleatoires = str(random.randint(000, 99999))
-    return f"GMES-{date_actuelle}-{chiffres_aleatoires}"
+    return f"GMES_Pret-{date_actuelle}-{chiffres_aleatoires}"
 
 
 

@@ -4113,8 +4113,6 @@ class Pret(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
 
-    id_pret = db.Column(db.String(50),unique=True, nullable=False )
-
 
     groupe_id = db.Column(db.Integer)
     montant = db.Column(db.Float, default=0)
