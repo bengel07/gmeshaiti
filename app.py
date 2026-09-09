@@ -1438,6 +1438,22 @@ def demande_pret():
 
                 flash("Client créé avec succès", "success")
 
+            # ========== CRÉATION DE LA DEMANDE DE PRÊT ==========
+
+            print("\n" + "=" * 70)
+            print("🔵 DÉBUT CRÉATION DU PRÊT")
+            print("=" * 70)
+
+            print(f"👤 CLIENT ID              = {client.id}")
+            print(f"👤 CLIENT NOM             = {client.prenom} {client.nom}")
+            print(f"📧 CLIENT EMAIL           = {client.email}")
+            print(f"🏦 CLIENT SUCCURSALE      = {client.succursale_id}")
+            print(f"👨‍💼 UTILISATEUR ID         = {current_user.id}")
+            print(f"👨‍💼 EST AGENT              = {est_agent}")
+            print(f"📋 TERMS ACCEPTED         = {client.terms_accepted}")
+            print(f"💰 MONTANT                = {montant_demande}")
+            print(f"📅 DURÉE                  = {duree}")
+            print(f"📈 TAUX                   = {taux_annuel}")
 
 
             # ========== CRÉATION DE LA DEMANDE DE PRÊT ==========
@@ -1446,6 +1462,10 @@ def demande_pret():
             montant_interet = montant_demande * (taux_annuel / 100) * (duree / 12)
             montant_total = montant_demande + montant_interet
             mensualite = montant_total / duree if duree > 0 else montant_total
+
+            print(f"💵 INTÉRÊT                = {montant_interet}")
+            print(f"💵 TOTAL                  = {montant_total}")
+            print(f"💵 MENSUALITÉ             = {mensualite}")
 
 
             nouveau_pret = Pret(
@@ -1489,8 +1509,29 @@ def demande_pret():
 
             )
 
+            print("\n🟣 OBJET PRET CRÉÉ EN MÉMOIRE")
+            print(f"🆔 ID SQL                 = {nouveau_pret.id}")
+            print(f"🔢 NUMERO PRET            = {nouveau_pret.numero_pret}")
+            print(f"👤 CLIENT ID              = {nouveau_pret.client_id}")
+            print(f"👨‍💼 AGENT ID               = {nouveau_pret.agent_id}")
+            print(f"💰 MONTANT                = {nouveau_pret.montant}")
+            print(f"📅 DURÉE                  = {nouveau_pret.duree_mois}")
+            print(f"📊 STATUT                 = {nouveau_pret.statut}")
+            print(f"🏦 SUCCURSALE             = {nouveau_pret.succursale_id}")
+            print(f"📄 DOSSIER                = {nouveau_pret.numero_dossier}")
+            print(f"✍️ SIGNATURE PRÉSENTE     = {bool(nouveau_pret.signature)}")
+
             db.session.add(nouveau_pret)
             db.session.flush()  # Pour obtenir l'ID
+
+            print("\n❌❌❌ ERREUR PENDANT FLUSH ❌❌❌")
+            print(f"TYPE ERREUR               = {type(e).__name__}")
+            print(f"MESSAGE                   = {str(e)}")
+
+            import traceback
+            traceback.print_exc()
+
+            db.session.rollback()
 
             # nouveau_pret.id_pret = f"PRET-{nouveau_pret.id:06d}"
 
@@ -1530,6 +1571,13 @@ def demande_pret():
             db.session.add(journal_entry)
 
             db.session.commit()
+
+            print("\n🔴 AVANT COMMIT FINAL")
+            print(f"🆔 PRET ID                = {nouveau_pret.id}")
+            print(f"🔢 NUMERO PRET            = {nouveau_pret.numero_pret}")
+            print(f"👤 CLIENT ID              = {nouveau_pret.client_id}")
+            print(f"💰 MONTANT                = {nouveau_pret.montant}")
+            print(f"📊 STATUT                 = {nouveau_pret.statut}")
 
             # session['pret_data'] = request.form.to_dict()
 

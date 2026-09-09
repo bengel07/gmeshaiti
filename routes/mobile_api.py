@@ -1,6 +1,10 @@
 from flask import jsonify, request
 from flask_login import login_required, current_user
 from flask import jsonify, request
+from sympy.physics.units import ft
+
+import app
+from models import Pret, Remboursement, Client, Groupe, User
 from utils.ai_scoring import ai_scorer
 from utils.gamification import gamification
 from functools import wraps
@@ -107,8 +111,8 @@ def sync_operation(current_user):
                 motif=operation_data['motif'],
                 statut='en_attente'
             )
-            session.add(nouveau_pret)
-            session.commit()
+            db..session.add(nouveau_pret)
+            db.session.commit()
 
         elif operation_type == 'payment':
             # Traiter un paiement
@@ -118,8 +122,8 @@ def sync_operation(current_user):
                 montant=operation_data['montant'],
                 statut='paye'
             )
-            session.add(remboursement)
-            session.commit()
+            db.session.add(remboursement)
+            db.session.commit()
 
         return jsonify({'status': 'success'}), 200
 
@@ -206,8 +210,8 @@ def mobile_demande_pret(current_user):
         # ... autres champs
     )
 
-    session.add(nouveau_pret)
-    session.commit()
+    db.session.add(nouveau_pret)
+    db.session.commit()
 
     return jsonify({'message': 'Demande envoyée'}), 201
 
