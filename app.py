@@ -1492,7 +1492,7 @@ def demande_pret():
             db.session.add(nouveau_pret)
             db.session.flush()  # Pour obtenir l'ID
 
-            nouveau_pret.id_pret = f"PRET-{nouveau_pret.id:06d}"
+            # nouveau_pret.id_pret = f"PRET-{nouveau_pret.id:06d}"
 
             if not client.terms_accepted:
                 session['pret_data'] = request.form.to_dict()
