@@ -21532,7 +21532,7 @@ def approuver_compte(employe_id):
     # Ils peuvent uniquement approuver un employé
     # appartenant à leur propre succursale.
 
-    elif current_user.role in ['directeur', 'admin_succursale']:
+    elif current_user.role in ['directeur', 'admin_general', 'admin_succursale']:
 
         # Vérifier que la personne à approuver est un employé
         if user.role != 'employe':
@@ -21646,21 +21646,21 @@ def approuver_compte(employe_id):
     # IMPORTANT :
     # On garde ta logique originale.
     # Aucun compte ne sera activé sans profil Client.
-
-    if not nouveau_client:
-
-        flash(
-            "❌ Impossible d'approuver ce compte : "
-            "aucun profil Client n'est associé à ce compte.",
-            "danger"
-        )
-
-        print(
-            f"❌ APPROBATION ANNULÉE : "
-            f"User #{user.id} sans Client associé."
-        )
-
-        return redirect(url_for('liste_users'))
+    #
+    # if not nouveau_client:
+    #
+    #     flash(
+    #         "❌ Impossible d'approuver ce compte : "
+    #         "aucun profil Client n'est associé à ce compte.",
+    #         "danger"
+    #     )
+    #
+    #     print(
+    #         f"❌ APPROBATION ANNULÉE : "
+    #         f"User #{user.id} sans Client associé."
+    #     )
+    #
+    #     return redirect(url_for('liste_users'))
 
     # ==========================================================
     # 6️⃣ ACTIVER LE COMPTE
