@@ -5010,7 +5010,7 @@ def envoyer_email_conditions2(client):
 
     import requests
     import os
-
+    import jwt
     try:
 
         # ====================================================
@@ -5032,15 +5032,16 @@ def envoyer_email_conditions2(client):
         # GÉNÉRER UN NOUVEAU TOKEN
         # ====================================================
 
-        from itsdangerous import URLSafeTimedSerializer
+        import jwt
+        from datetime import datetime, timedelta, timezone
 
-        serializer = URLSafeTimedSerializer(
-            app.config['SECRET_KEY']
-        )
-
-        nouveau_token = serializer.dumps(
-            client.id,
-            salt="terms-accept"
+        nouveau_token = jwt.encode(
+            {
+                'client_id': client.id,
+                'exp': datetime.now(timezone.utc) + timedelta(days=7)
+            },
+            app.config['SECRET_KEY'],
+            algorithm='HS256'
         )
 
         # ====================================================
@@ -5052,13 +5053,9 @@ def envoyer_email_conditions2(client):
             "https://gmeshaiti-aeo3.onrender.com"
         ).rstrip("/")
 
-        lien_terms = (
-            f"{APP_URL}/client/terms/{nouveau_token}"
-        )
+        lien_terms = f"{APP_URL}/client/terms/{nouveau_token}"
 
-        # Sauvegarder le nouveau token
         client.token_signature = nouveau_token
-
         db.session.commit()
 
         # ====================================================
