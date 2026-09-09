@@ -9089,30 +9089,44 @@ def dashboard_redirect():
             'caissier': 'caissier_dashboard',
             'caissier_principal': 'caissier_principal_dashboard',
             'agent_remboursement': 'agent_remboursement_dashboard',
+
+
             # Crédit et analyse
             'agent_credit': 'agent_credit_dashboard',
             'analyste_credit': 'analyste_dashboard',
             'superviseur_credit': 'superviseur_credit_dashboard',
             'gestionnaire_portefeuille': 'gestionnaire_portefeuille_dashboard',
+
+
             # Conseil et relation client
             'conseiller': 'conseiller_dashboard',
             'conseiller_client': 'conseiller_dashboard',
             'relation_client': 'relation_client_dashboard',
+
+
             # Groupes et animation
             'gestionnaire_groupe': 'gestionnaire_groupes_dashboard',
             'animateur_groupe': 'animateur_groupe_dashboard',
+
+
             # Rapports et données
             'rapports': 'rapports_dashboard',
             'agent_saisie': 'agent_saisie_dashboard',
+
+
             # Conformité et risque
             'agent_conformite': 'agent_conformite_dashboard',
             'agent_risque': 'agent_risque_dashboard',
             'controlleur_interne': 'controlleur_interne_dashboard',
+
+
             # Support administratif
             'secretaire': 'secretaire_dashboard',
             'archiviste': 'archiviste_dashboard',
             'charge_rh': 'charge_rh_dashboard',
             'informaticien': 'informaticien_dashboard',
+
+
             # Terrain et collecte
             'agent_terrain': 'agent_terrain_dashboard',
             'collecteur': 'collecteur_dashboard',
@@ -21640,27 +21654,66 @@ def approuver_compte(employe_id):
     print("=" * 70)
 
     # ==========================================================
-    # 5️⃣ VÉRIFIER LE CLIENT
+    # 5️⃣ CRÉER LE LIEN D'ACCÈS CLIENT SI UN CLIENT EXISTE
     # ==========================================================
-    #
-    # IMPORTANT :
-    # On garde ta logique originale.
-    # Aucun compte ne sera activé sans profil Client.
-    #
-    # if not nouveau_client:
-    #
-    #     flash(
-    #         "❌ Impossible d'approuver ce compte : "
-    #         "aucun profil Client n'est associé à ce compte.",
-    #         "danger"
-    #     )
-    #
-    #     print(
-    #         f"❌ APPROBATION ANNULÉE : "
-    #         f"User #{user.id} sans Client associé."
-    #     )
-    #
-    #     return redirect(url_for('liste_users'))
+
+    if nouveau_client:
+
+        try:
+            print("🔐 Création du lien d'activation client...")
+
+            activation_link = creer_acces_client(
+                nouveau_client
+            )
+
+            print(
+                f"🔗 activation_link = {activation_link}"
+            )
+
+            if activation_link:
+
+                print("=" * 70)
+                print("📨 ENVOI EMAIL ACTIVATION CLIENT")
+                print(
+                    f"📧 Destinataire : {nouveau_client.email}"
+                )
+                print(
+                    f"🔗 Lien : {activation_link}"
+                )
+                print("=" * 70)
+
+                resultat = envoyer_email_activation_client(
+                    nouveau_client,
+                    activation_link
+                )
+
+                if resultat:
+                    print(
+                        f"✅ Email activation client envoyé à "
+                        f"{nouveau_client.email}"
+                    )
+                else:
+                    print(
+                        "⚠️ L'envoi de l'email client a échoué."
+                    )
+
+            else:
+                print(
+                    "⚠️ Aucun lien d'activation client créé."
+                )
+
+        except Exception as e:
+
+            print(
+                f"⚠️ ERREUR activation client : {repr(e)}"
+            )
+
+    else:
+
+        print(
+            "ℹ️ Aucun Client associé. "
+            "Aucun lien client à créer."
+        )
 
     # ==========================================================
     # 6️⃣ ACTIVER LE COMPTE
@@ -21910,6 +21963,8 @@ def approuver_compte(employe_id):
     print("=" * 70)
 
     return redirect(url_for('liste_users'))
+
+
 
 @app.route('/admin/rejeter-compte/<int:employe_id>')
 @login_required
@@ -22311,15 +22366,12 @@ def caissier_dashboard(succursale_code):
     print("Succursale ID :", current_user.succursale_id)
     print("Code URL :", succursale_code)
 
-    if current_user.role != 'employe' or current_user.fonction != 'caissier':
+    if current_user.role != 'employe' or current_user.fonction not in ['caissier', 'conseiller']:
         print("❌ BLOQUE PAR ROLE/FONCTION")
         flash('⛔ Accès non autorisé - Espace caissier', 'danger')
         return redirect(url_for('dashboard_redirect'))
 
-    # Vérifier que l'utilisateur est bien caissier
-    if current_user.role != 'employe' or current_user.fonction != 'caissier':
-        flash('⛔ Accès non autorisé - Espace caissier', 'danger')
-        return redirect(url_for('dashboard_redirect'))
+
 
     succursale = Succursale.query.filter_by(code=succursale_code).first_or_404()
 
