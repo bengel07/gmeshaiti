@@ -1827,6 +1827,9 @@ def verifier_eligibilite_pret(client, montant_demande=None):
 
     return resultat
 
+# 🔥 IMPORTANT : rendre la fonction disponible dans Jinja
+app.jinja_env.globals['verifier_eligibilite_pret'] = verifier_eligibilite_pret
+
 
 
 @app.route('/prets/<int:pret_id>/generer-echeancier', methods=['POST'])
