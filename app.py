@@ -5123,12 +5123,18 @@ def directeur_modifier_dossier(dossier_id):
 
             db.session.commit()
 
-            envoyer_email_conditions(dossier)
+            email_envoye = envoyer_email_conditions(dossier)
 
-            flash(
-                f"✅ Dossier modifié et nouvelles conditions envoyées au client {dossier.email}.",
-                "success"
-            )
+            if email_envoye:
+                flash(
+                    "✅ Dossier modifié et nouvelles conditions envoyées au client.",
+                    "success"
+                )
+            else:
+                flash(
+                    "⚠️ Dossier modifié, mais l'email n'a pas été envoyé.",
+                    "warning"
+                )
 
     except Exception as e:
         db.session.rollback()
@@ -22643,11 +22649,11 @@ def envoyer_email_conditions(client):
     """Renvoie le lien de signature au client (avec email réel)"""
 
     # Vérifier les permissions
-    if current_user.role != 'employe' or current_user.fonction != 'conseiller':
-        return jsonify({'success': False, 'message': '⛔ Permission non autorisée'}), 403
+    # if current_user.role != 'employe' or current_user.fonction != 'conseiller':
+    #     return jsonify({'success': False, 'message': '⛔ Permission non autorisée'}), 403
 
     # Récupérer le client
-    client = Client.query.get_or_404(client_id)
+    # client = Client.query.get_or_404(client_id)
 
     # Vérifier que ce client appartient bien à ce conseiller
     if client.cree_par_id != current_user.id:
@@ -22854,6 +22860,8 @@ def envoyer_email_conditions(client):
         print("MAIL PASSWORD:", repr(os.environ.get('MAIL_PASSWORD')))
         print(f"❌ Erreur renvoi lien: {e}")
         return jsonify({'success': False, 'message': f'❌ Erreur: {str(e)}'}), 500
+
+
 
 @app.route('/conseiller/renvoyer-lien/<int:client_id>', methods=['POST'])
 @login_required
