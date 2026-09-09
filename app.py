@@ -4313,20 +4313,6 @@ def client_terms(token):
 
         return redirect(url_for('connexion'))
 
-    except BadSignature as e:
-        print(f"❌ Token invalide: {e}")
-        flash(
-            '❌ Lien invalide. Veuillez contacter votre conseiller.',
-            'danger'
-        )
-        return redirect(url_for('connexion'))
-
-
-    except Exception as e:
-        print(f"❌ Erreur décodage token: {e}")
-        flash('❌ Impossible de vérifier le lien.', 'danger')
-        return redirect(url_for('connexion'))
-
 
     # ===== 2. VÉRIFIER SI LE CLIENT EST DÉJÀ TRAITÉ =====
     # ===== 2. VÉRIFIER SI LES CONDITIONS SONT DÉJÀ ACCEPTÉES =====
