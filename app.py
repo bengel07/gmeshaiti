@@ -1102,6 +1102,8 @@ def demande_pret():
 
     # ========== TRAITEMENT POST ==========
     if request.method == 'POST':
+        session['pret_data'] = request.form.to_dict()
+
         # ❌ IL MANQUE ÇA :
         action = request.form.get('action', '')
         if action != 'submit':
