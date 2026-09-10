@@ -1097,6 +1097,8 @@ def demande_pret():
     def allowed_file(filename):
         return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+    form_data = session.pop('pret_data', {})
+
 
     # ========== TRAITEMENT POST ==========
     if request.method == 'POST':
@@ -1439,22 +1441,22 @@ def demande_pret():
 
                 flash("Client créé avec succès", "success")
 
-            # ========== CRÉATION DE LA DEMANDE DE PRÊT ==========
+                # ========== CRÉATION DE LA DEMANDE DE PRÊT ==========
 
-            print("\n" + "=" * 70)
-            print("🔵 DÉBUT CRÉATION DU PRÊT")
-            print("=" * 70)
+                print("\n" + "=" * 70)
+                print("🔵 DÉBUT CRÉATION DU PRÊT")
+                print("=" * 70)
 
-            print(f"👤 CLIENT ID              = {client.id}")
-            print(f"👤 CLIENT NOM             = {client.prenom} {client.nom}")
-            print(f"📧 CLIENT EMAIL           = {client.email}")
-            print(f"🏦 CLIENT SUCCURSALE      = {client.succursale_id}")
-            print(f"👨‍💼 UTILISATEUR ID         = {current_user.id}")
-            print(f"👨‍💼 EST AGENT              = {est_agent}")
-            print(f"📋 TERMS ACCEPTED         = {client.terms_accepted}")
-            print(f"💰 MONTANT                = {montant_demande}")
-            print(f"📅 DURÉE                  = {duree}")
-            print(f"📈 TAUX                   = {taux_annuel}")
+                print(f"👤 CLIENT ID              = {client.id}")
+                print(f"👤 CLIENT NOM             = {client.prenom} {client.nom}")
+                print(f"📧 CLIENT EMAIL           = {client.email}")
+                print(f"🏦 CLIENT SUCCURSALE      = {client.succursale_id}")
+                print(f"👨‍💼 UTILISATEUR ID         = {current_user.id}")
+                print(f"👨‍💼 EST AGENT              = {est_agent}")
+                print(f"📋 TERMS ACCEPTED         = {client.terms_accepted}")
+                print(f"💰 MONTANT                = {montant_demande}")
+                print(f"📅 DURÉE                  = {duree}")
+                print(f"📈 TAUX                   = {taux_annuel}")
 
 
             # ========== CRÉATION DE LA DEMANDE DE PRÊT ==========
