@@ -2814,7 +2814,7 @@ def refuser_pret(pret_id):
         }), 500
 
 
-def notifier_directeurs_demande_pret(pret, type_action="nouvelle_demande"):
+def notifier_directeurs_demande_pret(pret, directeur, type_action="nouvelle_demande"):
     """
     Notifie tous les directeurs et administrateurs d'une action sur une demande de prêt
 
@@ -2918,13 +2918,16 @@ def notifier_directeurs_demande_pret(pret, type_action="nouvelle_demande"):
             return False
 
         print(f"📨 Notification à {len(destinataires)} destinataire(s)")
+        directeur_action = destinataires[0]
 
         # 🔥 CRÉER UNE ACTION UNIQUE POUR CETTE NOTIFICATION
         nouvelle_action = Action(
             pret_id=pret.id,
+            assignee_a_id=directeur.id,  # ✅ AJOUTER CETTE LIGNE
+            creee_par_id=current_user.id,  # ✅ AJOUTER CETTE LIGNE
             type_action=type_action,
             date_action=datetime.now(),
-            description=f"{config['titre']} - {message[:100]}"
+            description=f"{config['titre']} - {message[:1000]}"
         )
         db.session.add(nouvelle_action)
         db.session.flush()  # Pour obtenir nouvelle_action.id
