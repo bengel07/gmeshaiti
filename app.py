@@ -1175,20 +1175,20 @@ def demande_pret():
             # ✅ AJOUTEZ CE LOG POUR VOIR TOUS LES CHAMPS REÇUS
             print("📋 Tous les champs reçus :")
 
-            for field in required_fields:
-                value = request.form.get(field)
-                if not value or not value.strip():
-                    print(f"❌ Champ manquant : {field}")
-                    flash(f'⛔ Le champ {field} est requis', 'danger')
-                    # ✅ CORRECTION : Rediriger avec les bons paramètres
-                    return redirect(url_for('demande_pret', client_id=client.id))
-
-
-            for field in required_fields:
-                if not request.form.get(field):
-                    print(f"❌ Champ manquant : {field}")
-                    flash(f'⛔ Le champ {field} est requis', 'danger')
-                    return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
+            # for field in required_fields:
+            #     value = request.form.get(field)
+            #     if not value or not value.strip():
+            #         print(f"❌ Champ manquant : {field}")
+            #         flash(f'⛔ Le champ {field} est requis', 'danger')
+            #         # ✅ CORRECTION : Rediriger avec les bons paramètres
+            #         return redirect(url_for('demande_pret', client_id=client.id))
+            #
+            #
+            # for field in required_fields:
+            #     if not request.form.get(field):
+            #         print(f"❌ Champ manquant : {field}")
+            #         flash(f'⛔ Le champ {field} est requis', 'danger')
+            #         return redirect(url_for('demande_pret', client_id=client_id, telephone=telephone, email=email))
 
             # ========== VALIDATION SPÉCIFIQUE ==========
             email = request.form.get('email').strip().lower()
