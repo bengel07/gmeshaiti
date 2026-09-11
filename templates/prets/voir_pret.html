@@ -471,8 +471,8 @@
                 // Update stats
                 document.querySelector('#paid-amount').setAttribute('data-htg', data.summary.total_paid);
                 document.querySelector('#remaining-amount').setAttribute('data-htg', data.summary.remaining_balance);
-                document.querySelector('#paid-amount h3').textContent = formatAmount(data.summary.total_paid, currentCurrency);
-                document.querySelector('#remaining-amount h3').textContent = formatAmount(data.summary.remaining_balance, currentCurrency);
+                document.querySelector('#paid-amount ').textContent = formatAmount(data.summary.total_paid, currentCurrency);
+                document.querySelector('#remaining-amount ').textContent = formatAmount(data.summary.remaining_balance, currentCurrency);
 
                 const progressPercent = (data.summary.total_paid / (data.summary.total_paid + data.summary.remaining_balance)) * 100;
                 document.querySelector('.progress-bar').style.width = progressPercent + '%';
@@ -584,23 +584,58 @@
     }
 
     async function rejectLoan(pretId) {
-        if (!confirm('Refuser ce prêt ?')) return;
+        const motifRefus = prompt('Veuillez saisir le motif du refus :');
+
+        if (!motifRefus || !motifRefus.trim()) {
+            alert('Le motif du refus est obligatoire.');
+            return;
+        }
+
+        if (!confirm('Confirmer le refus de ce prêt ?')) {
+            return;
+        }
 
         try {
             const response = await fetch(`/pret/${pretId}/refuser`, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'}
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    motif_refus: motifRefus.trim()
+                })
             });
 
-            const result = await response.json();
-            if (result.success) {
-                location.reload();
-            } else {
-                alert('Erreur: ' + result.error);
+            const contentType = (
+                response.headers.get('content-type') || ''
+            ).toLowerCase();
+
+            if (!response.ok) {
+                const texte = await response.text();
+                console.error('Réponse serveur :', texte);
+                throw new Error(`Erreur HTTP ${response.status}`);
             }
+
+            if (!contentType.includes('application/json')) {
+                const texte = await response.text();
+                console.error('Réponse HTML reçue :', texte);
+                throw new Error('Le serveur a retourné une page HTML au lieu du JSON.');
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(result.message || 'Le prêt a été refusé.');
+                window.location.reload();
+            } else {
+                alert('Erreur : ' + (result.message || result.error || 'Refus impossible'));
+            }
+
         } catch (error) {
-            console.error('Error:', error);
-            alert('Erreur lors du refus');
+            console.error('Erreur lors du refus :', error);
+            alert('Erreur lors du refus : ' + error.message);
         }
     }
 

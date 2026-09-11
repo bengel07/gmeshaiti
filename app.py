@@ -2708,16 +2708,45 @@ def approuver_pret(pret_id):
 
         db.session.commit()
 
-        # Générer directement le reçu
-        resultat_recu = generer_recu_pour_pret(pret)
+        resultat_recu = None
 
-        # Envoyer notification au client et à l'agent
-        notification_manager.send_approval_notification(pret)
+        # La génération du reçu ne doit pas annuler l'approbation
+        try:
+            resultat_recu = generer_recu_pour_pret(pret)
+        except Exception as erreur_recu:
+            import traceback
+            print("⚠️ ERREUR GÉNÉRATION REÇU :", repr(erreur_recu))
+            traceback.print_exc()
 
-        return jsonify({'success': True, 'message': 'Prêt approuvé avec succès et reçu généré','recu': resultat_recu})
+        # La notification ne doit pas annuler l'approbation
+        try:
+            notification_manager.send_approval_notification(pret)
+        except Exception as erreur_notification:
+            import traceback
+            print(
+                "⚠️ ERREUR NOTIFICATION APPROBATION :",
+                repr(erreur_notification)
+            )
+            traceback.print_exc()
+
+        return jsonify({
+            'success': True,
+            'message': 'Prêt approuvé avec succès.',
+            'recu': resultat_recu
+        }), 200
+
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
+
+        import traceback
+        print("❌ ERREUR APPROBATION PRÊT :", repr(e))
+        traceback.print_exc()
+
+        return jsonify({
+            'success': False,
+            'message': str(e),
+            'error': str(e)
+        }), 500
 
 
 # Dans routes.py
@@ -2725,6 +2754,7 @@ def approuver_pret(pret_id):
 @app.route('/pret/<int:pret_id>/demander_informations', methods=['POST'])
 @login_required
 @role_required('direction')
+@csrf.exempt
 def demander_informations_supplementaires(pret_id):
     """Demander des informations supplémentaires pour un prêt"""
     try:
@@ -2754,9 +2784,12 @@ def demander_informations_supplementaires(pret_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
+
 @app.route('/pret/<int:pret_id>/refuser', methods=['POST'])
 @login_required
 @role_required('direction')
+@csrf.exempt
 def refuser_pret(pret_id):
     try:
         pret = Pret.query.get_or_404(pret_id)

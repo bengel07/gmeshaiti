@@ -8,3 +8,5 @@ def generer_recu_pour_un_pret(pret_id):
         return None
 
     return generer_recu_pour_pret(pret)
+
+
