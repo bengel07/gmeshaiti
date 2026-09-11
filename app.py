@@ -5091,7 +5091,7 @@ def directeur_voir_dossier(dossier_id):
     dossier = Client.query.get_or_404(dossier_id)
     client = Client.query.get_or_404(dossier_id)
 
-    return render_template('direction/voir_dossier.html', dossier=dossier, client=client)
+    return render_template('direction/voir_dossier.html', dossier=dossier, client=client )
 
 
 
