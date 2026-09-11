@@ -233,6 +233,7 @@
                             <input type="text" class="form-control" name="cin_nif"
                                    value="{{ form_data.cin_nif if form_data else '' }}"
                                    {% if not show_for_director %}required{% endif %}>
+                            <div id="cin-message" class="small mt-1"></div>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
@@ -249,6 +250,7 @@
                                maxlength="20"
                                required>
                         <div class="invalid-feedback">
+                            <div id="telephone-message" class="small mt-1"></div>
                             Veuillez entrer un numéro de téléphone valide.
                         </div>
                         </div>
@@ -260,6 +262,7 @@
                             <input type="email" class="form-control" name="email"
                                    value="{{ form_data.email if form_data else '' }}"
                                    {% if not show_for_director %}required{% endif %}>
+                            <div id="email-message" class="small mt-1"></div>
                         </div>
                     </div>
                 </div>
@@ -969,6 +972,95 @@
     }
 </style>
 
+// ============================================================
+// VÉRIFICATION DES DONNÉES DÉJÀ UTILISÉES
+// ============================================================
+
+async function verifierChampPret(type, valeurChamp, messageId) {
+
+    const message = document.getElementById(messageId);
+
+    if (!message || !valeurChamp || !valeurChamp.trim()) {
+        return true;
+    }
+
+    const clientIdElement =
+        document.querySelector('[name="client_id"]');
+
+    const clientId = clientIdElement
+        ? clientIdElement.value.trim()
+        : '';
+
+    message.textContent = 'Vérification...';
+    message.className = 'small mt-1 text-muted';
+
+    try {
+
+        const response = await fetch(
+            '/conseiller/verifier-champ',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    type: type,
+                    valeur: valeurChamp.trim(),
+                    client_id: clientId
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (data.existe === true || data.utilise === true) {
+
+            if (data.lie_au_compte === true) {
+
+                message.textContent =
+                    '✅ Cette donnée est liée au compte sélectionné.';
+
+                message.className =
+                    'small mt-1 text-success';
+
+                return true;
+
+            } else {
+
+                message.textContent =
+                    data.message ||
+                    '❌ Cette donnée est déjà utilisée par un autre client.';
+
+                message.className =
+                    'small mt-1 text-danger';
+
+                return false;
+            }
+        }
+
+        message.textContent =
+            data.message || '✅ Cette donnée est disponible.';
+
+        message.className =
+            'small mt-1 text-success';
+
+        return true;
+
+    } catch (error) {
+
+        console.error('Erreur vérification champ :', error);
+
+        message.textContent =
+            '⚠️ Impossible de vérifier cette donnée pour le moment.';
+
+        message.className =
+            'small mt-1 text-warning';
+
+        return true;
+    }
+}
+
 <script>
 
     // Fonction pour rechercher un client par les 10 derniers chiffres du compte
@@ -1225,6 +1317,27 @@
                 autreNationalite.style.display = this.value === 'Autre' ? 'block' : 'none';
             });
         }
+
+         const emailInput =
+            document.querySelector('[name="email"]');
+
+        const cinInput =
+            document.querySelector('[name="cin_nif"]');
+
+        const telephoneInput =
+            document.querySelector('[name="telephone"]');
+
+        if (emailInput) {
+
+            emailInput.addEventListener('blur', function () {
+
+                verifierChampPret(
+                    'email',
+                    this.value,
+                    'email-message'
+                );
+
+            });
 
         // Gestion du type de prêt "Autre"
         const typePretRadios = document.querySelectorAll('input[name="type_pret"]');

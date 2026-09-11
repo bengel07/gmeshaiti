@@ -30990,6 +30990,79 @@ def verifier_document(document_id):
         )
     )
 
+
+
+@app.route('/conseiller/verifier-champ', methods=['POST'])
+@login_required
+def verifier_champ():
+
+    from models import Client
+
+    data = request.get_json(silent=True) or {}
+
+    type_champ = (data.get('type') or '').strip()
+    valeur = (data.get('valeur') or '').strip()
+    client_id = (data.get('client_id') or '').strip()
+
+    if not type_champ or not valeur:
+        return jsonify({
+            'existe': False,
+            'utilise': False,
+            'lie_au_compte': False,
+            'message': 'Donnée vide.'
+        })
+
+    # Correspondance entre le type envoyé par JavaScript
+    # et le nom réel de la colonne dans Client.
+    colonnes = {
+        'email': 'email',
+        'cin_nif': 'cin_nif',
+        'telephone': 'telephone'
+    }
+
+    colonne = colonnes.get(type_champ)
+
+    if not colonne:
+        return jsonify({
+            'existe': False,
+            'utilise': False,
+            'lie_au_compte': False,
+            'message': 'Champ non reconnu.'
+        }), 400
+
+    # Recherche de tous les clients possédant cette donnée
+    clients = Client.query.filter(
+        getattr(Client, colonne) == valeur
+    ).all()
+
+    if not clients:
+        return jsonify({
+            'existe': False,
+            'utilise': False,
+            'lie_au_compte': False,
+            'message': '✅ Cette donnée est disponible.'
+        })
+
+    # Vérifie si la donnée appartient au compte actuellement sélectionné
+    for client in clients:
+
+        if client_id and str(client.id) == str(client_id):
+
+            return jsonify({
+                'existe': True,
+                'utilise': True,
+                'lie_au_compte': True,
+                'message': '✅ Cette donnée est liée au compte sélectionné.'
+            })
+
+    # La donnée existe mais appartient à un autre client
+    return jsonify({
+        'existe': True,
+        'utilise': True,
+        'lie_au_compte': False,
+        'message': f'❌ {type_champ.upper()} déjà utilisé par un autre client.'
+    })
+
 # === FONCTION D'INITIALISATION DE LA BASE ===
 def init_app_data():
     """Vérifie et configure le super admin uniquement en cas de besoin."""
