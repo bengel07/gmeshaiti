@@ -434,7 +434,7 @@
         container.style.opacity = '0.5';
 
         try {
-            const response = await fetch(`/prets/voir-pret/{{ pret.id }}`, {
+            const response = await fetch(`/pret/voir-pret/{{ pret.id }}`, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                     'Accept': 'application/json'
@@ -525,7 +525,7 @@
         files.forEach(file => formData.append('documents', file));
 
         try {
-            const response = await fetch(`/prets/{{ pret.id }}/upload-document`, {
+            const response = await fetch(`/pret/{{ pret.id }}/upload-document`, {
                 method: 'POST',
                 body: formData
             });
@@ -546,7 +546,7 @@
         if (!confirm('Supprimer ce document ?')) return;
 
         try {
-            const response = await fetch(`/prets/document/${docId}`, {
+            const response = await fetch(`/pret/document/${docId}`, {
                 method: 'DELETE'
             });
 
@@ -566,7 +566,7 @@
         if (!confirm('Approuver ce prêt ?')) return;
 
         try {
-            const response = await fetch(`/prets/${pretId}/approuver`, {
+            const response = await fetch(`/pret/${pretId}/approuver`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'}
             });
@@ -587,7 +587,7 @@
         if (!confirm('Refuser ce prêt ?')) return;
 
         try {
-            const response = await fetch(`/prets/${pretId}/refuser`, {
+            const response = await fetch(`/pret/${pretId}/refuser`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'}
             });
@@ -605,7 +605,7 @@
     }
 
     function makePayment(pretId) {
-        window.location.href = `/prets/${pretId}/paiement`;
+        window.location.href = `/pret/${pretId}/paiement`;
     }
 
     // Auto-refresh every 30 seconds
