@@ -437,6 +437,7 @@
             const response = await fetch(`/prets/voir-pret/{{ pret.id }}`, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
+                    'Accept': 'application/json'
                 }
             });
 
