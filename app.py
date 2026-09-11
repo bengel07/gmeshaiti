@@ -12407,7 +12407,7 @@ def nouveau_remboursement():
             pret_id = data.get('pret_id')
             montant = float(data.get('montant', 0))
             methode = data.get('methode')
-            type_paiement = request.form.get('type_paiement')
+            type_paiement = data.get('type_paiement')
             reference = data.get('reference')
 
             pret = db.session.get(Pret, pret_id)
