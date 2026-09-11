@@ -1558,23 +1558,25 @@ def demande_pret():
 
             # nouveau_pret.id_pret = f"PRET-{nouveau_pret.id:06d}"
 
-            if not client.terms_accepted:
-                session['pret_data'] = request.form.to_dict()
-                session['pret_data']['client_id'] = client.id
+            envoyer_email_demande_pret(client, nouveau_pret)
 
-                try:
-                    envoyer_email_demande_pret(client, nouveau_pret)
-                except Exception as e:
-                    print(f"⚠️ Erreur envoi email demande prêt : {e}")
-
-                flash(
-                    '⚠️ Vérifiez votre email et signez les conditions.',
-                    'warning'
-                )
-
-                return redirect(
-                    url_for('demande_pret', client_id=client.id)
-                )
+            # if not client.terms_accepted:
+            #     session['pret_data'] = request.form.to_dict()
+            #     session['pret_data']['client_id'] = client.id
+            #
+            #     try:
+            #         envoyer_email_demande_pret(client, nouveau_pret)
+            #     except Exception as e:
+            #         print(f"⚠️ Erreur envoi email demande prêt : {e}")
+            #
+            #     flash(
+            #         '⚠️ Vérifiez votre email et signez les conditions.',
+            #         'warning'
+            #     )
+            #
+            #     return redirect(
+            #         url_for('demande_pret', client_id=client.id)
+            #     )
 
 
             print("3,1. création prêt")
