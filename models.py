@@ -4344,11 +4344,10 @@ class Remboursement(db.Model):
     reference = db.Column(db.String(20))
     date = db.Column(db.DateTime)
 
-    succursale_id = db.Column(db.Integer, db.ForeignKey('succursale.id'), nullable=False)
 
     # ✅ Ajoute les relations
     pret = db.relationship('Pret', backref='remboursements')
-    client = db.relationship('User', foreign_keys=[client_id], backref='remboursements_effectues')
+    client = db.relationship('Client', foreign_keys=[client_id], backref='remboursements_effectues')
     succursale = db.relationship('Succursale', back_populates='remboursements')
     succursale_id = db.Column(db.Integer, db.ForeignKey('succursale.id'), nullable=False)
 
