@@ -4334,7 +4334,7 @@ class Remboursement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     pret_id = db.Column(db.Integer, db.ForeignKey('prets.id'), nullable=False)
     employe_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    client_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
     montant = db.Column(db.Float)
     date_remboursement = db.Column(db.DateTime, default=datetime.utcnow)
     date_echeance = db.Column(db.DateTime)
