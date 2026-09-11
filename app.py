@@ -2960,6 +2960,7 @@ def notifier_directeurs_demande_pret(pret, type_action="nouvelle_demande"):
         print(f"📨 Notification à {len(destinataires)} destinataire(s)")
         directeur = destinataires[0]
         titre_action = f"Nouvelle demande de prêt #{pret.id}"
+        date_creation = datetime.now()
 
         # 🔥 CRÉER UNE ACTION UNIQUE POUR CETTE NOTIFICATION
         nouvelle_action = Action(
@@ -2968,8 +2969,16 @@ def notifier_directeurs_demande_pret(pret, type_action="nouvelle_demande"):
             assignee_a_id=directeur.id,  # ✅ AJOUTER CETTE LIGNE
             creee_par_id=current_user.id,  # ✅ AJOUTER CETTE LIGNE
             type_action=type_action,
+            date_creation=date_creation,
             date_action=datetime.now(),
-            description=f"{config['titre']} - {message[:1000]}"
+
+            # ✅ Obligatoire dans la base de données
+            date_echeance=date_creation + timedelta(days=7),
+
+            description=f"{config['titre']} - {message[:1000]}",
+            statut="a_faire",
+            progression=0,
+            notification_envoyee=False
         )
         db.session.add(nouvelle_action)
         db.session.flush()  # Pour obtenir nouvelle_action.id
