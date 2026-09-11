@@ -2825,6 +2825,9 @@ def refuser_pret(pret_id):
         if hasattr(client, 'a_un_pret_actif'):
             client.a_un_pret_actif = False
 
+        if hasattr(client, 'compte_actif'):
+            client.compte_actif = True
+
         db.session.commit()
 
         # 🔥 RENVOYER L'EMAIL POUR NOUVELLE ACCEPTATION
@@ -2954,10 +2957,12 @@ def notifier_directeurs_demande_pret(pret, type_action="nouvelle_demande"):
 
         print(f"📨 Notification à {len(destinataires)} destinataire(s)")
         directeur = destinataires[0]
+        titre_action = f"Nouvelle demande de prêt #{pret.id}"
 
         # 🔥 CRÉER UNE ACTION UNIQUE POUR CETTE NOTIFICATION
         nouvelle_action = Action(
             pret_id=pret.id,
+            titre=titre_action,
             assignee_a_id=directeur.id,  # ✅ AJOUTER CETTE LIGNE
             creee_par_id=current_user.id,  # ✅ AJOUTER CETTE LIGNE
             type_action=type_action,
