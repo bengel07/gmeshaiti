@@ -1627,9 +1627,11 @@ def demande_pret():
 
         except Exception as e:
             db.session.rollback()
-            print("❌ ERREUR DÉTAILLÉE :")
+            print("❌ ERREUR DÉTAILLÉE :", repr(e))
+            print("❌ TYPE ERREUR :", type(e).__name__)
             import traceback
             traceback.print_exc()
+            flash(f"Erreur lors du traitement : {type(e).__name__} - {e}", "danger")
             flash(f'⛔ ERREUR : {str(e)}', 'danger')
             return redirect(url_for('demande_pret'))
 
