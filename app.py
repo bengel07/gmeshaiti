@@ -501,7 +501,7 @@ def accepter_conditions_pret(token):
         current_app.logger.exception(e)
 
         flash("Une erreur est survenue.", "danger")
-        return render_template("erreurs/500.html")
+        return render_template("errors/500.html")
 
 
 

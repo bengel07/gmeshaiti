@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lien expiré - GMES</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+```
+    .card {
+        background: white;
+        width: 90%;
+        max-width: 500px;
+        padding: 40px 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        text-align: center;
+    }
+
+    .icon {
+        font-size: 55px;
+        color: #f0ad4e;
+        margin-bottom: 20px;
+    }
+
+    h1 {
+        color: #333;
+        margin-bottom: 15px;
+    }
+
+    p {
+        color: #666;
+        line-height: 1.6;
+    }
+
+    .btn {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 12px 25px;
+        background: #0d6efd;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+    }
+
+    .btn:hover {
+        background: #0b5ed7;
+    }
+
+    .brand {
+        margin-top: 25px;
+        color: #b8860b;
+        font-weight: bold;
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="card">
+        <div class="icon">⏳</div>
+
+```
+    <h1>Lien expiré</h1>
+
+    <p>
+        Le lien de validation des conditions de votre prêt a expiré.
+    </p>
+
+    <p>
+        Veuillez contacter votre conseiller GMES afin de recevoir
+        un nouveau lien de validation.
+    </p>
+
+    <a href="{{ url_for('login') }}" class="btn">
+        Retour à la connexion
+    </a>
+
+    <div class="brand">
+        GMES — youn sipote lot
+    </div>
+</div>
+```
+
+</body>
+</html>
