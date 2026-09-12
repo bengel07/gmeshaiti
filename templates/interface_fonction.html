@@ -92,7 +92,7 @@
                 <tr>
                     <td>{{ pret.id }}</td>
                     <td>{{ pret.client.nom if pret.client else 'N/A' }}</td>
-                    <td>{{ pret.montant|format_currency }}</td>
+                    <td>{{ "{:,.2f}".format(pret.montant or 0) }} Gdes</td>
                     <td><a href="#" class="btn">Analyser</a></td>
                 </tr>
                 {% endfor %}

@@ -38,7 +38,7 @@
                                 <li><strong>Montant :</strong> {{ "{:,.2f}".format(pret.montant or 0) }} Gdes</li>
                                 <li><strong>Taux d'intérêt :</strong> {{ pret.taux_interet }}%</li>
                                 <li><strong>Durée :</strong> {{ pret.duree }} mois</li>
-                                <li><strong>Mensualité :</strong> {{ pret.mensualite|format_currency }}</li>
+                                <li><strong>Mensualité :</strong> {{ "{:,.2f}".format(pret.mensualite or 0) }} Gdes</li>
                                 <li><strong>Statut :</strong> <span class="badge bg-success">Signé</span></li>
                             </ul>
                         </div>
@@ -62,7 +62,7 @@
                                         </tr>
                                         <tr>
                                             <td><strong>Mensualité</strong></td>
-                                            <td class="text-end">{{ pret.mensualite|format_currency }}</td>
+                                            <td class="text-end">{{ "{:,.2f}".format(pret.mensualite or 0) }} Gdes</td>
                                         </tr>
                                         <tr>
                                             <td><strong>Date de signature</strong></td>
