@@ -35,7 +35,7 @@
                         <div class="col-md-6">
                             <h5 class="text-muted">Détails du Prêt</h5>
                             <ul class="list-unstyled">
-                                <li><strong>Montant :</strong> {{ pret.montant|format_currency }}</li>
+                                <li><strong>Montant :</strong> {{ "{:,.2f}".format(pret.montant or 0) }} Gdes</li>
                                 <li><strong>Taux d'intérêt :</strong> {{ pret.taux_interet }}%</li>
                                 <li><strong>Durée :</strong> {{ pret.duree }} mois</li>
                                 <li><strong>Mensualité :</strong> {{ pret.mensualite|format_currency }}</li>
