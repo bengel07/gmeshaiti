@@ -1716,6 +1716,7 @@ def demande_pret():
     )
 
 
+
 @app.route('/clients/pret/<int:pret_id>', methods=['GET'])
 @login_required
 def client_voir_pret(pret_id):
@@ -31059,6 +31060,51 @@ def verifier_champ():
         'utilise': True,
         'lie_au_compte': False,
         'message': f'❌ {type_champ.upper()} déjà utilisé par un autre client.'
+    })
+
+
+@app.route('/api/client/pret-en-cours/<numero_compte>')
+@login_required
+def verifier_pret_en_cours(numero_compte):
+    from models import Client, Pret
+
+    client = Client.query.filter_by(
+        numero_compte=numero_compte.strip()
+    ).first()
+
+    if not client:
+        return jsonify({
+            'success': False,
+            'message': 'Client introuvable.'
+        }), 404
+
+    pret_en_cours = Pret.query.filter(
+        Pret.client_id == client.id,
+        Pret.statut.in_([
+            'en_attente',
+            'approuve',
+            'actif',
+            'en_retard'
+        ])
+    ).first()
+
+    if pret_en_cours:
+        return jsonify({
+            'success': True,
+            'client_id': client.id,
+            'client_nom': f'{client.prenom} {client.nom}',
+            'pret_en_cours': True,
+            'numero_pret': pret_en_cours.numero_pret,
+            'statut': pret_en_cours.statut,
+            'montant': pret_en_cours.montant
+        })
+
+    return jsonify({
+        'success': True,
+        'client_id': client.id,
+        'client_nom': f'{client.prenom} {client.nom}',
+        'pret_en_cours': False,
+        'message': 'Aucun prêt en cours pour ce client.'
     })
 
 # === FONCTION D'INITIALISATION DE LA BASE ===

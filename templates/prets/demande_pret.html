@@ -71,6 +71,7 @@
                                    maxlength="10"
                                    pattern="[0-9]{10}"
                                    autocomplete="off" required>
+                            <div id="resultat-pret" class="mt-2"></div>
                             <button class="btn btn-primary" type="button" onclick="rechercherClientParCompte()">
                                 <i class="fas fa-search"></i> Rechercher
                             </button>
@@ -970,6 +971,56 @@
 </style>
 
 <script>
+
+    document.getElementById('numero_compte').addEventListener('blur', function () {
+        const numeroCompte = this.value.trim();
+        const resultat = document.getElementById('resultat-pret');
+
+        if (!numeroCompte) {
+            resultat.innerHTML = '';
+            return;
+        }
+
+        resultat.innerHTML = '<span class="text-info">Recherche en cours...</span>';
+
+        fetch(`/api/client/pret-en-cours/${encodeURIComponent(numeroCompte)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    resultat.innerHTML =
+                        `<div class="alert alert-danger">${data.message}</div>`;
+                    return;
+                }
+
+                if (data.pret_en_cours) {
+                    resultat.innerHTML = `
+                        <div class="alert alert-warning">
+                            <strong>⚠️ Prêt en cours trouvé</strong><br>
+                            Client : ${data.client_nom}<br>
+                            Numéro du prêt : ${data.numero_pret}<br>
+                            Statut : ${data.statut}<br>
+                            Montant : ${Number(data.montant).toLocaleString()} Gdes
+                        </div>
+                    `;
+                } else {
+                    resultat.innerHTML = `
+                        <div class="alert alert-success">
+                            ✅ ${data.client_nom}<br>
+                            Aucun prêt en cours pour ce client.
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                resultat.innerHTML = `
+                    <div class="alert alert-danger">
+                        Erreur lors de la recherche.
+                    </div>
+                `;
+            });
+    });
+
 
     // Fonction pour rechercher un client par les 10 derniers chiffres du compte
     function rechercherClientParCompte() {
