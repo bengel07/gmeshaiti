@@ -31068,8 +31068,18 @@ def verifier_champ():
 def verifier_pret_en_cours(numero_compte):
     from models import Client, Pret
 
+    numero_compte = numero_compte.strip()
+
+    # L'agent saisit uniquement les 10 derniers chiffres
+    if numero_compte.isdigit() and len(numero_compte) == 10:
+        numero_compte_recherche = (
+            f"7-12519-{numero_compte[:5]}-{numero_compte[5:]}"
+        )
+    else:
+        numero_compte_recherche = numero_compte
+
     client = Client.query.filter_by(
-        numero_compte=numero_compte.strip()
+        numero_compte=numero_compte_recherche
     ).first()
 
     if not client:
