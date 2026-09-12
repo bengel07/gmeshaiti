@@ -1664,7 +1664,7 @@ def demande_pret():
             ).count(),
             'prets_refuses': Pret.query.filter(
                 Pret.client_id.in_(clients_ids_subquery),
-                Pret.statut == 'refuse'
+                Pret.statut.in_(['refuse','rejeté'])
             ).count()
         }
 
@@ -2793,7 +2793,7 @@ def refuser_pret(pret_id):
             }), 400
 
         pret.decision = 'refuse'
-        pret.statut = 'refuse'  # ← AJOUTEZ CETTE LIGNE (important!)
+        pret.statut = 'rejeté'  # ← AJOUTEZ CETTE LIGNE (important!)
         pret.motif_refus = motif_refus
         pret.date_refus = datetime.now()
         pret.refuse_par = current_user.id
@@ -2807,6 +2807,7 @@ def refuser_pret(pret_id):
         # Réactiver le compte si nécessaire
         if hasattr(client, 'compte_suspendu'):
             client.compte_suspendu = False
+
         if hasattr(client, 'a_un_pret_actif'):
             client.a_un_pret_actif = False
 
