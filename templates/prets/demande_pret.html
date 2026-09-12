@@ -972,55 +972,54 @@
 
 <script>
 
-    document.getElementById('numero_compte').addEventListener('blur', function () {
-        const numeroCompte = this.value.trim();
+    function verifierPretEnCours(clientId) {
         const resultat = document.getElementById('resultat-pret');
 
-        if (!numeroCompte) {
-            resultat.innerHTML = '';
-            return;
-        }
+        resultat.innerHTML = `
+            <div class="alert alert-info mt-2">
+                Vérification du prêt en cours...
+            </div>
+        `;
 
-        resultat.innerHTML = '<span class="text-info">Recherche en cours...</span>';
-
-        fetch(`/api/client/pret-en-cours/${encodeURIComponent(numeroCompte)}`)
+        fetch(`/api/client/pret-en-cours/${clientId}`)
             .then(response => response.json())
             .then(data => {
                 if (!data.success) {
-                    resultat.innerHTML =
-                        `<div class="alert alert-danger">${data.message}</div>`;
+                    resultat.innerHTML = `
+                        <div class="alert alert-danger mt-2">
+                            ${data.message}
+                        </div>
+                    `;
                     return;
                 }
 
                 if (data.pret_en_cours) {
                     resultat.innerHTML = `
-                        <div class="alert alert-warning">
-                            <strong>⚠️ Prêt en cours trouvé</strong><br>
-                            Client : ${data.client_nom}<br>
+                        <div class="alert alert-warning mt-2">
+                            <strong>⚠️ Ce client possède déjà un prêt en cours.</strong><br>
                             Numéro du prêt : ${data.numero_pret}<br>
                             Statut : ${data.statut}<br>
-                            Montant : ${Number(data.montant).toLocaleString()} Gdes
+                            Montant : ${Number(data.montant || 0).toLocaleString()} Gdes
                         </div>
                     `;
                 } else {
                     resultat.innerHTML = `
-                        <div class="alert alert-success">
-                            ✅ ${data.client_nom}<br>
-                            Aucun prêt en cours pour ce client.
+                        <div class="alert alert-success mt-2">
+                            ✅ Aucun prêt en cours pour ce client.
                         </div>
                     `;
                 }
             })
             .catch(error => {
-                console.error(error);
+                console.error('Erreur vérification prêt:', error);
+
                 resultat.innerHTML = `
-                    <div class="alert alert-danger">
-                        Erreur lors de la recherche.
+                    <div class="alert alert-danger mt-2">
+                        Erreur lors de la vérification du prêt.
                     </div>
                 `;
             });
-    });
-
+    }
 
     // Fonction pour rechercher un client par les 10 derniers chiffres du compte
     function rechercherClientParCompte() {
@@ -1072,6 +1071,7 @@
             .then(client => {
                 // Remplir les informations dans le formulaire
                 remplirFormulaireClient(client);
+                verifierPretEnCours(client.id);
 
                 // Afficher les informations
                 document.getElementById('clientNom').textContent = client.nom || 'N/A';

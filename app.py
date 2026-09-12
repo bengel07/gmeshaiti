@@ -31063,24 +31063,12 @@ def verifier_champ():
     })
 
 
-@app.route('/api/client/pret-en-cours/<numero_compte>')
+@app.route('/api/client/pret-en-cours/<int:client_id>')
 @login_required
-def verifier_pret_en_cours(numero_compte):
+def verifier_pret_en_cours(client_id):
     from models import Client, Pret
 
-    numero_compte = numero_compte.strip()
-
-    # L'agent saisit uniquement les 10 derniers chiffres
-    if numero_compte.isdigit() and len(numero_compte) == 10:
-        numero_compte_recherche = (
-            f"7-12519-{numero_compte[:5]}-{numero_compte[5:]}"
-        )
-    else:
-        numero_compte_recherche = numero_compte
-
-    client = Client.query.filter_by(
-        numero_compte=numero_compte_recherche
-    ).first()
+    client = Client.query.get(client_id)
 
     if not client:
         return jsonify({
@@ -31101,20 +31089,15 @@ def verifier_pret_en_cours(numero_compte):
     if pret_en_cours:
         return jsonify({
             'success': True,
-            'client_id': client.id,
-            'client_nom': f'{client.prenom} {client.nom}',
             'pret_en_cours': True,
             'numero_pret': pret_en_cours.numero_pret,
             'statut': pret_en_cours.statut,
-            'montant': pret_en_cours.montant
+            'montant': float(pret_en_cours.montant or 0)
         })
 
     return jsonify({
         'success': True,
-        'client_id': client.id,
-        'client_nom': f'{client.prenom} {client.nom}',
-        'pret_en_cours': False,
-        'message': 'Aucun prêt en cours pour ce client.'
+        'pret_en_cours': False
     })
 
 # === FONCTION D'INITIALISATION DE LA BASE ===
