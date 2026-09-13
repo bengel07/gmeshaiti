@@ -3,7 +3,7 @@
 {% block content %}
 <h2>Prêts de la succursale : {{ succursale.nom }}</h2>
 
-<<div class="mb-3">
+<div class="mb-3">
     {% if request.endpoint == 'prets_par_succursale' %}
 
         <a href="{{ url_for('prets_par_succursale', succursale_id=succursale.id) }}"
@@ -97,16 +97,36 @@
             </td>
 
             <td>
-                {% if pret.statut in ['en_cours', 'en_attente', 'actif'] %}
+                {% if pret.statut in [
+                    'en_cours',
+                    'en_attente',
+                    'actif',
+                    'en_retard',
+                    'approuve',
+                    'approuvé',
+                    'approuvee',
+                    'approuvée'
+                ] %}
                     <span class="badge bg-warning">En cours</span>
-                {% elif pret.statut in ['approuve', 'approuvé', 'approuvee', 'approuvée'] %}
-                    <span class="badge bg-success">Approuvé</span>
-                {% elif pret.statut in ['refuse', 'refusé', 'rejeté', 'rejete'] %}
+
+                {% elif pret.statut in [
+                    'refuse',
+                    'refusé',
+                    'rejeté',
+                    'rejete'
+                ] %}
                     <span class="badge bg-danger">Refusé</span>
-                {% elif pret.statut in ['rembourse', 'remboursé'] %}
+
+                {% elif pret.statut in [
+                    'rembourse',
+                    'remboursé'
+                ] %}
                     <span class="badge bg-info">Remboursé</span>
+
                 {% else %}
-                    <span class="badge bg-secondary">{{ pret.statut }}</span>
+                    <span class="badge bg-secondary">
+                        {{ pret.statut }}
+                    </span>
                 {% endif %}
             </td>
         </tr>
@@ -117,7 +137,9 @@
 <p>Aucun prêt trouvé pour cette succursale.</p>
 {% endif %}
 
-<a href="{{ url_for('directeur_general_dashboard') }}" class="btn btn-secondary">
+<a href="{{ url_for('directeur_general_dashboard') }}"
+   class="btn btn-secondary">
     Retour
 </a>
+
 {% endblock %}
