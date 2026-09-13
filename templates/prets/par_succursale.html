@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Prêts de la succursale : {{ succursale.nom }}</h2>
+
+{% if prets %}
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Client</th>
+      <th>Montant</th>
+      <th>Date</th>
+      <th>Statut</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for pret in prets %}
+    <tr>
+      <td>{{ pret.id }}</td>
+      <td>{{ pret.client.nom }}</td>
+      <td>{{ pret.montant }}</td>
+      <td>{{ pret.date_pret.strftime('%d/%m/%Y') }}</td>
+      <td>{{ pret.statut }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Aucun prêt trouvé pour cette succursale.</p>
+{% endif %}
+
+<a href="{{ url_for('liste_succursales') }}" class="btn btn-secondary">
+  Retour
+</a>
+{% endblock %}
