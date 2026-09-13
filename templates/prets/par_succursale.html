@@ -3,32 +3,62 @@
 {% block content %}
 <h2>Prêts de la succursale : {{ succursale.nom }}</h2>
 
-<div class="mb-3">
-    <a href="{{ url_for('mes_prets_succursale') }}"
-       class="btn btn-secondary">
-        Tous
-    </a>
+<<div class="mb-3">
+    {% if request.endpoint == 'prets_par_succursale' %}
 
-    <a href="{{ url_for('mes_prets_succursale', statut='rembourse') }}"
-       class="btn btn-info">
-        Remboursés
-    </a>
+        <a href="{{ url_for('prets_par_succursale', succursale_id=succursale.id) }}"
+           class="btn btn-secondary">
+            Tous
+        </a>
 
+        <a href="{{ url_for('prets_par_succursale', succursale_id=succursale.id, statut='rembourse') }}"
+           class="btn btn-info">
+            Remboursés
+        </a>
 
-    <a href="{{ url_for('mes_prets_succursale', statut='en_cours') }}"
-       class="btn btn-warning">
-        En cours
-    </a>
+        <a href="{{ url_for('prets_par_succursale', succursale_id=succursale.id, statut='en_cours') }}"
+           class="btn btn-warning">
+            En cours
+        </a>
 
-    <a href="{{ url_for('mes_prets_succursale', statut='approuve') }}"
-       class="btn btn-success">
-        Approuvés
-    </a>
+        <a href="{{ url_for('prets_par_succursale', succursale_id=succursale.id, statut='approuve') }}"
+           class="btn btn-success">
+            Approuvés
+        </a>
 
-    <a href="{{ url_for('mes_prets_succursale', statut='refuse') }}"
-       class="btn btn-danger">
-        Refusés
-    </a>
+        <a href="{{ url_for('prets_par_succursale', succursale_id=succursale.id, statut='refuse') }}"
+           class="btn btn-danger">
+            Refusés
+        </a>
+
+    {% else %}
+
+        <a href="{{ url_for('mes_prets_succursale') }}"
+           class="btn btn-secondary">
+            Tous
+        </a>
+
+        <a href="{{ url_for('mes_prets_succursale', statut='rembourse') }}"
+           class="btn btn-info">
+            Remboursés
+        </a>
+
+        <a href="{{ url_for('mes_prets_succursale', statut='en_cours') }}"
+           class="btn btn-warning">
+            En cours
+        </a>
+
+        <a href="{{ url_for('mes_prets_succursale', statut='approuve') }}"
+           class="btn btn-success">
+            Approuvés
+        </a>
+
+        <a href="{{ url_for('mes_prets_succursale', statut='refuse') }}"
+           class="btn btn-danger">
+            Refusés
+        </a>
+
+    {% endif %}
 </div>
 
 {% if prets %}

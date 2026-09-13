@@ -31127,6 +31127,10 @@ def mes_prets_succursale():
         requete = requete.filter(
             Pret.statut.in_(["refuse", "refusé", "rejeté"])
         )
+    elif statut == "rembourse":
+        requete = requete.filter(
+            Pret.statut.in_(["rembourse", "remboursé"])
+        )
 
     prets = requete.order_by(Pret.id.desc()).all()
 
@@ -31161,6 +31165,11 @@ def prets_par_succursale(succursale_id):
     elif statut == "refuse":
         requete = requete.filter(
             Pret.statut.in_(["refuse", "refusé", "rejeté"])
+        )
+
+    elif statut == "rembourse":
+        requete = requete.filter(
+            Pret.statut.in_(["rembourse", "remboursé"])
         )
 
     prets = requete.order_by(Pret.id.desc()).all()
