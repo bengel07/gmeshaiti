@@ -31100,17 +31100,35 @@ def verifier_pret_en_cours(client_id):
         'success': True,
         'pret_en_cours': False
     })
-
 @app.route("/mes-prets-succursale")
 @login_required
 def mes_prets_succursale():
+    statut = request.args.get("statut")
+
     succursale = Succursale.query.get_or_404(
         current_user.succursale_id
     )
 
-    prets = Pret.query.filter_by(
+    requete = Pret.query.filter_by(
         succursale_id=current_user.succursale_id
-    ).all()
+    )
+
+    if statut == "en_cours":
+        requete = requete.filter(
+            Pret.statut.in_(["en_cours", "en_attente", "actif"])
+        )
+
+    elif statut == "approuve":
+        requete = requete.filter(
+            Pret.statut.in_(["approuve", "approuvé"])
+        )
+
+    elif statut == "refuse":
+        requete = requete.filter(
+            Pret.statut.in_(["refuse", "refusé", "rejeté"])
+        )
+
+    prets = requete.order_by(Pret.id.desc()).all()
 
     return render_template(
         "prets/par_succursale.html",
@@ -31122,11 +31140,30 @@ def mes_prets_succursale():
 @app.route("/succursale/<int:succursale_id>/prets")
 @login_required
 def prets_par_succursale(succursale_id):
+    statut = request.args.get("statut")
+
     succursale = Succursale.query.get_or_404(succursale_id)
 
-    prets = Pret.query.filter_by(
+    requete = Pret.query.filter_by(
         succursale_id=succursale_id
-    ).all()
+    )
+
+    if statut == "en_cours":
+        requete = requete.filter(
+            Pret.statut.in_(["en_cours", "en_attente", "actif"])
+        )
+
+    elif statut == "approuve":
+        requete = requete.filter(
+            Pret.statut.in_(["approuve", "approuvé"])
+        )
+
+    elif statut == "refuse":
+        requete = requete.filter(
+            Pret.statut.in_(["refuse", "refusé", "rejeté"])
+        )
+
+    prets = requete.order_by(Pret.id.desc()).all()
 
     return render_template(
         "prets/par_succursale.html",
