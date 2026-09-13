@@ -84,8 +84,8 @@
                                class="btn btn-light btn-lg px-5">
                                 <i class="fas fa-hand-holding-usd me-2 text-success"></i>
                                 Demandes de prêt
-                                {% if stats.prets_attente > 0 %}
-                                <span class="badge bg-danger ms-2">{{ stats.prets_attente }}</span>
+                                {% if stats.en_attente > 0 %}
+                                <span class="badge bg-danger ms-2">{{ stats.en_attente }}</span>
                                 {% endif %}
                             </a>
 
