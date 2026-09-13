@@ -9,6 +9,12 @@
         Tous
     </a>
 
+    <a href="{{ url_for('mes_prets_succursale', statut='rembourse') }}"
+       class="btn btn-info">
+        Remboursés
+    </a>
+
+
     <a href="{{ url_for('mes_prets_succursale', statut='en_cours') }}"
        class="btn btn-warning">
         En cours
@@ -67,6 +73,8 @@
                     <span class="badge bg-success">Approuvé</span>
                 {% elif pret.statut in ['refuse', 'refusé', 'rejeté', 'rejete'] %}
                     <span class="badge bg-danger">Refusé</span>
+                {% elif pret.statut in ['rembourse', 'remboursé'] %}
+                    <span class="badge bg-info">Remboursé</span>
                 {% else %}
                     <span class="badge bg-secondary">{{ pret.statut }}</span>
                 {% endif %}
