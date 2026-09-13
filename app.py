@@ -31101,17 +31101,13 @@ def verifier_pret_en_cours(client_id):
         'pret_en_cours': False
     })
 
-@app.route("/succursale/<int:succursale_id>/prets")
+@app.route("/mes-prets-succursale")
 @login_required
-def prets_par_succursale(succursale_id):
-    # Vérifier que le directeur appartient bien à cette succursale
-    if current_user.succursale_id != succursale_id:
-        flash("Accès non autorisé à cette succursale.", "danger")
-        return redirect(url_for("directeur_dashboard"))
+def mes_prets_succursale():
+    succursale = Succursale.query.get_or_404(
+        current_user.succursale_id
+    )
 
-    succursale = Succursale.query.get_or_404(succursale_id)
-
-    # Uniquement les prêts de SA succursale
     prets = Pret.query.filter_by(
         succursale_id=current_user.succursale_id
     ).all()
@@ -31123,13 +31119,14 @@ def prets_par_succursale(succursale_id):
     )
 
 
-
 @app.route("/succursale/<int:succursale_id>/prets")
+@login_required
 def prets_par_succursale(succursale_id):
     succursale = Succursale.query.get_or_404(succursale_id)
 
-    # Récupère tous les prêts liés à cette succursale
-    prets = Pret.query.filter_by(succursale_id=succursale_id).all()
+    prets = Pret.query.filter_by(
+        succursale_id=succursale_id
+    ).all()
 
     return render_template(
         "prets/par_succursale.html",
