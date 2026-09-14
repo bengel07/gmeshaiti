@@ -1490,3 +1490,49 @@ GMES Microcrédit
         )
 
         raise
+
+
+def envoyer_email_annulation_pret(client, pret, motif):
+    """Informe le client que sa demande de prêt a été annulée."""
+    import os
+    import requests
+
+    BREVO_API_KEY = os.environ.get("BREVO_API_KEY")
+    FROM_EMAIL = os.environ.get("FROM_EMAIL", "gmeshaiti@gmail.com")
+    FROM_NAME = os.environ.get("FROM_NAME", "GMES Microcrédit")
+
+    if not BREVO_API_KEY:
+        print("❌ BREVO_API_KEY manquant, email d'annulation non envoyé")
+        return False
+
+    numero_pret = pret.numero_dossier or pret.id
+
+    corps_texte = f"""
+Bonjour {client.prenom} {client.nom},
+
+Votre demande de prêt {numero_pret} a été annulée.
+
+Motif : {motif}
+
+Vous pouvez soumettre une nouvelle demande à tout moment.
+
+GMES Microcrédit
+"""
+
+    response = requests.post(
+        "https://api.brevo.com/v3/smtp/email",
+        json={
+            "sender": {"name": FROM_NAME, "email": FROM_EMAIL},
+            "to": [{"email": client.email, "name": f"{client.prenom} {client.nom}"}],
+            "subject": f"🚫 Annulation de votre demande de prêt {numero_pret}",
+            "textContent": corps_texte
+        },
+        headers={
+            "api-key": BREVO_API_KEY,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        },
+        timeout=30
+    )
+
+    return response.status_code == 201

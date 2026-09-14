@@ -54,7 +54,7 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.pdfgen import canvas
 
 
-from emails import envoyer_email_activation_client, envoyer_email_demande_documents
+from emails import envoyer_email_activation_client, envoyer_email_demande_documents, envoyer_email_annulation_pret
 
 # ==================== QR / IMAGE ====================
 import qrcode
@@ -435,30 +435,26 @@ def accepter_conditions_pret(token):
     import jwt
     from datetime import datetime
     from flask import render_template, current_app, flash, redirect, url_for
-
     from models import Pret, Client
 
     try:
-        # Vérifier le token
         data = jwt.decode(
             token,
             current_app.config["SECRET_KEY"],
             algorithms=["HS256"]
         )
 
-        # Vérifier le type
         if data.get("type") != "conditions_pret":
             flash("Lien invalide.", "danger")
-            return redirect(url_for("login"))
+            return redirect(url_for("connexion"))
 
         client = Client.query.get(data["client_id"])
         pret = Pret.query.get(data["pret_id"])
 
         if not client or not pret:
             flash("Client ou prêt introuvable.", "danger")
-            return redirect(url_for("login"))
+            return redirect(url_for("connexion"))
 
-        # Déjà signé ?
         if getattr(pret, "conditions_acceptees", False):
             flash("Les conditions de ce prêt ont déjà été acceptées.", "info")
             return render_template(
@@ -471,14 +467,25 @@ def accepter_conditions_pret(token):
         pret.conditions_acceptees = True
         pret.date_signature = datetime.utcnow()
 
+        # ✅ AJOUTÉ : le prêt devient une vraie demande en attente de décision
+        pret.statut = 'en_attente'
+
         db.session.commit()
 
-        # Envoyer confirmation seulement après signature
+        # Envoyer confirmation au client
         try:
             envoyer_email_confirmation_demande(client, pret)
             print("✅ Email confirmation après signature envoyé")
         except Exception as e:
             print("❌ Erreur email confirmation :", e)
+
+        # ✅ AJOUTÉ : c'est SEULEMENT maintenant que le directeur
+        # reçoit la vraie notification "nouvelle demande à traiter"
+        try:
+            notifier_directeurs_demande_pret(pret, type_action="nouvelle_demande")
+            print("🔔 Directeurs notifiés : nouvelle demande signée")
+        except Exception as e:
+            print("❌ Erreur notification directeurs :", e)
 
         flash("Les conditions du prêt ont été acceptées avec succès.", "success")
 
@@ -490,16 +497,15 @@ def accepter_conditions_pret(token):
 
     except jwt.ExpiredSignatureError:
         flash("Ce lien a expiré.", "danger")
-        return render_template("erreurs/lien_expire.html")
+        return render_template("errors/lien_expire.html")
 
     except jwt.InvalidTokenError:
         flash("Lien invalide.", "danger")
-        return render_template("erreurs/lien_invalide.html")
+        return render_template("errors/lien_invalide.html")
 
     except Exception as e:
         db.session.rollback()
         current_app.logger.exception(e)
-
         flash("Une erreur est survenue.", "danger")
         return render_template("errors/500.html")
 
@@ -1517,7 +1523,7 @@ def demande_pret():
                 montant_interet=round(montant_interet, 2),
                 montant_total=round(montant_total, 2),
                 taux_interet=taux_annuel,
-                statut='en_attente',
+                statut='attente_signature',
                 numero_dossier=request.form.get('numero_dossier')
 
             )
@@ -1591,10 +1597,12 @@ def demande_pret():
             print(f"✅ Commit effectué - Prêt #{nouveau_pret.id} créé")
             flash(f"✅ Commit effectué - Prêt #{nouveau_pret.id} créé")
 
-            # envoyer_notification_pret(client, nouveau_pret)
-            notifier_directeurs_demande_pret(nouveau_pret)
+            # ❌ AVANT : notifier_directeurs_demande_pret(nouveau_pret)
+            # ✅ APRÈS : on notifie seulement que les conditions ont été envoyées,
+            # pas que c'est une demande prête à traiter.
+            notifier_directeurs_demande_pret(nouveau_pret, type_action="attente_signature")
 
-            print("🔔 Notifications envoyées aux directeurs")
+            print("🔔 Notification 'en attente de signature' envoyée aux directeurs")
 
 
             # Redirection selon le rôle
@@ -1840,7 +1848,7 @@ def verifier_eligibilite_pret(client, montant_demande=None):
     # 2. Vérification des prêts en cours
     prets_actifs = Pret.query.filter(
         Pret.client_id == client.id,
-        Pret.statut.in_(['actif', 'en_attente', 'approuve', 'en_retard'])
+        Pret.statut.in_(['actif', 'en_attente', 'approuve', 'en_retard', 'attente_signature'])
     ).all()
 
     if prets_actifs:
@@ -1888,7 +1896,67 @@ def verifier_eligibilite_pret(client, montant_demande=None):
 # 🔥 IMPORTANT : rendre la fonction disponible dans Jinja
 app.jinja_env.globals['verifier_eligibilite_pret'] = verifier_eligibilite_pret
 
+@app.route('/pret/<int:pret_id>/annuler', methods=['POST'])
+@login_required
+@role_required('direction', 'super_admin', 'admin')
+@csrf.exempt
+def annuler_pret(pret_id):
+    """
+    Annule une demande de prêt en attente de signature.
+    Permet au client de soumettre une nouvelle demande.
+    Utilisable uniquement tant que le client n'a pas signé les conditions.
+    """
+    try:
+        pret = Pret.query.get_or_404(pret_id)
+        client = pret.client
 
+        # ✅ On n'annule que les demandes pas encore signées.
+        # Une demande déjà signée (en_attente/approuve/rejeté) doit passer
+        # par approuver_pret / refuser_pret, pas par cette route.
+        if pret.statut != 'attente_signature':
+            return jsonify({
+                'success': False,
+                'message': f"Impossible d'annuler : ce prêt a le statut '{pret.statut}', "
+                            f"seules les demandes en attente de signature peuvent être annulées."
+            }), 400
+
+        data = request.get_json(silent=True) or {}
+        motif_annulation = data.get('motif_annulation', 'Non signé par le client')
+
+        pret.statut = 'annule'
+        pret.decision = 'annule'
+        pret.motif_refus = motif_annulation
+        pret.date_refus = datetime.now()
+        pret.refuse_par = current_user.id
+
+        db.session.commit()
+
+        # Notifier le client par email que sa demande a été annulée
+        try:
+            envoyer_email_annulation_pret(client, pret, motif_annulation)
+        except Exception as e:
+            print("⚠️ Erreur envoi email annulation :", e)
+
+        # Notifier les directeurs
+        try:
+            notifier_directeurs_demande_pret(pret, type_action="annulation")
+        except Exception as e:
+            print("⚠️ Erreur notification directeurs annulation :", e)
+
+        return jsonify({
+            'success': True,
+            'message': 'Demande de prêt annulée. Le client peut soumettre une nouvelle demande.'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print("ERREUR ANNULATION PRET:", str(e))
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 
 @app.route('/prets/<int:pret_id>/generer-echeancier', methods=['POST'])
 @login_required
@@ -2674,6 +2742,13 @@ def approuver_pret(pret_id):
     try:
         pret = Pret.query.get_or_404(pret_id)
 
+        # ✅ AJOUTÉ : bloquer toute décision tant que le client n'a pas signé
+        if not getattr(pret, "conditions_acceptees", False):
+            return jsonify({
+                'success': False,
+                'message': 'Le client n\'a pas encore signé les conditions du prêt.'
+            }), 400
+
         client = db.session.get(Client, pret.client_id)
 
         data = request.get_json(silent=True) or {}
@@ -2781,6 +2856,13 @@ def refuser_pret(pret_id):
 
         client = pret.client  # ← Récupérer le client
 
+        # ✅ AJOUTÉ : même garde-fou que pour l'approbation
+        if not getattr(pret, "conditions_acceptees", False):
+            return jsonify({
+                'success': False,
+                'message': 'Le client n\'a pas encore signé les conditions du prêt.'
+            }), 400
+
 
         data = request.get_json(silent=True) or {}
 
@@ -2798,11 +2880,11 @@ def refuser_pret(pret_id):
         pret.date_refus = datetime.now()
         pret.refuse_par = current_user.id
 
-        # 🔥 RÉINITIALISER LE CLIENT - Il pourra refaire une demande
-        client.terms_accepted = False
-        client.terms_accepted_at = None
-        client.terms_signature_ip = None
-        client.terms_signature_user_agent = None
+        # # 🔥 RÉINITIALISER LE CLIENT - Il pourra refaire une demande
+        # client.terms_accepted = False
+        # client.terms_accepted_at = None
+        # client.terms_signature_ip = None
+        # client.terms_signature_user_agent = None
 
         # Réactiver le compte si nécessaire
         if hasattr(client, 'compte_suspendu'):
@@ -2868,6 +2950,18 @@ def notifier_directeurs_demande_pret(pret, type_action="nouvelle_demande"):
 
         # Configuration des messages selon l'action
         config_messages = {
+            "attente_signature": {
+                "titre": f"📨 Conditions envoyées au client - Prêt #{pret.id}",
+                "type": "info",
+                "icone": "📨",
+                "couleur": "gray"
+            },
+            "annulation": {
+                "titre": f"🚫 Demande de prêt #{pret.id} annulée",
+                "type": "warning",
+                "icone": "🚫",
+                "couleur": "orange"
+            },
             "nouvelle_demande": {
                 "titre": f"💰 Nouvelle demande de prêt #{pret.id}",
                 "type": "info",
