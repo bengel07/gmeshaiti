@@ -23268,14 +23268,12 @@ def envoyer_email_conditions(client):
     """Renvoie le lien de signature au client (avec email réel)"""
 
     # Vérifier les permissions
-    if current_user.role != 'employe' or current_user.fonction != 'conseiller':
+    if current_user.role not in ['employe', 'direction', 'super_admin', 'admin_succursale']:
         return jsonify({'success': False, 'message': '⛔ Permission non autorisée'}), 403
 
     # Récupérer le client
 
-
-    # Vérifier que ce client appartient bien à ce conseiller
-    if client.cree_par_id != current_user.id:
+    if current_user.role == 'employe' and client.cree_par_id != current_user.id:
         return jsonify({'success': False, 'message': '⛔ Ce client ne vous appartient pas'}), 403
 
     # Vérifier que le client est bien en attente de signature
@@ -23479,6 +23477,7 @@ def envoyer_email_conditions(client):
         print("MAIL PASSWORD:", repr(os.environ.get('MAIL_PASSWORD')))
         print(f"❌ Erreur renvoi lien: {e}")
         return jsonify({'success': False, 'message': f'❌ Erreur: {str(e)}'}), 500
+
 
 
 
