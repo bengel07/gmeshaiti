@@ -14832,7 +14832,6 @@ def employe_remboursements():
     return render_template('employe_remboursements.html')
 
 
-
 @app.route('/api/recherche-client-pret')
 def recherche_client_pret():
 
@@ -14845,42 +14844,64 @@ def recherche_client_pret():
 
     results = []
 
-    # 🔎 Recherche par ID prêt
-    pret = Pret.query.filter(Pret.numero_pret == q).first()
-    if pret:
-        results.append({
-            "pret_id": pret.id,
-            "client_nom": pret.client.nom,
-            "client_prenom": pret.client.prenom,
-            "telephone": pret.client.telephone,
-            "montant": pret.montant,
-            "mensualite": pret.mensualite,
-            "solde": pret.solde_restant,
-            "statut": pret.statut
-        })
+    # 🔎 Recherche par numéro de prêt / ID du prêt
+    prets_par_numero = Pret.query.filter(
+        Pret.numero_pret.ilike(f"%{q}%")
+    ).all()
+
+    for p in prets_par_numero:
+        if p.client:
+            results.append({
+                "client_id": p.client.id,
+                "client_nom": p.client.nom,
+                "client_prenom": p.client.prenom,
+                "telephone": p.client.telephone,
+                "pret_id": p.id,
+                "numero_pret": p.numero_pret,
+                "montant": p.montant,
+                "mensualite": p.mensualite,
+                "solde": p.solde_restant,
+                "statut": p.statut
+            })
 
     # 🔎 Recherche client
+    conditions = [
+        Client.nom.ilike(f"%{q}%"),
+        Client.prenom.ilike(f"%{q}%"),
+        Client.telephone.ilike(f"%{q}%"),
+        Client.email.ilike(f"%{q}%"),
+        Client.numero_compte.ilike(f"%{q}%")
+    ]
+
+    # Recherche par ID client uniquement si q est numérique
+    if q.isdigit():
+        conditions.append(Client.id == int(q))
+
     clients = Client.query.filter(
-        (Client.nom.ilike(f"%{q}%")) |
-        (Client.prenom.ilike(f"%{q}%")) |
-        (Client.telephone.ilike(f"%{q}%")) |
-        (Client.email.ilike(f"%{q}%")) |
-        (Client.id == int(q) if q.isdigit() else False)
+        db.or_(*conditions)
     ).all()
 
     for c in clients:
         for p in Pret.query.filter_by(client_id=c.id).all():
+
+            # Éviter les doublons si le prêt a déjà été trouvé par numero_pret
+            if any(
+                r["pret_id"] == p.id
+                for r in results
+            ):
+                continue
+
             results.append({
                 "client_id": c.id,
                 "client_nom": c.nom,
                 "client_prenom": c.prenom,
                 "telephone": c.telephone,
                 "pret_id": p.id,
-                "numero_pret": p.numero_pret,  # ✅ À AJOUTER
-                "montant": p.montant,  # ✅ Ajouté
-                "mensualite": p.mensualite,  # ✅ Ajouté
-                "solde": p.solde_restant,  # ✅ Ajouté
-                "statut": p.statut  # ✅ AJOUTÉ (solution)
+                "numero_pret": p.numero_pret,
+                "montant": p.montant,
+                "mensualite": p.mensualite,
+                "solde": p.solde_restant,
+                "statut": p.statut
             })
 
     if not results:
@@ -14890,8 +14911,6 @@ def recherche_client_pret():
         })
 
     return jsonify({"results": results})
-
-
 
 @app.route('/pret/<int:pret_id>/recu')
 @login_required
