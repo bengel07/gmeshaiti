@@ -23411,6 +23411,17 @@ def envoyer_email_conditions(client):
         print("📥 TO :", client.email)
         print("BREVO :", response.status_code, response.text)
 
+        if response.status_code in (200, 201, 202):
+            email_envoye = True
+            print("✅ Brevo a accepté l'email")
+        else:
+            email_envoye = False
+            print("❌ Brevo a refusé l'email")
+            raise Exception(
+                f"Brevo a refusé l'envoi : "
+                f"{response.status_code} - {response.text}"
+            )
+
 
 
 
@@ -23454,10 +23465,16 @@ def envoyer_email_conditions(client):
         db.session.commit()
 
         # 5. Message flash pour le conseiller
-        flash(
-            f'✅ Lien de signature renvoyé à {client.prenom} {client.nom} ({client.email})',
-            'success'
-        )
+        if email_envoye:
+            flash(
+                f'✅ Email envoyé avec succès à {client.email}',
+                'success'
+            )
+        else:
+            flash(
+                f'❌ Email non envoyé à {client.email}',
+                'danger'
+            )
 
         if email_envoye:
             return jsonify({
@@ -23465,12 +23482,12 @@ def envoyer_email_conditions(client):
                 'message': f'✅ Email envoyé avec succès à {client.email}',
                 'email_envoye': True
             })
-        else:
-            return jsonify({
-                'success': True,
-                'message': f'⚠️ Notification créée mais l’email Brevo n’a pas été envoyé. Vérifiez BREVO_API_KEY.',
-                'email_envoye': False
-            })
+
+        return jsonify({
+            'success': False,
+            'message': f'❌ Email non envoyé à {client.email}',
+            'email_envoye': False
+        }), 500
 
     except Exception as e:
         db.session.rollback()
