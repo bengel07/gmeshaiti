@@ -53,6 +53,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.pdfgen import canvas
 
+from flask_wtf.csrf import CSRFError
 
 from emails import envoyer_email_activation_client, envoyer_email_demande_documents, envoyer_email_annulation_pret
 
@@ -31292,6 +31293,15 @@ def prets_par_succursale(succursale_id):
         succursale=succursale,
         prets=prets
     )
+
+
+
+@app.errorhandler(CSRFError)
+def handle_csrf_error(e):
+    flash('⚠️ Le formulaire a expiré. Veuillez réessayer.', 'warning')
+    return redirect(request.referrer or url_for('login'))
+
+
 
 # === FONCTION D'INITIALISATION DE LA BASE ===
 def init_app_data():
