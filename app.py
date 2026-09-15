@@ -937,7 +937,7 @@ GMES Microcrédit
 
 @app.route("/resend-conditions-email/<int:client_id>", methods=["POST"])
 @login_required
-def resend_conditions_email(pret_id):
+def resend_conditions_email(client_id):
     """
      Génère un nouveau token de signature et envoie
      le lien au client par Brevo.
@@ -952,9 +952,9 @@ def resend_conditions_email(pret_id):
     import jwt
     try:
 
-        pret = Pret.query.get(pret_id)
+        client = Client.query.get_or_404(client_id)
 
-        client = Client.query.get(pret.client_id)
+
 
         # ====================================================
         # VÉRIFICATIONS DE BASE
@@ -1343,7 +1343,6 @@ def resend_conditions_email(pret_id):
         return jsonify({"success": False, "email_envoye": False}), 500
 
 
-    return redirect(request.referrer)
 
 # Ajouter cette fonction au début du fichier (hors de la route)
 def generer_numero_pret():
