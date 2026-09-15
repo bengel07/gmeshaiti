@@ -1320,7 +1320,7 @@ def resend_conditions_email(pret_id):
                 f"✅ Email envoyé à {client.email}"
             )
 
-            return True
+            return jsonify({"success": True, "email_envoye": True}), 200
 
         else:
 
@@ -1329,7 +1329,7 @@ def resend_conditions_email(pret_id):
                 f"mais email non envoyé à {client.email}"
             )
 
-            return False
+            return jsonify({"success": False, "email_envoye": False}), 500
 
     except Exception as e:
 
@@ -1340,7 +1340,7 @@ def resend_conditions_email(pret_id):
             str(e)
         )
 
-        return False
+        return jsonify({"success": False, "email_envoye": False}), 500
 
 
     return redirect(request.referrer)
