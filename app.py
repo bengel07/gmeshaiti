@@ -523,6 +523,7 @@ def renvoyer_email_conditions_pret(pret_id):
     être signé à nouveau.
     """
 
+
     try:
         import jwt
         import os
@@ -950,6 +951,10 @@ def resend_conditions_email(client_id):
     import os
     import jwt
     try:
+
+        pret = Pret.query.get(pret_id)
+
+        client = Client.query.get(pret.client_id)
 
         # ====================================================
         # VÉRIFICATIONS DE BASE
