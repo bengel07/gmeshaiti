@@ -954,19 +954,22 @@ def resend_conditions_email(client_id):
 
         client = Client.query.get_or_404(client_id)
 
+
+
+        # ====================================================
+        # VÉRIFICATIONS DE BASE
+        # ====================================================
+
         if not client.email:
-            return jsonify({
-                "success": False,
-                "email_envoye": False,
-                "message": "Le client n'a pas d'adresse email."
-            }), 400
+            print("❌ Aucun email pour ce client.")
+            return False
 
         if client.statut != 'en_attente_terms':
-            return jsonify({
-                "success": False,
-                "email_envoye": False,
-                "message": f"Le statut du client est : {client.statut}"
-            }), 400
+            print(
+                f"❌ Statut incorrect pour l'envoi : "
+                f"{client.statut}"
+            )
+            return False
 
         # ====================================================
         # GÉNÉRER UN NOUVEAU TOKEN
@@ -1021,9 +1024,11 @@ def resend_conditions_email(client_id):
         # ====================================================
 
         if not BREVO_API_KEY:
-            print("❌ BREVO_API_KEY est manquante.")
-            return jsonify({"success": False, "email_envoye": False,
-                            "message": "Configuration email manquante (BREVO_API_KEY)."}), 500
+            print(
+                "❌ BREVO_API_KEY est manquante."
+            )
+
+            return False
 
         # ====================================================
         # CONTENU HTML
@@ -1226,15 +1231,20 @@ def resend_conditions_email(client_id):
 
         email_envoye = False
 
-        if response.status_code in [200, 201, 202]:
+        if response.status_code in [200, 201]:
+
             email_envoye = True
-            print("✅ Brevo a accepté l'email.")
+
+            print(
+                "✅ Brevo a accepté l'email."
+            )
+
         else:
-            return jsonify({
-                "success": False,
-                "email_envoye": False,
-                "message": f"Brevo a refusé l'envoi : {response.text}"
-            }), 500
+
+            print(
+                "❌ Brevo a refusé l'email."
+            )
+
         # ====================================================
         # CRÉATION DE LA NOTIFICATION
         # ====================================================
@@ -23985,14 +23995,6 @@ def renvoyer_lien(client_id):
         print("📥 TO :", client.email)
         print("BREVO :", response.status_code, response.text)
 
-        if response.status_code in (200, 201, 202):
-            email_envoye = True
-        else:
-            raise Exception(
-                f"Brevo a refusé l'envoi : "
-                f"{response.status_code} - {response.text}"
-            )
-
 
 
 
@@ -24049,11 +24051,10 @@ def renvoyer_lien(client_id):
             })
         else:
             return jsonify({
-                'success': False,
-                'message': f'❌ Email non envoyé à {client.email}',
+                'success': True,
+                'message': f'⚠️ Notification créée mais l’email Brevo n’a pas été envoyé. Vérifiez BREVO_API_KEY.',
                 'email_envoye': False
-            }), 500
-
+            })
 
     except Exception as e:
         db.session.rollback()
