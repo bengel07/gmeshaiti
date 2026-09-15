@@ -1021,11 +1021,9 @@ def resend_conditions_email(client_id):
         # ====================================================
 
         if not BREVO_API_KEY:
-            print(
-                "❌ BREVO_API_KEY est manquante."
-            )
-
-            return False
+            print("❌ BREVO_API_KEY est manquante.")
+            return jsonify({"success": False, "email_envoye": False,
+                            "message": "Configuration email manquante (BREVO_API_KEY)."}), 500
 
         # ====================================================
         # CONTENU HTML
