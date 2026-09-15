@@ -937,7 +937,7 @@ GMES Microcrédit
 
 @app.route("/resend-conditions-email/<int:client_id>", methods=["POST"])
 @login_required
-def resend_conditions_email(client_id):
+def resend_conditions_email(pret_id):
     """
      Génère un nouveau token de signature et envoie
      le lien au client par Brevo.
