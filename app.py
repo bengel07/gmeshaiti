@@ -962,14 +962,12 @@ def resend_conditions_email(client_id):
 
         if not client.email:
             print("❌ Aucun email pour ce client.")
-            return False
+            return jsonify({"success": False, "email_envoye": False, "error": "Aucun email pour ce client"}), 400
 
         if client.statut != 'en_attente_terms':
-            print(
-                f"❌ Statut incorrect pour l'envoi : "
-                f"{client.statut}"
-            )
-            return False
+            print(f"❌ Statut incorrect pour l'envoi : {client.statut}")
+            return jsonify(
+                {"success": False, "email_envoye": False, "error": f"Statut incorrect: {client.statut}"}), 400
 
         # ====================================================
         # GÉNÉRER UN NOUVEAU TOKEN
@@ -1024,11 +1022,8 @@ def resend_conditions_email(client_id):
         # ====================================================
 
         if not BREVO_API_KEY:
-            print(
-                "❌ BREVO_API_KEY est manquante."
-            )
-
-            return False
+            print("❌ BREVO_API_KEY est manquante.")
+            return jsonify({"success": False, "email_envoye": False, "error": "BREVO_API_KEY manquante"}), 500
 
         # ====================================================
         # CONTENU HTML
