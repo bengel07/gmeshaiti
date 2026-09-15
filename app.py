@@ -1235,7 +1235,6 @@ def resend_conditions_email(client_id):
                 "email_envoye": False,
                 "message": f"Brevo a refusé l'envoi : {response.text}"
             }), 500
-
         # ====================================================
         # CRÉATION DE LA NOTIFICATION
         # ====================================================
