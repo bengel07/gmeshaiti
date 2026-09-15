@@ -1226,19 +1226,15 @@ def resend_conditions_email(client_id):
 
         email_envoye = False
 
-        if response.status_code in [200, 201]:
-
+        if response.status_code in [200, 201, 202]:
             email_envoye = True
-
-            print(
-                "✅ Brevo a accepté l'email."
-            )
-
+            print("✅ Brevo a accepté l'email.")
         else:
-
-            print(
-                "❌ Brevo a refusé l'email."
-            )
+            return jsonify({
+                "success": False,
+                "email_envoye": False,
+                "message": f"Brevo a refusé l'envoi : {response.text}"
+            }), 500
 
         # ====================================================
         # CRÉATION DE LA NOTIFICATION
