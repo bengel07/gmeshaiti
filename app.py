@@ -23992,6 +23992,14 @@ def renvoyer_lien(client_id):
         print("📥 TO :", client.email)
         print("BREVO :", response.status_code, response.text)
 
+        if response.status_code in (200, 201, 202):
+            email_envoye = True
+        else:
+            raise Exception(
+                f"Brevo a refusé l'envoi : "
+                f"{response.status_code} - {response.text}"
+            )
+
 
 
 
@@ -24048,10 +24056,11 @@ def renvoyer_lien(client_id):
             })
         else:
             return jsonify({
-                'success': True,
-                'message': f'⚠️ Notification créée mais l’email Brevo n’a pas été envoyé. Vérifiez BREVO_API_KEY.',
+                'success': False,
+                'message': f'❌ Email non envoyé à {client.email}',
                 'email_envoye': False
-            })
+            }), 500
+
 
     except Exception as e:
         db.session.rollback()
