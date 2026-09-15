@@ -953,20 +953,20 @@ def resend_conditions_email(client_id):
     try:
 
         client = Client.query.get_or_404(client_id)
-        # ====================================================
-        # VÉRIFICATIONS DE BASE
-        # ====================================================
 
         if not client.email:
-            print("❌ Aucun email pour ce client.")
-            return jsonify({"success": False, "email_envoye": False}), 500
+            return jsonify({
+                "success": False,
+                "email_envoye": False,
+                "message": "Le client n'a pas d'adresse email."
+            }), 400
 
         if client.statut != 'en_attente_terms':
-            print(
-                f"❌ Statut incorrect pour l'envoi : "
-                f"{client.statut}"
-            )
-            return jsonify({"success": False, "email_envoye": False}), 500
+            return jsonify({
+                "success": False,
+                "email_envoye": False,
+                "message": f"Le statut du client est : {client.statut}"
+            }), 400
 
         # ====================================================
         # GÉNÉRER UN NOUVEAU TOKEN
