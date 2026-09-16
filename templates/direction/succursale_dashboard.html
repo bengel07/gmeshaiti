@@ -84,7 +84,10 @@
                             {{ "%.1f"|format(stats.taux_approbation) }}%
                         </div>
                     </div>
-                    <p class="mb-0">{{ stats.prets_approuves }} approuvés / {{ stats.total_prets }} total</p>
+                    <p class="mb-0">
+                        {{ stats.prets_approuves + stats.prets_actifs + stats.prets_termines }}
+                        approuvés / {{ stats.total_prets }} total
+                    </p>
                 </div>
             </div>
         </div>
@@ -244,17 +247,21 @@
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
                             <thead>
-                                <tr><th>Dossier</th><th>Client</th><th>Montant</th><th>Statut</th><th>Date</th><th>Agent</th></tr>
+                                <tr><th>Dossier</th><th>Client</th><th>MontantD</th><th>MontantAc</th><th>MontantPay</th><th>Statut</th><th>Date</th><th>Agent</th></tr>
                             </thead>
                             <tbody>
                                 {% for pret in dernieres_activites %}
                                 <tr>
                                     <td>{{ pret.numero_dossier or pret.id }}</td>
                                     <td>{{ pret.client.prenom }} {{ pret.client.nom }}</td>
-                                    <td>{{ "{:,.0f}".format(pret.montant) }} Gdes</td>
+                                    <td>{{ "{:,.0f}".format(pret.montant_demande) }} Gdes</td>
+                                    <td>{{ "{:,.0f}".format(pret.montant_accorde) }} Gdes</td>
+                                    <td>{{ "{:,.0f}".format(pret.montant_rembourse) }} Gdes</td>
                                     <td>
                                         {% if pret.statut == 'en_attente' %}
                                         <span class="badge bg-warning">En attente</span>
+                                        {% elif pret.statut == 'attente_signature' %}
+                                        <span class="badge bg-secondary">En attente de signature</span>
                                         {% elif pret.statut == 'approuve' %}
                                         <span class="badge bg-success">Approuvé</span>
                                         {% elif pret.statut == 'actif' %}

@@ -2618,7 +2618,7 @@ def direction_succursale_dashboard():
     # Prêts en attente
     prets_attente = Pret.query.join(Client).filter(
         Client.succursale_id == current_user.succursale_id,
-        Pret.statut == 'en_attente'
+        Pret.statut.in_(['en_attente', 'attente_signature'])
     ).count()
 
     # Prêts approuvés
@@ -2651,6 +2651,19 @@ def direction_succursale_dashboard():
         Pret.statut.in_(['actif', 'approuve', 'termine'])
     ).scalar() or 0
 
+    montant_total_accorde = db.session.query(func.sum(Pret.montant_accorde)).join(Client).filter(
+        Client.succursale_id == current_user.succursale_id,
+        Pret.statut.in_(['actif', 'approuve', 'termine'])
+    ).scalar() or 0
+
+    # Total à rembourser = montant accordé + intérêts
+    total_a_rembourser = db.session.query(
+        func.sum(Pret.montant_accorde + Pret.montant_accorde * Pret.taux_interet / 100)
+    ).join(Client).filter(
+        Client.succursale_id == current_user.succursale_id,
+        Pret.statut.in_(['actif', 'approuve', 'termine'])
+    ).scalar() or 0
+
     # ========== STATISTIQUES DES PAIEMENTS ==========
 
     # Total remboursé
@@ -2672,7 +2685,7 @@ def direction_succursale_dashboard():
     # Demandes en attente (les 10 plus récentes)
     demandes_attente = Pret.query.join(Client).filter(
         Client.succursale_id == current_user.succursale_id,
-        Pret.statut == 'en_attente'
+        Pret.statut.in_(['en_attente', 'attente_signature'])
     ).order_by(Pret.date_demande.desc()).limit(10).all()
 
     # Prêts actifs (les 10 plus récents)
@@ -2719,12 +2732,15 @@ def direction_succursale_dashboard():
         'prets_refuses': prets_refuses,
         'total_prets': total_prets,
         'montant_total': montant_total,
+        'montant_total_accorde': montant_total_accorde,
         'total_rembourse': total_rembourse,
         'taux_remboursement': (total_rembourse / montant_total * 100) if montant_total > 0 else 0,
         'paiements_retard': paiements_retard,
-        'taux_approbation': (prets_approuves / total_prets * 100) if total_prets > 0 else 0,
-        'taux_refus': (prets_refuses / total_prets * 100) if total_prets > 0 else 0
-    }
+        'taux_approbation': (
+                        (prets_approuves + prets_actifs + prets_termines) / total_prets * 100
+                    ) if total_prets > 0 else 0,
+                            'taux_refus': (prets_refuses / total_prets * 100) if total_prets > 0 else 0
+                        }
 
     # Taux d'activité des clients
     stats['taux_activite'] = (clients_actifs / total_clients * 100) if total_clients > 0 else 0
