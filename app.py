@@ -3269,8 +3269,9 @@ def notifier_directeurs_demande_pret(pret, type_action="nouvelle_demande"):
         type_action: Type d'action ("nouvelle_demande", "approbation", "refus", "modification")
     """
     from models import User, Notification, Action  # ← AJOUTÉ Action
-    from datetime import datetime
+    from datetime import datetime, timedelta
     from flask import url_for
+    from flask_login import current_user
 
     print("=" * 70)
     print(f"📢 NOTIFICATION DIRECTEURS - Action: {type_action}")
@@ -3385,7 +3386,7 @@ def notifier_directeurs_demande_pret(pret, type_action="nouvelle_demande"):
             pret_id=pret.id,
             titre=titre_action,
             assignee_a_id=directeur.id,  # ✅ AJOUTER CETTE LIGNE
-            creee_par_id=current_user.id,  # ✅ AJOUTER CETTE LIGNE
+            creee_par_id=pret.agent_id,  # ✅ Correction
             type_action=type_action,
             date_creation=date_creation,
             date_action=datetime.now(),
