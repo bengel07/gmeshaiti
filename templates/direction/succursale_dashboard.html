@@ -254,9 +254,9 @@
                                 <tr>
                                     <td>{{ pret.numero_dossier or pret.id }}</td>
                                     <td>{{ pret.client.prenom }} {{ pret.client.nom }}</td>
-                                    <td>{{ "{:,.0f}".format(pret.montant_demande) }} Gdes</td>
-                                    <td>{{ "{:,.0f}".format(pret.montant_accorde) }} Gdes</td>
-                                    <td>{{ "{:,.0f}".format(pret.montant_rembourse) }} Gdes</td>
+                                    <td>{{ "{:,.0f}".format(pret.montant_demande or 0) }} Gdes</td>
+                                    <td>{{ "{:,.0f}".format(pret.montant_accorde or 0) }} Gdes</td>
+                                    <td>{{ "{:,.0f}".format(pret.montant_rembourse or 0) }} Gdes</td>
                                     <td>
                                         {% if pret.statut == 'en_attente' %}
                                         <span class="badge bg-warning">En attente</span>
