@@ -72,8 +72,8 @@
             <th>Mt accorde</th>
             <th>Mensualité</th>
             <th>Mt rembourse</th>
-            <th>Total à rembourser</th>
             <th>Balance</th>
+            <th>Total à rembourser</th>
             <th>Date</th>
             <th>Statut</th>
         </tr>
@@ -92,13 +92,13 @@
                 {% endif %}
             </td>
 
-<!--            <td>{{ pret.montant }}</td>-->
                 <td>{{ "{:,.0f}".format(pret.montant_demande or 0) }} HTG</td>
                 <td>{{ "{:,.0f}".format(pret.montant_accorde or 0) }} HTG</td>
                 <td>{{ "{:,.0f}".format(pret.mensualite or 0) }} HTG</td>
                 <td>{{ "{:,.0f}".format(pret.montant_rembourse or 0) }} HTG</td>
+                 <td> {{ "{:,.2f}".format(pret.solde_restant or 0) }} HTG </td>
                 <td>{{ "{:,.0f}".format(pret.montant_total or 0) }} HTG</td>
-                <td> {{ "{:,.2f}".format(pret.solde_restant or 0) }} HTG </td>
+
 
 
             <td>
