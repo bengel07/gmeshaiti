@@ -4152,6 +4152,8 @@ class Pret(db.Model):
     decision = db.Column(db.String(150), nullable=True)  # approuve, refuse, en_attente
     montant_demande = db.Column(db.Float, nullable=True)
     montant_accorde = db.Column(db.Float, nullable=True)
+
+
     signature_responsable = db.Column(db.String(25500), nullable=True)
     motif_refus = db.Column(db.Text, nullable=True)
     numero_pret = db.Column(db.VARCHAR(150), unique=True)  # ou db.VARCHAR(50)

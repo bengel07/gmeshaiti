@@ -31586,6 +31586,8 @@ def verifier_pret_en_cours(client_id):
         'success': True,
         'pret_en_cours': False
     })
+
+
 @app.route("/mes-prets-succursale")
 @login_required
 def mes_prets_succursale():
