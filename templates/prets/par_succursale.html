@@ -68,10 +68,10 @@
 
             <th>ID</th>
             <th>Client</th>
-            <th>Montant demande</th>
-            <th>Montant accorde</th>
+            <th>Mt demande</th>
+            <th>Mt accorde</th>
             <th>Mensualité</th>
-            <th>Montant déjà remboursé</th>
+            <th>Mt rembourse</th>
             <th>Total à rembourser</th>
             <th>Balance</th>
             <th>Date</th>
@@ -98,6 +98,7 @@
                 <td>{{ "{:,.0f}".format(pret.mensualite or 0) }} HTG</td>
                 <td>{{ "{:,.0f}".format(pret.montant_rembourse or 0) }} HTG</td>
                 <td>{{ "{:,.0f}".format(pret.montant_total or 0) }} HTG</td>
+                <td> {{ "{:,.2f}".format(pret.solde_restant or 0) }} HTG </td>
 
 
             <td>
