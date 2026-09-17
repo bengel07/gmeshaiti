@@ -478,6 +478,7 @@
                 option.setAttribute("data-montant", item.montant || 0);
                 option.setAttribute("data-mensualite", item.mensualite || 0);
                 option.setAttribute("data-solde", item.solde || 0);
+                option.setAttribute("data-total", item.montant_total || item.solde || 0);
                 option.setAttribute("data-statut", item.statut || "inconnu");
                 select.appendChild(option);
             });
