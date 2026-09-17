@@ -482,7 +482,7 @@
                         <div class="input-group">
                             <input type="number" class="form-control" name="montant_demande"
                                    min="10000" max="10000000000" step="any" id="montant"
-                                   value="{{ form_data.montant_demande if form_data else '' }}"
+                                   value="{{ form_data.montant_demande if form_data and form_data.montant_demande else (pret.montant_demande or pret.montant if pret else '') }}"
                                    {% if show_for_director %}readonly{% else %}required{% endif %}>
                             <span class="input-group-text">Gdes</span>
                         </div>
@@ -491,7 +491,7 @@
                         <label class="form-label required">Durée de remboursement</label>
                         <div class="input-group">
                             <input type="number" class="form-control" name="duree" min="3" max="60" id="duree"
-                                   value="{{ form_data.duree if form_data else '' }}"
+                                   value="{{ form_data.duree if form_data and form_data.duree else (pret.duree_mois if pret else '') }}"
                                    {% if show_for_director %}readonly{% else %}required{% endif %}>
                             <span class="input-group-text">mois</span>
                         </div>
@@ -763,7 +763,7 @@
                         <label class="form-label">Montant accordé</label>
                         <div class="input-group">
                             <input type="number" class="form-control" name="montant_accorde" id="montantAccorde"
-                                   value="{{ form_data.montant_accorde if form_data else form_data.montant_demande }}"
+                                   value="{{ form_data.montant_accorde if form_data and form_data.montant_accorde else (form_data.montant_demande if form_data else '') }}"
                                    {% if not show_for_director %}disabled{% endif %}>
                             <span class="input-group-text">Gdes</span>
                         </div>
@@ -779,8 +779,10 @@
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Signature responsable</label>
-                        <input type="text" class="form-control" name="signature_responsable"
-                               {{ form_data.signature_responsable or (current_user.prenom + ' ' + current_user.nom) }}
+                        <input type="text"
+                               class="form-control"
+                               name="signature_responsable"
+                               value="{{ form_data.signature_responsable if form_data else (current_user.prenom + ' ' + current_user.nom) }}"
                                {% if not show_for_director %}readonly{% endif %}>
                     </div>
                 </div>
@@ -1311,33 +1313,50 @@
             updateDisplay();
         }
 
-        // Simulation de prêt
+        // Simulation de prêt — même calcul que le backend
         const montant = document.getElementById('montant');
         const duree = document.getElementById('duree');
+        const tauxInteret = document.getElementById('tauxInteret');
 
         function calculerMensualite() {
-            const m = parseFloat(montant ? montant.value : 0) || 0;
-            const d = parseFloat(duree ? duree.value : 0) || 1;
-            const taux = 0.12;
+            const m = parseFloat(montant?.value) || 0;
+            const d = parseInt(duree?.value) || 0;
+            const taux = parseFloat(tauxInteret?.value) || 12;
 
-            if (m > 0 && d > 0) {
-                const tauxMensuel = taux / 12;
-                const facteur = Math.pow(1 + tauxMensuel, d);
-                const mensualite = (m * tauxMensuel * facteur) / (facteur - 1);
-                const total = mensualite * d;
+            const simMensualite = document.getElementById('simMensualite');
+            const simTotal = document.getElementById('simTotal');
+            const simTaux = document.getElementById('simTaux');
 
-                const simMensualite = document.getElementById('simMensualite');
-                const simTotal = document.getElementById('simTotal');
-                if (simMensualite) simMensualite.textContent = Math.round(mensualite).toLocaleString() + ' Gdes';
-                if (simTotal) simTotal.textContent = Math.round(total).toLocaleString() + ' Gdes';
+            if (simTaux) {
+                simTaux.textContent = taux + '%';
+            }
+
+            if (m <= 0 || d <= 0) {
+                if (simMensualite) simMensualite.textContent = '0 Gdes';
+                if (simTotal) simTotal.textContent = '0 Gdes';
+                return;
+            }
+
+            const montantInteret = m * (taux / 100) * (d / 12);
+            const total = m + montantInteret;
+            const mensualite = total / d;
+
+            if (simMensualite) {
+                simMensualite.textContent =
+                    Math.round(mensualite).toLocaleString('fr-FR') + ' Gdes';
+            }
+
+            if (simTotal) {
+                simTotal.textContent =
+                    Math.round(total).toLocaleString('fr-FR') + ' Gdes';
             }
         }
 
-        if (montant && duree) {
-            montant.addEventListener('input', calculerMensualite);
-            duree.addEventListener('input', calculerMensualite);
-            calculerMensualite();
-        }
+        if (montant) montant.addEventListener('input', calculerMensualite);
+        if (duree) duree.addEventListener('input', calculerMensualite);
+        if (tauxInteret) tauxInteret.addEventListener('input', calculerMensualite);
+
+        calculerMensualite();
 
         // Signature canvas - VERSION CORRIGÉE
         const canvas = document.getElementById('signatureCanvas');
@@ -1515,6 +1534,63 @@
     });
 
     // ========== FONCTIONS POUR LES BOUTONS ==========
+
+    function recalculerAvecMontantAccorde() {
+        const montantAccorde = parseFloat(
+            document.getElementById('montantAccorde')?.value
+        ) || 0;
+
+        const d = parseInt(
+            document.getElementById('duree')?.value
+        ) || 0;
+
+        const taux = parseFloat(
+            document.getElementById('tauxInteret')?.value
+        ) || 12;
+
+        const simMensualite = document.getElementById('simMensualite');
+        const simTotal = document.getElementById('simTotal');
+
+        if (montantAccorde <= 0 || d <= 0) {
+            return;
+        }
+
+        const montantInteret =
+            montantAccorde * (taux / 100) * (d / 12);
+
+        const total = montantAccorde + montantInteret;
+        const mensualite = total / d;
+
+        if (simMensualite) {
+            simMensualite.textContent =
+                Math.round(mensualite).toLocaleString('fr-FR') + ' Gdes';
+        }
+
+        if (simTotal) {
+            simTotal.textContent =
+                Math.round(total).toLocaleString('fr-FR') + ' Gdes';
+        }
+    }
+
+    document.getElementById('montantAccorde')?.addEventListener(
+        'input',
+        recalculerAvecMontantAccorde
+    );
+
+    document.getElementById('tauxInteret')?.addEventListener(
+        'input',
+        recalculerAvecMontantAccorde
+    );
+
+    document.getElementById('duree')?.addEventListener(
+        'input',
+        recalculerAvecMontantAccorde
+    );
+
+    // Calcul initial au chargement de la page
+    document.addEventListener('DOMContentLoaded', function () {
+        recalculerAvecMontantAccorde();
+    });
 
     // Fonction pour approuver le prêt
     function approuverPret() {
