@@ -290,11 +290,11 @@
                         <option value="">-- Sélectionnez un prêt --</option>
                         {% for pret in prets %}
                         <option value="{{ pret.id }}"
-                                data-montant="{{ pret.montant or 0 }}"
+                                data-montant="{{ pret.montant_accorde or 0 }}"
                                 data-mensualite="{{ pret.mensualite or 0  }}"
                                 data-solde="{{ pret.solde_restant or pret.montant_total or 0 }}"
                                 data-statut="{{ pret.statut or 'inconnu'}}">
-                            Prêt #{{ pret.id }} - {{ "{:,.0f}".format(pret.montant or 0) }} HTG
+                            Prêt #{{ pret.id }} - {{ "{:,.0f}".format(pret.montant_accorde or 0) }}
                             (Mensualité: {{ "{:,.0f}".format(pret.mensualite or 0) }} HTG)
                             {% if pret.solde_restant %} - Solde: {{ "{:,.0f}".format(pret.solde_restant) }} HTG  {% endif %}
                         </option>
@@ -363,6 +363,12 @@
                     return new Intl.NumberFormat('fr-FR').format(Math.round(value));
                 };
 
+                document.getElementById('montantAPayer').textContent =
+                    formatMoney(mensualite) + ' HTG';
+
+                document.getElementById('balanceTotale').textContent =
+                    formatMoney(soldeRestant) + ' HTG';
+
                 let statutHtml = '';
                 if (statut === 'actif') {
                     statutHtml = '<span style="color: #28a745;">✓ Prêt actif</span>';
@@ -379,9 +385,18 @@
                     <p><strong>💵 Mensualité à payer:</strong> ${formatMoney(mensualite)} HTG</p>
                     <p><strong>💰 Solde total restant:</strong> ${formatMoney(soldeRestant)} HTG <small style="font-size:0.7rem;">(total du prêt)</small></p>
                     <p><strong>📊 Statut:</strong> ${statutHtml}</p>
+
                     <p style="margin-top: 0.5rem; font-size: 0.85rem;">
                         <i class="fas fa-info-circle"></i>
-                        Le montant recommandé est la mensualité. Vous pouvez payer plus pour réduire le solde.
+                        <strong>Montant à payer :</strong>
+                        <span id="montantAPayer">0 HTG</span>
+                        <br>
+
+                    <i class="fas fa-wallet"></i>
+                    <strong>Balance totale :</strong>
+                    <span id="balanceTotale">0 HTG</span>
+                    <br>
+                    Vous pouvez payer la mensualité ou une somme supérieure pour réduire la balance.
                     </p>
                 `;
 
@@ -482,6 +497,7 @@
                 option.setAttribute("data-statut", item.statut || "inconnu");
                 select.appendChild(option);
             });
+
         }
     </script>
 </body>

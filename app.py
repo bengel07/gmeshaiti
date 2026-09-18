@@ -3120,8 +3120,56 @@ def approuver_pret(pret_id):
         if client:
             client.suspendre_compte_pret()
 
-        pret.montant_accorde = data.get('montant_accorde', pret.montant_demande)
-        pret.taux_interet = data.get('taux_interet', pret.taux_interet)
+        # Montant accordé et taux
+        montant_accorde = float(
+            data.get('montant_accorde')
+            or pret.montant_demande
+            or pret.montant
+            or 0
+        )
+
+        taux_annuel = float(
+            data.get('taux_interet')
+            or pret.taux_interet
+            or 12
+        )
+
+        duree = int(pret.duree_mois or 0)
+
+        if montant_accorde <= 0:
+            return jsonify({
+                'success': False,
+                'message': 'Le montant accordé doit être supérieur à zéro.'
+            }), 400
+
+        if duree <= 0:
+            return jsonify({
+                'success': False,
+                'message': 'La durée du prêt est invalide.'
+            }), 400
+
+        # Calcul des intérêts sur le montant accordé
+        montant_interet = (
+                montant_accorde
+                * (taux_annuel / 100)
+                * (duree / 12)
+        )
+
+        # Total = montant accordé + intérêts
+        montant_total = montant_accorde + montant_interet
+
+        # Mensualité
+        mensualite = montant_total / duree
+
+        # Enregistrement des montants
+        pret.montant_accorde = round(montant_accorde, 2)
+        pret.taux_interet = taux_annuel
+        pret.montant_interet = round(montant_interet, 2)
+        pret.montant_total = round(montant_total, 2)
+        pret.mensualite = round(mensualite, 2)
+        pret.montant_rembourse = 0
+        pret.solde_restant = round(montant_total, 2)
+
         pret.signature_responsable = f"{current_user.prenom} {current_user.nom}"
         pret.date_approbation = datetime.now()
         pret.approuve_par = current_user.id
@@ -12857,14 +12905,62 @@ def nouveau_remboursement():
             if montant <= 0:
                 return jsonify({"success": False, "message": "Montant invalide"}), 400
 
-            # ✅ Calculer le total déjà remboursé
-            total_rembourse = sum(r.montant for r in pret.remboursements if r.statut in ['valide', 'effectue'])
-            solde_reel = pret.montant - total_rembourse
+            # ==========================================================
+            # CALCUL DU TOTAL RÉEL À REMBOURSER
+            # montant accordé + intérêts + pénalités éventuelles
+            # ==========================================================
+
+            montant_accorde = float(
+                pret.montant_accorde or pret.montant_demande or 0
+            )
+
+            taux_interet = float(
+                pret.taux_interet or 0
+            )
+
+            duree = int(
+                pret.duree or 0
+            )
+
+            # Intérêt simple sur la durée du prêt
+            interet = montant_accorde * (taux_interet / 100) * (duree / 12)
+
+            # Total de base à rembourser
+            total_a_rembourser = montant_accorde + interet
+
+            # ==========================================================
+            # PÉNALITÉS
+            # ==========================================================
+
+            penalite = float(getattr(pret, 'penalite', 0) or 0)
+
+            total_a_rembourser += penalite
+
+            # ==========================================================
+            # TOTAL DÉJÀ PAYÉ
+            # ==========================================================
+
+            total_rembourse = sum(
+                float(r.montant or 0)
+                for r in pret.remboursements
+                if r.statut in ['valide', 'effectue']
+            )
+
+            # ==========================================================
+            # SOLDE RÉEL
+            # ==========================================================
+
+            solde_reel = total_a_rembourser - total_rembourse
+
             nouveau_solde = solde_reel - montant
 
-            # ✅ CORRECTION 1 : Utiliser solde_reel au lieu de pret.solde_restant
+            # Empêcher un paiement supérieur au solde
             if montant > solde_reel:
-                flash(f"❌ Montant dépasse le solde restant ({solde_reel:,.0f} HTG)", "error")
+                flash(
+                    f"❌ Montant dépasse le solde restant "
+                    f"({solde_reel:,.0f} HTG)",
+                    "error"
+                )
                 return redirect(url_for('nouveau_remboursement'))
 
             # ✅ CORRECTION 2 : Récupérer succursale_id correctement
