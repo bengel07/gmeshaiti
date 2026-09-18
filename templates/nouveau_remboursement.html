@@ -363,11 +363,6 @@
                     return new Intl.NumberFormat('fr-FR').format(Math.round(value));
                 };
 
-                document.getElementById('montantAPayer').textContent =
-                    formatMoney(mensualite) + ' HTG';
-
-                document.getElementById('balanceTotale').textContent =
-                    formatMoney(soldeRestant) + ' HTG';
 
                 let statutHtml = '';
                 if (statut === 'actif') {
@@ -497,6 +492,11 @@
                 option.setAttribute("data-statut", item.statut || "inconnu");
                 select.appendChild(option);
             });
+
+            // AJOUTER
+if (select.options.length > 0) {
+    select.selectedIndex = 0;
+    chargerDetailsPret();
 
         }
     </script>
