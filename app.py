@@ -12910,31 +12910,20 @@ def nouveau_remboursement():
             # montant accordé + intérêts + pénalités éventuelles
             # ==========================================================
 
-            montant_accorde = float(
-                pret.montant_accorde or pret.montant_demande or 0
-            )
-
-            taux_interet = float(
-                pret.taux_interet or 0
-            )
-
-            duree = int(
-                pret.duree or 0
-            )
-
-            # Intérêt simple sur la durée du prêt
-            interet = montant_accorde * (taux_interet / 100) * (duree / 12)
-
-            # Total de base à rembourser
-            total_a_rembourser = montant_accorde + interet
-
             # ==========================================================
-            # PÉNALITÉS
+            # TOTAL DU PRÊT
             # ==========================================================
 
-            penalite = float(getattr(pret, 'penalite', 0) or 0)
+            total_a_rembourser = float(
+                getattr(pret, 'montant_total', 0) or 0
+            )
 
-            total_a_rembourser += penalite
+            if total_a_rembourser <= 0:
+                total_a_rembourser = float(
+                    pret.montant_accorde
+                    or pret.montant_demande
+                    or 0
+                )
 
             # ==========================================================
             # TOTAL DÉJÀ PAYÉ
@@ -12947,12 +12936,27 @@ def nouveau_remboursement():
             )
 
             # ==========================================================
-            # SOLDE RÉEL
+            # BALANCE ACTUELLE
             # ==========================================================
 
-            solde_reel = total_a_rembourser - total_rembourse
+            solde_reel = max(
+                total_a_rembourser - total_rembourse,
+                0
+            )
+
+            # ==========================================================
+            # BALANCE APRÈS CE PAIEMENT
+            # ==========================================================
 
             nouveau_solde = solde_reel - montant
+
+            if montant > solde_reel:
+                flash(
+                    f"❌ Montant dépasse le solde restant "
+                    f"({solde_reel:,.0f} HTG)",
+                    "error"
+                )
+                return redirect(url_for('nouveau_remboursement'))
 
             # Empêcher un paiement supérieur au solde
             if montant > solde_reel:
