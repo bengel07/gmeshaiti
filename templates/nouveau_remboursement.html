@@ -539,13 +539,11 @@
 
             select.innerHTML = "";
 
-            // ✅ CAS AUCUN RESULTAT
             if (!data.results || data.results.length === 0) {
                 select.innerHTML = `<option>${data.message || "Aucun résultat"}</option>`;
                 return;
             }
 
-            // ✅ AFFICHER RESULTATS
             data.results.forEach(item => {
                 const option = document.createElement("option");
                 option.value = item.pret_id;
@@ -558,13 +556,10 @@
                 select.appendChild(option);
             });
 
-            // AJOUTER
             if (select.options.length > 0) {
                 select.selectedIndex = 0;
                 chargerDetailsPret();
-
             }
-
         }
     </script>
 </body>
