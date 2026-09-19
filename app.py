@@ -2738,6 +2738,7 @@ def direction_succursale_dashboard():
         'montant_total': montant_total,
         'montant_total_accorde': montant_total_accorde,
         'total_rembourse': total_rembourse,
+        'total_a_rembourser': total_a_rembourser,
         'taux_remboursement': (total_rembourse / montant_total * 100) if montant_total > 0 else 0,
         'paiements_retard': paiements_retard,
         'taux_approbation': (
@@ -3168,7 +3169,6 @@ def approuver_pret(pret_id):
         pret.montant_total = round(montant_total, 2)
         pret.mensualite = round(mensualite, 2)
         pret.montant_rembourse = 0
-        pret.solde_restant = round(montant_total, 2)
 
         pret.signature_responsable = f"{current_user.prenom} {current_user.nom}"
         pret.date_approbation = datetime.now()
@@ -12877,15 +12877,12 @@ def verify_faces_api():
 
 
 # ==================== SYSTÈME DE REMBOURSEMENTS ====================
-
 @app.route('/remboursement/nouveau', methods=['GET', 'POST'])
 @login_required
 def nouveau_remboursement():
     from flask import request, jsonify, render_template, flash, redirect, url_for, send_file
     from datetime import datetime
     from models import Pret, Remboursement, Journal, Client
-
-    print("🔥 ROUTE ENREGISTREMENT REMBOURSEMENT")
 
     if request.method == 'POST':
         try:
@@ -12906,48 +12903,9 @@ def nouveau_remboursement():
                 return jsonify({"success": False, "message": "Montant invalide"}), 400
 
             # ==========================================================
-            # CALCUL DU TOTAL RÉEL À REMBOURSER
-            # montant accordé + intérêts + pénalités éventuelles
+            # SOLDE ACTUEL — via la property, source unique de vérité
             # ==========================================================
-
-            # ==========================================================
-            # TOTAL DU PRÊT
-            # ==========================================================
-
-            total_a_rembourser = float(
-                getattr(pret, 'montant_total', 0) or 0
-            )
-
-            if total_a_rembourser <= 0:
-                total_a_rembourser = float(
-                    pret.montant_accorde
-                    or pret.montant_demande
-                    or 0
-                )
-
-            # ==========================================================
-            # TOTAL DÉJÀ PAYÉ
-            # ==========================================================
-
-            total_rembourse = sum(
-                float(r.montant or 0)
-                for r in pret.remboursements
-                if r.statut in ['valide', 'effectue']
-            )
-
-            # ==========================================================
-            # BALANCE ACTUELLE
-            # ==========================================================
-
-            solde_reel = max(
-                total_a_rembourser - total_rembourse,
-                0
-            )
-
-            # ==========================================================
-            # BALANCE APRÈS CE PAIEMENT
-            # ==========================================================
-
+            solde_reel = pret.solde_restant
             nouveau_solde = solde_reel - montant
 
             if montant > solde_reel:
@@ -12958,21 +12916,7 @@ def nouveau_remboursement():
                 )
                 return redirect(url_for('nouveau_remboursement'))
 
-            # Empêcher un paiement supérieur au solde
-            if montant > solde_reel:
-                flash(
-                    f"❌ Montant dépasse le solde restant "
-                    f"({solde_reel:,.0f} HTG)",
-                    "error"
-                )
-                return redirect(url_for('nouveau_remboursement'))
-
-            # ✅ CORRECTION 2 : Récupérer succursale_id correctement
-            succursale_id = current_user.succursale_id
-            if not succursale_id:
-                succursale_id = getattr(pret, 'succursale_id', None)
-
-            # ✅ CORRECTION 3 : client_id sécurisé
+            succursale_id = current_user.succursale_id or getattr(pret, 'succursale_id', None)
             client_id = pret.client_id if pret.client_id else current_user.id
 
             remboursement = Remboursement(
@@ -12988,12 +12932,9 @@ def nouveau_remboursement():
                 employe_id=current_user.id,
                 succursale_id=succursale_id
             )
-
             db.session.add(remboursement)
 
-            # Mettre à jour le montant remboursé dans le prêt
-            pret.montant_rembourse = (pret.montant_rembourse or 0)  + montant
-
+            pret.montant_rembourse = (pret.montant_rembourse or 0) + montant
 
             journal = Journal(
                 employe_id=current_user.id,
@@ -13007,26 +12948,19 @@ def nouveau_remboursement():
 
             if nouveau_solde <= 0:
                 pret.statut = 'rembourse'
+                client = db.session.get(Client, pret.client_id)
+                if client:
+                    client.statut = 'actif'
                 flash(f'🎉 Prêt #{pret.id} entièrement remboursé !', 'success')
 
-                # ✅ Réactiver le client
-                client = db.session.get(Client, pret.client_id)
-
-                if client:
-                    print("🔥 AVANT:", client.statut)
-                    client.statut = 'actif'
-                    print("🔥 APRÈS:", client.statut)
-
-                flash(f'✅ Remboursement de {montant:,.0f} HTG enregistré ! Nouveau solde: {nouveau_solde:,.0f} HTG',
-                      'success')
-
-
+            flash(
+                f'✅ Remboursement de {montant:,.0f} HTG enregistré ! Nouveau solde: {nouveau_solde:,.0f} HTG',
+                'success'
+            )
             db.session.commit()  # Commit du changement de statut
 
-            # ✅ CORRECTION 4 : Flash avant le return
             try:
                 recu = generer_recu_remboursement_pdf(pret, remboursement, current_user)
-                flash('✅ Remboursement enregistré avec succès !', 'success')
                 return send_file(
                     recu['pdf_file'],
                     as_attachment=True,
@@ -13046,46 +12980,12 @@ def nouveau_remboursement():
     # ==========================================================
     # GET → PRÊTS POUVANT RECEVOIR UN REMBOURSEMENT
     # ==========================================================
-
     prets = Pret.query.filter(
         Pret.client_id == current_user.id,
         Pret.statut.in_(['approuve', 'actif', 'en_retard'])
     ).all()
 
-    prets_avec_solde = []
-
-    for pret in prets:
-
-        # Total déjà payé
-        total_rembourse = sum(
-            float(r.montant or 0)
-            for r in pret.remboursements
-            if r.statut in ['valide', 'effectue']
-        )
-
-        # Total réel du prêt
-        total_du = float(
-            getattr(pret, 'montant_total', 0)
-            or 0
-        )
-
-        # Si montant_total n'est pas disponible,
-        # utiliser montant_accorde comme secours
-        if total_du <= 0:
-            total_du = float(
-                pret.montant_accorde
-                or pret.montant_demande
-                or 0
-            )
-
-        # Balance réelle
-        solde_restant = total_du - total_rembourse
-
-        if solde_restant > 0:
-            # Mettre la valeur à jour pour l'affichage
-            pret.solde_restant = solde_restant
-
-            prets_avec_solde.append(pret)
+    prets_avec_solde = [pret for pret in prets if pret.solde_restant > 0]
 
     return render_template(
         'nouveau_remboursement.html',
@@ -20670,12 +20570,7 @@ def remboursements_succursale(succursale_code):
         # -----------------------------------------------------
         # 5. Calculer le solde actuel
         # -----------------------------------------------------
-        solde_restant = float(
-            pret.solde_restant
-            or pret.montant_total
-            or pret.montant
-            or 0
-        )
+        solde_restant = pret.solde_restant
 
         # -----------------------------------------------------
         # 6. Ne jamais permettre de payer plus que le solde
@@ -20698,26 +20593,24 @@ def remboursements_succursale(succursale_code):
         # -----------------------------------------------------
         remboursement = Remboursement(
             pret_id=pret.id,
+            client_id=pret.client_id,
             succursale_id=succursale.id,
             montant=montant,
             type_paiement=type_paiement,
-            reference=reference if reference else None
+            reference=reference if reference else None,
+            statut='effectue',  # ✅ ajouté
+            date_remboursement=datetime.utcnow(),  # ✅ ajouté
+            employe_id=current_user.id,  # ✅ ajouté
         )
 
         db.session.add(remboursement)
 
-        # -----------------------------------------------------
-        # 8. Mettre à jour le solde du prêt
-        # -----------------------------------------------------
-        nouveau_solde = solde_restant - montant
+        # ✅ synchroniser montant_rembourse, comme dans nouveau_remboursement()
+        pret.montant_rembourse = (pret.montant_rembourse or 0) + montant
 
-        pret.solde_restant = max(nouveau_solde, 0)
 
-        # -----------------------------------------------------
-        # 9. Si le prêt est totalement payé
-        # -----------------------------------------------------
+        # ✅ remplace par :
         if pret.solde_restant <= 0:
-            pret.solde_restant = 0
             pret.statut = 'rembourse'
 
         # -----------------------------------------------------

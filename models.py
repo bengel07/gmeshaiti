@@ -4133,7 +4133,7 @@ class Pret(db.Model):
     garantie = db.Column(db.String(200), nullable=True)
     info_garant = db.Column(db.String(200), nullable=True)
     agent_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # ← avec un 's'
-    solde_restant = db.Column(db.Float, default=0)
+    solde_restant_cache = db.Column(db.Float, default=0)
 
     reference1 = db.Column(db.String(255), nullable=True)
     reference2 = db.Column(db.String(255), nullable=True)
@@ -4272,13 +4272,32 @@ class Pret(db.Model):
         return len(echeanciers)
 
     @property
+    def total_du(self):
+        """Total réel à rembourser (principal + intérêts), toujours à jour."""
+        if self.mensualite and self.duree_mois:
+            return float(self.mensualite) * int(self.duree_mois)
+        if self.montant_total and self.montant_total > 0:
+            return float(self.montant_total)
+        return float(self.montant_accorde or self.montant_demande or 0)
+
+
+    @property
     def solde_restant(self):
-        """Calcule le solde restant du prêt"""
+        """Calcule le solde restant réel du prêt (principal + intérêts - remboursé)."""
         from sqlalchemy import func
+
         total_rembourse = db.session.query(func.sum(Remboursement.montant)).filter_by(
             pret_id=self.id, statut='effectue'
         ).scalar() or 0
-        return self.montant - total_rembourse  # Utilisez montant au lieu de montant_total
+
+        if self.mensualite and self.duree_mois:
+            total_du = float(self.mensualite) * int(self.duree_mois)
+        elif self.montant_total and self.montant_total > 0:
+            total_du = float(self.montant_total)
+        else:
+            total_du = float(self.montant_accorde or self.montant_demande or 0)
+
+        return max(total_du - total_rembourse, 0)
 
 
 
