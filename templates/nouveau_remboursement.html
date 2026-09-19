@@ -457,11 +457,29 @@
                 return false;
             }
 
-            if (confirm(`Confirmez-vous le remboursement de ${montant} HTG ?`)) {
-                return true;
+            if (!confirm(`Confirmez-vous le remboursement de ${montant} HTG ?`)) {
+                e.preventDefault();
+                return false;
             }
-            e.preventDefault();
-            return false;
+
+            // ✅ Soumission confirmée : on programme le reset des champs
+            const form = this;
+            setTimeout(() => {
+                form.reset();
+                // reset() ne vide pas toujours bien un <select> rempli dynamiquement par rechercher()
+                document.getElementById('pret_id').innerHTML = '<option value="">-- Sélectionnez un prêt --</option>';
+                document.getElementById('searchInput').value = '';
+                document.getElementById('pretInfo').innerHTML = `
+                    <h3><i class="fas fa-file-invoice"></i> Informations du prêt</h3>
+                    <p>Sélectionnez un prêt pour voir les détails</p>
+                `;
+                document.getElementById('recommandation').innerHTML = `
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Le montant recommandé est la mensualité</span>
+                `;
+            }, 800); // délai pour laisser le téléchargement du PDF démarrer
+
+            return true;
         });
 
         async function rechercher() {
