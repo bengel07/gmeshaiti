@@ -4133,7 +4133,7 @@ class Pret(db.Model):
     garantie = db.Column(db.String(200), nullable=True)
     info_garant = db.Column(db.String(200), nullable=True)
     agent_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # ← avec un 's'
-    solde_restant_cache = db.Column(db.Float, default=0)
+    solde_restant_cache = db.Column('solde_restant', db.Float, default=0)
 
     reference1 = db.Column(db.String(255), nullable=True)
     reference2 = db.Column(db.String(255), nullable=True)
