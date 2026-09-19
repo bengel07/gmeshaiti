@@ -363,15 +363,63 @@
                     return new Intl.NumberFormat('fr-FR').format(Math.round(value));
                 };
 
-
+                // ✅ Libellé de statut, avec cas spécifiques
                 let statutHtml = '';
-                if (statut === 'actif') {
+                if (statut === 'actif' || statut === 'approuve') {
                     statutHtml = '<span style="color: #28a745;">✓ Prêt actif</span>';
                 } else if (statut === 'en_retard') {
                     statutHtml = '<span style="color: #dc3545;">⚠️ Prêt en retard</span>';
+                } else if (statut === 'rembourse') {
+                    statutHtml = '<span style="color: #28a745;">✅ Prêt totalement remboursé</span>';
+                } else if (statut === 'refuse') {
+                    statutHtml = '<span style="color: #dc3545;">❌ Prêt refusé</span>';
                 } else {
                     statutHtml = `<span style="color: #ffc107;">⏳ ${statut}</span>`;
                 }
+
+                const STATUTS_ELIGIBLES = ['actif', 'approuve', 'en_retard'];
+
+                // ✅ Statut non éligible → on montre juste le statut, rien d'autre
+                if (!STATUTS_ELIGIBLES.includes(statut)) {
+
+                    let messageHtml = '';
+                    if (statut === 'rembourse') {
+                        messageHtml = `
+                            <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #28a745;">
+                                <i class="fas fa-check-circle"></i>
+                                Ce prêt est totalement remboursé.
+                            </p>
+                        `;
+                    } else if (statut === 'refuse') {
+                        messageHtml = `
+                            <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #dc3545;">
+                                <i class="fas fa-times-circle"></i>
+                                Ce prêt a été refusé, aucun remboursement possible.
+                            </p>
+                        `;
+                    } else {
+                        messageHtml = `
+                            <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #856404;">
+                                <i class="fas fa-info-circle"></i>
+                                Ce prêt n'est pas éligible à un remboursement actuellement.
+                            </p>
+                        `;
+                    }
+
+                    pretInfo.innerHTML = `
+                        <h3><i class="fas fa-file-invoice"></i> Informations du prêt</h3>
+                        <p><strong>📊 Statut:</strong> ${statutHtml}</p>
+                        ${messageHtml}
+                    `;
+
+                    montantInput.value = '';
+                    montantInput.disabled = true;
+                    recommandation.innerHTML = '';
+                    return;
+                }
+
+                // ✅ Statut éligible → comportement normal
+                montantInput.disabled = false;
 
                 pretInfo.innerHTML = `
                     <h3><i class="fas fa-file-invoice"></i> Informations du prêt</h3>
@@ -395,14 +443,12 @@
                     </p>
                 `;
 
-                // Pré-remplir le montant avec la mensualité
                 montantInput.value = mensualite;
                 recommandation.innerHTML = `
                     <i class="fas fa-lightbulb"></i>
                     <span>Montant recommandé: ${formatMoney(mensualite)} HTG (mensualité)</span>
                 `;
 
-                // Validation du montant
                 montantInput.addEventListener('input', function() {
                     const value = parseFloat(this.value);
                     if (value > soldeRestant) {
@@ -426,6 +472,7 @@
                     <p>Sélectionnez un prêt pour voir les détails</p>
                 `;
                 montantInput.value = '';
+                montantInput.disabled = false;
                 recommandation.innerHTML = `
                     <i class="fas fa-lightbulb"></i>
                     <span>Le montant recommandé est la mensualité</span>
