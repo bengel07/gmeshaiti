@@ -92,56 +92,81 @@
                 {% endif %}
             </td>
 
+            {% if pret.statut in ['refuse', 'refusé', 'rejeté', 'rejete'] %}
+                {# ✅ Prêt refusé/rejeté : seulement montant demandé + date, reste vide #}
+                <td>{{ "{:,.0f}".format(pret.montant_demande or 0) }} HTG</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+                <td>—</td>
+
+                <td>
+                    {% if pret.date_demande %}
+                        {{ pret.date_demande.strftime('%d/%m/%Y') }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+
+                <td>
+                    <span class="badge bg-danger" style="cursor: pointer;"
+                          data-bs-toggle="tooltip"
+                          title="{{ pret.motif_refus or 'Aucun motif renseigné' }}">
+                        Refusé <i class="fas fa-info-circle"></i>
+                    </span>
+                </td>
+
+            {% else %}
+                {# ✅ Comportement normal pour tous les autres statuts #}
                 <td>{{ "{:,.0f}".format(pret.montant_demande or 0) }} HTG</td>
                 <td>{{ "{:,.0f}".format(pret.montant_accorde or 0) }} HTG</td>
                 <td>{{ "{:,.0f}".format(pret.mensualite or 0) }} HTG</td>
                 <td>{{ "{:,.0f}".format(pret.montant_rembourse or 0) }} HTG</td>
-                 <td> {{ "{:,.2f}".format(pret.solde_restant or 0) }} HTG </td>
-                <td>{{ "{:,.0f}".format(pret.total_du or 0) }} HTG</td>
+                <td>{{ "{:,.2f}".format(pret.solde_restant or 0) }} HTG</td>
 
-
-
-            <td>
-                {% if pret.date_demande %}
-                    {{ pret.date_demande.strftime('%d/%m/%Y') }}
+                {% if pret.statut in ['rembourse', 'remboursé'] %}
+                    {# ✅ Prêt totalement remboursé : total dû forcé à 0 #}
+                    <td>0 HTG</td>
                 {% else %}
-                    —
+                    <td>{{ "{:,.0f}".format(pret.total_du or 0) }} HTG</td>
                 {% endif %}
-            </td>
 
-            <td>
-                {% if pret.statut in [
-                    'en_cours',
-                    'en_attente',
-                    'actif',
-                    'en_retard',
-                    'approuve',
-                    'approuvé',
-                    'approuvee',
-                    'approuvée'
-                ] %}
-                    <span class="badge bg-warning">En cours</span>
+                <td>
+                    {% if pret.date_demande %}
+                        {{ pret.date_demande.strftime('%d/%m/%Y') }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
 
-                {% elif pret.statut in [
-                    'refuse',
-                    'refusé',
-                    'rejeté',
-                    'rejete'
-                ] %}
-                    <span class="badge bg-danger">Refusé</span>
+                <td>
+                    {% if pret.statut in [
+                        'en_cours',
+                        'en_attente',
+                        'actif',
+                        'en_retard',
+                        'approuve',
+                        'approuvé',
+                        'approuvee',
+                        'approuvée'
+                    ] %}
+                        <span class="badge bg-warning">En cours</span>
 
-                {% elif pret.statut in [
-                    'rembourse',
-                    'remboursé'
-                ] %}
-                    <span class="badge bg-info">Remboursé</span>
+                    {% elif pret.statut in [
+                        'rembourse',
+                        'remboursé'
+                    ] %}
+                        <span class="badge bg-info">Remboursé</span>
 
-                {% else %}
-                    <span class="badge bg-secondary">
-                        {{ pret.statut }}
-                    </span>
-                {% endif %}
-            </td>
+                    {% else %}
+                        <span class="badge bg-secondary">
+                            {{ pret.statut }}
+                        </span>
+                    {% endif %}
+                </td>
+            {% endif %}
+
         </tr>
         {% endfor %}
     </tbody>
@@ -156,3 +181,12 @@
 </a>
 
 {% endblock %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
