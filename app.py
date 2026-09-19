@@ -13039,17 +13039,48 @@ def nouveau_remboursement():
             print("❌ Erreur remboursement:", e)
             return jsonify({"success": False, "message": "Erreur serveur"}), 500
 
-    # ✅ GET → Afficher uniquement les prêts avec solde > 0
+    # ==========================================================
+    # GET → PRÊTS POUVANT RECEVOIR UN REMBOURSEMENT
+    # ==========================================================
+
     prets = Pret.query.filter(
         Pret.client_id == current_user.id,
-        Pret.statut.in_(['approuve', 'actif', 'retard'])
+        Pret.statut.in_(['approuve', 'actif', 'en_retard'])
     ).all()
 
-    # Filtrer ceux qui ont encore un solde > 0
     prets_avec_solde = []
+
     for pret in prets:
-        total_rembourse = sum(r.montant for r in pret.remboursements if r.statut in ['valide', 'effectue'])
-        if pret.montant - total_rembourse > 0:
+
+        # Total déjà payé
+        total_rembourse = sum(
+            float(r.montant or 0)
+            for r in pret.remboursements
+            if r.statut in ['valide', 'effectue']
+        )
+
+        # Total réel du prêt
+        total_du = float(
+            getattr(pret, 'montant_total', 0)
+            or 0
+        )
+
+        # Si montant_total n'est pas disponible,
+        # utiliser montant_accorde comme secours
+        if total_du <= 0:
+            total_du = float(
+                pret.montant_accorde
+                or pret.montant_demande
+                or 0
+            )
+
+        # Balance réelle
+        solde_restant = total_du - total_rembourse
+
+        if solde_restant > 0:
+            # Mettre la valeur à jour pour l'affichage
+            pret.solde_restant = solde_restant
+
             prets_avec_solde.append(pret)
 
     return render_template(
