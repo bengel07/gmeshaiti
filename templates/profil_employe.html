@@ -24,6 +24,7 @@
 
                         <!-- Formulaire upload photo -->
                         <form method="POST" enctype="multipart/form-data" class="mt-3">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="action" value="update_photo">
                             <div class="mb-2">
                                 <input type="file" name="photo_profil" class="form-control form-control-sm" accept=".png,.jpg,.jpeg,.gif" required>
@@ -46,6 +47,7 @@
                     </div>
                     <div class="card-body">
                         <form method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="action" value="update_infos">
 
                             <div class="row mb-3">
@@ -97,6 +99,7 @@
                     </div>
                     <div class="card-body">
                         <form method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="action" value="update_password">
 
                             <div class="mb-3">
