@@ -451,14 +451,9 @@ def creer_acces_client(client):
 @login_required
 def envoyer_lien_activation(client_id):
 
-    # Réservé aux employés/admins
     if current_user.role not in [
-        'employee',
-        'employe',
-        'admin_succursale',
-        'admin_principal',
-        'direction',
-        'super_admin'
+        'employee', 'employe', 'admin_succursale',
+        'admin_principal', 'direction', 'super_admin'
     ]:
         abort(403)
 
@@ -471,12 +466,14 @@ def envoyer_lien_activation(client_id):
         }), 400
 
     try:
-        # Chercher le User du client
-        user = User.query.filter_by(
-            client_id=client.id
-        ).first()
+        # 1. Chercher le User déjà lié à ce client
+        user = User.query.filter_by(client_id=client.id).first()
 
-        # Créer le User s'il n'existe pas
+        # 2. Si aucun, chercher un User avec le même email (évite le doublon)
+        if not user:
+            user = User.query.filter_by(email=client.email).first()
+
+        # 3. Si toujours rien, créer
         if not user:
             user = User(
                 username=client.email,
@@ -492,43 +489,32 @@ def envoyer_lien_activation(client_id):
                 terms_accepted=False,
                 client_id=client.id
             )
-
             db.session.add(user)
             db.session.flush()
-
         else:
-            # Mettre à jour les informations
+            # Relier/mettre à jour un User existant
             user.email = client.email
             user.username = client.email
-            user.role = 'client'
             user.client_id = client.id
+            # ⚠️ Ne pas écraser le rôle si c'était un employé (voir remarque plus bas)
+            if user.role not in ['employe', 'employee', 'admin_succursale', 'admin_principal', 'direction', 'super_admin']:
+                user.role = 'client'
 
-        # Nouveau token
         user.activation_token = secrets.token_urlsafe(48)
-
-        # Nouveau délai de 24 heures
-        user.activation_expiration = (
-            datetime.utcnow() + timedelta(hours=24)
-        )
-
+        user.activation_expiration = datetime.utcnow() + timedelta(hours=24)
         user.statut = 'en_attente'
         user.actif = False
         user.est_actif = False
 
         db.session.commit()
 
-        # Générer le lien
         activation_link = url_for(
             'clients.activation_client',
             token=user.activation_token,
             _external=True
         )
 
-        # Envoyer l'email
-        success = envoyer_email_activation_client(
-            client,
-            activation_link
-        )
+        success = envoyer_email_activation_client(client, activation_link)
 
         if not success:
             return jsonify({
@@ -542,14 +528,13 @@ def envoyer_lien_activation(client_id):
         })
 
     except Exception as e:
-
         db.session.rollback()
 
-        print(
-            f"❌ ERREUR ENVOI LIEN CLIENT : {str(e)}"
-        )
+        import traceback
+        print("❌ ERREUR ENVOI LIEN CLIENT — TRACEBACK COMPLET :")
+        traceback.print_exc()
 
         return jsonify({
             'success': False,
-            'message': "Erreur lors de l'envoi du lien."
+            'message': f"Erreur lors de l'envoi du lien : {str(e)}"
         }), 500

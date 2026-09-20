@@ -919,6 +919,9 @@ def envoyer_email_decision_rejet(client, motif):
     )
 
     return response.json()
+
+
+
 def envoyer_email_activation_client(client, activation_link):
 
     try:
