@@ -15655,18 +15655,18 @@ def generer_recu_remboursement_pdf(pret, remboursement, client, dossier_recus="r
         "receipt_number": receipt_number
     }
 
+
+
 @app.route('/<string:succursale_code>/employees/historique-remboursements')
 @login_required
 def historique_remboursements(succursale_code):
     """Affiche l'historique des remboursements"""
     from sqlalchemy.orm import joinedload
 
-    # Vérifier l'accès à la succursale
     succursale = Succursale.query.filter_by(code=succursale_code).first_or_404()
 
-    # ✅ Pour un caissier/employé - voir tous les remboursements de la succursale
     remboursements = Remboursement.query.join(Pret).filter(
-        Pret.succursale_id == succursale.id  # ← Filtre par succursale
+        Pret.succursale_id == succursale.id
     ).options(
         joinedload(Remboursement.client),
         joinedload(Remboursement.pret)
@@ -15678,68 +15678,47 @@ def historique_remboursements(succursale_code):
 
     prets_en_cours = Pret.query.filter(
         Pret.succursale_id == succursale.id,
-        Pret.statut == 'en_cours'
+        Pret.statut.in_(['approuve', 'actif', 'en_retard'])
     ).options(
         joinedload(Pret.client)
     ).order_by(Pret.id.desc()).all()
 
-    # ✅ CALCULER LE SOLDE POUR CHAQUE REMBOURSEMENT
+    # ✅ SOLDE PAR REMBOURSEMENT — basé sur montant_total du modèle, plus de calcul manuel du total
     for r in remboursements:
         if r.pret:
-            # Récupérer tous les remboursements VALIDES de ce prêt, triés par date
             remboursements_pret = Remboursement.query.filter(
                 Remboursement.pret_id == r.pret.id,
-                Remboursement.statut.in_(['valide', 'effectue'])  # Inclure les deux
+                Remboursement.statut.in_(['valide', 'effectue'])
             ).order_by(Remboursement.date_remboursement.asc()).all()
 
-            # Calculer le solde cumulatif
             cumul = 0
             solde_apres = None
             for remb in remboursements_pret:
                 cumul += remb.montant
                 if remb.id == r.id:
-                    solde_apres = r.pret.montant - cumul
+                    solde_apres = max(r.pret.montant_total - cumul, 0)  # ✅ montant_total + clamp à 0
                     break
 
             r.solde_calcule = solde_apres
         else:
             r.solde_calcule = None
 
+    # ✅ Optionnel : afficher la progression d'un prêt spécifique via ?pret_id=13
+    pret_id = request.args.get('pret_id', type=int)
+    pret = db.session.get(Pret, pret_id) if pret_id else None
 
-        # Ajoutez ces variables pour la progression
-    pret = None
-    total_rembourse = 0
-    pourcentage = 0
-
-    # Si vous voulez afficher les infos du prêt #13 spécifiquement
-    if pret:
-        remb_valides = Remboursement.query.filter(
-            Remboursement.pret_id == pret.id,
-            Remboursement.statut.in_(['valide', 'effectue'])
-        ).all()
-        total_rembourse = sum(r.montant for r in remb_valides)
-        pourcentage = (total_rembourse / pret.montant * 100) if pret.montant > 0 else 0
-
-
-
-    # # ✅ Récupérer les remboursements avec les relations Client et Pret
-    # remboursements = Remboursement.query.filter_by(
-    #     employe_id=current_user.id
-    # ).options(
-    #     joinedload(Remboursement.client),
-    #     joinedload(Remboursement.pret)
-    # ).order_by(Remboursement.date_remboursement.desc()).all()
+    total_rembourse = pret.total_rembourse if pret else 0
+    pourcentage = pret.pourcentage_rembourse if pret else 0
 
     return render_template(
         'employees/historique_remboursements.html',
         succursale=succursale,
         remboursements=remboursements,
-        pret=pret,  # ← AJOUTEZ CECI
-        total_rembourse=total_rembourse,  # ← AJOUTEZ CECI
-        pourcentage=pourcentage,  # ← AJOUTEZ CECI
+        pret=pret,
+        total_rembourse=total_rembourse,
+        pourcentage=pourcentage,
         prets_en_cours=prets_en_cours,
         statut=statut
-
     )
 
 

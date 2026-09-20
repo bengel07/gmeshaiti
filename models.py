@@ -4300,6 +4300,20 @@ class Pret(db.Model):
         return max(total_du - total_rembourse, 0)
 
 
+    @property
+    def total_rembourse(self):
+        """Somme de tous les remboursements valides/effectués pour ce prêt"""
+        remb_valides = [r for r in self.remboursements if r.statut in ('valide', 'effectue')]
+        return sum(r.montant for r in remb_valides)
+
+    @property
+    def pourcentage_rembourse(self):
+        """Progression du remboursement en %, jamais > 100"""
+        if not self.montant_total:
+            return 0
+        return min((self.total_rembourse / self.montant_total) * 100, 100)
+
+
 
 class ReferenceClient(db.Model):
     __tablename__ = "references_clients"
