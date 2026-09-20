@@ -11089,10 +11089,12 @@ def directeur_general_dashboard():
 
     resultat_net = revenus - depenses
 
-    # ✅ AJOUT : Compter les dossiers en attente d'approbation
-    en_attente_count = Client.query.filter_by(
-        # role='client',
+    en_attente_dossiers = Client.query.filter_by(
         statut='en_attente_approbation'
+    ).count()
+
+    en_attente_prets = Pret.query.filter_by(
+        statut='en_attente'
     ).count()
 
     from sqlalchemy import func
