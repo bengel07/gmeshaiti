@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <h2 class="mb-4">👤 Profil de {{ employe.prenom }} {{ employe.nom }}</h2>
+
+        <div class="row">
+            <!-- ========== COLONNE PHOTO + INFOS DE BASE ========== -->
+            <div class="col-md-4 text-center mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <img src="{{ url_for('static', filename='uploads/' ~ (employe.photo_profil if employe.photo_profil else 'default_avatar.png')) }}"
+                             alt="Photo de profil"
+                             class="rounded-circle mb-3"
+                             style="width: 150px; height: 150px; object-fit: cover; border: 3px solid #003366;">
+
+                        <h5>{{ employe.prenom }} {{ employe.nom }}</h5>
+                        <p class="text-muted mb-1">{{ employe.role|capitalize }}</p>
+                        {% if employe.fonction %}
+                            <p class="text-muted"><small>{{ employe.fonction }}</small></p>
+                        {% endif %}
+
+                        <!-- Formulaire upload photo -->
+                        <form method="POST" enctype="multipart/form-data" class="mt-3">
+                            <input type="hidden" name="action" value="update_photo">
+                            <div class="mb-2">
+                                <input type="file" name="photo_profil" class="form-control form-control-sm" accept=".png,.jpg,.jpeg,.gif" required>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-outline-primary w-100">
+                                📷 Changer la photo
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== COLONNE INFOS + FORMULAIRES ========== -->
+            <div class="col-md-8">
+
+                <!-- ----- Informations personnelles ----- -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        ℹ️ Informations personnelles
+                    </div>
+                    <div class="card-body">
+                        <form method="POST">
+                            <input type="hidden" name="action" value="update_infos">
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nom</label>
+                                    <input type="text" name="nom" class="form-control" value="{{ employe.nom }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Prénom</label>
+                                    <input type="text" name="prenom" class="form-control" value="{{ employe.prenom }}">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" name="email" class="form-control" value="{{ employe.email }}">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Téléphone</label>
+                                <input type="text" name="telephone" class="form-control" value="{{ employe.telephone or '' }}">
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Rôle</label>
+                                    <input type="text" class="form-control" value="{{ employe.role }}" disabled>
+                                    <small class="text-muted">Le rôle ne peut être modifié que par un administrateur</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Succursale</label>
+                                    <input type="text" class="form-control"
+                                           value="{{ employe.succursale.nom if employe.succursale else 'Non assignée' }}"
+                                           disabled>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                                💾 Enregistrer les modifications
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ----- Changement de mot de passe ----- -->
+                <div class="card mb-4">
+                    <div class="card-header bg-warning">
+                        🔒 Changer le mot de passe
+                    </div>
+                    <div class="card-body">
+                        <form method="POST">
+                            <input type="hidden" name="action" value="update_password">
+
+                            <div class="mb-3">
+                                <label class="form-label">Mot de passe actuel</label>
+                                <input type="password" name="ancien_mot_de_passe" class="form-control" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Nouveau mot de passe</label>
+                                <input type="password" name="nouveau_mot_de_passe" class="form-control" minlength="8" required>
+                                <small class="text-muted">Minimum 8 caractères</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Confirmer le nouveau mot de passe</label>
+                                <input type="password" name="confirmation_mot_de_passe" class="form-control" minlength="8" required>
+                            </div>
+
+                            <button type="submit" class="btn btn-warning">
+                                🔑 Changer le mot de passe
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ----- Historique d'activité ----- -->
+                {% if historique %}
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        📜 Historique d'activité récente
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                    <th>Détails</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in historique %}
+                                <tr>
+                                    <td>
+                                        {% if entry.date %}
+                                            {{ entry.date.strftime('%d/%m/%Y %H:%M') }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="badge bg-info">{{ entry.action }}</span></td>
+                                    <td>{{ entry.details }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <a href="{{ url_for('tableau_de_bord') }}" class="btn btn-secondary">
+                ⬅️ Retour au tableau de bord
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

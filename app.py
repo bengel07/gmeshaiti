@@ -31705,6 +31705,187 @@ def handle_csrf_error(e):
 
 
 
+@app.route('/mon-profil')
+@login_required
+def mon_profil():
+    """Redirige vers la bonne page de gestion de profil selon le rôle de l'utilisateur"""
+
+    # CAS 1 : L'utilisateur est un client
+    if hasattr(current_user, 'client_profile') and current_user.client_profile is not None:
+        return redirect(url_for('profil_client', client_id=current_user.client_profile.id))
+
+    # CAS 2 : L'utilisateur est un employé (admin, agent, directeur, etc.)
+    if current_user.role in ['admin_succursale', 'super_admin', 'direction', 'agent_credit', 'conseiller', 'employe']:
+        return redirect(url_for('profil_employe', employe_id=current_user.id))
+
+    # CAS 3 : Rôle non reconnu
+    flash("⛔ Impossible de déterminer votre type de profil", "danger")
+    return redirect(url_for('tableau_de_bord'))
+
+
+@app.route('/profil/employe/<int:employe_id>', methods=['GET', 'POST'])
+@login_required
+def profil_employe(employe_id):
+    """Page de profil employé : consultation et modification de ses propres infos"""
+
+    from models import User, Journal  # ⚠️ ajuste le nom du modèle si ce n'est pas "User"
+    from werkzeug.utils import secure_filename
+    from werkzeug.security import generate_password_hash, check_password_hash
+    import os
+    from datetime import datetime
+
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+    def allowed_file(filename):
+        return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+    employe = db.session.get(User, employe_id)
+
+    if not employe:
+        flash("⛔ Employé introuvable", "danger")
+        return redirect(url_for('tableau_de_bord'))
+
+    # ========== CONTRÔLE D'ACCÈS ==========
+    # L'employé ne peut voir/éditer que SON PROPRE profil,
+    # sauf s'il est admin/super_admin/direction (accès aux autres profils)
+    roles_admin = ['admin_succursale', 'super_admin', 'direction']
+
+    if current_user.id != employe.id and current_user.role not in roles_admin:
+        flash("⛔ Vous n'êtes pas autorisé à voir ce profil", "danger")
+        return redirect(url_for('tableau_de_bord'))
+
+    # ========== TRAITEMENT POST ==========
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        # ----- MISE À JOUR DES INFOS PERSONNELLES -----
+        if action == 'update_infos':
+            try:
+                employe.nom = request.form.get('nom', '').strip().upper() or employe.nom
+                employe.prenom = request.form.get('prenom', '').strip().capitalize() or employe.prenom
+                employe.email = request.form.get('email', '').strip().lower() or employe.email
+                employe.telephone = request.form.get('telephone', '').strip() or employe.telephone
+
+                db.session.commit()
+
+                journal = Journal(
+                    employe_id=current_user.id,
+                    action='MODIFICATION_PROFIL',
+                    details=f"Profil employé #{employe.id} mis à jour",
+                    ip_address=request.remote_addr,
+                    user_agent=request.user_agent.string
+                )
+                db.session.add(journal)
+                db.session.commit()
+
+                flash("✅ Informations mises à jour avec succès", "success")
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f"⛔ Erreur lors de la mise à jour : {str(e)}", "danger")
+
+            return redirect(url_for('profil_employe', employe_id=employe.id))
+
+        # ----- CHANGEMENT DE PHOTO DE PROFIL -----
+        elif action == 'update_photo':
+            photo = request.files.get('photo_profil')
+
+            if not photo or not photo.filename:
+                flash("⛔ Aucune photo sélectionnée", "danger")
+                return redirect(url_for('profil_employe', employe_id=employe.id))
+
+            if not allowed_file(photo.filename):
+                flash("⛔ Format de fichier non autorisé (png, jpg, jpeg, gif uniquement)", "danger")
+                return redirect(url_for('profil_employe', employe_id=employe.id))
+
+            photo.seek(0, os.SEEK_END)
+            file_size = photo.tell()
+            photo.seek(0)
+
+            if file_size > MAX_FILE_SIZE:
+                flash("⛔ Photo trop volumineuse. Maximum 5 Mo.", "danger")
+                return redirect(url_for('profil_employe', employe_id=employe.id))
+
+            try:
+                upload_folder = os.path.join(app.root_path, UPLOAD_FOLDER)
+                os.makedirs(upload_folder, exist_ok=True)
+
+                original_filename = secure_filename(photo.filename)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                photo_filename = f"employe_{employe.id}_{timestamp}_{original_filename}"
+
+                photo.save(os.path.join(upload_folder, photo_filename))
+
+                employe.photo_profil = photo_filename
+                db.session.commit()
+
+                flash("✅ Photo de profil mise à jour", "success")
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f"⛔ Erreur lors de l'upload : {str(e)}", "danger")
+
+            return redirect(url_for('profil_employe', employe_id=employe.id))
+
+        # ----- CHANGEMENT DE MOT DE PASSE -----
+        elif action == 'update_password':
+            ancien_mdp = request.form.get('ancien_mot_de_passe', '')
+            nouveau_mdp = request.form.get('nouveau_mot_de_passe', '')
+            confirmation_mdp = request.form.get('confirmation_mot_de_passe', '')
+
+            if not check_password_hash(employe.password_hash, ancien_mdp):
+                flash("⛔ Mot de passe actuel incorrect", "danger")
+                return redirect(url_for('profil_employe', employe_id=employe.id))
+
+            if len(nouveau_mdp) < 8:
+                flash("⛔ Le nouveau mot de passe doit contenir au moins 8 caractères", "danger")
+                return redirect(url_for('profil_employe', employe_id=employe.id))
+
+            if nouveau_mdp != confirmation_mdp:
+                flash("⛔ Les mots de passe ne correspondent pas", "danger")
+                return redirect(url_for('profil_employe', employe_id=employe.id))
+
+            try:
+                employe.password_hash = generate_password_hash(nouveau_mdp)
+                db.session.commit()
+
+                journal = Journal(
+                    employe_id=current_user.id,
+                    action='CHANGEMENT_MOT_DE_PASSE',
+                    details=f"Mot de passe modifié pour employé #{employe.id}",
+                    ip_address=request.remote_addr,
+                    user_agent=request.user_agent.string
+                )
+                db.session.add(journal)
+                db.session.commit()
+
+                flash("✅ Mot de passe modifié avec succès", "success")
+
+            except Exception as e:
+                db.session.rollback()
+                flash(f"⛔ Erreur lors du changement de mot de passe : {str(e)}", "danger")
+
+            return redirect(url_for('profil_employe', employe_id=employe.id))
+
+        else:
+            flash("⛔ Action non reconnue", "danger")
+            return redirect(url_for('profil_employe', employe_id=employe.id))
+
+    # ========== REQUÊTE GET ==========
+    # Historique d'activité de l'employé (optionnel)
+    historique = Journal.query.filter_by(
+        employe_id=employe.id
+    ).order_by(Journal.date.desc()).limit(20).all()
+
+    return render_template(
+        'profil_employe.html',
+        employe=employe,
+        historique=historique,
+        est_admin=current_user.role in roles_admin
+    )
+
+
 # === FONCTION D'INITIALISATION DE LA BASE ===
 def init_app_data():
     """Vérifie et configure le super admin uniquement en cas de besoin."""
