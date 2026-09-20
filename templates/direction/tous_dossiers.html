@@ -491,6 +491,7 @@
                 <p><i class="fas fa-user-tie"></i> {{ current_user.prenom }} {{ current_user.nom }} - Directeur</p>
             </div>
             <div class="header-stats">
+                <div class="stat-item">
                     <div class="stat-value">{{ stats.total_dossiers }}</div>
                     <div class="stat-label">Total dossiers</div>
                 </div>
@@ -711,6 +712,15 @@
                                     </button>
                                     {% endif %}
 
+                                    {% if dossier.statut == 'actif' %}
+                                    <button class="btn-action btn-primary"
+                                            style="background: #6f42c1;"
+                                            onclick="envoyerLienActivation({{ dossier.id }}, this)"
+                                            title="Envoyer/renvoyer le lien d'activation">
+                                        <i class="fas fa-key"></i>
+                                    </button>
+                                    {% endif %}
+
 
                                      <!-- Bouton renvoyer email -->
                                     <!-- Email conditions -->
@@ -912,6 +922,32 @@
             setTimeout(() => {
                 btn.innerHTML = originalText;
             }, 2000);
+        }
+    }
+
+    async function envoyerLienActivation(clientId, btn) {
+        const texteOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        try {
+            const response = await fetch(`/clients/${clientId}/envoyer-lien`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            });
+
+            const data = await response.json();
+            alert((data.success ? '✅ ' : '❌ ') + data.message);
+
+        } catch (error) {
+            alert('❌ Erreur réseau lors de l\'envoi du lien.');
+            console.error(error);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = texteOriginal;
         }
     }
 
