@@ -457,6 +457,7 @@ def envoyer_lien_activation(client_id):
         'employe',
         'admin_succursale',
         'admin_principal',
+        'direction',
         'super_admin'
     ]:
         abort(403)
