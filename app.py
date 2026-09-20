@@ -210,7 +210,6 @@ login_manager.init_app(app)
 
 
 
-
 main = Blueprint('main', __name__)
 
 
@@ -5241,6 +5240,7 @@ def directeur_approuver_dossier(client_id):
     """Le directeur approuve ou rejette le dossier"""
     from models import User, Notification, Action, Client
     from datetime import datetime, timedelta
+    from clients import creer_acces_client
     import os
     import requests
 
@@ -5290,17 +5290,18 @@ def directeur_approuver_dossier(client_id):
         client.date_approbation = datetime.now()
         client.approuve_par_id = current_user.id
 
-        # Activation de tous les comptes d'épargne du client
         Epargne.query.filter_by(client_id=client.id).update({
             "statut": "actif"
         })
 
-        message_client = f"✅ Félicitations {client.prenom}! Votre dossier a été approuvé. Vous pouvez maintenant accéder à votre compte."
+        lien_activation = creer_acces_client(client)
+
+        message_client = f"✅ Félicitations {client.prenom}! Votre dossier a été approuvé. Cliquez sur le lien ci-dessous pour activer votre compte."
         message_agent = f"✅ Le dossier de {client.prenom} {client.nom} a été approuvé."
         sujet_email = "✅ Votre dossier a été approuvé - GMES"
         flash(f'✅ Dossier de {client.prenom} {client.nom} approuvé avec succès', 'success')
-
     elif action == 'rejeter':
+        lien_activation = None
         if not commentaire:
             flash('❌ Motif de rejet requis', 'danger')
             return redirect(url_for('directeur_approuver_dossier', client_id=client.id))
@@ -5315,6 +5316,7 @@ def directeur_approuver_dossier(client_id):
         sujet_email = "❌ Mise à jour de votre dossier - GMES"
         flash(f'❌ Dossier de {client.prenom} {client.nom} rejeté', 'warning')
     else:
+        lien_activation = None
         flash('❌ Action invalide', 'danger')
         return redirect(url_for('directeur_tous_les_dossiers'))
 
@@ -5359,6 +5361,8 @@ def directeur_approuver_dossier(client_id):
                     <p>{message_client}</p>
 
                     {'<p><strong>Motif du rejet :</strong> ' + commentaire + '</p>' if action == 'rejeter' else ''}
+                    
+                    {f'<div style="text-align: center; margin: 25px 0;"><a href="{lien_activation}" style="background: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">Activer mon compte</a></div>' if action == 'approuver' and lien_activation else ''}
 
                     <p>Si vous avez des questions, n'hésitez pas à contacter votre conseiller.</p>
 
@@ -5382,6 +5386,8 @@ def directeur_approuver_dossier(client_id):
         {message_client}
 
         {'Motif du rejet : ' + commentaire if action == 'rejeter' else ''}
+        
+        {f'Activez votre compte ici : {lien_activation}' if action == 'approuver' and lien_activation else ''}
 
         Si vous avez des questions, n'hésitez pas à contacter votre conseiller.
 
