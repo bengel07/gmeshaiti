@@ -31710,12 +31710,12 @@ def handle_csrf_error(e):
 def mon_profil():
     """Redirige vers la bonne page de gestion de profil selon le rôle de l'utilisateur"""
 
-    # CAS 1 : L'utilisateur est un client
-    if hasattr(current_user, 'client_profile') and current_user.client_profile is not None:
-        return redirect(url_for('profil_client', client_id=current_user.client_profile.id))
+    # CAS 1 : L'utilisateur est un client (compte lié via user_id)
+    if current_user.client_personnel:
+        return redirect(url_for('profil_client', client_id=current_user.client_personnel.id))
 
     # CAS 2 : L'utilisateur est un employé (admin, agent, directeur, etc.)
-    if current_user.role in ['admin_succursale', 'super_admin', 'direction', 'agent_credit', 'conseiller', 'employe']:
+    if current_user.role in ['admin_succursale','admin' 'super_admin', 'direction', 'agent_credit', 'conseiller', 'employe']:
         return redirect(url_for('profil_employe', employe_id=current_user.id))
 
     # CAS 3 : Rôle non reconnu
