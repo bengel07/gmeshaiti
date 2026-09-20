@@ -466,12 +466,32 @@ def envoyer_lien_activation(client_id):
         }), 400
 
     try:
-        # 1. Chercher le User déjà lié à ce client
+        # 1. Chercher d'abord le User lié au client
         user = User.query.filter_by(client_id=client.id).first()
 
-        # 2. Si aucun, chercher un User avec le même email (évite le doublon)
-        if not user:
-            user = User.query.filter_by(email=client.email).first()
+        # 2. Sinon chercher l'email sans tenir compte de la casse
+        if not user and client.email:
+            email = client.email.strip()
+            user = User.query.filter(
+                db.func.lower(User.email) == email.lower()
+            ).first()
+
+        print("🔎 EMAIL CLIENT :", repr(client.email))
+
+        existing_users = User.query.filter(
+            db.func.lower(User.email) == client.email.strip().lower()
+        ).all()
+
+        print("🔎 USERS TROUVÉS :", [
+            {
+                "id": u.id,
+                "email": repr(u.email),
+                "username": repr(u.username),
+                "client_id": u.client_id,
+                "role": u.role
+            }
+            for u in existing_users
+        ])
 
         # 3. Si toujours rien, créer
         if not user:
@@ -493,8 +513,8 @@ def envoyer_lien_activation(client_id):
             db.session.flush()
         else:
             # Relier/mettre à jour un User existant
-            user.email = client.email
-            user.username = client.email
+            user.email = client.email.strip()
+            user.username = client.email.strip()
             user.client_id = client.id
             # ⚠️ Ne pas écraser le rôle si c'était un employé (voir remarque plus bas)
             if user.role not in ['employe', 'employee', 'admin_succursale', 'admin_principal', 'direction', 'super_admin']:
