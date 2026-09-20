@@ -754,3 +754,73 @@ def get_stats_admin_central_succursales():
         })
 
     return stats_globales
+
+
+def calculer_statistiques_globales():
+    """Calcule les statistiques globales du système"""
+
+    from models import User, Client, Pret, Remboursement, Epargne, Employe, Groupe
+
+    total_clients = Client.query.filter_by(role='client').count()
+    total_prets = Pret.query.count()
+    prets_approuve = Pret.query.filter_by(statut='approuve').count()
+    prets_actifs = Pret.query.filter_by(statut='actif').count()
+    prets_en_attente = Pret.query.filter_by(statut='en_attente').count()
+
+    # Calcul des montants
+    montant_total_prets = db.session.query(func.sum(Pret.montant)).scalar() or 0
+    montant_prets_actifs = db.session.query(func.sum(Pret.montant)).filter(
+        Pret.statut == 'approuve'
+    ).scalar() or 0
+
+    # Remboursements
+    total_remboursements = Remboursement.query.count()
+    montant_total_rembourse = db.session.query(func.sum(Remboursement.montant)).scalar() or 0
+
+    # Groupes
+    total_groupes = Groupe.query.count()
+
+    # Taux de remboursement
+    taux_remboursement = (montant_total_rembourse / montant_total_prets * 100) if montant_total_prets > 0 else 0
+
+    # Clients avec prêts
+    clients_avec_prets_count = db.session.query(
+        func.count(func.distinct(User.id))
+    ).join(Pret, User.id == Pret.client_id).filter(
+        User.role == 'client'
+    ).scalar() or 0
+
+    # ✅ Import différé pour éviter le cycle app.py <-> stats.py
+    from app import calculer_rotation_fonds
+
+    return {
+        'clients': {
+            'total': total_clients,
+            'avec_prets': clients_avec_prets_count,
+            'nouveaux_ce_mois': User.query.filter(
+                User.date_inscription >= datetime.utcnow().replace(day=1),
+                User.role == 'client'
+            ).count()
+        },
+        'prets': {
+            'total': total_prets,
+            'actifs': prets_actifs,
+            'prets_approuve': prets_approuve,
+            'en_attente': prets_en_attente,
+            'montant_total': round(montant_total_prets, 2),
+            'montant_actifs': round(montant_prets_actifs, 2)
+        },
+        'remboursements': {
+            'total': total_remboursements,
+            'montant_total': round(montant_total_rembourse, 2),
+            'taux_remboursement': round(taux_remboursement, 1)
+        },
+        'groupes': {
+            'total': total_groupes,
+            'membres_moyen': total_clients / total_groupes if total_groupes > 0 else 0
+        },
+        'performance': {
+            'taux_approbation': (prets_actifs / total_prets * 100) if total_prets > 0 else 0,
+            'rotation_fonds': calculer_rotation_fonds()
+        }
+    }

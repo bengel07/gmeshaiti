@@ -69,23 +69,17 @@
 
                         <div class="d-flex gap-2 flex-wrap">
 
-                            <!-- 1. Dossiers comptes -->
-                            <a href="{{ url_for('directeur_tous_les_dossiers') }}"
-                               class="btn btn-light px-4">
-                                <i class="fas fa-users me-2"></i>
+                           <a href="{{ url_for('directeur_tous_les_dossiers') }}" class="btn btn-light px-4">
                                 Dossiers comptes
-                                {% if stats.en_attente > 0 %}
-                                <span class="badge bg-danger ms-2">{{ stats.en_attente }}</span>
+                                {% if stats.dossiers_en_attente > 0 %}
+                                <span class="badge bg-danger ms-2">{{ stats.dossiers_en_attente }}</span>
                                 {% endif %}
                             </a>
 
-                            <!-- 2. Demandes de prêt -->
-                            <a href="{{ url_for('directeur_demandes_attente') }}"
-                               class="btn btn-light btn-lg px-5">
-                                <i class="fas fa-hand-holding-usd me-2 text-success"></i>
+                            <a href="{{ url_for('directeur_demandes_attente') }}" class="btn btn-light btn-lg px-5">
                                 Demandes de prêt
-                                {% if stats.en_attente > 0 %}
-                                <span class="badge bg-danger ms-2">{{ stats.en_attente }}</span>
+                                {% if stats.prets_en_attente > 0 %}
+                                <span class="badge bg-danger ms-2">{{ stats.prets_en_attente }}</span>
                                 {% endif %}
                             </a>
 
