@@ -824,3 +824,221 @@ def calculer_statistiques_globales():
             'rotation_fonds': calculer_rotation_fonds()
         }
     }
+
+
+def get_stats_direction_generale():
+    """Statistiques complètes pour le dashboard direction générale"""
+
+    from models import User, Client, Pret, PaiementPret, CompteCaisse, Transaction, RetardPaiement
+    import random
+
+    aujourdhui = datetime.now().date()
+    mois_dernier = aujourdhui - timedelta(days=30)
+    mois_avant_dernier = aujourdhui - timedelta(days=60)
+    premier_jour_mois = datetime.now().replace(day=1)
+
+    # Commercial - CA mensuel
+    ca_mensuel = db.session.query(func.sum(Pret.montant)).filter(
+        Pret.date_decaissement >= premier_jour_mois,
+        Pret.statut == 'decaisse'
+    ).scalar() or 0
+
+    # Financier - Résultat net
+    resultat_net = db.session.query(func.sum(PaiementPret.interets)).filter(
+        PaiementPret.date_paiement >= premier_jour_mois
+    ).scalar() or 0
+
+    # Opérations - Transactions du jour
+    transactions_jour = Transaction.query.filter(
+        Transaction.date_creation >= datetime.now().replace(hour=0, minute=0, second=0)
+    ).count()
+
+    # RH - Effectif actif
+    effectif_total = User.query.filter_by(est_actif=True, statut='actif').count()
+
+    # Globales
+    total_actifs = db.session.query(func.sum(Pret.montant)).filter(Pret.statut == 'actif').scalar() or 0
+    portefeuille_credits = total_actifs
+    total_clients = Client.query.count()
+
+    # Dossiers / Prêts en attente (séparés)
+    en_attente_dossiers = Client.query.filter_by(statut='en_attente_approbation').count()
+    en_attente_prets = Pret.query.filter_by(statut='en_attente').count()
+
+    # Clients en retard
+    clients_en_retard = (
+        db.session.query(
+            Client,
+            func.sum(RetardPaiement.jours_retard),
+            func.count(RetardPaiement.id)
+        )
+        .join(RetardPaiement, RetardPaiement.client_id == Client.id)
+        .group_by(Client.id)
+        .having(func.sum(RetardPaiement.jours_retard) > 0)
+        .all()
+    )
+
+    stats = {
+        'total_actifs': total_actifs,
+        'portefeuille_credits': portefeuille_credits,
+        'total_clients': total_clients,
+        'resultat_net': resultat_net,
+        'par_30': 4.2,            # ⚠️ placeholder, pas encore calculé
+        'roa': 3.8,                # ⚠️ placeholder
+        'taux_penetration': 15.5,  # ⚠️ placeholder
+        'satisfaction': 87,        # ⚠️ placeholder
+        'performance_commerciale': 78,  # ⚠️ placeholder
+        'performance_financiere': 82,   # ⚠️ placeholder
+        'performance_operations': 75,   # ⚠️ placeholder
+        'performance_rh': 85,           # ⚠️ placeholder
+        'dossiers_en_attente': en_attente_dossiers,
+        'prets_en_attente': en_attente_prets,
+        'en_attente': en_attente_dossiers + en_attente_prets,
+        'clients_en_retard': clients_en_retard
+    }
+
+    performance = {
+        'commercial': {'ca_mensuel': ca_mensuel},
+        'financier': {'resultat_net': resultat_net},
+        'operations': {'transactions_jour': transactions_jour},
+        'rh': {'effectif_total': effectif_total}
+    }
+
+    # Succursales
+    succursales_list = Succursale.query.filter_by(active=True).all()
+    succursales_data = []
+
+    for s in succursales_list:
+        encours = db.session.query(func.sum(Pret.montant)) \
+                      .join(Client, Pret.client_id == Client.id) \
+                      .filter(
+                          Client.succursale_id == s.id,
+                          Pret.statut.in_(['actif', 'impaye'])
+                      ).scalar() or 0
+
+        clients = Client.query.filter_by(succursale_id=s.id).count()
+
+        succursales_data.append({
+            'nom': s.nom,
+            'code': s.code,
+            'ville': s.ville,
+            'encours': encours,
+            'par_30': 4.2,  # ⚠️ placeholder — l'ancien calcul s'annulait toujours à 4.2
+            'par_30_couleur': 'warning' if encours > 0 else 'success',
+            'clients': clients,
+            'performance': min(100, (encours / 100000000 * 100) if encours > 0 else 0),
+            'performance_couleur': 'success' if encours > 50000000 else 'warning',
+            'tendance': 'stable'  # ⚠️ placeholder — l'ancien était random.choice(), retiré
+        })
+
+    # Alertes
+    alertes = []
+
+    succursales_critiques = []
+    for succ in Succursale.query.all():
+        total_credits = Pret.query.filter_by(succursale_id=succ.id).count()
+        credits_impayes = Pret.query.filter(
+            Pret.succursale_id == succ.id,
+            Pret.statut == 'impaye',
+            Pret.date_echeance < aujourdhui - timedelta(days=30)
+        ).count()
+
+        if total_credits > 0 and (credits_impayes / total_credits) * 100 > 5:
+            succursales_critiques.append(succ.nom)
+
+    if succursales_critiques:
+        alertes.append({
+            'type': 'danger',
+            'icone': 'exclamation-triangle',
+            'titre': f'PAR > 5% dans {len(succursales_critiques)} succursale(s)',
+            'description': f'Les succursales {", ".join(succursales_critiques)} dépassent le seuil critique de 5%.',
+            'priorite': 'Haute',
+            'succursale': ', '.join(succursales_critiques),
+            'date': "Aujourd'hui"
+        })
+
+    croissance_mois_dernier = db.session.query(func.sum(Pret.montant)).filter(
+        Pret.date_decaissement >= mois_dernier
+    ).scalar() or 0
+
+    croissance_mois_avant = db.session.query(func.sum(Pret.montant)).filter(
+        Pret.date_decaissement >= mois_avant_dernier,
+        Pret.date_decaissement < mois_dernier
+    ).scalar() or 0
+
+    if croissance_mois_avant > 0:
+        taux_croissance = ((croissance_mois_dernier - croissance_mois_avant) / croissance_mois_avant) * 100
+        if taux_croissance < 0:
+            alertes.append({
+                'type': 'warning',
+                'icone': 'chart-line',
+                'titre': 'Croissance en baisse',
+                'description': f'La croissance du portefeuille a baissé de {abs(round(taux_croissance, 1))}% par rapport au mois dernier.',
+                'priorite': 'Moyenne',
+                'succursale': 'Toutes',
+                'date': 'Cette semaine'
+            })
+
+    seuil_decouvert = -1000000
+    comptes_decouvert = CompteCaisse.query.filter(CompteCaisse.solde < seuil_decouvert).count()
+
+    if comptes_decouvert > 0:
+        alertes.append({
+            'type': 'danger',
+            'icone': 'credit-card',
+            'titre': 'Découvert bancaire critique',
+            'description': f'{comptes_decouvert} compte(s) en situation de découvert dépassant le seuil autorisé.',
+            'priorite': 'Urgente',
+            'succursale': 'Toutes',
+            'date': "Aujourd'hui"
+        })
+
+    seuil_inactivite = 90
+    clients_inactifs = (
+        db.session.query(func.count(func.distinct(Client.id)))
+        .join(Pret, Pret.client_id == Client.id)
+        .filter(
+            Pret.derniere_activite < datetime.now() - timedelta(days=seuil_inactivite),
+            Client.compte_actif.is_(True)
+        )
+        .scalar() or 0
+    )
+
+    if clients_inactifs > 10:
+        alertes.append({
+            'type': 'warning',
+            'icone': 'user-friends',
+            'titre': 'Clients inactifs',
+            'description': f'{clients_inactifs} clients sont inactifs depuis plus de {seuil_inactivite} jours.',
+            'priorite': 'Moyenne',
+            'succursale': 'Toutes',
+            'date': 'Cette semaine'
+        })
+
+    decisions = [
+        {
+            'titre': 'Déploiement nouveau système',
+            'description': 'Migration vers la nouvelle plateforme core banking',
+            'statut': 'En cours',
+            'statut_couleur': 'warning',
+            'date_echeance': datetime.now() + timedelta(days=45),
+            'progression': 65,
+            'couleur': 'info'
+        }
+    ]
+
+    evolution = {
+        'encours': [82, 85, 83, 88, 92, 95, 98, 102, 105, 108, 112, 115],  # ⚠️ placeholder
+        'clients': [12.5, 13.2, 13.8, 14.5, 15.2, 16.1, 17.0, 17.8, 18.5, 19.2, 20.1, 21.0]  # ⚠️ placeholder
+    }
+
+    return {
+        'stats': stats,
+        'total_clients': total_clients,
+        'performance': performance,
+        'succursales': succursales_data,
+        'alertes': alertes,
+        'decisions': decisions,
+        'evolution': evolution,
+        'clients_en_retard': clients_en_retard
+    }
