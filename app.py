@@ -1417,9 +1417,13 @@ def demande_pret():
         if not client:
             print("ℹ️ Agent - Aucun client spécifié, affichage de la liste")
 
-    # CAS 2: L'utilisateur est un CLIENT - il fait sa propre demande
     elif est_client:
-        client = current_user.client_profile
+        client = Client.query.filter_by(id=current_user.client_id).first()
+
+        if not client:
+            flash("❌ Profil client introuvable.", "danger")
+            return redirect(url_for('clients.client_dashboard'))
+
         print(f"✅ Client connecté: {client.id} - {client.prenom} {client.nom}")
 
     # CAS 3: Autre type d'utilisateur
