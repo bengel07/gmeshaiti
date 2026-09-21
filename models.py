@@ -63,6 +63,9 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(200), default='client')  # client, employe, admin, superviseur
     statut = db.Column(db.String(200), default='actif')  # 'actif', 'en_attente', 'inactif'
 
+    activation_token = db.Column(db.String(200), unique=True, nullable=True)
+    activation_expiration = db.Column(db.DateTime, nullable=True)
+
     # approuve_par = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Admin qui a approuvé
 
     # permissions = db.Column(db.Text)  # Stocke les permissions en JSON

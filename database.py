@@ -11,15 +11,27 @@ def init_db(app):
         try:
             db.create_all()
 
-            # Mise à jour automatique des colonnes ajoutées au modèle Pret
+            # Mise à jour automatique des colonnes ajoutées au modèle User
             db.session.execute(text("""
-                ALTER TABLE prets
-                ADD COLUMN IF NOT EXISTS solde_restant FLOAT DEFAULT 0
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS activation_token VARCHAR(200)
             """))
 
             db.session.execute(text("""
-                ALTER TABLE prets
-                ADD COLUMN IF NOT EXISTS solde_restant_cache FLOAT DEFAULT 0
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS activation_expiration TIMESTAMP
+            """))
+
+            # Contrainte UNIQUE ajoutée séparément, seulement si elle n'existe pas déjà
+            db.session.execute(text("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint WHERE conname = 'users_activation_token_key'
+                    ) THEN
+                        ALTER TABLE users ADD CONSTRAINT users_activation_token_key UNIQUE (activation_token);
+                    END IF;
+                END $$;
             """))
 
             db.session.commit()
