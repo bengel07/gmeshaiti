@@ -1,7 +1,6 @@
 import secrets
 from datetime import datetime, timedelta
 
-import csrf
 from flask import Blueprint, render_template, request, jsonify, session, abort, redirect, url_for, flash
 from flask_login import login_required, current_user, login_user
 from werkzeug.security import generate_password_hash
@@ -176,7 +175,6 @@ def transactions():
 
 
 @clients_bp.route('/activation/<token>', methods=['GET', 'POST'])
-@csrf.exempt
 def activation_client(token):
 
     user = User.query.filter_by(
