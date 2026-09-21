@@ -1,424 +1,715 @@
-# from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
-# from flask_login import login_user, logout_user, login_required, current_user
-# from models import Client as User, Admin, Employe as Employee
-#
-# from utils.security import hash_password, validate_password
-# from database import db
-#
-# auth_bp = Blueprint('auth', __name__)
-#
-# from fastapi import APIRouter, HTTPException
-# from pydantic import BaseModel
-#
-# router = APIRouter(prefix="/api/mobile")
-# from flask import Blueprint, request, jsonify
-#
-#
-#
-# # -----------------------
-# # Schémas de données
-# # -----------------------
-# class RegisterRequest(BaseModel):
-#     first_name: str
-#     last_name: str
-#     phone: str
-#     email: str
-#     password: str
-#
-# class LoginRequest(BaseModel):
-#     identifier: str
-#     password: str
-#     user_type: str = "client"
-#
-# # -----------------------
-# # Routes
-# # -----------------------
-#
-# @router.post("/register")
-# def register_user(request: RegisterRequest):
-#     """Simule la création d'un compte"""
-#     # TODO : Enregistrer dans la base de données réelle
-#     if request.email == "test@example.com":
-#         return {"success": False, "error": "Email déjà utilisé"}
-#     return {"success": True, "message": "Compte créé avec succès"}
-#
-# @router.post("/login")
-# def login_user(request: LoginRequest):
-#     """Simule la connexion"""
-#     if request.identifier == "test@example.com" and request.password == "1234":
-#         return {
-#             "success": True,
-#             "token": "fake-token-12345",
-#             "user": {
-#                 "first_name": "Jean",
-#                 "last_name": "Dupont",
-#                 "email": request.identifier
-#             }
-#         }
-#     raise HTTPException(status_code=401, detail="Identifiants incorrects")
-#
-# @auth_bp.route('/login', methods=['GET', 'POST'])
-# def login():
-#     if request.method == 'POST':
-#         identifier = request.form.get('identifier')
-#         password = request.form.get('password')
-#         user_type = request.form.get('user_type', 'client')
-#
-#         # Hacher le mot de passe pour comparaison
-#         hashed_password = hash_password(password)
-#
-#         user = None
-#
-#         if user_type == 'client':
-#             # Connexion client avec numéro de compte ou email
-#             user = User.query.filter(
-#                 (User.account_number == identifier) | (User.email == identifier)
-#             ).first()
-#
-#         elif user_type == 'admin':
-#             # Connexion admin
-#             user = Admin.query.filter(
-#                 (Admin.username == identifier) | (Admin.email == identifier)
-#             ).first()
-#
-#         elif user_type == 'employee':
-#             # Connexion employé
-#             user = Employee.query.filter(
-#                 (Employee.employee_id == identifier) | (Employee.email == identifier)
-#             ).first()
-#
-#         if user and user.check_password(password) and user.is_active:
-#             login_user(user)
-#             session['user_type'] = user_type
-#
-#             if user_type == 'client':
-#                 return redirect(url_for('client_portal'))
-#             elif user_type == 'admin':
-#                 return redirect(url_for('admin.dashboard'))
-#             elif user_type == 'employee':
-#                 return redirect(url_for('employees.dashboard'))
-#
-#         return render_template('login.html', error="Identifiants invalides")
-#
-#     return render_template('login.html')
-#
-#
-# @auth_bp.route('/logout')
-# @login_required
-# def logout():
-#     logout_user()
-#     session.clear()
-#     return redirect(url_for('index'))
-#
-#
-# @auth_bp.route('/register', methods=['GET', 'POST'])
-# def register():
-#     if request.method == 'POST':
-#         # Récupérer les données du formulaire
-#         user_data = {
-#             'first_name': request.form.get('first_name'),
-#             'last_name': request.form.get('last_name'),
-#             'phone': request.form.get('phone'),
-#             'email': request.form.get('email'),
-#             'address': request.form.get('address'),
-#             'occupation': request.form.get('occupation'),
-#             'monthly_income': float(request.form.get('monthly_income', 0)),
-#             'monthly_expense': float(request.form.get('monthly_expense', 0)),
-#             'id_type': request.form.get('id_type'),
-#             'id_number': request.form.get('id_number'),
-#             'nationality': request.form.get('nationality'),
-#             'opening_amount': float(request.form.get('opening_amount', 0)),
-#             'gender': request.form.get('gender'),
-#             'password': request.form.get('password')
-#         }
-#
-#         # Valider le mot de passe
-#         is_valid, msg = validate_password(user_data['password'])
-#         if not is_valid:
-#             return render_template('reception_open_account.html', error=msg)
-#
-#         # Créer le compte
-#         from utils.account import create_user_account
-#         success, message = create_user_account(user_data)
-#
-#         if success:
-#             return render_template('reception_open_account.html',
-#                                    success=f"Compte créé avec succès! Votre numéro de compte: {message}")
-#         else:
-#             return render_template('reception_open_account.html', error=message)
-#
-#     return render_template('reception_open_account.html')
-#
-#
-# @auth_bp.route('/forgot-password', methods=['POST'])
-# def forgot_password():
-#     email = request.json.get('email')
-#     user_type = request.json.get('user_type', 'client')
-#
-#     user = None
-#     if user_type == 'client':
-#         user = User.query.filter_by(email=email).first()
-#     elif user_type == 'admin':
-#         user = Admin.query.filter_by(email=email).first()
-#     elif user_type == 'employee':
-#         user = Employee.query.filter_by(email=email).first()
-#
-#     if user:
-#         # Générer un token de réinitialisation (simplifié)
-#         reset_token = hash_password(user.email + str(datetime.utcnow()))
-#         # Envoyer l'email avec le lien de réinitialisation
-#         # Implémentation simplifiée
-#         return jsonify({'status': 'success', 'message': 'Instructions envoyées par email'})
-#
-#     return jsonify({'status': 'error', 'message': 'Email non trouvé'})
-#
-#
-# # ==================== ROUTES API MOBILE ====================
-#
-# @auth_bp.route('/api/mobile/login', methods=['POST'])
-# def mobile_login():
-#     """API mobile pour connexion"""
-#     try:
-#         data = request.get_json()
-#         identifier = data.get('identifier')
-#         password = data.get('password')
-#         user_type = data.get('user_type', 'client')
-#
-#         # Logique d'authentification
-#         user = None
-#         if user_type == 'client':
-#             user = User.query.filter(
-#                 (User.account_number == identifier) | (User.email == identifier)
-#             ).first()
-#         elif user_type == 'admin':
-#             user = Admin.query.filter(
-#                 (Admin.username == identifier) | (Admin.email == identifier)
-#             ).first()
-#         elif user_type == 'employee':
-#             user = Employee.query.filter(
-#                 (Employee.employee_id == identifier) | (Employee.email == identifier)
-#             ).first()
-#
-#         if user and user.check_password(password) and user.is_active:
-#             return jsonify({
-#                 'success': True,
-#                 'token': f'mobile_token_{user.id}',
-#                 'user': {
-#                     'id': user.id,
-#                     'first_name': user.first_name,
-#                     'last_name': user.last_name,
-#                     'email': user.email
-#                 }
-#             })
-#         else:
-#             return jsonify({'success': False, 'error': 'Identifiants invalides'}), 401
-#
-#     except Exception as e:
-#         return jsonify({'success': False, 'error': str(e)}), 500
-#
-#
-# @auth_bp.route('/api/mobile/register', methods=['POST'])
-# def mobile_register():
-#     """API mobile pour inscription"""
-#     try:
-#         data = request.get_json()
-#
-#         user_data = {
-#             'first_name': data.get('first_name'),
-#             'last_name': data.get('last_name'),
-#             'phone': data.get('phone'),
-#             'email': data.get('email'),
-#             'password': data.get('password'),
-#             'address': data.get('address', ''),
-#             'occupation': data.get('occupation', ''),
-#             'monthly_income': float(data.get('monthly_income', 0)),
-#             'monthly_expense': float(data.get('monthly_expense', 0)),
-#             'id_type': data.get('id_type', ''),
-#             'id_number': data.get('id_number', ''),
-#             'nationality': data.get('nationality', ''),
-#             'opening_amount': float(data.get('opening_amount', 0)),
-#             'gender': data.get('gender', '')
-#         }
-#
-#         # Valider le mot de passe
-#         is_valid, msg = validate_password(user_data['password'])
-#         if not is_valid:
-#             return jsonify({'success': False, 'error': msg}), 400
-#
-#         # Créer le compte
-#         from utils.account import create_user_account
-#         success, message = create_user_account(user_data)
-#
-#         if success:
-#             return jsonify({'success': True, 'message': f'Compte créé: {message}'})
-#         else:
-#             return jsonify({'success': False, 'error': message}), 400
-#
-#     except Exception as e:
-#         return jsonify({'success': False, 'error': str(e)}), 500
 
-from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
-from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import check_password_hash
-from datetime import datetime
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    jsonify,
+    session,
+    redirect,
+    url_for
+)
 
-from models import Groupe, User, db
+from flask_login import (
+    login_user,
+    logout_user,
+    login_required
+)
 
-auth_bp = Blueprint('auth', __name__)
+from werkzeug.security import (
+    generate_password_hash,
+    check_password_hash
+)
+
+from datetime import datetime, timedelta
+
+import jwt
+
+from models import User, Client, db
 
 
-# Fonctions utilitaires simplifiées
+# ============================================================
+# BLUEPRINT
+# ============================================================
+
+auth_bp = Blueprint("auth", __name__)
+
+
+# ============================================================
+# OUTILS
+# ============================================================
+
 def hash_password(password):
-    """Hash simplifié d'un mot de passe"""
-    from werkzeug.security import generate_password_hash
     return generate_password_hash(password)
 
 
 def validate_password(password):
-    """Validation simplifiée du mot de passe"""
+
+    if not password:
+        return False, "Le mot de passe est obligatoire."
+
     if len(password) < 6:
-        return False, "Le mot de passe doit contenir au moins 6 caractères"
+        return False, (
+            "Le mot de passe doit contenir "
+            "au moins 6 caractères."
+        )
+
     return True, "OK"
 
 
-# Routes d'authentification de base
-# @auth_bp.route('/login', methods=['GET', 'POST'])
-# def login():
-#     """Route de connexion alternative"""
-#     return redirect(url_for('connexion'))
-#
-#
-# @auth_bp.route('/connexion', methods=['GET', 'POST'])
-# def connexion():
-#     if request.method == 'POST':
-#         identifiant = request.form.get('identifiant')
-#         password = request.form.get('password')
-#
-#         # ... ton code d'authentification existant ...
-#
-#         # APRÈS avoir authentifié l'utilisateur avec succès
-#         if user and check_password_hash(user.password, password):
-#             login_user(user, remember=remember)
-#
-#             # RÉGLER LE VRAI PROBLÈME : Redirection selon le rôle
-#             next_page = request.args.get('next')
-#
-#             # Si une page next est spécifiée et valide
-#             if next_page and url_parse(next_page).netloc == '':
-#                 return redirect(next_page)
-#
-#             # SINON, rediriger selon le rôle
-#             if user.role == 'client':
-#                 return redirect(url_for('clients.client_dashboard'))
-#             elif user.role in ['admin_succursale', 'admin_principal', 'employee']:
-#                 # Pour les employés/admins, rediriger vers le dashboard employé
-#                 return redirect(url_for('employees.employee_dashboard'))
-#             else:
-#                 # Fallback
-#                 return redirect(url_for('main.index'))
-#
-#         # ... reste du code pour l'échec de connexion ...
-#
-#     # ... code pour GET request ...
-#     return render_template('connexion.html')
+# ============================================================
+# ROUTE WEB — INSCRIPTION
+# ============================================================
 
-@auth_bp.route('/register', methods=['GET', 'POST'])
+@auth_bp.route("/register", methods=["GET", "POST"])
 def register():
-    """Route d'inscription basique"""
+
     return """
     <h1>Inscription</h1>
-    <p>Fonctionnalité en développement</p>
-    <a href="connexion">Retour à la connexion</a>
+    <p>Utilisez l'application GMES pour créer votre compte.</p>
+    <a href="/connexion">Retour à la connexion</a>
     """
 
 
-@auth_bp.route('/logout')
+# ============================================================
+# ROUTE WEB — DÉCONNEXION
+# ============================================================
+
+@auth_bp.route("/logout")
 @login_required
 def logout():
-    """Déconnexion"""
+
     logout_user()
     session.clear()
-    return redirect(url_for('main.accueil'))
+
+    return redirect(url_for("main.accueil"))
 
 
-# Routes API Mobile simplifiées
-@auth_bp.route('/api/mobile/login', methods=['POST'])
+# ============================================================
+# TOKEN MOBILE
+# ============================================================
+
+def generer_token_mobile(user):
+
+    payload = {
+
+        "user_id": user.id,
+
+        "role": user.role,
+
+        "type": "mobile",
+
+        "exp": datetime.utcnow() + timedelta(days=30)
+    }
+
+    # Si le User est lié directement à un Client
+    if getattr(user, "client_id", None):
+
+        payload["client_id"] = user.client_id
+
+    return jwt.encode(
+        payload,
+        current_app.config["SECRET_KEY"],
+        algorithm="HS256"
+    )
+
+
+# ============================================================
+# API MOBILE — CONNEXION
+# ============================================================
+
+@auth_bp.route("/api/mobile/login", methods=["POST"])
 def mobile_login():
-    """API mobile pour connexion"""
+
     try:
-        data = request.get_json()
-        identifier = data.get('identifier')
-        password = data.get('password')
 
-        # Import ici pour éviter les dépendances circulaires
-        from app import User
+        data = request.get_json(silent=True) or {}
 
+        identifier = str(
+            data.get("identifier") or ""
+        ).strip()
 
-        # Recherche de l'utilisateur
+        password = str(
+            data.get("password") or ""
+        )
+
+        if not identifier or not password:
+
+            return jsonify({
+
+                "success": False,
+
+                "error":
+                    "Veuillez remplir tous les champs."
+
+            }), 400
+
+        user = None
+        client = None
+
+        # ====================================================
+        # 1. RECHERCHE USER PAR EMAIL OU USERNAME
+        # ====================================================
+
         user = User.query.filter(
-            (User.username == identifier) | (User.email == identifier)
+            db.or_(
+                User.username == identifier,
+                User.email == identifier
+            )
         ).first()
 
-        if user and user.check_password(password):
-            login_user(user)
+        # ====================================================
+        # 2. SI PAS USER → RECHERCHE NUMÉRO DE COMPTE
+        # ====================================================
+
+        if user is None:
+
+            client = Client.query.filter(
+                Client.numero_compte == identifier
+            ).first()
+
+            if client:
+
+                # Relation Client → User
+                if client.user_id:
+
+                    user = User.query.filter_by(
+                        id=client.user_id
+                    ).first()
+
+                # Relation User → Client
+                if user is None:
+
+                    user = User.query.filter_by(
+                        client_id=client.id
+                    ).first()
+
+        # ====================================================
+        # 3. USER INTROUVABLE
+        # ====================================================
+
+        if user is None:
+
             return jsonify({
-                'success': True,
-                'token': f'mobile_token_{user.id}',
-                'user': {
-                    'id': user.id,
-                    'first_name': user.prenom,
-                    'last_name': user.nom,
-                    'email': user.email
-                }
-            })
-        else:
-            return jsonify({'success': False, 'error': 'Identifiants invalides'}), 401
 
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+                "success": False,
 
+                "error":
+                    "Identifiants incorrects."
 
-@auth_bp.route('/api/mobile/register', methods=['POST'])
-def mobile_register():
-    """API mobile pour inscription simplifiée"""
-    try:
-        data = request.get_json()
+            }), 401
 
-        # Import ici pour éviter les dépendances circulaires
-        from app import User, db
+        # ====================================================
+        # 4. RÉCUPÉRER LE CLIENT
+        # ====================================================
 
-        # Vérifier si l'email existe déjà
-        if User.query.filter_by(email=data.get('email')).first():
-            return jsonify({'success': False, 'error': 'Email déjà utilisé'}), 400
+        if getattr(user, "client_id", None):
 
-        # Créer un nouvel utilisateur
-        new_user = User(
-            email=data.get('email'),
-            prenom=data.get('first_name', ''),
-            nom=data.get('last_name', ''),
-            telephone=data.get('phone', ''),
-            role='client'
-        )
-        new_user.set_password(data.get('password'))
+            client = Client.query.filter_by(
+                id=user.client_id
+            ).first()
 
-        session.add(new_user)
-        session.commit()
+        if client is None:
+
+            client = Client.query.filter_by(
+                user_id=user.id
+            ).first()
+
+        # ====================================================
+        # 5. VÉRIFICATION STATUT USER
+        # ====================================================
+
+        if user.statut != "actif":
+
+            if user.statut == "en_attente":
+
+                message = (
+                    "Compte en attente d'approbation."
+                )
+
+            elif user.statut == "rejete":
+
+                message = (
+                    "Compte rejeté par l'administration."
+                )
+
+            else:
+
+                message = (
+                    f"Compte désactivé "
+                    f"(statut : {user.statut})."
+                )
+
+            return jsonify({
+
+                "success": False,
+
+                "error": message,
+
+                "statut": user.statut
+
+            }), 403
+
+        # ====================================================
+        # 6. VÉRIFICATION STATUT CLIENT
+        # ====================================================
+
+        if client:
+
+            if client.statut not in [
+                "actif",
+                "suspendu"
+            ]:
+
+                return jsonify({
+
+                    "success": False,
+
+                    "error":
+                        "Votre compte client "
+                        "n'est pas actif.",
+
+                    "statut": client.statut
+
+                }), 403
+
+        # ====================================================
+        # 7. VÉRIFICATION MOT DE PASSE
+        # ====================================================
+
+        password_correct = False
+
+        # Mot de passe User
+        if user.password_hash:
+
+            try:
+
+                password_correct = check_password_hash(
+                    user.password_hash,
+                    password
+                )
+
+            except Exception:
+
+                password_correct = False
+
+        # Mot de passe Client
+        if (
+            not password_correct
+            and client
+            and client.mot_de_passe_hash
+        ):
+
+            try:
+
+                password_correct = check_password_hash(
+                    client.mot_de_passe_hash,
+                    password
+                )
+
+            except Exception:
+
+                password_correct = False
+
+        if not password_correct:
+
+            return jsonify({
+
+                "success": False,
+
+                "error":
+                    "Identifiants incorrects."
+
+            }), 401
+
+        # ====================================================
+        # 8. DERNIÈRE CONNEXION
+        # ====================================================
+
+        user.derniere_connexion = datetime.utcnow()
+
+        db.session.commit()
+
+        # ====================================================
+        # 9. TOKEN
+        # ====================================================
+
+        token = generer_token_mobile(user)
+
+        # ====================================================
+        # 10. INFORMATIONS CLIENT
+        # ====================================================
+
+        client_data = None
+
+        if client:
+
+            client_data = {
+
+                "id": client.id,
+
+                "id_client":
+                    client.id_client,
+
+                "numero_compte":
+                    client.numero_compte,
+
+                "nom":
+                    client.nom,
+
+                "prenom":
+                    client.prenom,
+
+                "nom_complet":
+                    client.nom_complet,
+
+                "email":
+                    client.email,
+
+                "telephone":
+                    client.telephone,
+
+                "solde":
+                    client.solde or 0,
+
+                "statut":
+                    client.statut,
+
+                "compte_actif":
+                    client.compte_actif,
+
+                "terms_accepted":
+                    client.terms_accepted,
+
+                "email_confirme":
+                    client.email_confirme,
+
+                "a_un_pret_actif":
+                    client.a_un_pret_actif,
+
+                "compte_suspendu":
+                    client.compte_suspendu,
+
+                "succursale_id":
+                    client.succursale_id
+            }
+
+        # ====================================================
+        # 11. RÉPONSE
+        # ====================================================
 
         return jsonify({
-            'success': True,
-            'message': 'Compte créé avec succès',
-            'employe_id': new_user.id
-        })
+
+            "success": True,
+
+            "message":
+                "Connexion réussie.",
+
+            "token": token,
+
+            "user": {
+
+                "id":
+                    user.id,
+
+                "username":
+                    user.username,
+
+                "email":
+                    user.email,
+
+                "first_name":
+                    user.prenom,
+
+                "last_name":
+                    user.nom,
+
+                "role":
+                    user.role,
+
+                "fonction":
+                    user.fonction,
+
+                "statut":
+                    user.statut,
+
+                "premier_connexion":
+                    user.premier_connexion,
+
+                "succursale_id":
+                    user.succursale_id,
+
+                "client_id":
+                    user.client_id
+            },
+
+            "client": client_data
+
+        }), 200
 
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+
+        db.session.rollback()
+
+        print(
+            "❌ Erreur API mobile login :",
+            str(e)
+        )
+
+        return jsonify({
+
+            "success": False,
+
+            "error":
+                "Erreur interne du serveur."
+
+        }), 500
 
 
-@auth_bp.route('/api/mobile/test')
-def mobile_test():
-    """Route de test pour l'API mobile"""
+# ============================================================
+# API MOBILE — DÉCONNEXION
+# ============================================================
+
+@auth_bp.route(
+    "/api/mobile/logout",
+    methods=["POST"]
+)
+def mobile_logout():
+
     return jsonify({
-        'status': 'OK',
-        'message': 'API mobile fonctionnelle',
-        'timestamp': datetime.utcnow().isoformat()
-    })
+
+        "success": True,
+
+        "message":
+            "Déconnexion réussie."
+
+    }), 200
+
+
+# ============================================================
+# API MOBILE — INSCRIPTION
+# ============================================================
+
+@auth_bp.route(
+    "/api/mobile/register",
+    methods=["POST"]
+)
+def mobile_register():
+
+    try:
+
+        data = request.get_json(
+            silent=True
+        ) or {}
+
+        first_name = str(
+            data.get("first_name") or ""
+        ).strip()
+
+        last_name = str(
+            data.get("last_name") or ""
+        ).strip()
+
+        phone = str(
+            data.get("phone") or ""
+        ).strip()
+
+        email = str(
+            data.get("email") or ""
+        ).strip().lower()
+
+        password = str(
+            data.get("password") or ""
+        )
+
+        # ====================================================
+        # VALIDATION
+        # ====================================================
+
+        if not all([
+            first_name,
+            last_name,
+            phone,
+            email,
+            password
+        ]):
+
+            return jsonify({
+
+                "success": False,
+
+                "error":
+                    "Tous les champs sont obligatoires."
+
+            }), 400
+
+        valid, message = validate_password(
+            password
+        )
+
+        if not valid:
+
+            return jsonify({
+
+                "success": False,
+
+                "error": message
+
+            }), 400
+
+        # ====================================================
+        # EMAIL EXISTANT
+        # ====================================================
+
+        existing_user = User.query.filter_by(
+            email=email
+        ).first()
+
+        if existing_user:
+
+            return jsonify({
+
+                "success": False,
+
+                "error":
+                    "Cette adresse email est déjà utilisée."
+
+            }), 409
+
+        # ====================================================
+        # TÉLÉPHONE EXISTANT
+        # ====================================================
+
+        existing_phone = User.query.filter_by(
+            telephone=phone
+        ).first()
+
+        if existing_phone:
+
+            return jsonify({
+
+                "success": False,
+
+                "error":
+                    "Ce numéro de téléphone est déjà utilisé."
+
+            }), 409
+
+        # ====================================================
+        # CRÉATION DU USER
+        # ====================================================
+
+        new_user = User(
+
+            email=email,
+
+            prenom=first_name,
+
+            nom=last_name,
+
+            nom_complet=
+                f"{first_name} {last_name}",
+
+            telephone=phone,
+
+            role="client",
+
+            statut="actif",
+
+            premier_connexion=False
+        )
+
+        new_user.set_password(
+            password
+        )
+
+        db.session.add(new_user)
+
+        db.session.flush()
+
+        # ====================================================
+        # SUCCURSALE
+        # ====================================================
+
+        # Une inscription mobile ne crée PAS
+        # automatiquement un Client complet ici.
+        #
+        # Le compte User est créé d'abord.
+        # Le processus GMES pourra ensuite créer
+        # le dossier Client avec toutes les informations
+        # réglementaires nécessaires.
+
+        db.session.commit()
+
+        return jsonify({
+
+            "success": True,
+
+            "message":
+                "Compte créé avec succès.",
+
+            "user": {
+
+                "id":
+                    new_user.id,
+
+                "email":
+                    new_user.email,
+
+                "first_name":
+                    new_user.prenom,
+
+                "last_name":
+                    new_user.nom,
+
+                "role":
+                    new_user.role,
+
+                "statut":
+                    new_user.statut
+            }
+
+        }), 201
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        print(
+            "❌ Erreur inscription mobile :",
+            str(e)
+        )
+
+        return jsonify({
+
+            "success": False,
+
+            "error":
+                "Erreur lors de la création du compte."
+
+        }), 500
+
+
+# ============================================================
+# API MOBILE — TEST
+# ============================================================
+
+@auth_bp.route(
+    "/api/mobile/test",
+    methods=["GET"]
+)
+def mobile_test():
+
+    return jsonify({
+
+        "success": True,
+
+        "status": "OK",
+
+        "message":
+            "API mobile GMES fonctionnelle.",
+
+        "timestamp":
+            datetime.utcnow().isoformat()
+
+    }), 200
+

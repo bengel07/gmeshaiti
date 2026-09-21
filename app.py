@@ -213,6 +213,9 @@ login_manager.init_app(app)
 main = Blueprint('main', __name__)
 
 
+from routes.mobile_api import mobile_api_bp
+
+
 # Enregistre le Blueprint
 app.register_blueprint(auth_bp, url_prefix="/auth")
 app.wsgi_app = ProxyFix(app.wsgi_app)
@@ -220,7 +223,7 @@ app.register_blueprint(accueil_bp)
 app.register_blueprint(employees_bp)
 app.register_blueprint(prets_bp)
 app.register_blueprint(clients_bp)
-
+app.register_blueprint(mobile_api_bp)
 
 app.register_blueprint(super_admin_bp)
 
@@ -31570,6 +31573,14 @@ def profil_employe(employe_id):
         est_admin=current_user.role in roles_admin
     )
 
+
+@app.route('/api/mobile/health')
+def mobile_health():
+    return jsonify({
+        "success": True,
+        "api": "GMES Haiti",
+        "status": "online"
+    })
 
 # === FONCTION D'INITIALISATION DE LA BASE ===
 def init_app_data():

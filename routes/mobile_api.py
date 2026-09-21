@@ -1,285 +1,509 @@
-from flask import jsonify, request
-from flask_login import login_required, current_user
-from flask import jsonify, request
-from sympy.physics.units import ft
+# ============================================================
+# GMES - API MOBILE
+# ============================================================
 
-import app
-from models import Pret, Remboursement, Client, Groupe, User
-from utils.ai_scoring import ai_scorer
-from utils.gamification import gamification
+from flask import Blueprint, jsonify, request, current_app
 from functools import wraps
+from datetime import datetime, timedelta
+
 import jwt
-import datetime
+from sqlalchemy import or_
+
+from models import (
+    db,
+    User,
+    Client,
+    Pret,
+    Remboursement,
+    Groupe
+)
 
 
-def show_login_view(self):
-    """Vue de connexion avec option faciale"""
-    self.email_field = ft.TextField(
-        label="Email",
-        prefix_icon=ft.icons.EMAIL,
-        width=300
+# ============================================================
+# BLUEPRINT
+# ============================================================
+
+mobile_api_bp = Blueprint("mobile_api", __name__)
+
+
+# ============================================================
+# OUTILS AUTHENTIFICATION
+# ============================================================
+
+def generer_token_mobile(user):
+    """Génère un JWT pour l'application mobile."""
+
+    payload = {
+        "user_id": user.id,
+        "type": "mobile",
+        "exp": datetime.utcnow() + timedelta(hours=24)
+    }
+
+    return jwt.encode(
+        payload,
+        current_app.config["SECRET_KEY"],
+        algorithm="HS256"
     )
 
-    self.password_field = ft.TextField(
-        label="Mot de passe",
-        password=True,
-        prefix_icon=ft.icons.LOCK,
-        width=300
-    )
 
-    # Option reconnaissance faciale
-    face_login_button = ft.ElevatedButton(
-        text="🔐 Connexion Faciale",
-        icon=ft.icons.FACE,
-        on_click=self.show_face_login,
-        width=300,
-        bgcolor=ft.colors.BLUE_100
-    )
+def obtenir_client(user):
+    """
+    Retourne le Client correspondant au User.
 
-    login_view = ft.Column(
-        [
-            ft.Container(
-                content=ft.Image(src="/static/logo.png", width=100, height=100),
-                alignment=ft.alignment.center
-            ),
-            ft.Text("GMES Mobile", size=24, weight=ft.FontWeight.BOLD),
-            ft.Text("Microcrédit Solidaire", size=16),
-            ft.Divider(),
+    Priorité :
+    1. User.client_id
+    2. Client.user_id
+    """
 
-            # Option classique
-            self.email_field,
-            self.password_field,
-            ft.ElevatedButton(
-                text="Se connecter",
-                icon=ft.icons.LOGIN,
-                on_click=self.login,
-                width=300
-            ),
+    # Relation User -> Client
+    client_id = getattr(user, "client_id", None)
 
-            ft.Divider(),
-            ft.Text("OU", text_align=ft.TextAlign.CENTER),
+    if client_id:
+        client = Client.query.get(client_id)
 
-            # Option faciale
-            face_login_button,
+        if client:
+            return client
 
-            ft.TextButton(
-                text="Créer un compte",
-                on_click=lambda _: self.show_register_view()
-            )
-        ],
-        alignment=ft.MainAxisAlignment.CENTER,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER
-    )
+    # Relation Client -> User
+    return Client.query.filter_by(
+        user_id=user.id
+    ).first()
 
-    self.page.clean()
-    self.page.add(login_view)
-
-
-@app.route('/api/recommandations-pret')
-@token_required
-def mobile_recommandations_pret(current_user):
-    """📱 Endpoint pour les recommandations de prêt"""
-    # Calcul du score et recommandations...
-    return jsonify({
-        'score': score,
-        'recommandations': recommandations
-    })
-
-@app.route('/api/gamification/profile')
-@token_required
-def mobile_gamification_profile(current_user):
-    """💎 Endpoint pour le profil gamification"""
-    # Calcul points et niveau...
-    return jsonify(profile_data)
-
-@app.route('/api/sync/operation', methods=['POST'])
-@token_required
-def sync_operation(current_user):
-    """Synchronise une opération hors ligne"""
-    data = request.json
-
-    operation_type = data.get('type')
-    operation_data = data.get('data', {})
-
-    try:
-        if operation_type == 'loan_request':
-            # Traiter la demande de prêt
-            nouveau_pret = Pret(
-                client_id=current_user.id,
-                montant=operation_data['montant'],
-                duree_mois=operation_data['duree'],
-                motif=operation_data['motif'],
-                statut='en_attente'
-            )
-            db..session.add(nouveau_pret)
-            db.session.commit()
-
-        elif operation_type == 'payment':
-            # Traiter un paiement
-            remboursement = Remboursement(
-                pret_id=operation_data['pret_id'],
-                client_id=current_user.id,
-                montant=operation_data['montant'],
-                statut='paye'
-            )
-            db.session.add(remboursement)
-            db.session.commit()
-
-        return jsonify({'status': 'success'}), 200
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
-
-
-@app.route('/api/health')
-def health_check():
-    """Endpoint de santé pour vérifier la connectivité"""
-    return jsonify({'status': 'healthy', 'timestamp': datetime.utcnow().isoformat()})
 
 def token_required(f):
+    """Vérifie le JWT envoyé par l'application mobile."""
+
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
 
-        if not token:
-            return jsonify({'error': 'Token manquant'}), 401
+        authorization = request.headers.get("Authorization")
+
+        if not authorization:
+            return jsonify({
+                "success": False,
+                "error": "Token manquant"
+            }), 401
 
         try:
-            token = token.replace('Bearer ', '')
-            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-            current_user = User.query.get(data['employe_id'])
-        except:
-            return jsonify({'error': 'Token invalide'}), 401
 
-        return f(current_user, *args, **kwargs)
+            if authorization.startswith("Bearer "):
+                token = authorization.split(" ", 1)[1]
+            else:
+                token = authorization
+
+            data = jwt.decode(
+                token,
+                current_app.config["SECRET_KEY"],
+                algorithms=["HS256"]
+            )
+
+            if data.get("type") != "mobile":
+                return jsonify({
+                    "success": False,
+                    "error": "Token mobile invalide"
+                }), 401
+
+            user_id = data.get("user_id")
+
+            if not user_id:
+                return jsonify({
+                    "success": False,
+                    "error": "Token invalide"
+                }), 401
+
+            user = User.query.get(user_id)
+
+            if not user:
+                return jsonify({
+                    "success": False,
+                    "error": "Utilisateur introuvable"
+                }), 401
+
+            if user.statut != "actif":
+                return jsonify({
+                    "success": False,
+                    "error": "Compte inactif"
+                }), 403
+
+            return f(user, *args, **kwargs)
+
+        except jwt.ExpiredSignatureError:
+
+            return jsonify({
+                "success": False,
+                "error": "Token expiré"
+            }), 401
+
+        except jwt.InvalidTokenError:
+
+            return jsonify({
+                "success": False,
+                "error": "Token invalide"
+            }), 401
+
+        except Exception:
+
+            current_app.logger.exception(
+                "Erreur authentification mobile"
+            )
+
+            return jsonify({
+                "success": False,
+                "error": "Erreur d'authentification"
+            }), 401
 
     return decorated
 
 
-@app.route('/api/auth/login', methods=['POST'])
-def mobile_login():
-    data = request.json
-    user = User.query.filter_by(email=data.get('email')).first()
+# ============================================================
+# TEST API MOBILE
+# ============================================================
 
-    if user and user.check_password(data.get('password')):
-        token = jwt.encode({
-            'employe_id': user.id,
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
-        }, app.config['SECRET_KEY'])
+@mobile_api_bp.route("/api/mobile/test", methods=["GET"])
+def mobile_test():
 
-        return jsonify({
-            'token': token,
-            'user': {
-                'id': user.id,
-                'nom': user.nom,
-                'prenom': user.prenom,
-                'email': user.email,
-                'role': user.role
-            }
-        }), 200
-
-    return jsonify({'error': 'Identifiants invalides'}), 401
+    return jsonify({
+        "success": True,
+        "message": "API mobile GMES opérationnelle",
+        "timestamp": datetime.utcnow().isoformat()
+    })
 
 
-@app.route('/api/mes-prets')
+# ============================================================
+# PROFIL UTILISATEUR CONNECTÉ
+# ============================================================
+
+@mobile_api_bp.route("/api/mobile/me", methods=["GET"])
+@token_required
+def mobile_me(current_user):
+
+    client = obtenir_client(current_user)
+
+    response = {
+        "success": True,
+
+        "user": {
+            "id": current_user.id,
+            "nom": current_user.nom,
+            "prenom": current_user.prenom,
+            "nom_complet": getattr(
+                current_user,
+                "nom_complet",
+                None
+            ),
+            "email": current_user.email,
+            "telephone": current_user.telephone,
+            "username": current_user.username,
+            "role": current_user.role,
+            "fonction": current_user.fonction
+        },
+
+        "client": None
+    }
+
+    if client:
+
+        response["client"] = {
+            "id": client.id,
+            "id_client": client.id_client,
+            "numero_compte": client.numero_compte,
+            "nom": client.nom,
+            "prenom": client.prenom,
+            "telephone": client.telephone,
+            "email": client.email,
+            "statut": client.statut,
+            "compte_actif": client.compte_actif,
+            "solde": client.solde or 0
+        }
+
+    return jsonify(response)
+
+
+# ============================================================
+# MES PRÊTS
+# ============================================================
+
+@mobile_api_bp.route("/api/mes-prets", methods=["GET"])
 @token_required
 def mobile_mes_prets(current_user):
-    prets = Pret.query.filter_by(client_id=current_user.id).all()
 
-    return jsonify([{
-        'id': pret.id,
-        'montant': pret.montant,
-        'duree_mois': pret.duree_mois,
-        'mensualite': pret.mensualite,
-        'statut': pret.statut,
-        'date_demande': pret.date_demande.isoformat()
-    } for pret in prets])
+    client = obtenir_client(current_user)
+
+    if not client:
+        return jsonify({
+            "success": False,
+            "error": "Profil client introuvable"
+        }), 404
+
+    prets = (
+        Pret.query
+        .filter_by(client_id=client.id)
+        .order_by(Pret.date_demande.desc())
+        .all()
+    )
+
+    resultats = []
+
+    for pret in prets:
+
+        montant_accorde = getattr(
+            pret,
+            "montant_accorde",
+            None
+        )
+
+        if montant_accorde is None:
+            montant_accorde = pret.montant or 0
+
+        resultats.append({
+            "id": pret.id,
+
+            "numero_pret": getattr(
+                pret,
+                "numero_pret",
+                None
+            ),
+
+            "montant": pret.montant or 0,
+            "montant_accorde": montant_accorde,
+
+            "duree_mois": pret.duree_mois,
+
+            "taux_interet": (
+                pret.taux_interet or 0
+            ),
+
+            "mensualite": (
+                pret.mensualite or 0
+            ),
+
+            "montant_interet": getattr(
+                pret,
+                "montant_interet",
+                0
+            ) or 0,
+
+            "montant_total": (
+                pret.montant_total or 0
+            ),
+
+            "montant_rembourse": (
+                pret.montant_rembourse or 0
+            ),
+
+            "solde_restant": max(
+                0,
+                (pret.montant_total or 0)
+                - (pret.montant_rembourse or 0)
+            ),
+
+            "statut": pret.statut,
+            "motif": pret.motif,
+
+            "date_demande": (
+                pret.date_demande.isoformat()
+                if pret.date_demande
+                else None
+            ),
+
+            "date_approbation": (
+                pret.date_approbation.isoformat()
+                if pret.date_approbation
+                else None
+            )
+        })
+
+    return jsonify({
+        "success": True,
+        "prets": resultats
+    })
 
 
-@app.route('/api/demande-pret', methods=['POST'])
+# ============================================================
+# DEMANDE DE PRÊT
+# ============================================================
+
+@mobile_api_bp.route(
+    "/api/demande-pret",
+    methods=["POST"]
+)
 @token_required
 def mobile_demande_pret(current_user):
-    data = request.json
 
-    # Calculs similaires à votre version web
+    client = obtenir_client(current_user)
+
+    if not client:
+
+        return jsonify({
+            "success": False,
+            "error": "Profil client introuvable"
+        }), 404
+
+    # --------------------------------------------------------
+    # Compte client
+    # --------------------------------------------------------
+
+    if not client.compte_actif:
+
+        return jsonify({
+            "success": False,
+            "error": "Votre compte client est désactivé"
+        }), 403
+
+    # --------------------------------------------------------
+    # Conditions du compte
+    # --------------------------------------------------------
+
+    if not client.terms_accepted:
+
+        return jsonify({
+            "success": False,
+            "error": "Vous devez accepter les conditions du compte"
+        }), 400
+
+    data = request.get_json(silent=True) or {}
+
+    montant = data.get("montant")
+
+    duree = (
+        data.get("duree_mois")
+        or data.get("duree")
+    )
+
+    motif = data.get("motif", "").strip()
+
+    if montant is None or duree is None:
+
+        return jsonify({
+            "success": False,
+            "error": "Montant et durée obligatoires"
+        }), 400
+
+    try:
+        montant = float(montant)
+        duree = int(duree)
+
+    except (ValueError, TypeError):
+
+        return jsonify({
+            "success": False,
+            "error": "Montant ou durée invalide"
+        }), 400
+
+    # --------------------------------------------------------
+    # Validation
+    # --------------------------------------------------------
+
+    if montant < 10000:
+
+        return jsonify({
+            "success": False,
+            "error": "Le montant minimum est de 10 000 HTG"
+        }), 400
+
+    if montant > 10_000_000_000:
+
+        return jsonify({
+            "success": False,
+            "error": "Le montant demandé est trop élevé"
+        }), 400
+
+    if duree < 3 or duree > 60:
+
+        return jsonify({
+            "success": False,
+            "error": "La durée doit être comprise entre 3 et 60 mois"
+        }), 400
+
+    # --------------------------------------------------------
+    # Vérification métier existante
+    # --------------------------------------------------------
+
+    if hasattr(client, "verifier_peut_demander_pret"):
+
+        try:
+
+            resultat = client.verifier_peut_demander_pret()
+
+            if isinstance(resultat, tuple):
+
+                autorise, message = resultat
+
+                if not autorise:
+
+                    return jsonify({
+                        "success": False,
+                        "error": message
+                    }), 400
+
+            elif resultat is False:
+
+                return jsonify({
+                    "success": False,
+                    "error": "Le client ne peut pas demander un prêt"
+                }), 400
+
+        except TypeError:
+            pass
+
+    # --------------------------------------------------------
+    # Vérifier les prêts déjà en cours
+    # --------------------------------------------------------
+
+    pret_existant = (
+        Pret.query
+        .filter(
+            Pret.client_id == client.id,
+            Pret.statut.in_([
+                "en_attente",
+                "actif",
+                "approuve",
+                "en_retard"
+            ])
+        )
+        .first()
+    )
+
+    if pret_existant:
+
+        return jsonify({
+            "success": False,
+            "error": "Vous avez déjà un prêt en cours ou en attente",
+            "numero_pret": getattr(
+                pret_existant,
+                "numero_pret",
+                None
+            )
+        }), 400
+
+    # --------------------------------------------------------
+    # Création du prêt
+    # --------------------------------------------------------
+
     nouveau_pret = Pret(
-        client_id=current_user.id,
-        montant=data['montant'],
-        duree_mois=data['duree'],
-        motif=data['motif']
-        # ... autres champs
+        client_id=client.id,
+        montant=montant,
+        duree_mois=duree,
+        motif=motif,
+        statut="en_attente",
+        date_demande=datetime.utcnow()
     )
 
     db.session.add(nouveau_pret)
     db.session.commit()
 
-    return jsonify({'message': 'Demande envoyée'}), 201
-
-
-@app.route('/api/remboursements/dus')
-@token_required
-def mobile_remboursements_dus(current_user):
-    """Remboursements en attente"""
-    remboursements = Remboursement.query.filter_by(
-        client_id=current_user.id,
-        statut='en_attente'
-    ).all()
-
-    return jsonify([{
-        'pret_id': r.pret_id,
-        'montant': r.montant,
-        'date_echeance': r.date_echeance.strftime('%d/%m/%Y')
-    } for r in remboursements])
-
-
-@app.route('/api/mon-groupe')
-@token_required
-def mobile_mon_groupe(current_user):
-    """Informations du groupe"""
-    if not current_user.groupe_id:
-        return jsonify({'error': 'Aucun groupe'}), 404
-
-    groupe = Groupe.query.get(current_user.groupe_id)
-    membres = Client.query.filter_by(groupe_id=groupe.id).all()
-    prets_groupe = Pret.query.filter_by(groupe_id=groupe.id).all()
-
     return jsonify({
-        'id': groupe.id,
-        'nom': groupe.nom,
-        'zone': groupe.zone,
-        'code_groupe': groupe.code_groupe,
-        'membres': [{
-            'id': m.id,
-            'nom': m.nom,
-            'prenom': m.prenom,
-            'profession': m.profession
-        } for m in membres],
-        'prets_groupe': [{
-            'id': p.id,
-            'montant': p.montant,
-            'statut': p.statut,
-            'motif': p.motif,
-            'client_prenom': Client.query.get(p.client_id).prenom
-        } for p in prets_groupe],
-        'montant_prets_total': sum(p.montant for p in prets_groupe)
-    })
-
-
-@app.route('/api/mes-statistiques')
-@token_required
-def mobile_mes_statistiques(current_user):
-    """Statistiques personnelles"""
-    prets = Pret.query.filter_by(client_id=current_user.id).all()
-    remboursements = Remboursement.query.filter_by(client_id=current_user.id).all()
-
-    return jsonify({
-        'score_credit': 75,  # À calculer
-        'ponctualite': 85,  # À calculer
-        'prets_total': sum(p.montant for p in prets),
-        'prets_rembourses': len([p for p in prets if p.statut == 'termine']),
-        'historique_prets': [{
-            'date': p.date_demande.strftime('%d/%m/%Y'),
-            'montant': p.montant,
-            'statut': p.statut
-        } for p in prets]
-    })
+        "success": True,
+        "message": "Demande de prêt envoyée",
+        "pret": {
+            "id": nouveau_pret.id,
+            "numero_pret": getattr(
+                nouveau_pret,
+                "numero_pret",
+                None
+            ),
+            "montant": nouveau_pret.montant,
+            "duree_mois": nouveau_pret.duree_mois,
+            "statut": nouveau_pret.statut
+        }
+    }), 201
