@@ -507,26 +507,26 @@ def envoyer_email_demande_pret(client, pret):
 
         # Version texte
         corps_texte = f"""
-Bonjour {client.prenom} {client.nom},
+            Bonjour {client.prenom} {client.nom},
+            
+            Votre demande de prêt a été enregistrée.
+            
+            Numéro du dossier : {pret.numero_dossier or pret.id}
+            
+            Montant : {pret.montant:,.2f} HTG
+            Durée : {pret.duree_mois} mois
+            Taux : {pret.taux_interet} %
+            
+            Pour signer les conditions du prêt :
+            
+            {lien_signature}
+            
+            Ce lien est valable 7 jours.
+            
+            GMES Microcrédit
+            """
 
-Votre demande de prêt a été enregistrée.
-
-Numéro du dossier : {pret.numero_dossier or pret.id}
-
-Montant : {pret.montant:,.2f} HTG
-Durée : {pret.duree_mois} mois
-Taux : {pret.taux_interet} %
-
-Pour signer les conditions du prêt :
-
-{lien_signature}
-
-Ce lien est valable 7 jours.
-
-GMES Microcrédit
-"""
-
-        # Envoi via Brevo
+                    # Envoi via Brevo
         if not BREVO_API_KEY:
             print("❌ BREVO_API_KEY manquant")
             email_envoye = False
@@ -706,8 +706,8 @@ def envoyer_email_decision_rejet(client, motif):
     import requests
 
     api_key = os.getenv("BREVO_API_KEY")
-    from_email = os.getenv("FROM_EMAIL")
-    from_name = os.getenv("FROM_NAME", "GMES Microcrédit")
+    from_email = os.environ.get("FROM_EMAIL", "gmeshaiti@gmail.com")
+    from_name = os.environ.get("FROM_NAME", "GMES Microcrédit")
 
     if not api_key:
         raise Exception("BREVO_API_KEY non configurée")
@@ -922,15 +922,14 @@ def envoyer_email_decision_rejet(client, motif):
 
 
 
+
+
 def envoyer_email_activation_client(client, activation_link):
 
     try:
         api_key = os.environ.get("BREVO_API_KEY")
-        from_email = os.environ.get("FROM_EMAIL")
-        from_name = os.environ.get(
-            "FROM_NAME",
-            "GMES Microcrédit"
-        )
+        from_email = os.environ.get("FROM_EMAIL", "gmeshaiti@gmail.com")
+        from_name = os.environ.get("FROM_NAME", "GMES Microcrédit")
 
         print("=" * 70)
         print("📧 BREVO - ENVOI ACTIVATION CLIENT")
@@ -981,79 +980,79 @@ def envoyer_email_activation_client(client, activation_link):
             "subject": "Activation de votre espace client GMES",
 
             "htmlContent": f"""
-<!DOCTYPE html>
-<html lang="fr">
-
-<head>
-    <meta charset="UTF-8">
-    <title>Activation de votre espace client GMES</title>
-</head>
-
-<body>
-
-    <h2>Bienvenue chez GMES Microcrédit</h2>
-
-    <p>
-        Bonjour
-        <strong>{client.prenom} {client.nom}</strong>,
-    </p>
-
-    <p>
-        Votre compte client a été créé avec succès.
-    </p>
-
-    <p>
-        <strong>ID client :</strong>
-        {client.id_client}
-    </p>
-
-    <p>
-        Pour activer votre espace client et créer votre
-        mot de passe, cliquez sur le bouton ci-dessous :
-    </p>
-
-    <p>
-        <a
-            href="{activation_link}"
-            style="
-                background-color:#0d6efd;
-                color:#ffffff;
-                padding:12px 20px;
-                text-decoration:none;
-                border-radius:5px;
-                display:inline-block;
-                font-weight:bold;
-            "
-        >
-            ACTIVER MON ESPACE CLIENT
-        </a>
-    </p>
-
-    <p>
-        Si le bouton ne fonctionne pas, copiez ce lien dans
-        votre navigateur :
-    </p>
-
-    <p>
-        <a href="{activation_link}">
-            {activation_link}
-        </a>
-    </p>
-
-    <p>
-        <strong>
-            Ce lien est valable pendant 24 heures.
-        </strong>
-    </p>
-
-    <p>
-        Cordialement,<br>
-        <strong>GMES Microcrédit</strong>
-    </p>
-
-</body>
-</html>
-"""
+            <!DOCTYPE html>
+            <html lang="fr">
+            
+            <head>
+                <meta charset="UTF-8">
+                <title>Activation de votre espace client GMES</title>
+            </head>
+            
+            <body>
+            
+                <h2>Bienvenue chez GMES Microcrédit</h2>
+            
+                <p>
+                    Bonjour
+                    <strong>{client.prenom} {client.nom}</strong>,
+                </p>
+            
+                <p>
+                    Votre compte client a été créé avec succès.
+                </p>
+            
+                <p>
+                    <strong>ID client :</strong>
+                    {client.id_client}
+                </p>
+            
+                <p>
+                    Pour activer votre espace client et créer votre
+                    mot de passe, cliquez sur le bouton ci-dessous :
+                </p>
+            
+                <p>
+                    <a
+                        href="{activation_link}"
+                        style="
+                            background-color:#0d6efd;
+                            color:#ffffff;
+                            padding:12px 20px;
+                            text-decoration:none;
+                            border-radius:5px;
+                            display:inline-block;
+                            font-weight:bold;
+                        "
+                    >
+                        ACTIVER MON ESPACE CLIENT
+                    </a>
+                </p>
+            
+                <p>
+                    Si le bouton ne fonctionne pas, copiez ce lien dans
+                    votre navigateur :
+                </p>
+            
+                <p>
+                    <a href="{activation_link}">
+                        {activation_link}
+                    </a>
+                </p>
+            
+                <p>
+                    <strong>
+                        Ce lien est valable pendant 24 heures.
+                    </strong>
+                </p>
+            
+                <p>
+                    Cordialement,<br>
+                    <strong>GMES Microcrédit</strong>
+                </p>
+            
+            </body>
+            </html>
+            """
         }
 
         print("📨 Envoi de la requête à Brevo...")
@@ -1389,22 +1388,22 @@ def envoyer_email_demande_documents(client, demande, lien):
             documents_texte += f"- {item.description}\n"
 
         corps_texte = f"""
-Bonjour {prenom} {nom},
-
-Votre conseiller vous demande de fournir les documents suivants :
-
-{documents_texte}
-
-{message_conseiller}
-
-Pour envoyer vos documents :
-
-{lien}
-
-Ce lien est personnel et sécurisé.
-
-GMES Microcrédit
-"""
+                Bonjour {prenom} {nom},
+                
+                Votre conseiller vous demande de fournir les documents suivants :
+                
+                {documents_texte}
+                
+                {message_conseiller}
+                
+                Pour envoyer vos documents :
+                
+                {lien}
+                
+                Ce lien est personnel et sécurisé.
+                
+                GMES Microcrédit
+                """
 
         # ============================================================
         # ENVOI VIA BREVO
@@ -1511,16 +1510,16 @@ def envoyer_email_annulation_pret(client, pret, motif):
     numero_pret = pret.numero_dossier or pret.id
 
     corps_texte = f"""
-Bonjour {client.prenom} {client.nom},
-
-Votre demande de prêt {numero_pret} a été annulée.
-
-Motif : {motif}
-
-Vous pouvez soumettre une nouvelle demande à tout moment.
-
-GMES Microcrédit
-"""
+                Bonjour {client.prenom} {client.nom},
+                
+                Votre demande de prêt {numero_pret} a été annulée.
+                
+                Motif : {motif}
+                
+                Vous pouvez soumettre une nouvelle demande à tout moment.
+                
+                GMES Microcrédit
+                """
 
     response = requests.post(
         "https://api.brevo.com/v3/smtp/email",
