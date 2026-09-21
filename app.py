@@ -14254,10 +14254,12 @@ def client_dashboard():
     stats = calculer_statistiques_utilisateur(current_user)
 
     # Retourner le template avec toutes les variables nécessaires
-    return render_template('client_dashboard.html',
+    return render_template('clients/client_dashboard.html',
                            user=current_user,
                            stats=stats,
                            groupe=groupe)  # ← Le groupe est maintenant disponible
+
+
 
 @app.route('/pret/<int:pret_id>/<action>')
 @login_required
