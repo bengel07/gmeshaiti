@@ -179,7 +179,6 @@ def activation_client(token):
 
     user = User.query.filter_by(
         activation_token=token,
-        role='client'
     ).first()
 
     if not user:
@@ -517,8 +516,9 @@ def envoyer_lien_activation(client_id):
             user.username = client.email.strip()
             user.client_id = client.id
             # ⚠️ Ne pas écraser le rôle si c'était un employé (voir remarque plus bas)
-            if user.role not in ['employe', 'employee', 'admin_succursale', 'admin_principal', 'direction', 'super_admin']:
-                user.role = 'client'
+            user.role = 'client'
+            # if user.role not in ['employe', 'employee', 'admin_succursale', 'admin_principal', 'direction', 'super_admin']:
+            #     user.role = 'client'
 
         user.activation_token = secrets.token_urlsafe(48)
         user.activation_expiration = datetime.utcnow() + timedelta(hours=24)

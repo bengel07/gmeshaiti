@@ -23973,7 +23973,9 @@ def contacter_utilisateur(employe_id):
                 send_email(
                     subject=f"[ADMIN] {sujet}",
                     recipient=user.email,
-                    body=f"""Message de {current_user.prenom} {current_user.nom} (Admin):{message}--- Ce message vous a été envoyé via l'interface d'administration."""
+                    body=f"""
+                    Message de {current_user.prenom}
+{current_user.nom} (Admin):{message}--- Ce message vous a été envoyé via l'interface d'administration."""
                 )
 
             if type_contact in ['sms', 'les_deux'] and user.telephone:
