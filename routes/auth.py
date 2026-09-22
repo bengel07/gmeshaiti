@@ -1,4 +1,3 @@
-
 from flask import (
     Blueprint,
     render_template,
@@ -25,8 +24,7 @@ from datetime import datetime, timedelta
 
 import jwt
 
-from models import User, Client, db
-
+from models import User, Client, Epargne, db
 
 
 # ============================================================
@@ -56,6 +54,22 @@ def validate_password(password):
         )
 
     return True, "OK"
+
+
+def get_compte_epargne_actif(client):
+    """
+    Retourne le compte Épargne principal du client
+    (celui qui contient le vrai solde), ou None.
+    """
+
+    if client is None:
+        return None
+
+    return Epargne.query.filter_by(
+        client_id=client.id
+    ).order_by(
+        Epargne.id.asc()
+    ).first()
 
 
 # ============================================================
@@ -338,7 +352,19 @@ def mobile_login():
         token = generer_token_mobile(user)
 
         # ====================================================
-        # 10. INFORMATIONS CLIENT
+        # 10. COMPTE ÉPARGNE (LE VRAI SOLDE)
+        # ====================================================
+
+        compte_epargne = get_compte_epargne_actif(client)
+
+        solde_reel = (
+            compte_epargne.solde
+            if compte_epargne
+            else 0
+        )
+
+        # ====================================================
+        # 11. INFORMATIONS CLIENT
         # ====================================================
 
         client_data = None
@@ -353,7 +379,11 @@ def mobile_login():
                     client.id_client,
 
                 "numero_compte":
-                    client.numero_compte,
+                    (
+                        compte_epargne.numero_compte
+                        if compte_epargne
+                        else client.numero_compte
+                    ),
 
                 "nom":
                     client.nom,
@@ -371,7 +401,7 @@ def mobile_login():
                     client.telephone,
 
                 "solde":
-                    client.solde or 0,
+                    solde_reel or 0,
 
                 "statut":
                     client.statut,
@@ -396,7 +426,7 @@ def mobile_login():
             }
 
         # ====================================================
-        # 11. RÉPONSE
+        # 12. RÉPONSE
         # ====================================================
 
         return jsonify({
@@ -716,7 +746,6 @@ def mobile_test():
     }), 200
 
 
-
 # ============================================================
 # API MOBILE — DONNÉES CLIENT À JOUR
 # ============================================================
@@ -784,6 +813,18 @@ def mobile_client_me():
                 user_id=user.id
             ).first()
 
+        # ====================================================
+        # COMPTE ÉPARGNE (LE VRAI SOLDE)
+        # ====================================================
+
+        compte_epargne = get_compte_epargne_actif(client)
+
+        solde_reel = (
+            compte_epargne.solde
+            if compte_epargne
+            else 0
+        )
+
         client_data = None
 
         if client:
@@ -791,13 +832,17 @@ def mobile_client_me():
             client_data = {
                 "id": client.id,
                 "id_client": client.id_client,
-                "numero_compte": client.numero_compte,
+                "numero_compte": (
+                    compte_epargne.numero_compte
+                    if compte_epargne
+                    else client.numero_compte
+                ),
                 "nom": client.nom,
                 "prenom": client.prenom,
                 "nom_complet": client.nom_complet,
                 "email": client.email,
                 "telephone": client.telephone,
-                "solde": client.solde or 0,
+                "solde": solde_reel or 0,
                 "statut": client.statut,
                 "compte_actif": client.compte_actif,
                 "a_un_pret_actif": client.a_un_pret_actif,
