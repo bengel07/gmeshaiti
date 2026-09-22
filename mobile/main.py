@@ -1,5 +1,7 @@
 import flet as ft
 import requests
+import threading
+import time
 
 
 # ============================================================
@@ -7,6 +9,8 @@ import requests
 # ============================================================
 
 API_BASE_URL = "https://gmeshaiti-aeo3.onrender.com/auth"
+
+REFRESH_INTERVAL_SECONDS = 10
 
 
 # ============================================================
@@ -21,6 +25,8 @@ class GMESMobileApp:
         self.current_user = None
         self.current_client = None
         self.page = None
+        self.auto_refresh_active = False
+        self.current_screen = None
 
     # ========================================================
     # INITIALISATION
@@ -121,6 +127,9 @@ class GMESMobileApp:
     # ========================================================
 
     def show_login_view(self, e=None):
+
+        self.stop_auto_refresh()
+        self.current_screen = "login"
 
         self.email_field = ft.TextField(
             label="Email ou numéro de compte",
@@ -442,6 +451,7 @@ class GMESMobileApp:
     def refresh_client_data(self):
 
         if not self.token:
+            print("REFRESH: pas de token, on ignore")
             return
 
         status, data = self.api_request(
@@ -449,6 +459,11 @@ class GMESMobileApp:
             "/api/mobile/client/me",
             authenticated=True
         )
+
+        print("=== DEBUG REFRESH ===")
+        print("STATUS:", status)
+        print("DATA:", data)
+        print("======================")
 
         if status == 200 and data.get("success"):
 
@@ -459,12 +474,67 @@ class GMESMobileApp:
                 self.current_client = data["client"]
 
     # ========================================================
+    # AUTO-REFRESH EN ARRIÈRE-PLAN (POLLING)
+    # ========================================================
+
+    def start_auto_refresh(self):
+
+        self.current_screen = "dashboard"
+
+        if self.auto_refresh_active:
+            return
+
+        self.auto_refresh_active = True
+
+        thread = threading.Thread(
+            target=self._auto_refresh_loop,
+            daemon=True
+        )
+
+        thread.start()
+
+    def stop_auto_refresh(self):
+
+        self.auto_refresh_active = False
+
+    def _auto_refresh_loop(self):
+
+        while self.auto_refresh_active:
+
+            time.sleep(REFRESH_INTERVAL_SECONDS)
+
+            if not self.auto_refresh_active:
+                break
+
+            if self.current_screen != "dashboard":
+                break
+
+            old_solde = (self.current_client or {}).get("solde")
+
+            self.refresh_client_data()
+
+            new_solde = (self.current_client or {}).get("solde")
+
+            if (
+                self.auto_refresh_active
+                and self.current_screen == "dashboard"
+                and new_solde != old_solde
+            ):
+
+                self.show_dashboard(_from_auto_refresh=True)
+
+    # ========================================================
     # TABLEAU DE BORD
     # ========================================================
 
-    def show_dashboard(self, e=None):
+    def show_dashboard(self, e=None, _from_auto_refresh=False):
 
-        self.refresh_client_data()
+        self.current_screen = "dashboard"
+
+        if not _from_auto_refresh:
+            self.refresh_client_data()
+
+        self.start_auto_refresh()
 
         user = self.current_user or {}
         client = self.current_client or {}
@@ -1462,6 +1532,8 @@ class GMESMobileApp:
         controls
     ):
 
+        self.current_screen = "simple_page"
+
         back_button = ft.IconButton(
             icon=ft.Icons.ARROW_BACK,
             on_click=lambda e: self.show_dashboard()
@@ -1501,6 +1573,9 @@ class GMESMobileApp:
     # ========================================================
 
     def logout(self, e=None):
+
+        self.stop_auto_refresh()
+        self.current_screen = "login"
 
         try:
 
