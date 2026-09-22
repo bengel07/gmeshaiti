@@ -253,6 +253,8 @@ csrf.exempt(app.view_functions['auth.mobile_login'])
 csrf.exempt(app.view_functions['auth.mobile_register'])
 csrf.exempt(app.view_functions['auth.mobile_logout'])
 
+csrf.exempt(app.view_functions['auth.mobile_client_me'])
+
 from functools import wraps
 from flask import flash, redirect, request, url_for
 from flask_login import current_user

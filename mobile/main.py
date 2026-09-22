@@ -436,10 +436,35 @@ class GMESMobileApp:
         self.show_error(message)
 
     # ========================================================
+    # RAFRAÎCHISSEMENT DES DONNÉES CLIENT
+    # ========================================================
+
+    def refresh_client_data(self):
+
+        if not self.token:
+            return
+
+        status, data = self.api_request(
+            "GET",
+            "/api/mobile/client/me",
+            authenticated=True
+        )
+
+        if status == 200 and data.get("success"):
+
+            if data.get("user"):
+                self.current_user = data["user"]
+
+            if data.get("client") is not None:
+                self.current_client = data["client"]
+
+    # ========================================================
     # TABLEAU DE BORD
     # ========================================================
 
     def show_dashboard(self, e=None):
+
+        self.refresh_client_data()
 
         user = self.current_user or {}
         client = self.current_client or {}
@@ -547,7 +572,7 @@ class GMESMobileApp:
             )
 
         # ----------------------------------------------------
-        # STATISTIQUES
+        # STATISTIQUES (comme le tableau de bord web)
         # ----------------------------------------------------
 
         solde = client.get(
@@ -565,6 +590,12 @@ class GMESMobileApp:
 
             solde_display = str(solde)
 
+        prets_actifs = (
+            "Oui"
+            if client.get("a_un_pret_actif")
+            else "Aucun"
+        )
+
         stats_cards = ft.Row(
             [
                 self.create_stat_card(
@@ -576,16 +607,37 @@ class GMESMobileApp:
 
                 self.create_stat_card(
                     "📊",
-                    "Prêts",
-                    "—",
+                    "Prêts actifs",
+                    prets_actifs,
                     "#1565C0"
                 ),
 
                 self.create_stat_card(
-                    "⏰",
-                    "Prochain",
+                    "📈",
+                    "Score crédit",
                     "—",
-                    "#EF6C00"
+                    "#6A1B9A"
+                ),
+
+                self.create_stat_card(
+                    "👥",
+                    "Mon groupe",
+                    "Aucun",
+                    "#00838F"
+                ),
+
+                self.create_stat_card(
+                    "💎",
+                    "Niveau",
+                    "—",
+                    "#F9A825"
+                ),
+
+                self.create_stat_card(
+                    "🔔",
+                    "Notifications",
+                    "—",
+                    "#D84315"
                 )
             ],
             scroll=ft.ScrollMode.ADAPTIVE,
@@ -593,56 +645,217 @@ class GMESMobileApp:
         )
 
         # ----------------------------------------------------
-        # MENU
+        # MENU — Gestion des prêts
         # ----------------------------------------------------
 
-        menu_grid = ft.GridView(
-            runs_count=2,
-            max_extent=170,
-            child_aspect_ratio=1,
-            spacing=10,
-            run_spacing=10,
-            expand=False
+        section_prets = ft.Column(
+            [
+                ft.Text(
+                    "💰 Gestion des prêts",
+                    size=16,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Row(
+                    [
+                        self.create_menu_card(
+                            "➕",
+                            "Demander un prêt",
+                            self.show_loan_request
+                        ),
+
+                        self.create_menu_card(
+                            "📋",
+                            "Mes prêts",
+                            self.show_my_loans
+                        ),
+
+                        self.create_menu_card(
+                            "💳",
+                            "Rembourser",
+                            self.show_payment
+                        )
+                    ],
+                    scroll=ft.ScrollMode.ADAPTIVE,
+                    spacing=10
+                )
+            ],
+            spacing=8
         )
 
-        menu_grid.controls = [
+        # ----------------------------------------------------
+        # MENU — Groupes solidaires
+        # ----------------------------------------------------
 
-            self.create_menu_card(
-                "📋",
-                "Mes prêts",
-                self.show_my_loans
-            ),
+        section_groupes = ft.Column(
+            [
+                ft.Text(
+                    "👥 Groupes solidaires",
+                    size=16,
+                    weight=ft.FontWeight.BOLD
+                ),
 
-            self.create_menu_card(
-                "💳",
-                "Rembourser",
-                self.show_payment
-            ),
+                ft.Row(
+                    [
+                        self.create_menu_card(
+                            "🏘️",
+                            "Voir les groupes",
+                            self.show_groups_list
+                        ),
 
-            self.create_menu_card(
-                "👥",
-                "Mon groupe",
-                self.show_my_group
-            ),
+                        self.create_menu_card(
+                            "👨‍👩‍👧‍👦",
+                            "Mon groupe",
+                            self.show_my_group
+                        ),
 
-            self.create_menu_card(
-                "📊",
-                "Statistiques",
-                self.show_stats
-            ),
+                        self.create_menu_card(
+                            "🤝",
+                            "Prêt solidaire",
+                            self.show_group_loan
+                        )
+                    ],
+                    scroll=ft.ScrollMode.ADAPTIVE,
+                    spacing=10
+                )
+            ],
+            spacing=8
+        )
 
-            self.create_menu_card(
-                "🔔",
-                "Notifications",
-                self.show_notifications
-            ),
+        # ----------------------------------------------------
+        # MENU — Intelligence artificielle
+        # ----------------------------------------------------
 
-            self.create_menu_card(
-                "⚙️",
-                "Paramètres",
-                self.show_settings
-            )
-        ]
+        section_ia = ft.Column(
+            [
+                ft.Text(
+                    "🤖 Intelligence artificielle",
+                    size=16,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Row(
+                    [
+                        self.create_menu_card(
+                            "🎯",
+                            "Mon score crédit",
+                            self.show_credit_score
+                        ),
+
+                        self.create_menu_card(
+                            "💡",
+                            "Recommandations",
+                            self.show_recommendations
+                        ),
+
+                        self.create_menu_card(
+                            "📊",
+                            "Analytics perso",
+                            self.show_stats
+                        ),
+
+                        self.create_menu_card(
+                            "🔮",
+                            "Prévisions",
+                            self.show_forecasts
+                        )
+                    ],
+                    scroll=ft.ScrollMode.ADAPTIVE,
+                    spacing=10
+                )
+            ],
+            spacing=8
+        )
+
+        # ----------------------------------------------------
+        # MENU — Gamification
+        # ----------------------------------------------------
+
+        section_gamification = ft.Column(
+            [
+                ft.Text(
+                    "💎 Gamification",
+                    size=16,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Row(
+                    [
+                        self.create_menu_card(
+                            "🏆",
+                            "Mon niveau",
+                            self.show_gamification_profile
+                        ),
+
+                        self.create_menu_card(
+                            "🎯",
+                            "Défis & objectifs",
+                            self.show_challenges
+                        ),
+
+                        self.create_menu_card(
+                            "🎁",
+                            "Mes récompenses",
+                            self.show_rewards
+                        ),
+
+                        self.create_menu_card(
+                            "📈",
+                            "Classement",
+                            self.show_ranking
+                        )
+                    ],
+                    scroll=ft.ScrollMode.ADAPTIVE,
+                    spacing=10
+                )
+            ],
+            spacing=8
+        )
+
+        # ----------------------------------------------------
+        # MENU — Préférences
+        # ----------------------------------------------------
+
+        section_preferences = ft.Column(
+            [
+                ft.Text(
+                    "⚙️ Préférences",
+                    size=16,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Row(
+                    [
+                        self.create_menu_card(
+                            "🔔",
+                            "Notifications",
+                            self.show_notifications
+                        ),
+
+                        self.create_menu_card(
+                            "🔧",
+                            "Paramètres",
+                            self.show_settings
+                        ),
+
+                        self.create_menu_card(
+                            "👤",
+                            "Mon profil",
+                            self.show_profile
+                        ),
+
+                        self.create_menu_card(
+                            "🔐",
+                            "Sécurité",
+                            self.show_security
+                        )
+                    ],
+                    scroll=ft.ScrollMode.ADAPTIVE,
+                    spacing=10
+                )
+            ],
+            spacing=8
+        )
 
         # ----------------------------------------------------
         # DÉCONNEXION
@@ -691,7 +904,15 @@ class GMESMobileApp:
                     weight=ft.FontWeight.BOLD
                 ),
 
-                menu_grid,
+                section_prets,
+
+                section_groupes,
+
+                section_ia,
+
+                section_gamification,
+
+                section_preferences,
 
                 ft.Container(
                     height=15
@@ -699,7 +920,7 @@ class GMESMobileApp:
 
                 logout_button
             ],
-            spacing=10
+            spacing=15
         )
 
         self.page.clean()
@@ -848,6 +1069,279 @@ class GMESMobileApp:
                 ft.Text(
                     "Les informations de votre groupe "
                     "apparaîtront ici."
+                )
+            ]
+        )
+
+    # ========================================================
+    # DEMANDE DE PRÊT
+    # ========================================================
+
+    def show_loan_request(self, e=None):
+
+        self.show_simple_page(
+            "➕ Demander un prêt",
+            [
+                ft.Text(
+                    "Nouvelle demande de prêt",
+                    size=18,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Text(
+                    "Ce formulaire sera connecté "
+                    "à l'API GMES."
+                )
+            ]
+        )
+
+    # ========================================================
+    # LISTE DES GROUPES
+    # ========================================================
+
+    def show_groups_list(self, e=None):
+
+        self.show_simple_page(
+            "🏘️ Groupes solidaires",
+            [
+                ft.Text(
+                    "Groupes disponibles",
+                    size=18,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Text(
+                    "La liste des groupes sera "
+                    "chargée depuis l'API GMES."
+                )
+            ]
+        )
+
+    # ========================================================
+    # PRÊT SOLIDAIRE
+    # ========================================================
+
+    def show_group_loan(self, e=None):
+
+        self.show_simple_page(
+            "🤝 Prêt solidaire",
+            [
+                ft.Text(
+                    "Demande de prêt solidaire",
+                    size=18,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Text(
+                    "Disponible une fois que vous "
+                    "aurez rejoint un groupe."
+                )
+            ]
+        )
+
+    # ========================================================
+    # SCORE CRÉDIT
+    # ========================================================
+
+    def show_credit_score(self, e=None):
+
+        self.show_simple_page(
+            "🎯 Mon score crédit",
+            [
+                ft.Text(
+                    "Score de crédit",
+                    size=18,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Text(
+                    "Votre score sera calculé et "
+                    "affiché ici."
+                )
+            ]
+        )
+
+    # ========================================================
+    # RECOMMANDATIONS
+    # ========================================================
+
+    def show_recommendations(self, e=None):
+
+        self.show_simple_page(
+            "💡 Recommandations",
+            [
+                ft.Text(
+                    "Recommandations personnalisées",
+                    size=18,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Text(
+                    "Nos suggestions de prêts adaptées "
+                    "seront affichées ici."
+                )
+            ]
+        )
+
+    # ========================================================
+    # PRÉVISIONS
+    # ========================================================
+
+    def show_forecasts(self, e=None):
+
+        self.show_simple_page(
+            "🔮 Prévisions",
+            [
+                ft.Text(
+                    "Prévisions de remboursement",
+                    size=18,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Text(
+                    "Vos prévisions financières seront "
+                    "affichées ici."
+                )
+            ]
+        )
+
+    # ========================================================
+    # GAMIFICATION — PROFIL
+    # ========================================================
+
+    def show_gamification_profile(self, e=None):
+
+        self.show_simple_page(
+            "🏆 Mon niveau",
+            [
+                ft.Text(
+                    "Profil de gamification",
+                    size=18,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Text(
+                    "Votre niveau et vos points "
+                    "seront affichés ici."
+                )
+            ]
+        )
+
+    # ========================================================
+    # DÉFIS
+    # ========================================================
+
+    def show_challenges(self, e=None):
+
+        self.show_simple_page(
+            "🎯 Défis & objectifs",
+            [
+                ft.Text(
+                    "Défis en cours",
+                    size=18,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Text(
+                    "Vos défis et objectifs seront "
+                    "affichés ici."
+                )
+            ]
+        )
+
+    # ========================================================
+    # RÉCOMPENSES
+    # ========================================================
+
+    def show_rewards(self, e=None):
+
+        self.show_simple_page(
+            "🎁 Mes récompenses",
+            [
+                ft.Text(
+                    "Récompenses obtenues",
+                    size=18,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Text(
+                    "Vos récompenses seront affichées "
+                    "ici."
+                )
+            ]
+        )
+
+    # ========================================================
+    # CLASSEMENT
+    # ========================================================
+
+    def show_ranking(self, e=None):
+
+        self.show_simple_page(
+            "📈 Classement",
+            [
+                ft.Text(
+                    "Classement des clients",
+                    size=18,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Text(
+                    "Le classement sera affiché ici."
+                )
+            ]
+        )
+
+    # ========================================================
+    # PROFIL
+    # ========================================================
+
+    def show_profile(self, e=None):
+
+        user = self.current_user or {}
+
+        self.show_simple_page(
+            "👤 Mon profil",
+            [
+                ft.Text(
+                    "Informations personnelles",
+                    size=18,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Text(
+                    f"Nom : {user.get('last_name', '—')}"
+                ),
+
+                ft.Text(
+                    f"Prénom : {user.get('first_name', '—')}"
+                ),
+
+                ft.Text(
+                    f"Email : {user.get('email', '—')}"
+                )
+            ]
+        )
+
+    # ========================================================
+    # SÉCURITÉ
+    # ========================================================
+
+    def show_security(self, e=None):
+
+        self.show_simple_page(
+            "🔐 Sécurité",
+            [
+                ft.Text(
+                    "Mot de passe et sécurité",
+                    size=18,
+                    weight=ft.FontWeight.BOLD
+                ),
+
+                ft.Text(
+                    "La gestion du mot de passe et de "
+                    "la reconnaissance faciale sera "
+                    "disponible ici."
                 )
             ]
         )
