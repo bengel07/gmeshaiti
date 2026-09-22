@@ -249,7 +249,9 @@ logger = logging.getLogger(__name__)
 partner_portal_bp = Blueprint('partner_portal', __name__, url_prefix='/api/partner/portal')
 
 
-
+csrf.exempt(app.view_functions['auth.mobile_login'])
+csrf.exempt(app.view_functions['auth.mobile_register'])
+csrf.exempt(app.view_functions['auth.mobile_logout'])
 
 from functools import wraps
 from flask import flash, redirect, request, url_for

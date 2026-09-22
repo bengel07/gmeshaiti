@@ -6,7 +6,8 @@ from flask import (
     jsonify,
     session,
     redirect,
-    url_for
+    url_for,
+    current_app
 )
 
 from flask_login import (
@@ -25,6 +26,7 @@ from datetime import datetime, timedelta
 import jwt
 
 from models import User, Client, db
+
 
 
 # ============================================================

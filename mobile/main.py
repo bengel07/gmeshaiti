@@ -6,7 +6,7 @@ import requests
 # CONFIGURATION
 # ============================================================
 
-API_BASE_URL = "https://gmeshaiti-aeo3.onrender.com"
+API_BASE_URL = "https://gmeshaiti-aeo3.onrender.com/auth"
 
 
 # ============================================================
@@ -138,15 +138,20 @@ class GMESMobileApp:
         )
 
         login_button = ft.ElevatedButton(
-            text="Se connecter",
-            icon=ft.Icons.LOGIN,
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.LOGIN),
+                    ft.Text("Se connecter")
+                ],
+                alignment=ft.MainAxisAlignment.CENTER
+            ),
             width=320,
             height=48,
             on_click=self.login
         )
 
         register_button = ft.TextButton(
-            text="Créer un compte",
+            content=ft.Text("Créer un compte"),
             on_click=self.show_register_view
         )
 
@@ -234,15 +239,20 @@ class GMESMobileApp:
         )
 
         register_button = ft.ElevatedButton(
-            text="Créer mon compte",
-            icon=ft.Icons.PERSON_ADD,
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.PERSON_ADD),
+                    ft.Text("Créer mon compte")
+                ],
+                alignment=ft.MainAxisAlignment.CENTER
+            ),
             width=320,
             height=48,
             on_click=self.handle_register
         )
 
         back_button = ft.TextButton(
-            text="← Retour à la connexion",
+            content=ft.Text("← Retour à la connexion"),
             on_click=self.show_login_view
         )
 
@@ -376,6 +386,11 @@ class GMESMobileApp:
                 "user_type": "client"
             }
         )
+
+        print("=== DEBUG LOGIN ===")
+        print("STATUS:", status)
+        print("DATA:", data)
+        print("====================")
 
         if status == 200:
 
@@ -634,8 +649,13 @@ class GMESMobileApp:
         # ----------------------------------------------------
 
         logout_button = ft.OutlinedButton(
-            text="Se déconnecter",
-            icon=ft.Icons.LOGOUT,
+            content=ft.Row(
+                [
+                    ft.Icon(ft.Icons.LOGOUT),
+                    ft.Text("Se déconnecter")
+                ],
+                alignment=ft.MainAxisAlignment.CENTER
+            ),
             on_click=self.logout
         )
 
@@ -926,8 +946,13 @@ class GMESMobileApp:
                 ),
 
                 ft.ElevatedButton(
-                    text="Se déconnecter",
-                    icon=ft.Icons.LOGOUT,
+                    content=ft.Row(
+                        [
+                            ft.Icon(ft.Icons.LOGOUT),
+                            ft.Text("Se déconnecter")
+                        ],
+                        alignment=ft.MainAxisAlignment.CENTER
+                    ),
                     on_click=self.logout
                 )
             ]
@@ -1006,25 +1031,36 @@ class GMESMobileApp:
     # MESSAGES
     # ========================================================
 
-    def show_success(self, message):
+    def _notify(self, message):
 
-        self.page.snack_bar = ft.SnackBar(
+        snackbar = ft.SnackBar(
             content=ft.Text(message)
         )
 
-        self.page.snack_bar.open = True
+        page = self.page
 
-        self.page.update()
+        if hasattr(page, "open"):
+            page.open(snackbar)
+
+        elif hasattr(page, "show_dialog"):
+            page.show_dialog(snackbar)
+
+        elif hasattr(page, "show_snack_bar"):
+            page.show_snack_bar(snackbar)
+
+        else:
+            page.overlay.append(snackbar)
+            snackbar.open = True
+
+        page.update()
+
+    def show_success(self, message):
+
+        self._notify(message)
 
     def show_error(self, message):
 
-        self.page.snack_bar = ft.SnackBar(
-            content=ft.Text(message)
-        )
-
-        self.page.snack_bar.open = True
-
-        self.page.update()
+        self._notify(message)
 
 
 # ============================================================
@@ -1035,11 +1071,10 @@ def main():
 
     app = GMESMobileApp()
 
-    ft.app(
-        target=app.main
+    ft.run(
+        app.main
     )
 
 
 if __name__ == "__main__":
     main()
-
