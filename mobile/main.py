@@ -398,65 +398,150 @@ def main(page: ft.Page):
         )
 
         # Loan Card
-        loan_card = ft.Container(
-            margin=ft.Margin.only(left=20, right=20, top=18),
-            padding=18,
-            bgcolor=ft.Colors.WHITE,
-            border_radius=22,
-            shadow=ft.BoxShadow(blur_radius=10, spread_radius=1, color="#15000000"),
-            content=ft.Column(
-                [
-                    ft.Row(
-                        [
-                            ft.Container(
-                                width=48,
-                                height=48,
-                                border_radius=50,
-                                bgcolor="#DDF6EA",
-                                alignment=ft.Alignment.CENTER,
-                                content=ft.Icon(ft.Icons.ACCOUNT_BALANCE, color=GREEN, size=26),
+        # ============================================================
+        # CARTE PRÊT
+        # ============================================================
+
+        pret_actif = client.get("a_un_pret_actif", False)
+
+        if pret_actif:
+
+            loan_card = ft.Container(
+                margin=ft.Margin.only(
+                    left=20,
+                    right=20,
+                    top=18,
+                ),
+                padding=18,
+                bgcolor=ft.Colors.WHITE,
+                border_radius=22,
+                shadow=ft.BoxShadow(
+                    blur_radius=10,
+                    spread_radius=1,
+                    color="#15000000",
+                ),
+                content=ft.Column(
+                    [
+                        ft.Row(
+                            [
+                                ft.Container(
+                                    width=48,
+                                    height=48,
+                                    border_radius=50,
+                                    bgcolor="#DDF6EA",
+                                    alignment=ft.Alignment.CENTER,
+                                    content=ft.Icon(
+                                        ft.Icons.ACCOUNT_BALANCE,
+                                        color=GREEN,
+                                        size=26,
+                                    ),
+                                ),
+
+                                ft.Column(
+                                    [
+                                        ft.Text(
+                                            "Prêt en cours",
+                                            size=19,
+                                            color=TEXT,
+                                            weight=ft.FontWeight.BOLD,
+                                        ),
+
+                                        ft.Text(
+                                            "Prêt actif",
+                                            size=12,
+                                            color=GREY,
+                                        ),
+                                    ],
+                                    expand=True,
+                                    spacing=2,
+                                ),
+
+                                ft.Container(
+                                    bgcolor="#DDF6E5",
+                                    border_radius=20,
+                                    padding=ft.Padding.symmetric(
+                                        horizontal=12,
+                                        vertical=6,
+                                    ),
+                                    content=ft.Text(
+                                        "Actif",
+                                        color="#087F23",
+                                        size=12,
+                                        weight=ft.FontWeight.BOLD,
+                                    ),
+                                ),
+                            ]
+                        ),
+
+                        ft.Divider(
+                            height=15,
+                            color="#E6EAF1",
+                        ),
+
+                        ft.Text(
+                            "Votre prêt actif sera affiché ici.",
+                            size=14,
+                            color=GREY,
+                        ),
+                    ],
+                    spacing=8,
+                ),
+            )
+
+        else:
+
+            loan_card = ft.Container(
+                margin=ft.Margin.only(
+                    left=20,
+                    right=20,
+                    top=18,
+                ),
+                padding=20,
+                bgcolor=ft.Colors.WHITE,
+                border_radius=22,
+                shadow=ft.BoxShadow(
+                    blur_radius=10,
+                    spread_radius=1,
+                    color="#15000000",
+                ),
+                content=ft.Row(
+                    [
+                        ft.Container(
+                            width=50,
+                            height=50,
+                            border_radius=50,
+                            bgcolor="#EAF2FF",
+                            alignment=ft.Alignment.CENTER,
+                            content=ft.Icon(
+                                ft.Icons.ACCOUNT_BALANCE_OUTLINED,
+                                color=BLUE,
+                                size=27,
                             ),
-                            ft.Column(
-                                [
-                                    ft.Text("Prêt en cours", size=19, color=TEXT, weight=ft.FontWeight.BOLD),
-                                    ft.Text("GMES_Pret-20260912-55678", size=12, color=GREY),
-                                ],
-                                expand=True,
-                                spacing=2,
-                            ),
-                            ft.Container(
-                                bgcolor="#DDF6E5",
-                                border_radius=20,
-                                padding=ft.Padding.symmetric(horizontal=12, vertical=6),
-                                content=ft.Text("Actif", color="#087F23", size=12, weight=ft.FontWeight.BOLD),
-                            ),
-                        ]
-                    ),
-                    ft.Divider(height=15, color="#E6EAF1"),
-                    ft.Row(
-                        [
-                            ft.Column([ft.Text("Montant du prêt", color=GREY, size=12),
-                                       ft.Text("100,000 HTG", color=TEXT, size=15, weight=ft.FontWeight.BOLD)],
-                                      expand=True),
-                            ft.Column([ft.Text("Mensualité", color=GREY, size=12),
-                                       ft.Text("6,200 HTG", color=TEXT, size=15, weight=ft.FontWeight.BOLD)],
-                                      expand=True),
-                            ft.Column([ft.Text("Solde restant", color=GREY, size=12),
-                                       ft.Text("62,400 HTG", color=TEXT, size=15, weight=ft.FontWeight.BOLD)],
-                                      expand=True),
-                        ]
-                    ),
-                    ft.Row(
-                        [
-                            ft.ProgressBar(value=0.38, expand=True, height=8, color=BLUE, bgcolor="#E0E6ED"),
-                            ft.Text("38% remboursé", size=12, color=GREY),
-                        ],
-                        spacing=10,
-                    ),
-                ],
-                spacing=8,
-            ),
-        )
+                        ),
+
+                        ft.Column(
+                            [
+                                ft.Text(
+                                    "Aucun prêt actif",
+                                    size=18,
+                                    color=TEXT,
+                                    weight=ft.FontWeight.BOLD,
+                                ),
+
+                                ft.Text(
+                                    "Vous n'avez actuellement aucun prêt en cours.",
+                                    size=13,
+                                    color=GREY,
+                                ),
+                            ],
+                            expand=True,
+                            spacing=4,
+                        ),
+                    ],
+                    spacing=14,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+            )
 
         # Actions
         actions = ft.Container(
