@@ -148,6 +148,70 @@ def main(page: ft.Page):
         error_text.value = msg
         page.update()
 
+    # ============================================================
+    # NOTIFICATIONS
+    # ============================================================
+
+    notifications = []
+    nombre_notifications_non_lues = 0
+
+    def charger_notifications():
+        nonlocal notifications, nombre_notifications_non_lues
+
+        if not token:
+            return False
+
+        try:
+            response = requests.get(
+                f"{API_URL}/api/mobile/notifications",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/json",
+                },
+                timeout=30,
+            )
+
+            print("================================")
+            print("NOTIFICATIONS")
+            print("STATUT :", response.status_code)
+            print("REPONSE :", response.text[:2000])
+            print("================================")
+
+            if response.status_code != 200:
+                print("❌ Impossible de récupérer les notifications")
+                return False
+
+            data = response.json()
+
+            if not data.get("success"):
+                print(
+                    "❌ API notifications :",
+                    data.get("error")
+                )
+                return False
+
+            notifications = data.get("notifications", [])
+            nombre_notifications_non_lues = data.get("non_lues", 0)
+
+            print(
+                f"✅ {len(notifications)} notifications "
+                f"({nombre_notifications_non_lues} non lues)"
+            )
+
+            return True
+
+        except requests.exceptions.Timeout:
+            print("❌ Timeout notifications")
+            return False
+
+        except requests.exceptions.ConnectionError:
+            print("❌ Serveur inaccessible")
+            return False
+
+        except Exception as ex:
+            print("❌ Erreur notifications :", repr(ex))
+            return False
+
     # --- CONNEXION BACKEND ---
     def connecter(e):
         nonlocal token, user, client
@@ -225,6 +289,8 @@ def main(page: ft.Page):
             print("LOGIN GMES RÉUSSI")
             print("CLIENT :", client)
 
+            charger_notifications()
+
             afficher_dashboard()
 
         except requests.exceptions.ConnectionError:
@@ -242,6 +308,267 @@ def main(page: ft.Page):
         height=50,
         on_click=connecter,
     )
+
+    def afficher_notifications(e=None):
+        charger_notifications()
+
+        page.controls.clear()
+
+        # --------------------------------------------------------
+        # HEADER
+        # --------------------------------------------------------
+
+        header = ft.Container(
+            bgcolor=BLUE,
+            padding=ft.Padding.only(
+                left=15,
+                right=15,
+                top=20,
+                bottom=20
+            ),
+            content=ft.Row(
+                [
+                    ft.IconButton(
+                        icon=ft.Icons.ARROW_BACK,
+                        icon_color=ft.Colors.WHITE,
+                        on_click=lambda e: afficher_dashboard()
+                    ),
+
+                    ft.Text(
+                        "Notifications",
+                        color=ft.Colors.WHITE,
+                        size=22,
+                        weight=ft.FontWeight.BOLD,
+                        expand=True
+                    ),
+
+                    ft.Text(
+                        str(nombre_notifications_non_lues),
+                        color=ft.Colors.WHITE,
+                        size=16,
+                        weight=ft.FontWeight.BOLD
+                    )
+                ],
+                vertical_alignment=ft.CrossAxisAlignment.CENTER
+            )
+        )
+
+        # --------------------------------------------------------
+        # LISTE
+        # --------------------------------------------------------
+
+        liste = ft.Column(
+            spacing=10,
+            scroll=ft.ScrollMode.AUTO,
+            expand=True
+        )
+
+        if not notifications:
+
+            liste.controls.append(
+                ft.Container(
+                    padding=40,
+                    alignment=ft.Alignment.CENTER,
+                    content=ft.Column(
+                        [
+                            ft.Icon(
+                                ft.Icons.NOTIFICATIONS_NONE,
+                                size=60,
+                                color=GREY
+                            ),
+
+                            ft.Text(
+                                "Aucune notification",
+                                size=18,
+                                color=TEXT,
+                                weight=ft.FontWeight.BOLD
+                            ),
+
+                            ft.Text(
+                                "Vous n'avez aucune notification pour le moment.",
+                                size=14,
+                                color=GREY,
+                                text_align=ft.TextAlign.CENTER
+                            )
+                        ],
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        spacing=10
+                    )
+                )
+            )
+
+        else:
+
+            for notification in notifications:
+
+                notification_id = notification.get("id")
+                titre = notification.get("titre", "Notification")
+                texte = notification.get("message", "")
+                type_notif = notification.get("type", "info")
+                lue = notification.get("lue", False)
+                date_creation = notification.get(
+                    "date_creation",
+                    ""
+                )
+
+                if type_notif == "success":
+                    icone = ft.Icons.CHECK_CIRCLE
+                    couleur = GREEN
+
+                elif type_notif in ("danger", "error"):
+                    icone = ft.Icons.ERROR
+                    couleur = "#D32F2F"
+
+                elif type_notif == "warning":
+                    icone = ft.Icons.WARNING
+                    couleur = GOLD
+
+                else:
+                    icone = ft.Icons.INFO
+                    couleur = BLUE
+
+                def ouvrir_notification(
+                    e,
+                    nid=notification_id,
+                    deja_lue=lue
+                ):
+
+                    if not deja_lue:
+                        marquer_notification_lue(nid)
+
+                    afficher_notifications()
+
+                liste.controls.append(
+                    ft.Container(
+                        margin=ft.Margin.only(
+                            left=15,
+                            right=15,
+                            top=5
+                        ),
+                        padding=15,
+                        bgcolor=(
+                            ft.Colors.WHITE
+                            if lue
+                            else "#EEF4FF"
+                        ),
+                        border_radius=15,
+                        border=ft.Border.all(
+                            1,
+                            "#E1E7F0"
+                        ),
+                        on_click=ouvrir_notification,
+                        content=ft.Row(
+                            [
+                                ft.Container(
+                                    width=45,
+                                    height=45,
+                                    border_radius=50,
+                                    bgcolor=couleur,
+                                    alignment=ft.Alignment.CENTER,
+                                    content=ft.Icon(
+                                        icone,
+                                        color=ft.Colors.WHITE,
+                                        size=22
+                                    )
+                                ),
+
+                                ft.Column(
+                                    [
+                                        ft.Text(
+                                            titre,
+                                            size=15,
+                                            color=TEXT,
+                                            weight=(
+                                                ft.FontWeight.BOLD
+                                                if not lue
+                                                else ft.FontWeight.NORMAL
+                                            )
+                                        ),
+
+                                        ft.Text(
+                                            texte,
+                                            size=13,
+                                            color=GREY,
+                                            max_lines=3,
+                                            overflow=ft.TextOverflow.ELLIPSIS
+                                        ),
+
+                                        ft.Text(
+                                            date_creation,
+                                            size=10,
+                                            color=GREY
+                                        )
+                                    ],
+                                    expand=True,
+                                    spacing=4
+                                ),
+
+                                (
+                                    ft.Container(
+                                        width=9,
+                                        height=9,
+                                        bgcolor="#D32F2F",
+                                        border_radius=50
+                                    )
+                                    if not lue
+                                    else ft.Container(width=9)
+                                )
+                            ],
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER
+                        )
+                    )
+                )
+
+        page.add(
+            ft.Column(
+                [
+                    header,
+                    liste
+                ],
+                expand=True,
+                spacing=0
+            )
+        )
+
+        page.update()
+
+    def marquer_notification_lue(notification_id):
+
+        if not token:
+            return
+
+        try:
+
+            response = requests.post(
+                f"{API_URL}/api/mobile/notifications/{notification_id}/lire",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/json",
+                },
+                timeout=30,
+            )
+
+            print(
+                "Notification lue :",
+                notification_id,
+                response.status_code
+            )
+
+            if response.status_code == 200:
+
+                for notification in notifications:
+
+                    if notification.get("id") == notification_id:
+                        notification["lue"] = True
+
+                nonlocal_nombre = None
+
+        except Exception as ex:
+
+            print(
+                "❌ Erreur lecture notification :",
+                repr(ex)
+            )
 
     # --- ÉCRAN LOGIN ---
     def afficher_login():
@@ -315,7 +642,7 @@ def main(page: ft.Page):
                                 icon=ft.Icons.NOTIFICATIONS_OUTLINED,
                                 icon_color=ft.Colors.WHITE,
                                 icon_size=28,
-                                on_click=lambda e: message("2 nouvelles notifications"),
+                                on_click=afficher_notifications,
                             ),
                             ft.Container(
                                 width=18,
@@ -325,7 +652,7 @@ def main(page: ft.Page):
                                 border_radius=50,
                                 bgcolor="#E53935",
                                 alignment=ft.Alignment.CENTER,
-                                content=ft.Text("2", size=10, color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
+                                content=ft.Text( str(nombre_notifications_non_lues), size=10, color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
                             ),
                         ],
                     ),
