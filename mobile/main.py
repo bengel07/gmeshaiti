@@ -1181,6 +1181,105 @@ def main(page: ft.Page):
 
         page.update()
 
+    def afficher_profil():
+        print("🔥 ÉCRAN PROFIL")
+
+        page.controls.clear()
+
+        page.add(
+            ft.Column(
+                [
+                    ft.Container(
+                        bgcolor=BLUE,
+                        padding=ft.Padding.only(
+                            left=10,
+                            right=20,
+                            top=20,
+                            bottom=20,
+                        ),
+                        content=ft.Row(
+                            [
+                                ft.IconButton(
+                                    icon=ft.Icons.ARROW_BACK,
+                                    icon_color=ft.Colors.WHITE,
+                                    on_click=lambda e: afficher_dashboard(),
+                                ),
+                                ft.Text(
+                                    "Mon profil",
+                                    color=ft.Colors.WHITE,
+                                    size=22,
+                                    weight=ft.FontWeight.BOLD,
+                                    expand=True,
+                                ),
+                            ],
+                        ),
+                    ),
+
+                    ft.Container(
+                        padding=20,
+                        content=ft.Column(
+                            [
+                                ft.Container(
+                                    width=90,
+                                    height=90,
+                                    border_radius=50,
+                                    bgcolor=GOLD,
+                                    alignment=ft.Alignment.CENTER,
+                                    content=ft.Icon(
+                                        ft.Icons.PERSON,
+                                        color=ft.Colors.WHITE,
+                                        size=50,
+                                    ),
+                                ),
+
+                                ft.Text(
+                                    client.get("prenom", ""),
+                                    size=24,
+                                    color=TEXT,
+                                    weight=ft.FontWeight.BOLD,
+                                ),
+
+                                ft.Text(
+                                    client.get("nom", ""),
+                                    size=18,
+                                    color=GREY,
+                                ),
+
+                                ft.Divider(),
+
+                                ft.Text(
+                                    f"Numéro de compte : "
+                                    f"{client.get('numero_compte', '-')}",
+                                    size=15,
+                                    color=TEXT,
+                                ),
+
+                                ft.Text(
+                                    f"Email : "
+                                    f"{user.get('email', '-')}",
+                                    size=15,
+                                    color=TEXT,
+                                ),
+
+                                ft.Text(
+                                    f"Téléphone : "
+                                    f"{client.get('telephone', '-')}",
+                                    size=15,
+                                    color=TEXT,
+                                ),
+                            ],
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            spacing=15,
+                        ),
+                    ),
+                ],
+                expand=True,
+                scroll=ft.ScrollMode.AUTO,
+            )
+        )
+
+        page.update()
+
     # --- ÉCRAN DASHBOARD ---
     def afficher_dashboard():
         page.controls.clear()
@@ -1548,15 +1647,41 @@ def main(page: ft.Page):
 
         navigation_bar = ft.NavigationBar(
             selected_index=0,
-            on_change=lambda e: message(f"Onglet sélectionné: {e.control.selected_index}"),
+
+            on_change=lambda e: (
+                afficher_dashboard()
+                if e.control.selected_index == 0
+                else afficher_demande_pret()
+                if e.control.selected_index == 1
+                else afficher_remboursement()
+                if e.control.selected_index == 2
+                else afficher_profil()
+            ),
+
             destinations=[
-                ft.NavigationBarDestination(icon=ft.Icons.HOME_OUTLINED, selected_icon=ft.Icons.HOME, label="Accueil"),
-                ft.NavigationBarDestination(icon=ft.Icons.DESCRIPTION_OUTLINED, selected_icon=ft.Icons.DESCRIPTION,
-                                            label="Prêts"),
-                ft.NavigationBarDestination(icon=ft.Icons.SWAP_HORIZ_OUTLINED, selected_icon=ft.Icons.SWAP_HORIZ,
-                                            label="Paiements"),
-                ft.NavigationBarDestination(icon=ft.Icons.PERSON_OUTLINE, selected_icon=ft.Icons.PERSON,
-                                            label="Profil"),
+                ft.NavigationBarDestination(
+                    icon=ft.Icons.HOME_OUTLINED,
+                    selected_icon=ft.Icons.HOME,
+                    label="Accueil",
+                ),
+
+                ft.NavigationBarDestination(
+                    icon=ft.Icons.DESCRIPTION_OUTLINED,
+                    selected_icon=ft.Icons.DESCRIPTION,
+                    label="Prêts",
+                ),
+
+                ft.NavigationBarDestination(
+                    icon=ft.Icons.SWAP_HORIZ_OUTLINED,
+                    selected_icon=ft.Icons.SWAP_HORIZ,
+                    label="Paiements",
+                ),
+
+                ft.NavigationBarDestination(
+                    icon=ft.Icons.PERSON_OUTLINE,
+                    selected_icon=ft.Icons.PERSON,
+                    label="Profil",
+                ),
             ],
         )
 

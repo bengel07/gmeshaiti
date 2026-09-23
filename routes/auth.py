@@ -843,6 +843,7 @@ def mobile_client_me():
                 "email": client.email,
                 "telephone": client.telephone,
                 "solde": solde_reel or 0,
+                "solde_epargne": solde_reel or 0,
                 "statut": client.statut,
                 "compte_actif": client.compte_actif,
                 "a_un_pret_actif": client.a_un_pret_actif,
