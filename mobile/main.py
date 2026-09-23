@@ -22,27 +22,33 @@ GREY = "#66789C"
 # ============================================================
 
 def action_button(icon, title, color, on_click=None):
-    return ft.Container(
-        width=150,
-        height=125,
-        border_radius=20,
-        bgcolor=color,
-        padding=15,
-        on_click=on_click,
-        content=ft.Column(
-            [
-                ft.Icon(icon, color=ft.Colors.WHITE, size=34),
-                ft.Text(
-                    title,
-                    color=ft.Colors.WHITE,
-                    size=16,
-                    weight=ft.FontWeight.BOLD,
-                    text_align=ft.TextAlign.CENTER,
-                ),
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            alignment=ft.MainAxisAlignment.CENTER,
-            spacing=10,
+    return ft.GestureDetector(
+        on_tap=on_click,
+        content=ft.Container(
+            width=150,
+            height=125,
+            border_radius=20,
+            bgcolor=color,
+            padding=15,
+            content=ft.Column(
+                [
+                    ft.Icon(
+                        icon,
+                        color=ft.Colors.WHITE,
+                        size=34,
+                    ),
+                    ft.Text(
+                        title,
+                        color=ft.Colors.WHITE,
+                        size=16,
+                        weight=ft.FontWeight.BOLD,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=10,
+            ),
         ),
     )
 
@@ -1102,16 +1108,49 @@ def main(page: ft.Page):
                 ),
             )
 
-        # Actions
+        # ============================================================
+        # ACTIONS
+        # ============================================================
+
+        def cliquer_demande_pret(e):
+            print("🔥 CLIC DEMANDE DE PRÊT")
+            afficher_demande_pret()
+
         actions = ft.Container(
-            margin=ft.Margin.only(left=20, right=20, top=18),
+            margin=ft.Margin.only(
+                left=20,
+                right=20,
+                top=18
+            ),
             content=ft.Row(
                 [
-                    action_button(ft.Icons.DESCRIPTION, "Demander\nun prêt", "#0874E8",
-                                  lambda e: afficher_demande_pret()),
-                    action_button(ft.Icons.CREDIT_CARD, "Rembourser", "#E5A817", lambda e: message("Remboursements")),
-                    action_button(ft.Icons.SAVINGS, "Épargne", GREEN, lambda e: message("Épargne")),
-                    action_button(ft.Icons.SWAP_HORIZ, "Transactions", PURPLE, lambda e: message("Transactions")),
+                    action_button(
+                        ft.Icons.DESCRIPTION,
+                        "Demander\nun prêt",
+                        "#0874E8",
+                        cliquer_demande_pret
+                    ),
+
+                    action_button(
+                        ft.Icons.CREDIT_CARD,
+                        "Rembourser",
+                        "#E5A817",
+                        lambda e: message("Remboursements")
+                    ),
+
+                    action_button(
+                        ft.Icons.SAVINGS,
+                        "Épargne",
+                        GREEN,
+                        lambda e: message("Épargne")
+                    ),
+
+                    action_button(
+                        ft.Icons.SWAP_HORIZ,
+                        "Transactions",
+                        PURPLE,
+                        lambda e: message("Transactions")
+                    ),
                 ],
                 scroll=ft.ScrollMode.AUTO,
                 spacing=12,
