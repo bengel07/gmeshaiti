@@ -427,16 +427,27 @@ def main(page: ft.Page):
                     icone = ft.Icons.INFO
                     couleur = BLUE
 
-                def ouvrir_notification(
-                    e,
-                    nid=notification_id,
-                    deja_lue=lue
+                def cliquer_notification(
+                        e,
+                        notification=notification,
+                        nid=notification_id,
+                        deja_lue=lue
                 ):
-
                     if not deja_lue:
                         marquer_notification_lue(nid)
 
-                    afficher_notifications()
+                    lien = notification.get("lien")
+
+                    if not lien:
+                        message("Cette notification n'a pas de lien.")
+                        return
+
+                    if lien.startswith("/"):
+                        lien = API_URL + lien
+
+                    print("🔗 Ouverture :", lien)
+
+                    page.launch_url(lien)
 
                 liste.controls.append(
                     ft.Container(
@@ -456,7 +467,7 @@ def main(page: ft.Page):
                             1,
                             "#E1E7F0"
                         ),
-                        on_click=ouvrir_notification,
+                        on_click=cliquer_notification,
                         content=ft.Row(
                             [
                                 ft.Container(
@@ -531,6 +542,17 @@ def main(page: ft.Page):
         )
 
         page.update()
+
+    # def ouvrir_notification(notification):
+    #     lien = notification.get("lien") or notification.get("url")
+    #
+    #     if not lien:
+    #         message("Cette notification n'a pas de lien.")
+    #         return
+    #
+    #     print("🔗 Lien notification :", lien)
+    #
+    #     # Ici on ouvre le lien
 
     def marquer_notification_lue(notification_id):
 
