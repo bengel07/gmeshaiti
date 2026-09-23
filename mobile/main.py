@@ -841,6 +841,346 @@ def main(page: ft.Page):
 
         page.update()
 
+    def afficher_remboursement():
+        print("🔥 ÉCRAN REMBOURSEMENT")
+
+        page.controls.clear()
+
+        resultat = ft.Text("", size=13)
+
+        numero_pret = ft.TextField(
+            label="Numéro du prêt",
+            prefix_icon=ft.Icons.RECEIPT_LONG,
+            border_radius=12,
+        )
+
+        montant = ft.TextField(
+            label="Montant du remboursement (HTG)",
+            prefix_icon=ft.Icons.ATTACH_MONEY,
+            keyboard_type=ft.KeyboardType.NUMBER,
+            border_radius=12,
+        )
+
+        def effectuer_remboursement(e):
+            print("🔥 CLIC EFFECTUER REMBOURSEMENT")
+
+            numero = numero_pret.value.strip()
+            montant_value = montant.value.strip()
+
+            if not numero or not montant_value:
+                resultat.value = "Veuillez remplir tous les champs."
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            try:
+                montant_float = float(montant_value)
+            except ValueError:
+                resultat.value = "Le montant est invalide."
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            if montant_float <= 0:
+                resultat.value = "Le montant doit être supérieur à zéro."
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            # Pour l'instant on vérifie uniquement le formulaire.
+            # L'appel API sera branché ensuite.
+            resultat.value = (
+                f"Remboursement de {montant_float:,.2f} HTG "
+                f"pour le prêt {numero}."
+            )
+            resultat.color = GREEN
+            page.update()
+
+        page.add(
+            ft.Column(
+                [
+                    ft.Container(
+                        bgcolor=BLUE,
+                        padding=ft.Padding.only(
+                            left=10,
+                            right=20,
+                            top=20,
+                            bottom=20,
+                        ),
+                        content=ft.Row(
+                            [
+                                ft.IconButton(
+                                    icon=ft.Icons.ARROW_BACK,
+                                    icon_color=ft.Colors.WHITE,
+                                    on_click=lambda e: afficher_dashboard(),
+                                ),
+                                ft.Text(
+                                    "Remboursement",
+                                    color=ft.Colors.WHITE,
+                                    size=22,
+                                    weight=ft.FontWeight.BOLD,
+                                    expand=True,
+                                ),
+                            ],
+                        ),
+                    ),
+
+                    ft.Container(
+                        padding=20,
+                        content=ft.Column(
+                            [
+                                ft.Text(
+                                    "Effectuer un remboursement",
+                                    size=23,
+                                    color=TEXT,
+                                    weight=ft.FontWeight.BOLD,
+                                ),
+
+                                ft.Text(
+                                    "Entrez les informations de votre remboursement.",
+                                    size=14,
+                                    color=GREY,
+                                ),
+
+                                ft.Container(height=10),
+
+                                numero_pret,
+                                montant,
+
+                                resultat,
+
+                                ft.ElevatedButton(
+                                    "Effectuer le remboursement",
+                                    icon=ft.Icons.PAYMENT,
+                                    width=300,
+                                    height=50,
+                                    on_click=effectuer_remboursement,
+                                ),
+                            ],
+                            spacing=15,
+                        ),
+                    ),
+                ],
+                expand=True,
+                scroll=ft.ScrollMode.AUTO,
+            )
+        )
+
+        page.update()
+
+    def afficher_epargne():
+        print("🔥 ÉCRAN ÉPARGNE")
+
+        page.controls.clear()
+
+        page.add(
+            ft.Column(
+                [
+                    ft.Container(
+                        bgcolor=GREEN,
+                        padding=ft.Padding.only(
+                            left=10,
+                            right=20,
+                            top=20,
+                            bottom=20,
+                        ),
+                        content=ft.Row(
+                            [
+                                ft.IconButton(
+                                    icon=ft.Icons.ARROW_BACK,
+                                    icon_color=ft.Colors.WHITE,
+                                    on_click=lambda e: afficher_dashboard(),
+                                ),
+                                ft.Text(
+                                    "Épargne",
+                                    color=ft.Colors.WHITE,
+                                    size=22,
+                                    weight=ft.FontWeight.BOLD,
+                                    expand=True,
+                                ),
+                            ],
+                        ),
+                    ),
+
+                    ft.Container(
+                        padding=20,
+                        content=ft.Column(
+                            [
+                                ft.Text(
+                                    "Mon épargne",
+                                    size=24,
+                                    color=TEXT,
+                                    weight=ft.FontWeight.BOLD,
+                                ),
+
+                                ft.Text(
+                                    "Gérez votre épargne GMES.",
+                                    size=14,
+                                    color=GREY,
+                                ),
+
+                                ft.Container(height=20),
+
+                                ft.Container(
+                                    width=float("inf"),
+                                    padding=25,
+                                    bgcolor="#E5F7F1",
+                                    border_radius=20,
+                                    content=ft.Column(
+                                        [
+                                            ft.Text(
+                                                "Solde épargne",
+                                                size=15,
+                                                color=GREY,
+                                            ),
+                                            ft.Text(
+                                                f"{client.get('solde_epargne', 0):,.2f} HTG",
+                                                size=30,
+                                                color=GREEN,
+                                                weight=ft.FontWeight.BOLD,
+                                            ),
+                                        ],
+                                        spacing=8,
+                                    ),
+                                ),
+
+                                ft.Container(height=15),
+
+                                ft.ElevatedButton(
+                                    "Déposer dans mon épargne",
+                                    icon=ft.Icons.ADD,
+                                    width=300,
+                                    height=50,
+                                    on_click=lambda e: message(
+                                        "Dépôt épargne"
+                                    ),
+                                ),
+
+                                ft.ElevatedButton(
+                                    "Retirer de mon épargne",
+                                    icon=ft.Icons.REMOVE,
+                                    width=300,
+                                    height=50,
+                                    on_click=lambda e: message(
+                                        "Retrait épargne"
+                                    ),
+                                ),
+                            ],
+                            spacing=15,
+                        ),
+                    ),
+                ],
+                expand=True,
+                scroll=ft.ScrollMode.AUTO,
+            )
+        )
+
+        page.update()
+
+    def afficher_transactions():
+        print("🔥 ÉCRAN TRANSACTIONS")
+
+        page.controls.clear()
+
+        liste_transactions = ft.Column(
+            spacing=0,
+            scroll=ft.ScrollMode.AUTO,
+            expand=True,
+        )
+
+        liste_transactions.controls.extend(
+            [
+                transaction_item(
+                    ft.Icons.ARROW_DOWNWARD,
+                    "Remboursement prêt",
+                    "12 sept. 2026",
+                    "- 6,200 HTG",
+                    "Reçu",
+                    "green",
+                ),
+
+                transaction_item(
+                    ft.Icons.ARROW_UPWARD,
+                    "Dépôt épargne",
+                    "08 sept. 2026",
+                    "+ 2,000 HTG",
+                    "Crédité",
+                    "green",
+                ),
+
+                transaction_item(
+                    ft.Icons.CREDIT_CARD,
+                    "Retrait guichet",
+                    "05 sept. 2026",
+                    "- 3,000 HTG",
+                    "Effectué",
+                    "blue",
+                ),
+            ]
+        )
+
+        page.add(
+            ft.Column(
+                [
+                    ft.Container(
+                        bgcolor=PURPLE,
+                        padding=ft.Padding.only(
+                            left=10,
+                            right=20,
+                            top=20,
+                            bottom=20,
+                        ),
+                        content=ft.Row(
+                            [
+                                ft.IconButton(
+                                    icon=ft.Icons.ARROW_BACK,
+                                    icon_color=ft.Colors.WHITE,
+                                    on_click=lambda e: afficher_dashboard(),
+                                ),
+                                ft.Text(
+                                    "Transactions",
+                                    color=ft.Colors.WHITE,
+                                    size=22,
+                                    weight=ft.FontWeight.BOLD,
+                                    expand=True,
+                                ),
+                            ],
+                        ),
+                    ),
+
+                    ft.Container(
+                        padding=20,
+                        content=ft.Column(
+                            [
+                                ft.Text(
+                                    "Historique des transactions",
+                                    size=23,
+                                    color=TEXT,
+                                    weight=ft.FontWeight.BOLD,
+                                ),
+
+                                ft.Text(
+                                    "Consultez vos opérations récentes.",
+                                    size=14,
+                                    color=GREY,
+                                ),
+
+                                ft.Container(height=10),
+
+                                liste_transactions,
+                            ],
+                            spacing=10,
+                            expand=True,
+                        ),
+                        expand=True,
+                    ),
+                ],
+                expand=True,
+            )
+        )
+
+        page.update()
+
     # --- ÉCRAN DASHBOARD ---
     def afficher_dashboard():
         page.controls.clear()
@@ -1135,21 +1475,21 @@ def main(page: ft.Page):
                         ft.Icons.CREDIT_CARD,
                         "Rembourser",
                         "#E5A817",
-                        lambda e: message("Remboursements")
+                        lambda e: afficher_remboursement()
                     ),
 
                     action_button(
                         ft.Icons.SAVINGS,
                         "Épargne",
                         GREEN,
-                        lambda e: message("Épargne")
+                        lambda e: afficher_epargne()
                     ),
 
                     action_button(
                         ft.Icons.SWAP_HORIZ,
                         "Transactions",
                         PURPLE,
-                        lambda e: message("Transactions")
+                        lambda e: afficher_transactions()
                     ),
                 ],
                 scroll=ft.ScrollMode.AUTO,
