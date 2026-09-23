@@ -255,8 +255,8 @@ csrf.exempt(app.view_functions['auth.mobile_logout'])
 
 csrf.exempt(app.view_functions['auth.mobile_client_me'])
 
-csrf.exempt(app.view_functions['auth.mobile_notifications'])
-csrf.exempt(app.view_functions['auth.mobile_notification_lire'])
+csrf.exempt(app.view_functions['mobile_api.mobile_notifications'])
+csrf.exempt(app.view_functions['mobile_api.mobile_notification_lire'])
 
 from functools import wraps
 
