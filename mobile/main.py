@@ -628,6 +628,213 @@ def main(page: ft.Page):
         )
         page.update()
 
+    def afficher_demande_pret():
+        page.controls.clear()
+
+        montant_field = ft.TextField(
+            label="Montant demandé (HTG)",
+            prefix_icon=ft.Icons.ATTACH_MONEY,
+            keyboard_type=ft.KeyboardType.NUMBER,
+            border_radius=12,
+        )
+
+        duree_field = ft.TextField(
+            label="Durée (mois)",
+            prefix_icon=ft.Icons.CALENDAR_MONTH,
+            keyboard_type=ft.KeyboardType.NUMBER,
+            border_radius=12,
+        )
+
+        motif_field = ft.TextField(
+            label="Motif de la demande",
+            prefix_icon=ft.Icons.DESCRIPTION,
+            multiline=True,
+            min_lines=3,
+            max_lines=5,
+            border_radius=12,
+        )
+
+        resultat = ft.Text("", size=13)
+
+        def envoyer_demande(e):
+
+            if not token:
+                resultat.value = "Session expirée. Veuillez vous reconnecter."
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            montant = montant_field.value.strip()
+            duree = duree_field.value.strip()
+            motif = motif_field.value.strip()
+
+            if not montant or not duree:
+                resultat.value = "Veuillez remplir le montant et la durée."
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            try:
+                montant_float = float(montant)
+                duree_int = int(duree)
+            except ValueError:
+                resultat.value = "Montant ou durée invalide."
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            if montant_float < 10000:
+                resultat.value = "Le montant minimum est de 10 000 HTG."
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            if duree_int < 3 or duree_int > 60:
+                resultat.value = "La durée doit être entre 3 et 60 mois."
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            try:
+                response = requests.post(
+                    f"{API_URL}/prets/demande-pret",
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Accept": "application/json",
+                    },
+                    json={
+                        "montant": montant_float,
+                        "duree_mois": duree_int,
+                        "motif": motif,
+                    },
+                    timeout=30,
+                )
+
+                print("================================")
+                print("DEMANDE DE PRÊT")
+                print("STATUT :", response.status_code)
+                print("REPONSE :", response.text[:2000])
+                print("================================")
+
+                try:
+                    data = response.json()
+                except Exception:
+                    data = {}
+
+                if response.status_code in (200, 201) and data.get("success"):
+                    resultat.value = data.get(
+                        "message",
+                        "Votre demande de prêt a été envoyée."
+                    )
+                    resultat.color = GREEN
+
+                    montant_field.value = ""
+                    duree_field.value = ""
+                    motif_field.value = ""
+
+                    page.update()
+
+                    return
+
+                resultat.value = data.get(
+                    "error",
+                    data.get(
+                        "message",
+                        f"Erreur serveur ({response.status_code})"
+                    )
+                )
+                resultat.color = "#D32F2F"
+                page.update()
+
+            except requests.exceptions.Timeout:
+                resultat.value = "Le serveur GMES ne répond pas."
+                resultat.color = "#D32F2F"
+                page.update()
+
+            except requests.exceptions.ConnectionError:
+                resultat.value = "Impossible de contacter le serveur GMES."
+                resultat.color = "#D32F2F"
+                page.update()
+
+            except Exception as ex:
+                print("ERREUR DEMANDE PRÊT :", repr(ex))
+                resultat.value = "Une erreur est survenue."
+                resultat.color = "#D32F2F"
+                page.update()
+
+        page.add(
+            ft.Column(
+                [
+                    ft.Container(
+                        bgcolor=BLUE,
+                        padding=ft.Padding.only(
+                            left=10,
+                            right=20,
+                            top=20,
+                            bottom=20,
+                        ),
+                        content=ft.Row(
+                            [
+                                ft.IconButton(
+                                    icon=ft.Icons.ARROW_BACK,
+                                    icon_color=ft.Colors.WHITE,
+                                    on_click=lambda e: afficher_dashboard(),
+                                ),
+                                ft.Text(
+                                    "Demande de prêt",
+                                    color=ft.Colors.WHITE,
+                                    size=22,
+                                    weight=ft.FontWeight.BOLD,
+                                    expand=True,
+                                ),
+                            ],
+                        ),
+                    ),
+
+                    ft.Container(
+                        padding=20,
+                        content=ft.Column(
+                            [
+                                ft.Text(
+                                    "Nouvelle demande",
+                                    size=24,
+                                    color=TEXT,
+                                    weight=ft.FontWeight.BOLD,
+                                ),
+
+                                ft.Text(
+                                    "Remplissez les informations de votre demande de prêt.",
+                                    size=14,
+                                    color=GREY,
+                                ),
+
+                                ft.Container(height=10),
+
+                                montant_field,
+                                duree_field,
+                                motif_field,
+
+                                resultat,
+
+                                ft.ElevatedButton(
+                                    "Envoyer la demande",
+                                    icon=ft.Icons.SEND,
+                                    width=300,
+                                    height=50,
+                                    on_click=envoyer_demande,
+                                ),
+                            ],
+                            spacing=15,
+                        ),
+                    ),
+                ],
+                expand=True,
+                scroll=ft.ScrollMode.AUTO,
+            )
+        )
+
+        page.update()
+
     # --- ÉCRAN DASHBOARD ---
     def afficher_dashboard():
         page.controls.clear()
@@ -901,7 +1108,7 @@ def main(page: ft.Page):
             content=ft.Row(
                 [
                     action_button(ft.Icons.DESCRIPTION, "Demander\nun prêt", "#0874E8",
-                                  lambda e: message("Demande de prêt")),
+                                  lambda e: afficher_demande_pret()),
                     action_button(ft.Icons.CREDIT_CARD, "Rembourser", "#E5A817", lambda e: message("Remboursements")),
                     action_button(ft.Icons.SAVINGS, "Épargne", GREEN, lambda e: message("Épargne")),
                     action_button(ft.Icons.SWAP_HORIZ, "Transactions", PURPLE, lambda e: message("Transactions")),
