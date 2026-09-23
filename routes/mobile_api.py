@@ -223,9 +223,9 @@ def mobile_me(current_user):
 # MES PRÊTS
 # ============================================================
 
-@mobile_api_bp.route("/api/mes-prets", methods=["GET"])
+@mobile_api_bp.route("/api/mobile/prets", methods=["GET"])
 @token_required
-def mobile_mes_prets(current_user):
+def mobile_prets(current_user):
 
     client = obtenir_client(current_user)
 
@@ -246,59 +246,64 @@ def mobile_mes_prets(current_user):
 
     for pret in prets:
 
-        montant_accorde = getattr(
-            pret,
-            "montant_accorde",
-            None
+        montant_total = pret.montant_total or 0
+        montant_rembourse = pret.montant_rembourse or 0
+
+        # Utiliser le solde calculé s'il existe
+        if pret.solde_restant_cache is not None:
+            solde_restant = pret.solde_restant_cache
+        else:
+            solde_restant = montant_total - montant_rembourse
+
+        solde_restant = max(0, solde_restant)
+
+        montant_accorde = (
+            pret.montant_accorde
+            if pret.montant_accorde is not None
+            else pret.montant or 0
         )
 
-        if montant_accorde is None:
-            montant_accorde = pret.montant or 0
-
         resultats.append({
+
             "id": pret.id,
 
-            "numero_pret": getattr(
-                pret,
-                "numero_pret",
-                None
-            ),
+            "numero_pret": pret.numero_pret,
 
-            "montant": pret.montant or 0,
-            "montant_accorde": montant_accorde,
-
-            "duree_mois": pret.duree_mois,
-
-            "taux_interet": (
-                pret.taux_interet or 0
-            ),
-
-            "mensualite": (
-                pret.mensualite or 0
-            ),
-
-            "montant_interet": getattr(
-                pret,
-                "montant_interet",
-                0
-            ) or 0,
-
-            "montant_total": (
-                pret.montant_total or 0
-            ),
-
-            "montant_rembourse": (
-                pret.montant_rembourse or 0
-            ),
-
-            "solde_restant": max(
-                0,
-                (pret.montant_total or 0)
-                - (pret.montant_rembourse or 0)
-            ),
+            "numero_dossier": pret.numero_dossier,
 
             "statut": pret.statut,
+
+            "decision": pret.decision,
+
             "motif": pret.motif,
+
+            "montant": pret.montant or 0,
+
+            "montant_demande": (
+                pret.montant_demande
+                if pret.montant_demande is not None
+                else pret.montant or 0
+            ),
+
+            "montant_accorde": montant_accorde,
+
+            "taux_interet": pret.taux_interet or 0,
+
+            "duree_mois": pret.duree_mois or 0,
+
+            "mensualite": pret.mensualite or 0,
+
+            "montant_interet": pret.montant_interet or 0,
+
+            "montant_total": montant_total,
+
+            "montant_rembourse": montant_rembourse,
+
+            "solde_restant": solde_restant,
+
+            "penalite": pret.penalite or 0,
+
+            "type_pret": pret.type_pret,
 
             "date_demande": (
                 pret.date_demande.isoformat()
@@ -310,13 +315,33 @@ def mobile_mes_prets(current_user):
                 pret.date_approbation.isoformat()
                 if pret.date_approbation
                 else None
+            ),
+
+            "date_decaissement": (
+                pret.date_decaissement.isoformat()
+                if pret.date_decaissement
+                else None
+            ),
+
+            "date_echeance": (
+                pret.date_echeance.isoformat()
+                if pret.date_echeance
+                else None
+            ),
+
+            "prochaine_echeance": (
+                pret.prochaine_echeance.isoformat()
+                if pret.prochaine_echeance
+                else None
             )
         })
 
     return jsonify({
         "success": True,
-        "prets": resultats
-    })
+        "client_id": client.id,
+        "prets": resultats,
+        "total": len(resultats)
+    }), 200
 
 
 # ============================================================
@@ -507,3 +532,4 @@ def mobile_demande_pret(current_user):
             "statut": nouveau_pret.statut
         }
     }), 201
+
