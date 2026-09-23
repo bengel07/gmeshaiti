@@ -345,193 +345,368 @@ def mobile_prets(current_user):
 
 
 # ============================================================
-# DEMANDE DE PRÊT
+# API MOBILE — DEMANDE DE PRÊT
 # ============================================================
 
 @mobile_api_bp.route(
-    "/api/demande-pret",
+    "/api/mobile/demande-pret",
     methods=["POST"]
 )
-@token_required
 def mobile_demande_pret(current_user):
 
-    client = obtenir_client(current_user)
-
-    if not client:
-
-        return jsonify({
-            "success": False,
-            "error": "Profil client introuvable"
-        }), 404
-
-    # --------------------------------------------------------
-    # Compte client
-    # --------------------------------------------------------
-
-    if not client.compte_actif:
-
-        return jsonify({
-            "success": False,
-            "error": "Votre compte client est désactivé"
-        }), 403
-
-    # --------------------------------------------------------
-    # Conditions du compte
-    # --------------------------------------------------------
-
-    if not client.terms_accepted:
-
-        return jsonify({
-            "success": False,
-            "error": "Vous devez accepter les conditions du compte"
-        }), 400
-
-    data = request.get_json(silent=True) or {}
-
-    montant = data.get("montant")
-
-    duree = (
-        data.get("duree_mois")
-        or data.get("duree")
-    )
-
-    motif = data.get("motif", "").strip()
-
-    if montant is None or duree is None:
-
-        return jsonify({
-            "success": False,
-            "error": "Montant et durée obligatoires"
-        }), 400
-
     try:
-        montant = float(montant)
-        duree = int(duree)
+        # ----------------------------------------------------
+        # RÉCUPÉRER LE CLIENT CONNECTÉ
+        # ----------------------------------------------------
+        client = obtenir_client(current_user)
 
-    except (ValueError, TypeError):
+        if not client:
+            return jsonify({
+                "success": False,
+                "error": "Profil client introuvable"
+            }), 404
 
-        return jsonify({
-            "success": False,
-            "error": "Montant ou durée invalide"
-        }), 400
+        # ----------------------------------------------------
+        # DONNÉES JSON
+        # ----------------------------------------------------
+        data = request.get_json(silent=True) or {}
 
-    # --------------------------------------------------------
-    # Validation
-    # --------------------------------------------------------
+        print("==============================================")
+        print("📱 DEMANDE DE PRÊT MOBILE")
+        print("CLIENT :", client.id)
+        print("DONNÉES :", data)
+        print("==============================================")
 
-    if montant < 10000:
+        # ----------------------------------------------------
+        # CHAMPS OBLIGATOIRES
+        # ----------------------------------------------------
+        montant = data.get("montant")
+        duree = data.get("duree")
+        objet = data.get("objet")
+        type_pret = data.get("type_pret")
 
-        return jsonify({
-            "success": False,
-            "error": "Le montant minimum est de 10 000 HTG"
-        }), 400
+        if not montant:
+            return jsonify({
+                "success": False,
+                "error": "Le montant du prêt est obligatoire."
+            }), 400
 
-    if montant > 10_000_000_000:
+        if not duree:
+            return jsonify({
+                "success": False,
+                "error": "La durée du prêt est obligatoire."
+            }), 400
 
-        return jsonify({
-            "success": False,
-            "error": "Le montant demandé est trop élevé"
-        }), 400
+        if not objet:
+            return jsonify({
+                "success": False,
+                "error": "L'objet du prêt est obligatoire."
+            }), 400
 
-    if duree < 3 or duree > 60:
+        if not type_pret:
+            return jsonify({
+                "success": False,
+                "error": "Le type de prêt est obligatoire."
+            }), 400
 
-        return jsonify({
-            "success": False,
-            "error": "La durée doit être comprise entre 3 et 60 mois"
-        }), 400
-
-    # --------------------------------------------------------
-    # Vérification métier existante
-    # --------------------------------------------------------
-
-    if hasattr(client, "verifier_peut_demander_pret"):
-
+        # ----------------------------------------------------
+        # CONVERSION
+        # ----------------------------------------------------
         try:
+            montant = float(montant)
+            duree = int(duree)
+        except (ValueError, TypeError):
 
-            resultat = client.verifier_peut_demander_pret()
+            return jsonify({
+                "success": False,
+                "error": "Montant ou durée invalide."
+            }), 400
 
-            if isinstance(resultat, tuple):
+        # ----------------------------------------------------
+        # VALIDATION MONTANT
+        # ----------------------------------------------------
+        if montant < 10000 or montant > 10_000_000_000:
 
-                autorise, message = resultat
+            return jsonify({
+                "success": False,
+                "error": (
+                    "Le montant doit être compris entre "
+                    "10 000 et 10 000 000 000 Gdes."
+                )
+            }), 400
 
-                if not autorise:
+        # ----------------------------------------------------
+        # VALIDATION DURÉE
+        # ----------------------------------------------------
+        if duree < 3 or duree > 60:
 
-                    return jsonify({
-                        "success": False,
-                        "error": message
-                    }), 400
+            return jsonify({
+                "success": False,
+                "error": "La durée doit être comprise entre 3 et 60 mois."
+            }), 400
 
-            elif resultat is False:
+        # ----------------------------------------------------
+        # VÉRIFIER LES CONDITIONS DU CLIENT
+        # ----------------------------------------------------
+        if not client.terms_accepted:
 
-                return jsonify({
-                    "success": False,
-                    "error": "Le client ne peut pas demander un prêt"
-                }), 400
+            return jsonify({
+                "success": False,
+                "requires_terms": True,
+                "error": (
+                    "Vous devez d'abord accepter les conditions "
+                    "générales de votre compte."
+                )
+            }), 403
 
-        except TypeError:
-            pass
-
-    # --------------------------------------------------------
-    # Vérifier les prêts déjà en cours
-    # --------------------------------------------------------
-
-    pret_existant = (
-        Pret.query
-        .filter(
+        # ----------------------------------------------------
+        # VÉRIFIER LES PRÊTS EXISTANTS
+        # ----------------------------------------------------
+        pret_existant = Pret.query.filter(
             Pret.client_id == client.id,
             Pret.statut.in_([
                 "en_attente",
-                "actif",
+                "attente_signature",
                 "approuve",
+                "actif",
                 "en_retard"
             ])
-        )
-        .first()
-    )
+        ).first()
 
-    if pret_existant:
+        if pret_existant:
+
+            return jsonify({
+                "success": False,
+                "error": (
+                    "Vous avez déjà une demande de prêt "
+                    "en cours."
+                ),
+                "pret_id": pret_existant.id,
+                "numero_pret": pret_existant.numero_pret,
+                "statut": pret_existant.statut
+            }), 409
+
+        # ----------------------------------------------------
+        # TAUX
+        # ----------------------------------------------------
+        taux_annuel = float(
+            data.get("taux_interet", 12)
+        )
+
+        # ----------------------------------------------------
+        # CALCUL INTÉRÊT
+        # ----------------------------------------------------
+        montant_interet = (
+            montant
+            * (taux_annuel / 100)
+            * (duree / 12)
+        )
+
+        montant_total = montant + montant_interet
+
+        mensualite = (
+            montant_total / duree
+            if duree > 0
+            else montant_total
+        )
+
+        # ----------------------------------------------------
+        # RATIO D'ENDETTEMENT
+        # ----------------------------------------------------
+        revenu_mensuel = client.revenu_mensuel or 0
+
+        if revenu_mensuel > 0:
+
+            ratio_endettement = (
+                mensualite / float(revenu_mensuel)
+            ) * 100
+
+            if ratio_endettement > 35:
+
+                return jsonify({
+                    "success": False,
+                    "error": (
+                        f"Ratio d'endettement trop élevé "
+                        f"({ratio_endettement:.1f}%)."
+                    ),
+                    "ratio_endettement": round(
+                        ratio_endettement, 2
+                    )
+                }), 400
+
+        # ----------------------------------------------------
+        # NUMÉRO DE PRÊT
+        # ----------------------------------------------------
+        numero_pret_unique = generer_numero_pret()
+
+        # ----------------------------------------------------
+        # CRÉATION DU PRÊT
+        # ----------------------------------------------------
+        nouveau_pret = Pret(
+
+            numero_pret=numero_pret_unique,
+
+            client_id=client.id,
+
+            agent_id=None,
+
+            montant=montant,
+
+            montant_demande=montant,
+
+            montant_accorde=0,
+
+            montant_rembourse=0,
+
+            solde_restant=round(
+                montant_total,
+                2
+            ),
+
+            duree_mois=duree,
+
+            motif=objet,
+
+            type_pret=type_pret,
+
+            autre_type_pret=data.get(
+                "autre_type_pret"
+            ) if type_pret == "autre" else None,
+
+            succursale_id=client.succursale_id,
+
+            mensualite=round(
+                mensualite,
+                2
+            ),
+
+            montant_interet=round(
+                montant_interet,
+                2
+            ),
+
+            montant_total=round(
+                montant_total,
+                2
+            ),
+
+            taux_interet=taux_annuel,
+
+            statut="attente_signature",
+
+            numero_dossier=data.get(
+                "numero_dossier"
+            )
+        )
+
+        db.session.add(nouveau_pret)
+
+        db.session.flush()
+
+        print(
+            "✅ PRÊT MOBILE CRÉÉ :",
+            nouveau_pret.id,
+            nouveau_pret.numero_pret
+        )
+
+        # ----------------------------------------------------
+        # COMMIT
+        # ----------------------------------------------------
+        db.session.commit()
+
+        # ----------------------------------------------------
+        # NOTIFICATION CLIENT
+        # ----------------------------------------------------
+        try:
+
+            notifier_client(
+                client_id=client.id,
+                titre="Demande de prêt envoyée",
+                message=(
+                    "Votre demande de prêt a été enregistrée "
+                    "et est en attente de signature."
+                ),
+                type="info",
+                lien=None
+            )
+
+        except Exception as notification_error:
+
+            print(
+                "⚠️ Notification client non envoyée :",
+                notification_error
+            )
+
+        # ----------------------------------------------------
+        # NOTIFICATION DIRECTION
+        # ----------------------------------------------------
+        try:
+
+            notifier_directeurs_demande_pret(
+                nouveau_pret,
+                type_action="attente_signature"
+            )
+
+        except Exception as notification_error:
+
+            print(
+                "⚠️ Notification direction non envoyée :",
+                notification_error
+            )
+
+        # ----------------------------------------------------
+        # RÉPONSE MOBILE
+        # ----------------------------------------------------
+        return jsonify({
+
+            "success": True,
+
+            "message": (
+                "Votre demande de prêt a été enregistrée."
+            ),
+
+            "pret": {
+
+                "id": nouveau_pret.id,
+
+                "numero_pret":
+                    nouveau_pret.numero_pret,
+
+                "montant":
+                    nouveau_pret.montant,
+
+                "duree":
+                    nouveau_pret.duree_mois,
+
+                "taux":
+                    nouveau_pret.taux_interet,
+
+                "mensualite":
+                    nouveau_pret.mensualite,
+
+                "montant_interet":
+                    nouveau_pret.montant_interet,
+
+                "montant_total":
+                    nouveau_pret.montant_total,
+
+                "statut":
+                    nouveau_pret.statut
+            }
+
+        }), 201
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        import traceback
+        traceback.print_exc()
 
         return jsonify({
             "success": False,
-            "error": "Vous avez déjà un prêt en cours ou en attente",
-            "numero_pret": getattr(
-                pret_existant,
-                "numero_pret",
-                None
-            )
-        }), 400
-
-    # --------------------------------------------------------
-    # Création du prêt
-    # --------------------------------------------------------
-
-    nouveau_pret = Pret(
-        client_id=client.id,
-        montant=montant,
-        duree_mois=duree,
-        motif=motif,
-        statut="en_attente",
-        date_demande=datetime.utcnow()
-    )
-
-    db.session.add(nouveau_pret)
-    db.session.commit()
-
-    return jsonify({
-        "success": True,
-        "message": "Demande de prêt envoyée",
-        "pret": {
-            "id": nouveau_pret.id,
-            "numero_pret": getattr(
-                nouveau_pret,
-                "numero_pret",
-                None
-            ),
-            "montant": nouveau_pret.montant,
-            "duree_mois": nouveau_pret.duree_mois,
-            "statut": nouveau_pret.statut
-        }
-    }), 201
+            "error": str(e)
+        }), 500
 
 
 # ============================================================
@@ -661,3 +836,4 @@ def mobile_notification_lire(current_user, notification_id):
             "success": False,
             "error": "Erreur interne du serveur."
         }), 500
+
