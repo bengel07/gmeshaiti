@@ -429,7 +429,12 @@ class NotificationManager:
                 user_id=pret.agent_id,
                 client_id=client.id,
                 title="Prêt approuvé",
-                message=f"Le prêt #{pret.id} a été approuvé",
+                message=(
+                    f"Votre demande de prêt #{pret.numero_pret or pret.id} "
+                    f"a été approuvée. "
+                    f"Montant accordé : {pret.montant_accorde or pret.montant} Gdes."
+                ),
+                notification_type="success",
                 pret_id=pret.id
             )
 
@@ -480,7 +485,10 @@ class NotificationManager:
                 user_id=pret.agent_id,
                 client_id=client.id,
                 title="Prêt refusé",
-                message=f"Le prêt #{pret.id} a été refusé. Motif: {motif}",
+                message=(
+                    f"Votre demande de prêt #{pret.numero_pret or pret.id} "
+                    f"a été refusée. Motif : {motif}"
+                ),
                 pret_id=pret.id,
                 notification_type="danger"
             )
@@ -525,7 +533,13 @@ class NotificationManager:
                 user_id=pret.agent_id,
                 client_id=client.id,
                 title="Informations demandées",
-                message=f"Pour le prêt #{pret.id}: {demande_details}",
+                message=(
+                    f"Pour votre demande de prêt "
+                    f"#{pret.numero_pret or pret.id}, "
+                    f"nous avons besoin des informations suivantes : "
+                    f"{demande_details}"
+                ),
+                notification_type="warning",
                 pret_id=pret.id,
                 requires_action=True
             )
@@ -631,6 +645,72 @@ class NotificationManager:
             mensualite = montant * taux_mensuel * facteur / (facteur - 1)
             return mensualite
         return 0
+
+    def notifier_client(
+        self,
+        client,
+        titre,
+        message,
+        notification_type="info",
+        pret=None,
+        requires_action=False,
+        lien=None
+    ):
+        """
+        Crée une notification destinée au client
+        pour l'application mobile.
+        """
+
+        try:
+            if not client:
+                logger.error("❌ Client absent pour notification")
+                return None
+
+            # ------------------------------------------------
+            # Trouver le User correspondant au client
+            # ------------------------------------------------
+
+            user = None
+
+            if getattr(client, "user_id", None):
+                user = User.query.get(client.user_id)
+
+            # Si Client.user_id n'existe pas ou n'est pas renseigné
+            if not user:
+                user = User.query.filter_by(
+                    client_id=client.id
+                ).first()
+
+            if not user:
+                logger.error(
+                    f"❌ Aucun User associé au client #{client.id}"
+                )
+                return None
+
+            # ------------------------------------------------
+            # Créer notification
+            # ------------------------------------------------
+
+            return self._create_db_notification(
+                destinataire_id=user.id,
+                client_id=client.id,
+                titre=titre,
+                message=message,
+                pret_id=pret.id if pret else None,
+                notification_type=notification_type,
+                requires_action=requires_action,
+                acteur_id=None,
+                lien=lien
+            )
+
+        except Exception as e:
+
+            logger.exception(
+                f"❌ Erreur notification client #{getattr(client, 'id', None)}"
+            )
+
+            return None
+
 
 # Instance globale
 notification_manager = NotificationManager()

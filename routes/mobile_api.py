@@ -15,7 +15,7 @@ from models import (
     Client,
     Pret,
     Remboursement,
-    Groupe
+    Groupe, Notification
 )
 
 
@@ -533,3 +533,128 @@ def mobile_demande_pret(current_user):
         }
     }), 201
 
+
+# ============================================================
+# NOTIFICATIONS CLIENT
+# ============================================================
+
+@mobile_api_bp.route(
+    "/api/mobile/notifications",
+    methods=["GET"]
+)
+@token_required
+def mobile_notifications(current_user):
+
+    client = obtenir_client(current_user)
+
+    if not client:
+        return jsonify({
+            "success": False,
+            "error": "Profil client introuvable"
+        }), 404
+
+    notifications = (
+        Notification.query
+        .filter_by(client_id=client.id)
+        .order_by(Notification.date_creation.desc())
+        .all()
+    )
+
+    resultats = []
+
+    for notification in notifications:
+
+        resultats.append({
+            "id": notification.id,
+
+            "titre": notification.titre,
+
+            "message": notification.message,
+
+            "type": notification.type_notification
+                or notification.type
+                or notification.niveau
+                or "info",
+
+            "lue": bool(
+                notification.lue
+                or notification.is_read
+            ),
+
+            "requires_action": bool(
+                notification.requires_action
+            ),
+
+            "pret_id": notification.pret_id,
+
+            "client_id": notification.client_id,
+
+            "lien": notification.lien or notification.url,
+
+            "date_creation": (
+                notification.date_creation.isoformat()
+                if notification.date_creation
+                else None
+            )
+        })
+
+    non_lues = sum(
+        1 for notification in notifications
+        if not (
+            notification.lue
+            or notification.is_read
+        )
+    )
+
+    return jsonify({
+        "success": True,
+        "notifications": resultats,
+        "total": len(resultats),
+        "non_lues": non_lues
+    }), 200
+
+
+# ============================================================
+# MARQUER NOTIFICATION COMME LUE
+# ============================================================
+
+@mobile_api_bp.route(
+    "/api/mobile/notifications/<int:notification_id>/lire",
+    methods=["POST"]
+)
+@token_required
+def mobile_notification_lire(
+    current_user,
+    notification_id
+):
+
+    client = obtenir_client(current_user)
+
+    if not client:
+        return jsonify({
+            "success": False,
+            "error": "Profil client introuvable"
+        }), 404
+
+    notification = Notification.query.filter_by(
+        id=notification_id,
+        client_id=client.id
+    ).first()
+
+    if not notification:
+        return jsonify({
+            "success": False,
+            "error": "Notification introuvable"
+        }), 404
+
+    notification.lue = True
+    notification.is_read = True
+    notification.date_lecture = datetime.utcnow()
+    notification.read_at = datetime.utcnow()
+
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "message": "Notification marquée comme lue"
+    }), 200
