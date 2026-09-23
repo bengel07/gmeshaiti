@@ -550,15 +550,18 @@ def mobile_demande_pret(current_user):
 # API MOBILE — NOTIFICATIONS DU CLIENT (uniquement les siennes)
 # ============================================================
 
-@auth_bp.route("/api/mobile/notifications", methods=["GET"])
-def mobile_notifications():
+@mobile_api_bp.route("/api/mobile/notifications", methods=["GET"])
+@token_required
+def mobile_notifications(current_user):
 
     try:
+        client = obtenir_client(current_user)
 
-        user, client, erreur = get_client_from_token()
-
-        if erreur:
-            return erreur
+        if not client:
+            return jsonify({
+                "success": False,
+                "error": "Profil client introuvable"
+            }), 404
 
         notifications = NotificationClient.query.filter_by(
             client_id=client.id
@@ -569,14 +572,13 @@ def mobile_notifications():
         resultats = []
 
         for n in notifications:
-
             resultats.append({
                 "id": n.id,
                 "titre": n.titre,
                 "message": n.message,
                 "type": n.type,
                 "lien": n.lien,
-                "lue": n.lue,
+                "lue": bool(n.lue),
                 "date_creation": (
                     n.date_creation.isoformat()
                     if n.date_creation
@@ -585,7 +587,8 @@ def mobile_notifications():
             })
 
         non_lues = sum(
-            1 for n in notifications if not n.lue
+            1 for n in notifications
+            if not n.lue
         )
 
         return jsonify({
@@ -595,7 +598,6 @@ def mobile_notifications():
         }), 200
 
     except Exception as e:
-
         print("❌ Erreur mobile_notifications :", str(e))
 
         return jsonify({
@@ -604,22 +606,21 @@ def mobile_notifications():
         }), 500
 
 
-# ============================================================
-# API MOBILE — MARQUER UNE NOTIFICATION COMME LUE
-# ============================================================
-
-@auth_bp.route(
+@mobile_api_bp.route(
     "/api/mobile/notifications/<int:notification_id>/lire",
     methods=["POST"]
 )
-def mobile_notification_lire(notification_id):
+@token_required
+def mobile_notification_lire(current_user, notification_id):
 
     try:
+        client = obtenir_client(current_user)
 
-        user, client, erreur = get_client_from_token()
-
-        if erreur:
-            return erreur
+        if not client:
+            return jsonify({
+                "success": False,
+                "error": "Profil client introuvable"
+            }), 404
 
         notif = NotificationClient.query.filter_by(
             id=notification_id,
@@ -627,7 +628,6 @@ def mobile_notification_lire(notification_id):
         ).first()
 
         if notif is None:
-
             return jsonify({
                 "success": False,
                 "error": "Notification introuvable."
@@ -641,10 +641,12 @@ def mobile_notification_lire(notification_id):
         }), 200
 
     except Exception as e:
-
         db.session.rollback()
 
-        print("❌ Erreur mobile_notification_lire :", str(e))
+        print(
+            "❌ Erreur mobile_notification_lire :",
+            str(e)
+        )
 
         return jsonify({
             "success": False,
