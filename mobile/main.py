@@ -447,7 +447,10 @@ def main(page: ft.Page):
 
                     print("🔗 Ouverture :", lien)
 
-                    page.launch_url(lien)
+                    async def ouvrir_url_async():
+                        await ft.UrlLauncher().launch_url(lien)
+
+                    page.run_task(ouvrir_url_async)
 
                 liste.controls.append(
                     ft.Container(
