@@ -15,7 +15,7 @@ from models import (
     Client,
     Pret,
     Remboursement,
-    Groupe, Notification, NotificationClient
+    Groupe, Notification, NotificationClient, Retrait, Transaction, Epargne
 )
 
 
@@ -597,12 +597,21 @@ def mobile_notifications(current_user):
             "non_lues": non_lues
         }), 200
 
+
     except Exception as e:
-        print("❌ Erreur mobile_notifications :", str(e))
+
+        import traceback
+
+        print("❌ ERREUR MOBILE NOTIFICATIONS :", repr(e))
+
+        traceback.print_exc()
 
         return jsonify({
+
             "success": False,
-            "error": "Erreur interne du serveur."
+
+            "error": str(e)
+
         }), 500
 
 
