@@ -56,7 +56,7 @@ from reportlab.pdfgen import canvas
 from flask_wtf.csrf import CSRFError
 
 from emails import envoyer_email_activation_client, envoyer_email_demande_documents, envoyer_email_annulation_pret
-
+from services.notifier_client import notifier_client
 
 from utils.stats import calculer_statistiques_globales
 
@@ -241,7 +241,7 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 # employees_bp = Blueprint('employees', __name__, url_prefix='/employees')
 
 
-
+import rappels_echeances
 
 logger = logging.getLogger(__name__)
 
@@ -255,9 +255,11 @@ csrf.exempt(app.view_functions['auth.mobile_logout'])
 
 csrf.exempt(app.view_functions['auth.mobile_client_me'])
 
+csrf.exempt(app.view_functions['auth.mobile_notifications'])
+csrf.exempt(app.view_functions['auth.mobile_notification_lire'])
+
 from functools import wraps
-from flask import flash, redirect, request, url_for
-from flask_login import current_user
+
 
 def role_required(*roles):
     # Accepte aussi bien une liste qu'un tuple ou des arguments séparés
@@ -1942,6 +1944,10 @@ def demande_pret():
 
             db.session.commit()
 
+            # À la soumission
+            notifier_client(client_id=client.id, titre="Demande de prêt envoyée",
+                            message="Votre demande de prêt a été soumise et est en cours d'examen.", type="info")
+
             print("\n🔴 AVANT COMMIT FINAL")
             print(f"🆔 PRET ID                = {nouveau_pret.id}")
             print(f"🔢 NUMERO PRET            = {nouveau_pret.numero_pret}")
@@ -3189,6 +3195,10 @@ def approuver_pret(pret_id):
 
         db.session.commit()
 
+        # À l'approbation
+        notifier_client(client_id=client.id, titre="Prêt approuvé",
+                        message=f" Un prêt de {montant_accorde:,.0f} HTG a été approuvé.", type="success")
+
         resultat_recu = None
 
         # La génération du reçu ne doit pas annuler l'approbation
@@ -3301,11 +3311,6 @@ def refuser_pret(pret_id):
         pret.date_refus = datetime.now()
         pret.refuse_par = current_user.id
 
-        # # 🔥 RÉINITIALISER LE CLIENT - Il pourra refaire une demande
-        # client.terms_accepted = False
-        # client.terms_accepted_at = None
-        # client.terms_signature_ip = None
-        # client.terms_signature_user_agent = None
 
         # Réactiver le compte si nécessaire
         if hasattr(client, 'compte_suspendu'):
@@ -3321,6 +3326,10 @@ def refuser_pret(pret_id):
 
         # 🔥 RENVOYER L'EMAIL POUR NOUVELLE ACCEPTATION
         # envoyer_email_conditions(client)
+
+        # Au rejet
+        notifier_client(client_id=client.id, titre="Prêt refusé",
+                        message="Votre demande de prêt n'a pas été approuvée.", type="danger")
 
         notification_manager.send_refusal_notification(pret)
 
@@ -12729,7 +12738,27 @@ def nouveau_remboursement():
             db.session.add(journal)
             db.session.commit()  # Premier commit
 
+            notifier_client(
+                client_id=pret.client_id,
+                titre="Remboursement enregistré",
+                message=(
+                    f"Un remboursement de {montant:,.0f} HTG a été "
+                    f"enregistré sur votre prêt. "
+                    f"Solde restant : {nouveau_solde:,.0f} HTG."
+                ),
+                type="success",
+                lien=f"/mes-prets/{pret.id}"
+            )
+
             if nouveau_solde <= 0:
+                notifier_client(
+                    client_id=pret.client_id,
+                    titre="Prêt entièrement remboursé 🎉",
+                    message="Félicitations, votre prêt est maintenant entièrement remboursé.",
+                    type="success",
+                    lien=f"/mes-prets/{pret.id}"
+                )
+
                 pret.statut = 'rembourse'
                 client = db.session.get(Client, pret.client_id)
                 if client:
@@ -20314,11 +20343,36 @@ def remboursements_succursale(succursale_code):
                 "success"
             )
 
+            # ============================================
+            # NOTIFICATION AU CLIENT
+            # ============================================
+
+            solde_apres = pret.solde_restant
+
+            notifier_client(
+                client_id=pret.client_id,
+                titre="Remboursement enregistré",
+                message=(
+                    f"Un remboursement de {montant:,.0f} HTG a été "
+                    f"enregistré sur votre prêt. "
+                    f"Solde restant : {solde_apres:,.0f} HTG."
+                ),
+                type="success",
+                lien=f"/mes-prets/{pret.id}"
+            )
+
+            if solde_apres <= 0:
+                notifier_client(
+                    client_id=pret.client_id,
+                    titre="Prêt entièrement remboursé 🎉",
+                    message="Félicitations, votre prêt est maintenant entièrement remboursé.",
+                    type="success",
+                    lien=f"/mes-prets/{pret.id}"
+                )
+
         except Exception as e:
             db.session.rollback()
-
             print(f"❌ Erreur remboursement : {e}")
-
             flash(
                 "Une erreur est survenue lors de l'enregistrement du remboursement.",
                 "error"
@@ -24936,6 +24990,13 @@ def envoyer_confirmation_retrait(client_id):
             # from_email et from_name sont optionnels
         )
 
+        notifier_client(
+            client_id=client.id,
+            titre="Email est envoyé",
+            message=f"Un email de confirmation a été envoyé à {client.email}.",
+            type="info"
+        )
+
         if email_envoye:
             flash(f'✅ Un email de confirmation a été envoyé à {client.email}', 'success')
         else:
@@ -25402,6 +25463,15 @@ def traiter_depot(client_id):
 
         db.session.commit()
         print(f"✅ DÉPÔT RÉUSSI - Montant: {montant}, Compte: {numero_compte}, Nouveau solde: {compte.solde}")
+
+        from services.notifier_client import notifier_client
+
+        notifier_client(
+            client_id=client.id,
+            titre="Dépôt reçu",
+            message=f"Un dépôt de {montant:,.0f} HTG a été effectué sur votre compte.",
+            type="success"
+        )
 
         flash(f"✅ Dépôt de {montant:,.0f} HTG effectué", "success")
         return redirect(url_for('recu_depot', transaction_id=transaction.id))
@@ -26057,9 +26127,19 @@ def confirmer_retrait(token):
         confirmation.employe_id = employe_id  # ✅ Changé de agent_id à employe_id
         db.session.commit()
 
+
+
         # APRÈS avoir confirmé le retrait, ajoutez:
         if envoyer_email_recu_client(transaction, client):
             flash(f"Un reçu a été envoyé à {client.email}", "success")
+
+            notifier_client(
+                client_id=client.id,
+                titre="Retrait effectué",
+                message=f"Un retrait de {montant:,.0f} HTG a été effectué sur votre compte.",
+                type="info"
+            )
+
         else:
             flash("Le retrait est confirmé mais l'envoi de l'email a échoué", "warning")
 
@@ -26561,6 +26641,21 @@ def transfert_client_form(client_id):
             envoyer_email_transfert_sortant(client_source, client_dest, montant, ref_transfert)
 
             envoyer_email_transfert_entrant(client_dest, client_source, montant, ref_transfert)
+
+            notifier_client(
+                client_id=client.id,
+                titre="Transfert envoyé",
+                message=f"Vous avez transféré {montant:,.2f} HTG vers le compte {client_dest}.",
+                type="info"
+            )
+
+            if client_dest:
+                notifier_client(
+                    client_id=client_dest.id,
+                    titre="Transfert reçu",
+                    message=f"Vous avez reçu {montant:,.2f} HTG de {client_source}.",
+                    type="success"
+                )
 
         except Exception as e:
             current_app.logger.error(

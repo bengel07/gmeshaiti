@@ -10194,7 +10194,25 @@ class CronTrigger:
 
         return True
 
+class NotificationClient(db.Model):
+    __tablename__ = 'notifications_client'
 
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
+
+    titre = db.Column(db.String(150), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+
+    # info, success, warning, danger
+    type = db.Column(db.String(30), default='info')
+
+    lien = db.Column(db.String(255), nullable=True)
+
+    lue = db.Column(db.Boolean, default=False)
+
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+
+    
 
 
 
