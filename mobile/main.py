@@ -1181,100 +1181,518 @@ def main(page: ft.Page):
 
         page.update()
 
+    # ============================================================
+    # COULEURS DU PROFIL (à ajouter près de vos autres constantes)
+    # ============================================================
+
+    PROFILE_GREEN = "#178754"
+    PROFILE_GREEN_LIGHT = "#E7F6EF"
+    PROFILE_GREEN_BADGE = "#DFF4E9"
+    ROW_ICON_BG = "#F1F3F6"
+
+    # ============================================================
+    # PETITS COMPOSANTS RÉUTILISABLES POUR LE PROFIL
+    # ============================================================
+
+    def profil_info_row(icon, label, value, is_last=False):
+        return ft.Container(
+            padding=ft.Padding.symmetric(vertical=12),
+            border=(
+                None
+                if is_last
+                else ft.Border.only(bottom=ft.BorderSide(1, "#EDEFF3"))
+            ),
+            content=ft.Row(
+                [
+                    ft.Container(
+                        width=34,
+                        height=34,
+                        border_radius=50,
+                        bgcolor=ROW_ICON_BG,
+                        alignment=ft.Alignment.CENTER,
+                        content=ft.Icon(icon, color=GREY, size=17),
+                    ),
+                    ft.Text(label, size=14, color=GREY, expand=True),
+                    ft.Text(
+                        value,
+                        size=14,
+                        color=TEXT,
+                        weight=ft.FontWeight.W_600,
+                    ),
+                ],
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=12,
+            ),
+        )
+
+    def profil_status_row(icon, label, statut_texte, is_last=False):
+        return ft.Container(
+            padding=ft.Padding.symmetric(vertical=12),
+            border=(
+                None
+                if is_last
+                else ft.Border.only(bottom=ft.BorderSide(1, "#EDEFF3"))
+            ),
+            content=ft.Row(
+                [
+                    ft.Container(
+                        width=34,
+                        height=34,
+                        border_radius=50,
+                        bgcolor=ROW_ICON_BG,
+                        alignment=ft.Alignment.CENTER,
+                        content=ft.Icon(icon, color=GREY, size=17),
+                    ),
+                    ft.Text(label, size=14, color=GREY, expand=True),
+                    ft.Container(
+                        bgcolor=PROFILE_GREEN_BADGE,
+                        border_radius=20,
+                        padding=ft.Padding.symmetric(horizontal=12, vertical=4),
+                        content=ft.Text(
+                            statut_texte,
+                            size=12,
+                            color=PROFILE_GREEN,
+                            weight=ft.FontWeight.BOLD,
+                        ),
+                    ),
+                ],
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=12,
+            ),
+        )
+
+    def profil_action_row(icon, label, on_click, is_last=False, danger=False):
+        return ft.Container(
+            padding=ft.Padding.symmetric(vertical=13),
+            on_click=on_click,
+            border=(
+                None
+                if is_last
+                else ft.Border.only(bottom=ft.BorderSide(1, "#EDEFF3"))
+            ),
+            content=ft.Row(
+                [
+                    ft.Container(
+                        width=34,
+                        height=34,
+                        border_radius=50,
+                        bgcolor="#FBE9E9" if danger else PROFILE_GREEN,
+                        alignment=ft.Alignment.CENTER,
+                        content=ft.Icon(
+                            icon,
+                            color="#D32F2F" if danger else ft.Colors.WHITE,
+                            size=17,
+                        ),
+                    ),
+                    ft.Text(
+                        label,
+                        size=15,
+                        color="#D32F2F" if danger else TEXT,
+                        weight=ft.FontWeight.W_500,
+                        expand=True,
+                    ),
+                    ft.Icon(ft.Icons.CHEVRON_RIGHT, color=GREY, size=20),
+                ],
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=12,
+            ),
+        )
+
+    def nav_item(icon, selected_icon, label, selected, on_click):
+        return ft.Container(
+            padding=ft.Padding.symmetric(horizontal=14, vertical=8),
+            border_radius=14,
+            bgcolor=PROFILE_GREEN_LIGHT if selected else None,
+            on_click=on_click,
+            content=ft.Column(
+                [
+                    ft.Icon(
+                        selected_icon if selected else icon,
+                        color=PROFILE_GREEN if selected else GREY,
+                        size=22,
+                    ),
+                    ft.Text(
+                        label,
+                        size=11,
+                        color=PROFILE_GREEN if selected else GREY,
+                        weight=ft.FontWeight.BOLD if selected else ft.FontWeight.NORMAL,
+                    ),
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=3,
+            ),
+        )
+
+    def deconnecter(e):
+        nonlocal token, user, client
+
+        print("👋 DÉCONNEXION GMES")
+
+        token = None
+        user = {}
+        client = {}
+
+        identifier_field.value = ""
+        password_field.value = ""
+        error_text.value = ""
+
+        afficher_login()
+
+    # ============================================================
+    # ÉCRAN PROFIL
+    # ============================================================
+
     def afficher_profil():
+
         print("🔥 ÉCRAN PROFIL")
 
         page.controls.clear()
 
+        # --------------------------------------------------------
+        # HEADER
+        # --------------------------------------------------------
+
+        header = ft.Container(
+            bgcolor=PROFILE_GREEN,
+            padding=ft.Padding.only(left=6, right=20, top=18, bottom=18),
+            content=ft.Row(
+                [
+                    ft.IconButton(
+                        icon=ft.Icons.ARROW_BACK,
+                        icon_color=ft.Colors.WHITE,
+                        on_click=lambda e: afficher_dashboard(),
+                    ),
+                    ft.Text(
+                        "Mon Profil",
+                        color=ft.Colors.WHITE,
+                        size=19,
+                        weight=ft.FontWeight.BOLD,
+                        expand=True,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                    ft.Container(width=40),
+                ],
+            ),
+        )
+
+        # --------------------------------------------------------
+        # AVATAR + NOM + BADGE
+        # --------------------------------------------------------
+
+        nom_complet = (
+                          f"{client.get('prenom', '')} {client.get('nom', '')}"
+                      ).strip() or "Client GMES"
+
+        entete_profil = ft.Container(
+            padding=ft.Padding.only(left=20, right=20, top=20),
+            content=ft.Row(
+                [
+                    ft.Container(
+                        width=64,
+                        height=64,
+                        border_radius=50,
+                        bgcolor=PROFILE_GREEN,
+                        alignment=ft.Alignment.CENTER,
+                        content=ft.Icon(
+                            ft.Icons.PERSON,
+                            color=ft.Colors.WHITE,
+                            size=32,
+                        ),
+                    ),
+                    ft.Column(
+                        [
+                            ft.Text(
+                                nom_complet,
+                                size=19,
+                                color=TEXT,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                            ft.Text(
+                                "Client GMES",
+                                size=13,
+                                color=GREY,
+                            ),
+                            ft.Container(
+                                margin=ft.Margin.only(top=4),
+                                bgcolor=PROFILE_GREEN_BADGE,
+                                border_radius=20,
+                                padding=ft.Padding.symmetric(
+                                    horizontal=12, vertical=4
+                                ),
+                                content=ft.Row(
+                                    [
+                                        ft.Icon(
+                                            ft.Icons.CHECK_CIRCLE,
+                                            color=PROFILE_GREEN,
+                                            size=14,
+                                        ),
+                                        ft.Text(
+                                            "Compte actif",
+                                            size=12,
+                                            color=PROFILE_GREEN,
+                                            weight=ft.FontWeight.BOLD,
+                                        ),
+                                    ],
+                                    spacing=5,
+                                    tight=True,
+                                ),
+                            ),
+                        ],
+                        spacing=2,
+                    ),
+                ],
+                spacing=16,
+                vertical_alignment=ft.CrossAxisAlignment.START,
+            ),
+        )
+
+        # --------------------------------------------------------
+        # CARTE SOLDE ÉPARGNE
+        # --------------------------------------------------------
+
+        carte_solde = ft.Container(
+            margin=ft.Margin.only(left=20, right=20, top=18),
+            padding=18,
+            bgcolor=PROFILE_GREEN_LIGHT,
+            border_radius=18,
+            content=ft.Row(
+                [
+                    ft.Container(
+                        width=46,
+                        height=46,
+                        border_radius=14,
+                        bgcolor=ft.Colors.WHITE,
+                        alignment=ft.Alignment.CENTER,
+                        content=ft.Icon(
+                            ft.Icons.SAVINGS,
+                            color=PROFILE_GREEN,
+                            size=24,
+                        ),
+                    ),
+                    ft.Column(
+                        [
+                            ft.Text(
+                                "Solde du compte épargne",
+                                size=13,
+                                color="#3E6B57",
+                            ),
+                            ft.Text(
+                                f"{client.get('solde', 0):,.2f} HTG",
+                                size=24,
+                                color=PROFILE_GREEN,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                        ],
+                        spacing=2,
+                    ),
+                ],
+                spacing=14,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+        )
+
+        # --------------------------------------------------------
+        # CARTE — INFORMATIONS PERSONNELLES
+        # --------------------------------------------------------
+
+        carte_infos_perso = ft.Container(
+            margin=ft.Margin.only(left=20, right=20, top=18),
+            padding=18,
+            bgcolor=ft.Colors.WHITE,
+            border_radius=18,
+            border=ft.Border.all(1, "#EDEFF3"),
+            content=ft.Column(
+                [
+                    ft.Row(
+                        [
+                            ft.Icon(ft.Icons.PERSON_OUTLINE, color=TEXT, size=19),
+                            ft.Text(
+                                "Informations personnelles",
+                                size=16,
+                                color=TEXT,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                        ],
+                        spacing=8,
+                    ),
+                    ft.Container(height=6),
+                    profil_info_row(
+                        ft.Icons.PERSON_OUTLINE, "Nom complet", nom_complet
+                    ),
+                    profil_info_row(
+                        ft.Icons.EMAIL_OUTLINED,
+                        "Email",
+                        user.get("email", "-"),
+                    ),
+                    profil_info_row(
+                        ft.Icons.PHONE_OUTLINED,
+                        "Téléphone",
+                        client.get("telephone", "-"),
+                    ),
+                    profil_info_row(
+                        ft.Icons.BADGE_OUTLINED,
+                        "ID client",
+                        client.get("id_client", "-"),
+                    ),
+                    profil_status_row(
+                        ft.Icons.SHIELD_OUTLINED,
+                        "Statut",
+                        client.get("statut", "actif").capitalize(),
+                        is_last=True,
+                    ),
+                ],
+                spacing=0,
+            ),
+        )
+
+        # --------------------------------------------------------
+        # CARTE — INFORMATIONS DU COMPTE
+        # --------------------------------------------------------
+
+        carte_infos_compte = ft.Container(
+            margin=ft.Margin.only(left=20, right=20, top=18),
+            padding=18,
+            bgcolor=ft.Colors.WHITE,
+            border_radius=18,
+            border=ft.Border.all(1, "#EDEFF3"),
+            content=ft.Column(
+                [
+                    ft.Row(
+                        [
+                            ft.Icon(
+                                ft.Icons.ACCOUNT_BALANCE_OUTLINED,
+                                color=TEXT,
+                                size=19,
+                            ),
+                            ft.Text(
+                                "Informations du compte",
+                                size=16,
+                                color=TEXT,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                        ],
+                        spacing=8,
+                    ),
+                    ft.Container(height=6),
+                    profil_info_row(
+                        ft.Icons.CREDIT_CARD_OUTLINED,
+                        "Numéro de compte",
+                        client.get("numero_compte", "-"),
+                    ),
+                    profil_info_row(
+                        ft.Icons.SAVINGS_OUTLINED,
+                        "Type de compte",
+                        "Épargne",
+                    ),
+                    profil_info_row(
+                        ft.Icons.LOCATION_ON_OUTLINED,
+                        "Succursale",
+                        client.get("succursale_nom", "-"),
+                        is_last=True,
+                    ),
+                ],
+                spacing=0,
+            ),
+        )
+
+        # --------------------------------------------------------
+        # CARTE — ACTIONS
+        # --------------------------------------------------------
+
+        carte_actions = ft.Container(
+            margin=ft.Margin.only(left=20, right=20, top=18, bottom=20),
+            padding=ft.Padding.symmetric(horizontal=6, vertical=6),
+            bgcolor=ft.Colors.WHITE,
+            border_radius=18,
+            border=ft.Border.all(1, "#EDEFF3"),
+            content=ft.Column(
+                [
+                    profil_action_row(
+                        ft.Icons.PERSON_OUTLINE,
+                        "Modifier mes informations",
+                        lambda e: message("Modifier mes informations"),
+                    ),
+                    profil_action_row(
+                        ft.Icons.LOCK_OUTLINE,
+                        "Changer mon mot de passe",
+                        lambda e: message("Changer mon mot de passe"),
+                    ),
+                    profil_action_row(
+                        ft.Icons.DESCRIPTION_OUTLINED,
+                        "Historique de mes opérations",
+                        lambda e: message("Historique de mes opérations"),
+                    ),
+                    profil_action_row(
+                        ft.Icons.LOGOUT,
+                        "Se déconnecter",
+                        lambda e: deconnecter(e),
+                        is_last=True,
+                        danger=True,
+                    ),
+                ],
+                spacing=0,
+            ),
+        )
+
+        # --------------------------------------------------------
+        # BARRE DE NAVIGATION
+        # --------------------------------------------------------
+
+        barre_navigation = ft.Container(
+            padding=ft.Padding.symmetric(horizontal=10, vertical=10),
+            bgcolor=ft.Colors.WHITE,
+            border=ft.Border.only(top=ft.BorderSide(1, "#EDEFF3")),
+            content=ft.Row(
+                [
+                    nav_item(
+                        ft.Icons.HOME_OUTLINED, ft.Icons.HOME,
+                        "Accueil", False,
+                        lambda e: afficher_dashboard(),
+                    ),
+                    nav_item(
+                        ft.Icons.ATTACH_MONEY_OUTLINED, ft.Icons.ATTACH_MONEY,
+                        "Prêt", False,
+                        lambda e: message("Prêt"),
+                    ),
+                    nav_item(
+                        ft.Icons.CREDIT_CARD_OUTLINED, ft.Icons.CREDIT_CARD,
+                        "Paiement", False,
+                        lambda e: message("Paiement"),
+                    ),
+                    nav_item(
+                        ft.Icons.PERSON_OUTLINE, ft.Icons.PERSON,
+                        "Profil", True,
+                        lambda e: None,
+                    ),
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_AROUND,
+            ),
+        )
+
+        # --------------------------------------------------------
+        # ASSEMBLAGE
+        # --------------------------------------------------------
+
         page.add(
             ft.Column(
                 [
-                    ft.Container(
-                        bgcolor=BLUE,
-                        padding=ft.Padding.only(
-                            left=10,
-                            right=20,
-                            top=20,
-                            bottom=20,
-                        ),
-                        content=ft.Row(
-                            [
-                                ft.IconButton(
-                                    icon=ft.Icons.ARROW_BACK,
-                                    icon_color=ft.Colors.WHITE,
-                                    on_click=lambda e: afficher_dashboard(),
-                                ),
-                                ft.Text(
-                                    "Mon profil",
-                                    color=ft.Colors.WHITE,
-                                    size=22,
-                                    weight=ft.FontWeight.BOLD,
-                                    expand=True,
-                                ),
-                            ],
-                        ),
+                    header,
+                    ft.Column(
+                        [
+                            entete_profil,
+                            carte_solde,
+                            carte_infos_perso,
+                            carte_infos_compte,
+                            carte_actions,
+                        ],
+                        scroll=ft.ScrollMode.AUTO,
+                        expand=True,
+                        spacing=0,
                     ),
-
-                    ft.Container(
-                        padding=20,
-                        content=ft.Column(
-                            [
-                                ft.Container(
-                                    width=90,
-                                    height=90,
-                                    border_radius=50,
-                                    bgcolor=GOLD,
-                                    alignment=ft.Alignment.CENTER,
-                                    content=ft.Icon(
-                                        ft.Icons.PERSON,
-                                        color=ft.Colors.WHITE,
-                                        size=50,
-                                    ),
-                                ),
-
-                                ft.Text(
-                                    client.get("prenom", ""),
-                                    size=24,
-                                    color=TEXT,
-                                    weight=ft.FontWeight.BOLD,
-                                ),
-
-                                ft.Text(
-                                    client.get("nom", ""),
-                                    size=18,
-                                    color=GREY,
-                                ),
-
-                                ft.Divider(),
-
-                                ft.Text(
-                                    f"Numéro de compte : "
-                                    f"{client.get('numero_compte', '-')}",
-                                    size=15,
-                                    color=TEXT,
-                                ),
-
-                                ft.Text(
-                                    f"Email : "
-                                    f"{user.get('email', '-')}",
-                                    size=15,
-                                    color=TEXT,
-                                ),
-
-                                ft.Text(
-                                    f"Téléphone : "
-                                    f"{client.get('telephone', '-')}",
-                                    size=15,
-                                    color=TEXT,
-                                ),
-                            ],
-                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                            spacing=15,
-                        ),
-                    ),
+                    barre_navigation,
                 ],
                 expand=True,
-                scroll=ft.ScrollMode.AUTO,
+                spacing=0,
             )
         )
 
@@ -1376,7 +1794,7 @@ def main(page: ft.Page):
                                 ]
                             ),
                             ft.Text(
-                                f"{client.get('solde', 0):,.2f} HTG",
+                                f"{client.get('solde_epargne', 0):,.2f} HTG",
                                 size=32,
                                 color=ft.Colors.WHITE,
                                 weight=ft.FontWeight.BOLD,
