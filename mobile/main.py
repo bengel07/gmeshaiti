@@ -1743,7 +1743,7 @@ def main(page: ft.Page):
         # FILE PICKER
         # ============================================================
 
-        def photo_selectionnee_result(e: ft.FilePickerResultEvent):
+        def photo_selectionnee_result(e):
 
             if not e.files:
                 return
