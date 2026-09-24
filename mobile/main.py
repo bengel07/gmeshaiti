@@ -1610,17 +1610,17 @@ def main(page: ft.Page):
                     profil_action_row(
                         ft.Icons.PERSON_OUTLINE,
                         "Modifier mes informations",
-                        lambda e: message("Modifier mes informations"),
+                        lambda e: afficher_modifier_profil(),
                     ),
                     profil_action_row(
                         ft.Icons.LOCK_OUTLINE,
                         "Changer mon mot de passe",
-                        lambda e: message("Changer mon mot de passe"),
+                        lambda e: afficher_changer_mot_de_passe(),
                     ),
                     profil_action_row(
                         ft.Icons.DESCRIPTION_OUTLINED,
                         "Historique de mes opérations",
-                        lambda e: message("Historique de mes opérations"),
+                        lambda e: afficher_historique_operations(),
                     ),
                     profil_action_row(
                         ft.Icons.LOGOUT,
@@ -1697,6 +1697,1587 @@ def main(page: ft.Page):
         )
 
         page.update()
+
+
+
+    def afficher_modifier_profil():
+        print("🔥 ÉCRAN MODIFIER MON PROFIL")
+
+        page.controls.clear()
+
+        # ============================================================
+        # PHOTO DE PROFIL
+        # ============================================================
+
+        photo_selectionnee = {
+            "path": None
+        }
+
+        # ------------------------------------------------------------
+        # APERÇU PHOTO
+        # ------------------------------------------------------------
+
+        photo_preview = ft.Container(
+            width=110,
+            height=110,
+            border_radius=55,
+            bgcolor="#EAF2FF",
+            alignment=ft.Alignment.CENTER,
+            border=ft.Border.all(
+                5,
+                ft.Colors.WHITE,
+            ),
+            shadow=ft.BoxShadow(
+                blur_radius=12,
+                spread_radius=1,
+                color="#25000000",
+            ),
+            content=ft.Icon(
+                ft.Icons.PERSON,
+                color=BLUE,
+                size=55,
+            ),
+        )
+
+        # ============================================================
+        # FILE PICKER
+        # ============================================================
+
+        def photo_selectionnee_result(e: ft.FilePickerResultEvent):
+
+            if not e.files:
+                return
+
+            fichier = e.files[0]
+
+            photo_selectionnee["path"] = fichier.path
+
+            print("📷 PHOTO SÉLECTIONNÉE :", fichier.path)
+
+            photo_preview.content = ft.Image(
+                src=fichier.path,
+                width=110,
+                height=110,
+                fit=ft.ImageFit.COVER,
+                border_radius=ft.BorderRadius.all(55),
+            )
+
+            page.update()
+
+        file_picker = ft.FilePicker(
+            on_result=photo_selectionnee_result
+        )
+
+        page.overlay.append(file_picker)
+
+        # ============================================================
+        # MODIFIER PHOTO
+        # ============================================================
+
+        def modifier_photo(e):
+
+            print("📷 CLIC MODIFIER PHOTO")
+
+            file_picker.pick_files(
+                allow_multiple=False,
+                allowed_extensions=[
+                    "jpg",
+                    "jpeg",
+                    "png",
+                ],
+            )
+
+        # ============================================================
+        # CHAMPS
+        # ============================================================
+
+        prenom_field = ft.TextField(
+            label="Prénom",
+            value=client.get("prenom", "") or "",
+            prefix_icon=ft.Icons.PERSON_OUTLINE,
+            border_radius=14,
+            border_color="#D4E0F5",
+            focused_border_color=BLUE,
+            text_size=16,
+            color=TEXT,
+        )
+
+        nom_field = ft.TextField(
+            label="Nom",
+            value=client.get("nom", "") or "",
+            prefix_icon=ft.Icons.PERSON_OUTLINE,
+            border_radius=14,
+            border_color="#D4E0F5",
+            focused_border_color=BLUE,
+            text_size=16,
+            color=TEXT,
+        )
+
+        telephone_field = ft.TextField(
+            label="Téléphone",
+            value=client.get("telephone", "") or "",
+            prefix_icon=ft.Icons.PHONE_OUTLINED,
+            keyboard_type=ft.KeyboardType.PHONE,
+            border_radius=14,
+            border_color="#D4E0F5",
+            focused_border_color=BLUE,
+            text_size=16,
+            color=TEXT,
+        )
+
+        email_field = ft.TextField(
+            label="Email",
+            value=(
+                    user.get("email", "")
+                    or client.get("email", "")
+                    or ""
+            ),
+            prefix_icon=ft.Icons.EMAIL_OUTLINED,
+            keyboard_type=ft.KeyboardType.EMAIL,
+            border_radius=14,
+            border_color="#D4E0F5",
+            focused_border_color=BLUE,
+            text_size=16,
+            color=TEXT,
+        )
+
+        resultat = ft.Text(
+            "",
+            size=13,
+            text_align=ft.TextAlign.CENTER,
+        )
+
+        # ============================================================
+        # ENREGISTRER
+        # ============================================================
+
+        def enregistrer_modifications(e):
+
+            print("💾 ENREGISTREMENT PROFIL")
+
+            if not token:
+                resultat.value = (
+                    "Session expirée. Veuillez vous reconnecter."
+                )
+
+                resultat.color = "#D32F2F"
+
+                page.update()
+
+                return
+
+            prenom = prenom_field.value.strip()
+            nom = nom_field.value.strip()
+            telephone = telephone_field.value.strip()
+            email = email_field.value.strip()
+
+            # --------------------------------------------------------
+            # VALIDATION
+            # --------------------------------------------------------
+
+            if not prenom:
+                resultat.value = "Le prénom est obligatoire."
+                resultat.color = "#D32F2F"
+
+                page.update()
+
+                return
+
+            if not nom:
+                resultat.value = "Le nom est obligatoire."
+                resultat.color = "#D32F2F"
+
+                page.update()
+
+                return
+
+            if not telephone:
+                resultat.value = "Le numéro de téléphone est obligatoire."
+                resultat.color = "#D32F2F"
+
+                page.update()
+
+                return
+
+            if not email:
+                resultat.value = "L'adresse email est obligatoire."
+                resultat.color = "#D32F2F"
+
+                page.update()
+
+                return
+
+            # --------------------------------------------------------
+            # POUR L'INSTANT :
+            # MISE À JOUR LOCALE
+            #
+            # L'API sera branchée ensuite.
+            # --------------------------------------------------------
+
+            client["prenom"] = prenom
+            client["nom"] = nom
+            client["telephone"] = telephone
+            client["email"] = email
+
+            user["email"] = email
+
+            resultat.value = (
+                "✓ Vos informations ont été mises à jour."
+            )
+
+            resultat.color = PROFILE_GREEN
+
+            print("✅ PROFIL MIS À JOUR LOCALEMENT")
+
+            page.update()
+
+        # ============================================================
+        # HEADER
+        # ============================================================
+
+        header = ft.Container(
+            bgcolor=BLUE,
+            padding=ft.Padding.only(
+                left=8,
+                right=15,
+                top=18,
+                bottom=18,
+            ),
+            border_radius=ft.BorderRadius.only(
+                bottom_left=20,
+                bottom_right=20,
+            ),
+            content=ft.Row(
+                [
+                    ft.IconButton(
+                        icon=ft.Icons.ARROW_BACK,
+                        icon_color=ft.Colors.WHITE,
+                        icon_size=30,
+                        on_click=lambda e: afficher_profil(),
+                    ),
+
+                    ft.Text(
+                        "Modifier mon profil",
+                        color=ft.Colors.WHITE,
+                        size=21,
+                        weight=ft.FontWeight.BOLD,
+                        expand=True,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+
+                    # Équilibre visuel avec le bouton retour
+                    ft.Container(
+                        width=45,
+                    ),
+                ],
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+        )
+
+        # ============================================================
+        # AVATAR + NOM
+        # ============================================================
+
+        avatar_section = ft.Container(
+            padding=ft.Padding.only(
+                top=25,
+                bottom=20,
+            ),
+            content=ft.Column(
+                [
+                    # ------------------------------------------------
+                    # AVATAR + CAMÉRA
+                    # ------------------------------------------------
+
+                    ft.Stack(
+                        [
+                            photo_preview,
+
+                            ft.Container(
+                                width=38,
+                                height=38,
+                                right=-2,
+                                bottom=0,
+                                border_radius=19,
+                                bgcolor=BLUE,
+                                alignment=ft.Alignment.CENTER,
+                                border=ft.Border.all(
+                                    3,
+                                    ft.Colors.WHITE,
+                                ),
+                                content=ft.IconButton(
+                                    icon=ft.Icons.CAMERA_ALT,
+                                    icon_color=ft.Colors.WHITE,
+                                    icon_size=19,
+                                    tooltip="Modifier la photo",
+                                    on_click=modifier_photo,
+                                ),
+                            ),
+                        ],
+                        width=118,
+                        height=118,
+                    ),
+
+                    ft.Container(height=8),
+
+                    # ------------------------------------------------
+                    # NOM COMPLET
+                    # ------------------------------------------------
+
+                    ft.Text(
+                        (
+                            f"{client.get('prenom', '')} "
+                            f"{client.get('nom', '')}"
+                        ).strip() or "Client GMES",
+                        size=25,
+                        color=TEXT,
+                        weight=ft.FontWeight.BOLD,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+
+                    ft.Text(
+                        "Client GMES",
+                        size=16,
+                        color=GREY,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+
+                    ft.TextButton(
+                        "Modifier la photo",
+                        icon=ft.Icons.CAMERA_ALT,
+                        on_click=modifier_photo,
+                    ),
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=3,
+            ),
+        )
+
+        # ============================================================
+        # TITRE INFORMATIONS PERSONNELLES
+        # ============================================================
+
+        titre_formulaire = ft.Row(
+            [
+                ft.Icon(
+                    ft.Icons.PERSON_OUTLINE,
+                    color=BLUE,
+                    size=30,
+                ),
+
+                ft.Text(
+                    "Informations personnelles",
+                    size=21,
+                    color=TEXT,
+                    weight=ft.FontWeight.BOLD,
+                ),
+            ],
+            spacing=10,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        )
+
+        # ============================================================
+        # FORMULAIRE
+        # ============================================================
+
+        formulaire = ft.Container(
+            margin=ft.Margin.only(
+                left=20,
+                right=20,
+            ),
+            padding=20,
+            bgcolor=ft.Colors.WHITE,
+            border_radius=22,
+            border=ft.Border.all(
+                1,
+                "#E5EAF2",
+            ),
+            shadow=ft.BoxShadow(
+                blur_radius=10,
+                spread_radius=1,
+                color="#12000000",
+            ),
+            content=ft.Column(
+                [
+                    titre_formulaire,
+
+                    ft.Container(height=8),
+
+                    prenom_field,
+
+                    nom_field,
+
+                    telephone_field,
+
+                    email_field,
+
+                    ft.Container(height=5),
+
+                    resultat,
+
+                    # ------------------------------------------------
+                    # BOUTON ENREGISTRER
+                    # ------------------------------------------------
+
+                    ft.Container(
+                        height=55,
+                        border_radius=15,
+                        bgcolor=PROFILE_GREEN,
+                        content=ft.ElevatedButton(
+                            "Enregistrer les modifications",
+                            icon=ft.Icons.SAVE_OUTLINED,
+                            on_click=enregistrer_modifications,
+                            style=ft.ButtonStyle(
+                                bgcolor=PROFILE_GREEN,
+                                color=ft.Colors.WHITE,
+                                shape=ft.RoundedRectangleBorder(
+                                    radius=15,
+                                ),
+                            ),
+                        ),
+                    ),
+                ],
+                spacing=14,
+            ),
+        )
+
+        # ============================================================
+        # INFORMATION COMPTE
+        # ============================================================
+
+        information_compte = ft.Container(
+            margin=ft.Margin.only(
+                left=20,
+                right=20,
+                top=18,
+                bottom=25,
+            ),
+            padding=17,
+            bgcolor="#EAF3FF",
+            border_radius=18,
+            content=ft.Row(
+                [
+                    ft.Container(
+                        width=42,
+                        height=42,
+                        border_radius=21,
+                        bgcolor="#D6E8FF",
+                        alignment=ft.Alignment.CENTER,
+                        content=ft.Icon(
+                            ft.Icons.INFO_OUTLINE,
+                            color=BLUE,
+                            size=25,
+                        ),
+                    ),
+
+                    ft.Text(
+                        "Votre numéro de compte et votre ID client "
+                        "ne peuvent pas être modifiés depuis cette page.",
+                        size=13,
+                        color=BLUE,
+                        weight=ft.FontWeight.W_500,
+                        expand=True,
+                    ),
+                ],
+                spacing=12,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+        )
+
+        # ============================================================
+        # PAGE COMPLÈTE
+        # ============================================================
+
+        page.add(
+            ft.Column(
+                [
+                    header,
+
+                    ft.Column(
+                        [
+                            avatar_section,
+
+                            formulaire,
+
+                            information_compte,
+                        ],
+                        spacing=0,
+                    ),
+                ],
+                expand=True,
+                scroll=ft.ScrollMode.AUTO,
+                spacing=0,
+            )
+        )
+
+        page.update()
+
+
+
+    def afficher_changer_mot_de_passe():
+        print("🔥 ÉCRAN CHANGER MOT DE PASSE")
+
+        page.controls.clear()
+
+        # ============================================================
+        # CHAMPS
+        # ============================================================
+
+        ancien_mot_de_passe = ft.TextField(
+            label="Mot de passe actuel",
+            prefix_icon=ft.Icons.LOCK_OUTLINE,
+            password=True,
+            can_reveal_password=True,
+            border_radius=14,
+            border_color="#D4E0F5",
+            focused_border_color=BLUE,
+            text_size=16,
+        )
+
+        nouveau_mot_de_passe = ft.TextField(
+            label="Nouveau mot de passe",
+            prefix_icon=ft.Icons.LOCK_OUTLINE,
+            password=True,
+            can_reveal_password=True,
+            border_radius=14,
+            border_color="#D4E0F5",
+            focused_border_color=BLUE,
+            text_size=16,
+        )
+
+        confirmer_mot_de_passe = ft.TextField(
+            label="Confirmer le nouveau mot de passe",
+            prefix_icon=ft.Icons.LOCK_OUTLINE,
+            password=True,
+            can_reveal_password=True,
+            border_radius=14,
+            border_color="#D4E0F5",
+            focused_border_color=BLUE,
+            text_size=16,
+        )
+
+        resultat = ft.Text(
+            "",
+            size=13,
+            text_align=ft.TextAlign.CENTER,
+        )
+
+        # ============================================================
+        # CHANGER LE MOT DE PASSE
+        # ============================================================
+
+        def changer_mot_de_passe(e):
+
+            print("🔐 CLIC CHANGER MOT DE PASSE")
+
+            ancien = ancien_mot_de_passe.value.strip()
+            nouveau = nouveau_mot_de_passe.value.strip()
+            confirmation = confirmer_mot_de_passe.value.strip()
+
+            # --------------------------------------------------------
+            # SESSION
+            # --------------------------------------------------------
+
+            if not token:
+                resultat.value = (
+                    "Session expirée. Veuillez vous reconnecter."
+                )
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            # --------------------------------------------------------
+            # VALIDATION
+            # --------------------------------------------------------
+
+            if not ancien:
+                resultat.value = "Entrez votre mot de passe actuel."
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            if not nouveau:
+                resultat.value = "Entrez votre nouveau mot de passe."
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            if not confirmation:
+                resultat.value = (
+                    "Confirmez votre nouveau mot de passe."
+                )
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            if len(nouveau) < 8:
+                resultat.value = (
+                    "Le nouveau mot de passe doit contenir "
+                    "au moins 8 caractères."
+                )
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            if nouveau != confirmation:
+                resultat.value = (
+                    "Les deux nouveaux mots de passe ne correspondent pas."
+                )
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            if ancien == nouveau:
+                resultat.value = (
+                    "Le nouveau mot de passe doit être différent "
+                    "de l'ancien."
+                )
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            # ========================================================
+            # API
+            # ========================================================
+            #
+            # Cette partie sera branchée sur la vraie route Flask.
+            #
+            # NE PAS modifier le mot de passe localement.
+            # Le serveur doit vérifier l'ancien mot de passe
+            # et enregistrer le nouveau.
+            # ========================================================
+
+            try:
+
+                response = requests.post(
+                    f"{API_URL}/auth/api/mobile/change-password",
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "ancien_mot_de_passe": ancien,
+                        "nouveau_mot_de_passe": nouveau,
+                    },
+                    timeout=30,
+                )
+
+                print("================================")
+                print("CHANGEMENT MOT DE PASSE")
+                print("STATUT :", response.status_code)
+                print("REPONSE :", response.text[:2000])
+                print("================================")
+
+                try:
+                    data = response.json()
+                except Exception:
+                    data = {}
+
+                if response.status_code == 200 and data.get("success"):
+                    resultat.value = (
+                        "✓ Votre mot de passe a été modifié avec succès."
+                    )
+                    resultat.color = PROFILE_GREEN
+
+                    ancien_mot_de_passe.value = ""
+                    nouveau_mot_de_passe.value = ""
+                    confirmer_mot_de_passe.value = ""
+
+                    page.update()
+
+                    return
+
+                resultat.value = data.get(
+                    "error",
+                    data.get(
+                        "message",
+                        f"Erreur serveur ({response.status_code})"
+                    ),
+                )
+
+                resultat.color = "#D32F2F"
+
+                page.update()
+
+            except requests.exceptions.Timeout:
+
+                resultat.value = (
+                    "Le serveur GMES ne répond pas."
+                )
+
+                resultat.color = "#D32F2F"
+
+                page.update()
+
+            except requests.exceptions.ConnectionError:
+
+                resultat.value = (
+                    "Impossible de contacter le serveur GMES."
+                )
+
+                resultat.color = "#D32F2F"
+
+                page.update()
+
+            except Exception as ex:
+
+                print(
+                    "❌ ERREUR CHANGEMENT MOT DE PASSE :",
+                    repr(ex),
+                )
+
+                resultat.value = (
+                    "Une erreur est survenue."
+                )
+
+                resultat.color = "#D32F2F"
+
+                page.update()
+
+        # ============================================================
+        # HEADER
+        # ============================================================
+
+        header = ft.Container(
+            bgcolor=BLUE,
+            padding=ft.Padding.only(
+                left=8,
+                right=15,
+                top=18,
+                bottom=18,
+            ),
+            border_radius=ft.BorderRadius.only(
+                bottom_left=20,
+                bottom_right=20,
+            ),
+            content=ft.Row(
+                [
+                    ft.IconButton(
+                        icon=ft.Icons.ARROW_BACK,
+                        icon_color=ft.Colors.WHITE,
+                        icon_size=30,
+                        on_click=lambda e: afficher_profil(),
+                    ),
+
+                    ft.Text(
+                        "Changer mon mot de passe",
+                        color=ft.Colors.WHITE,
+                        size=20,
+                        weight=ft.FontWeight.BOLD,
+                        expand=True,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+
+                    ft.Container(
+                        width=45,
+                    ),
+                ],
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+        )
+
+        # ============================================================
+        # INTRODUCTION
+        # ============================================================
+
+        introduction = ft.Container(
+            padding=ft.Padding.only(
+                top=30,
+                bottom=20,
+                left=20,
+                right=20,
+            ),
+            content=ft.Column(
+                [
+                    ft.Container(
+                        width=85,
+                        height=85,
+                        border_radius=43,
+                        bgcolor="#EAF2FF",
+                        alignment=ft.Alignment.CENTER,
+                        content=ft.Icon(
+                            ft.Icons.LOCK_OUTLINE,
+                            color=BLUE,
+                            size=45,
+                        ),
+                    ),
+
+                    ft.Container(height=8),
+
+                    ft.Text(
+                        "Sécurité du compte",
+                        size=24,
+                        color=TEXT,
+                        weight=ft.FontWeight.BOLD,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+
+                    ft.Text(
+                        "Modifiez votre mot de passe pour "
+                        "sécuriser votre compte GMES.",
+                        size=14,
+                        color=GREY,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=7,
+            ),
+        )
+
+        # ============================================================
+        # FORMULAIRE
+        # ============================================================
+
+        formulaire = ft.Container(
+            margin=ft.Margin.only(
+                left=20,
+                right=20,
+            ),
+            padding=20,
+            bgcolor=ft.Colors.WHITE,
+            border_radius=22,
+            border=ft.Border.all(
+                1,
+                "#E5EAF2",
+            ),
+            shadow=ft.BoxShadow(
+                blur_radius=10,
+                spread_radius=1,
+                color="#12000000",
+            ),
+            content=ft.Column(
+                [
+                    ft.Text(
+                        "Modifier le mot de passe",
+                        size=19,
+                        color=TEXT,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+
+                    ft.Container(height=5),
+
+                    ancien_mot_de_passe,
+
+                    nouveau_mot_de_passe,
+
+                    confirmer_mot_de_passe,
+
+                    # ------------------------------------------------
+                    # CONSEILS
+                    # ------------------------------------------------
+
+                    ft.Container(
+                        padding=15,
+                        bgcolor="#F5F8FF",
+                        border_radius=15,
+                        content=ft.Column(
+                            [
+                                ft.Text(
+                                    "Conseils de sécurité",
+                                    size=14,
+                                    color=BLUE,
+                                    weight=ft.FontWeight.BOLD,
+                                ),
+
+                                ft.Text(
+                                    "• Au moins 8 caractères",
+                                    size=12,
+                                    color=GREY,
+                                ),
+
+                                ft.Text(
+                                    "• Utilisez un mot de passe différent "
+                                    "de l'ancien",
+                                    size=12,
+                                    color=GREY,
+                                ),
+                            ],
+                            spacing=5,
+                        ),
+                    ),
+
+                    resultat,
+
+                    # ------------------------------------------------
+                    # BOUTON
+                    # ------------------------------------------------
+
+                    ft.Container(
+                        height=55,
+                        border_radius=15,
+                        bgcolor=BLUE,
+                        content=ft.ElevatedButton(
+                            "Modifier le mot de passe",
+                            icon=ft.Icons.LOCK_RESET,
+                            on_click=changer_mot_de_passe,
+                            style=ft.ButtonStyle(
+                                bgcolor=BLUE,
+                                color=ft.Colors.WHITE,
+                                shape=ft.RoundedRectangleBorder(
+                                    radius=15,
+                                ),
+                            ),
+                        ),
+                    ),
+                ],
+                spacing=14,
+            ),
+        )
+
+        # ============================================================
+        # INFORMATION
+        # ============================================================
+
+        information = ft.Container(
+            margin=ft.Margin.only(
+                left=20,
+                right=20,
+                top=18,
+                bottom=25,
+            ),
+            padding=17,
+            bgcolor="#EAF3FF",
+            border_radius=18,
+            content=ft.Row(
+                [
+                    ft.Container(
+                        width=42,
+                        height=42,
+                        border_radius=21,
+                        bgcolor="#D6E8FF",
+                        alignment=ft.Alignment.CENTER,
+                        content=ft.Icon(
+                            ft.Icons.INFO_OUTLINE,
+                            color=BLUE,
+                            size=25,
+                        ),
+                    ),
+
+                    ft.Text(
+                        "Après la modification, utilisez votre "
+                        "nouveau mot de passe pour vous connecter "
+                        "à GMES.",
+                        size=13,
+                        color=BLUE,
+                        expand=True,
+                    ),
+                ],
+                spacing=12,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+        )
+
+        # ============================================================
+        # AFFICHAGE
+        # ============================================================
+
+        page.add(
+            ft.Column(
+                [
+                    header,
+
+                    ft.Column(
+                        [
+                            introduction,
+                            formulaire,
+                            information,
+                        ],
+                        spacing=0,
+                    ),
+                ],
+                expand=True,
+                scroll=ft.ScrollMode.AUTO,
+                spacing=0,
+            )
+        )
+
+        page.update()
+
+    def afficher_historique_operations():
+        print("🔥 ÉCRAN HISTORIQUE DES OPÉRATIONS")
+
+        page.controls.clear()
+
+        # ============================================================
+        # DONNÉES DES OPÉRATIONS
+        # ============================================================
+
+        operations = [
+            {
+                "type": "transfert_envoye",
+                "titre": "Transfert envoyé",
+                "description": "Vers : 7-12519-1234567890",
+                "date": "20 sept. 2026",
+                "montant": -5000,
+                "statut": "Effectué",
+            },
+            {
+                "type": "transfert_recu",
+                "titre": "Transfert reçu",
+                "description": "De : 7-12519-9876543210",
+                "date": "18 sept. 2026",
+                "montant": 8000,
+                "statut": "Reçu",
+            },
+            {
+                "type": "remboursement",
+                "titre": "Remboursement prêt",
+                "description": "Prêt : GMES_Pret-20260912-66403",
+                "date": "15 sept. 2026",
+                "montant": -6200,
+                "statut": "Effectué",
+            },
+            {
+                "type": "depot_epargne",
+                "titre": "Dépôt épargne",
+                "description": "Compte épargne",
+                "date": "12 sept. 2026",
+                "montant": 2000,
+                "statut": "Crédité",
+            },
+            {
+                "type": "retrait_epargne",
+                "titre": "Retrait épargne",
+                "description": "Compte épargne",
+                "date": "08 sept. 2026",
+                "montant": -3000,
+                "statut": "Effectué",
+            },
+            {
+                "type": "transfert_recu",
+                "titre": "Transfert reçu",
+                "description": "De : 7-12519-5555555555",
+                "date": "28 août 2026",
+                "montant": 4500,
+                "statut": "Reçu",
+            },
+        ]
+
+        # ============================================================
+        # VARIABLES POUR LES FILTRES
+        # ============================================================
+
+        filtre_actuel = "Toutes"
+
+        # ============================================================
+        # LISTE DES OPÉRATIONS
+        # ============================================================
+
+        liste_operations = ft.Column(
+            spacing=0,
+            scroll=ft.ScrollMode.AUTO,
+            expand=True,
+        )
+
+        # ============================================================
+        # ICÔNE ET COULEUR SELON LE TYPE
+        # ============================================================
+
+        def configuration_operation(operation):
+
+            type_operation = operation.get("type")
+
+            if type_operation == "transfert_envoye":
+                return (
+                    ft.Icons.ARROW_UPWARD,
+                    "#E5A817",
+                    "#FFF6D9",
+                )
+
+            if type_operation == "transfert_recu":
+                return (
+                    ft.Icons.ARROW_DOWNWARD,
+                    GREEN,
+                    "#DDF6E5",
+                )
+
+            if type_operation == "remboursement":
+                return (
+                    ft.Icons.CREDIT_CARD,
+                    "#D32F2F",
+                    "#FBE9E9",
+                )
+
+            if type_operation == "depot_epargne":
+                return (
+                    ft.Icons.SAVINGS,
+                    GREEN,
+                    "#DDF6E5",
+                )
+
+            if type_operation == "retrait_epargne":
+                return (
+                    ft.Icons.SAVINGS_OUTLINED,
+                    "#D32F2F",
+                    "#FBE9E9",
+                )
+
+            return (
+                ft.Icons.RECEIPT_LONG,
+                BLUE,
+                "#EAF2FF",
+            )
+
+        # ============================================================
+        # AFFICHER LES OPÉRATIONS
+        # ============================================================
+
+        def afficher_liste():
+
+            liste_operations.controls.clear()
+
+            if filtre_actuel == "Toutes":
+
+                operations_filtrees = operations
+
+            elif filtre_actuel == "Prêts":
+
+                operations_filtrees = [
+                    operation
+                    for operation in operations
+                    if operation.get("type") == "remboursement"
+                ]
+
+            elif filtre_actuel == "Épargne":
+
+                operations_filtrees = [
+                    operation
+                    for operation in operations
+                    if operation.get("type")
+                       in (
+                           "depot_epargne",
+                           "retrait_epargne",
+                       )
+                ]
+
+            elif filtre_actuel == "Transferts":
+
+                operations_filtrees = [
+                    operation
+                    for operation in operations
+                    if operation.get("type")
+                       in (
+                           "transfert_envoye",
+                           "transfert_recu",
+                       )
+                ]
+
+            else:
+
+                operations_filtrees = operations
+
+            if not operations_filtrees:
+                liste_operations.controls.append(
+                    ft.Container(
+                        padding=40,
+                        alignment=ft.Alignment.CENTER,
+                        content=ft.Column(
+                            [
+                                ft.Icon(
+                                    ft.Icons.RECEIPT_LONG_OUTLINED,
+                                    size=55,
+                                    color=GREY,
+                                ),
+
+                                ft.Text(
+                                    "Aucune opération",
+                                    size=18,
+                                    color=TEXT,
+                                    weight=ft.FontWeight.BOLD,
+                                ),
+
+                                ft.Text(
+                                    "Aucune opération ne correspond "
+                                    "à ce filtre.",
+                                    size=13,
+                                    color=GREY,
+                                    text_align=ft.TextAlign.CENTER,
+                                ),
+                            ],
+                            horizontal_alignment=(
+                                ft.CrossAxisAlignment.CENTER
+                            ),
+                            spacing=8,
+                        ),
+                    )
+                )
+
+                page.update()
+                return
+
+            # --------------------------------------------------------
+            # CRÉER LES CARTES
+            # --------------------------------------------------------
+
+            for operation in operations_filtrees:
+
+                icone, couleur, couleur_fond = (
+                    configuration_operation(operation)
+                )
+
+                montant_operation = operation.get(
+                    "montant",
+                    0,
+                )
+
+                # ----------------------------------------------------
+                # SIGNE
+                # ----------------------------------------------------
+
+                if montant_operation >= 0:
+                    signe = "+"
+                    couleur_montant = GREEN
+                else:
+                    signe = "-"
+                    couleur_montant = "#D32F2F"
+
+                montant_affiche = (
+                    f"{signe} "
+                    f"{abs(montant_operation):,.2f} HTG"
+                )
+
+                # ----------------------------------------------------
+                # OPÉRATION
+                # ----------------------------------------------------
+
+                liste_operations.controls.append(
+                    ft.Container(
+                        padding=ft.Padding.symmetric(
+                            vertical=13,
+                        ),
+                        border=ft.Border.only(
+                            bottom=ft.BorderSide(
+                                1,
+                                "#E5EAF2",
+                            )
+                        ),
+                        content=ft.Row(
+                            [
+                                # ------------------------------------
+                                # ICÔNE
+                                # ------------------------------------
+
+                                ft.Container(
+                                    width=48,
+                                    height=48,
+                                    border_radius=24,
+                                    bgcolor=couleur_fond,
+                                    alignment=ft.Alignment.CENTER,
+                                    content=ft.Icon(
+                                        icone,
+                                        color=couleur,
+                                        size=23,
+                                    ),
+                                ),
+
+                                # ------------------------------------
+                                # DESCRIPTION
+                                # ------------------------------------
+
+                                ft.Column(
+                                    [
+                                        ft.Text(
+                                            operation.get(
+                                                "titre",
+                                                "Opération",
+                                            ),
+                                            size=15,
+                                            color=TEXT,
+                                            weight=(
+                                                ft.FontWeight.BOLD
+                                            ),
+                                        ),
+
+                                        ft.Text(
+                                            operation.get(
+                                                "description",
+                                                "",
+                                            ),
+                                            size=11,
+                                            color=GREY,
+                                            max_lines=1,
+                                            overflow=(
+                                                ft.TextOverflow
+                                                .ELLIPSIS
+                                            ),
+                                        ),
+
+                                        ft.Text(
+                                            operation.get(
+                                                "date",
+                                                "",
+                                            ),
+                                            size=11,
+                                            color=GREY,
+                                        ),
+                                    ],
+                                    expand=True,
+                                    spacing=3,
+                                ),
+
+                                # ------------------------------------
+                                # MONTANT + STATUT
+                                # ------------------------------------
+
+                                ft.Column(
+                                    [
+                                        ft.Text(
+                                            montant_affiche,
+                                            size=14,
+                                            color=couleur_montant,
+                                            weight=(
+                                                ft.FontWeight.BOLD
+                                            ),
+                                            text_align=(
+                                                ft.TextAlign.RIGHT
+                                            ),
+                                        ),
+
+                                        ft.Container(
+                                            bgcolor=(
+                                                couleur_fond
+                                            ),
+                                            border_radius=20,
+                                            padding=(
+                                                ft.Padding.symmetric(
+                                                    horizontal=8,
+                                                    vertical=3,
+                                                )
+                                            ),
+                                            content=ft.Text(
+                                                operation.get(
+                                                    "statut",
+                                                    "Effectué",
+                                                ),
+                                                size=10,
+                                                color=couleur,
+                                                weight=(
+                                                    ft.FontWeight.BOLD
+                                                ),
+                                            ),
+                                        ),
+                                    ],
+                                    horizontal_alignment=(
+                                        ft.CrossAxisAlignment.END
+                                    ),
+                                    spacing=4,
+                                ),
+                            ],
+                            vertical_alignment=(
+                                ft.CrossAxisAlignment.CENTER
+                            ),
+                        ),
+                    )
+                )
+
+            page.update()
+
+        # ============================================================
+        # BOUTONS FILTRES
+        # ============================================================
+
+        boutons_filtres = ft.Row(
+            spacing=8,
+            scroll=ft.ScrollMode.AUTO,
+        )
+
+        def changer_filtre(nouveau_filtre):
+
+            nonlocal filtre_actuel
+
+            filtre_actuel = nouveau_filtre
+
+            boutons_filtres.controls.clear()
+
+            for nom_filtre in [
+                "Toutes",
+                "Prêts",
+                "Épargne",
+                "Transferts",
+            ]:
+                actif = nom_filtre == filtre_actuel
+
+                boutons_filtres.controls.append(
+                    ft.Container(
+                        padding=ft.Padding.symmetric(
+                            horizontal=15,
+                            vertical=9,
+                        ),
+                        border_radius=20,
+                        bgcolor=(
+                            BLUE
+                            if actif
+                            else ft.Colors.WHITE
+                        ),
+                        border=ft.Border.all(
+                            1,
+                            BLUE if actif else "#DCE3EF",
+                        ),
+                        on_click=lambda e, f=nom_filtre:
+                        changer_filtre(f),
+                        content=ft.Text(
+                            nom_filtre,
+                            size=13,
+                            color=(
+                                ft.Colors.WHITE
+                                if actif
+                                else TEXT
+                            ),
+                            weight=(
+                                ft.FontWeight.BOLD
+                                if actif
+                                else ft.FontWeight.NORMAL
+                            ),
+                        ),
+                    )
+                )
+
+            afficher_liste()
+            page.update()
+
+        # ============================================================
+        # HEADER
+        # ============================================================
+
+        header = ft.Container(
+            bgcolor=PURPLE,
+            padding=ft.Padding.only(
+                left=8,
+                right=15,
+                top=18,
+                bottom=18,
+            ),
+            content=ft.Row(
+                [
+                    ft.IconButton(
+                        icon=ft.Icons.ARROW_BACK,
+                        icon_color=ft.Colors.WHITE,
+                        icon_size=30,
+                        on_click=lambda e: afficher_profil(),
+                    ),
+
+                    ft.Text(
+                        "Historique des opérations",
+                        color=ft.Colors.WHITE,
+                        size=20,
+                        weight=ft.FontWeight.BOLD,
+                        expand=True,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+
+                    ft.Container(
+                        width=45,
+                    ),
+                ],
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+        )
+
+        # ============================================================
+        # RÉSUMÉ
+        # ============================================================
+
+        resume = ft.Container(
+            margin=ft.Margin.only(
+                left=20,
+                right=20,
+                top=18,
+            ),
+            padding=18,
+            bgcolor=ft.Colors.WHITE,
+            border_radius=20,
+            border=ft.Border.all(
+                1,
+                "#E5EAF2",
+            ),
+            content=ft.Row(
+                [
+                    ft.Container(
+                        width=45,
+                        height=45,
+                        border_radius=23,
+                        bgcolor="#F0EBFF",
+                        alignment=ft.Alignment.CENTER,
+                        content=ft.Icon(
+                            ft.Icons.RECEIPT_LONG,
+                            color=PURPLE,
+                            size=24,
+                        ),
+                    ),
+
+                    ft.Column(
+                        [
+                            ft.Text(
+                                "Mes opérations",
+                                size=14,
+                                color=GREY,
+                            ),
+
+                            ft.Text(
+                                f"{len(operations)} opérations",
+                                size=20,
+                                color=TEXT,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                        ],
+                        spacing=2,
+                        expand=True,
+                    ),
+                ],
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+        )
+
+        # ============================================================
+        # CONSTRUCTION INITIALE DES FILTRES
+        # ============================================================
+
+        changer_filtre("Toutes")
+
+        # ============================================================
+        # AFFICHAGE
+        # ============================================================
+
+        page.add(
+            ft.Column(
+                [
+                    header,
+
+                    resume,
+
+                    ft.Container(
+                        padding=ft.Padding.only(
+                            left=20,
+                            right=20,
+                            top=18,
+                            bottom=8,
+                        ),
+                        content=boutons_filtres,
+                    ),
+
+                    ft.Container(
+                        margin=ft.Margin.only(
+                            left=20,
+                            right=20,
+                            bottom=20,
+                        ),
+                        padding=18,
+                        bgcolor=ft.Colors.WHITE,
+                        border_radius=22,
+                        expand=True,
+                        content=liste_operations,
+                    ),
+                ],
+                expand=True,
+                spacing=0,
+            )
+        )
+
+        page.update()
+
+
 
     # --- ÉCRAN DASHBOARD ---
     def afficher_dashboard():
