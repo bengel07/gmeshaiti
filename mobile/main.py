@@ -1768,7 +1768,7 @@ def main(page: ft.Page):
 
         file_picker.on_result = photo_selectionnee_result
 
-        page.overlay.append(file_picker)
+        page.services.append(file_picker)  # ✅ Utilise services au lieu de overlay
 
         # ============================================================
         # MODIFIER PHOTO
