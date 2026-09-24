@@ -1764,9 +1764,9 @@ def main(page: ft.Page):
 
             page.update()
 
-        file_picker = ft.FilePicker(
-            on_result=photo_selectionnee_result
-        )
+        file_picker = ft.FilePicker()
+
+        file_picker.on_result = photo_selectionnee_result
 
         page.overlay.append(file_picker)
 
