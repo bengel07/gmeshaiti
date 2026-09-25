@@ -31485,10 +31485,24 @@ def prets_par_succursale(succursale_id):
 
 
 
+# @app.errorhandler(CSRFError)
+# def handle_csrf_error(e):
+#     flash('⚠️ Le formulaire a expiré. Veuillez réessayer.', 'warning')
+#     return redirect(request.referrer or url_for('login'))
+
 @app.errorhandler(CSRFError)
 def handle_csrf_error(e):
-    flash('⚠️ Le formulaire a expiré. Veuillez réessayer.', 'warning')
-    return redirect(request.referrer or url_for('login'))
+
+    if request.path.startswith("/api/"):
+        flash('⚠️ Le formulaire a expiré. Veuillez réessayer.', 'warning')
+        return jsonify({
+            "success": False,
+            "error": "Token CSRF manquant ou invalide."
+        }), 400
+
+    return redirect(
+        request.referrer or url_for("login_qr")
+    )
 
 
 
