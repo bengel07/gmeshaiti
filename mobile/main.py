@@ -710,9 +710,10 @@ def main(page: ft.Page):
                         "Accept": "application/json",
                     },
                     json={
-                        "montant": montant_float,
-                        "duree_mois": duree_int,
-                        "motif": motif,
+                         "montant": montant_float,
+                        "duree": duree_int,
+                        "objet": motif,
+                        "type_pret": "classique",
                     },
                     timeout=30,
                 )

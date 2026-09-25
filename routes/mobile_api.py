@@ -342,6 +342,7 @@ def mobile_prets(current_user):
         "success": True,
         "client_id": client.id,
         "prets": resultats,
+        "duree": resultats,
         "total": len(resultats)
     }), 200
 
