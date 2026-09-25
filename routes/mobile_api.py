@@ -348,10 +348,12 @@ def mobile_prets(current_user):
 
 @mobile_api_bp.route("/api/mobile/transfert", methods=["POST"])
 def mobile_transfert():
+
     try:
-        # ==============================
-        # AUTHENTIFICATION JWT
-        # ==============================
+        # =====================================================
+        # 1. AUTHENTIFICATION JWT
+        # =====================================================
+
         auth_header = request.headers.get("Authorization", "")
 
         if not auth_header.startswith("Bearer "):
@@ -368,20 +370,23 @@ def mobile_transfert():
                 current_app.config["SECRET_KEY"],
                 algorithms=["HS256"]
             )
+
         except jwt.ExpiredSignatureError:
             return jsonify({
                 "success": False,
                 "error": "Session expirée."
             }), 401
+
         except jwt.InvalidTokenError:
             return jsonify({
                 "success": False,
                 "error": "Token invalide."
             }), 401
 
-        # ==============================
-        # UTILISATEUR
-        # ==============================
+        # =====================================================
+        # 2. UTILISATEUR
+        # =====================================================
+
         user = User.query.get(payload.get("user_id"))
 
         if not user:
@@ -389,6 +394,10 @@ def mobile_transfert():
                 "success": False,
                 "error": "Utilisateur introuvable."
             }), 404
+
+        # =====================================================
+        # 3. CLIENT
+        # =====================================================
 
         client = None
 
@@ -408,9 +417,10 @@ def mobile_transfert():
                 "error": "Profil client introuvable."
             }), 404
 
-        # ==============================
-        # DONNÉES DU TRANSFERT
-        # ==============================
+        # =====================================================
+        # 4. DONNÉES REÇUES DE L'APPLICATION
+        # =====================================================
+
         data = request.get_json(silent=True) or {}
 
         numero_compte_destinataire = str(
@@ -440,9 +450,10 @@ def mobile_transfert():
                 "error": "Le montant doit être supérieur à zéro."
             }), 400
 
-        # ==============================
-        # COMPTE ÉPARGNE EXPÉDITEUR
-        # ==============================
+        # =====================================================
+        # 5. COMPTE ÉPARGNE SOURCE
+        # =====================================================
+
         compte_source = get_compte_epargne_actif(client)
 
         if not compte_source:
@@ -451,26 +462,43 @@ def mobile_transfert():
                 "error": "Compte épargne introuvable."
             }), 404
 
+        if getattr(compte_source, "bloque", False):
+            return jsonify({
+                "success": False,
+                "error": "Votre compte épargne est bloqué."
+            }), 400
+
         solde_source = float(compte_source.solde or 0)
 
         if solde_source < montant:
             return jsonify({
                 "success": False,
-                "error": "Solde insuffisant."
+                "error": (
+                    f"Solde insuffisant. "
+                    f"Votre solde est de {solde_source:,.2f} HTG."
+                )
             }), 400
 
-        # ==============================
-        # DESTINATAIRE
-        # ==============================
+        # =====================================================
+        # 6. COMPTE DESTINATAIRE
+        # =====================================================
+
         compte_destinataire = Epargne.query.filter_by(
-            numero_compte=numero_compte_destinataire
+            numero_compte=numero_compte_destinataire,
+            statut="actif"
         ).first()
 
         if not compte_destinataire:
             return jsonify({
                 "success": False,
-                "error": "Compte destinataire introuvable."
+                "error": "Compte destinataire introuvable ou inactif."
             }), 404
+
+        if getattr(compte_destinataire, "bloque", False):
+            return jsonify({
+                "success": False,
+                "error": "Le compte destinataire est bloqué."
+            }), 400
 
         if compte_destinataire.id == compte_source.id:
             return jsonify({
@@ -478,60 +506,120 @@ def mobile_transfert():
                 "error": "Vous ne pouvez pas transférer vers votre propre compte."
             }), 400
 
-        # ==============================
-        # TRANSACTION
-        # ==============================
-        compte_source.solde = solde_source - montant
+        # =====================================================
+        # 7. CLIENT DESTINATAIRE
+        # =====================================================
 
-        compte_destinataire.solde = (
-            float(compte_destinataire.solde or 0)
-            + montant
+        client_destinataire = compte_destinataire.client
+
+        if not client_destinataire:
+            return jsonify({
+                "success": False,
+                "error": "Client destinataire introuvable."
+            }), 404
+
+        # =====================================================
+        # 8. RÉFÉRENCE DU TRANSFERT
+        # =====================================================
+
+        from datetime import datetime
+
+        ref_transfert = (
+            f"TRF_"
+            f"{datetime.now().strftime('%Y%m%d%H%M%S')}_"
+            f"{client.id}_"
+            f"{compte_source.id}"
         )
 
-        # ==============================
-        # ENREGISTREMENT
-        # ==============================
-        # Adapte cette partie aux champs exacts
-        # de ton modèle TransactionEpargne.
+        # =====================================================
+        # 9. DÉBIT SOURCE
+        # =====================================================
 
-        transaction = TransactionEpargne(
+        compte_source.solde = (
+            float(compte_source.solde or 0) - montant
+        )
+
+        transaction_source = TransactionEpargne(
             compte_epargne_id=compte_source.id,
             montant=-montant,
-            type_transaction="transfert",
+            type_transaction="transfert_sortant",
             description=(
-                f"Transfert vers {numero_compte_destinataire}"
+                f"Transfert vers "
+                f"{compte_destinataire.numero_compte}"
                 + (f" - {motif}" if motif else "")
             )
         )
 
-        db.session.add(transaction)
+        # Si ton modèle possède ce champ
+        if hasattr(transaction_source, "transaction_ref"):
+            transaction_source.transaction_ref = ref_transfert
 
-        transaction_recue = TransactionEpargne(
+        db.session.add(transaction_source)
+
+        # =====================================================
+        # 10. CRÉDIT DESTINATAIRE
+        # =====================================================
+
+        compte_destinataire.solde = (
+            float(compte_destinataire.solde or 0) + montant
+        )
+
+        transaction_destinataire = TransactionEpargne(
             compte_epargne_id=compte_destinataire.id,
             montant=montant,
-            type_transaction="transfert",
+            type_transaction="transfert_entrant",
             description=(
-                f"Transfert reçu de {compte_source.numero_compte}"
+                f"Transfert reçu de "
+                f"{compte_source.numero_compte}"
                 + (f" - {motif}" if motif else "")
             )
         )
 
-        db.session.add(transaction_recue)
+        # Si ton modèle possède ce champ
+        if hasattr(transaction_destinataire, "transaction_ref"):
+            transaction_destinataire.transaction_ref = ref_transfert
+
+        db.session.add(transaction_destinataire)
+
+        # =====================================================
+        # 11. METTRE À JOUR LE SOLDE CLIENT SOURCE
+        # =====================================================
+
+        client.solde = (
+            db.session.query(func.sum(Epargne.solde))
+            .filter(Epargne.client_id == client.id)
+            .scalar()
+            or 0
+        )
+
+        # =====================================================
+        # 12. COMMIT
+        # =====================================================
 
         db.session.commit()
+
+        # =====================================================
+        # 13. RÉPONSE MOBILE
+        # =====================================================
 
         return jsonify({
             "success": True,
             "message": "Transfert effectué avec succès.",
+            "reference": ref_transfert,
             "montant": montant,
-            "solde": float(compte_source.solde or 0),
-            "destinataire": numero_compte_destinataire
+            "compte_source": compte_source.numero_compte,
+            "destinataire": compte_destinataire.numero_compte,
+            "solde": float(compte_source.solde or 0)
         }), 200
 
     except Exception as e:
+
         db.session.rollback()
 
-        print("❌ ERREUR TRANSFERT :", str(e))
+        current_app.logger.error(
+            f"❌ ERREUR TRANSFERT MOBILE : {str(e)}",
+            exc_info=True
+        )
 
         return jsonify({
             "success": False,
