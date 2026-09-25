@@ -352,7 +352,6 @@ def mobile_prets(current_user):
     "/api/mobile/demande-pret",
     methods=["POST"]
 )
-@csrf.exempt
 def mobile_demande_pret(current_user):
 
     try:
