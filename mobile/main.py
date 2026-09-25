@@ -1055,7 +1055,7 @@ def main(page: ft.Page):
                     page.update()
                     return
 
-                client_dest = data.get("client", {})
+                client_dest = data.get("destinataire", {})
 
                 prenom = client_dest.get("prenom", "")
                 nom = client_dest.get("nom", "")
