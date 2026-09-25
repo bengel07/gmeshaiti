@@ -742,9 +742,53 @@ def mobile_transfert():
     "/api/mobile/demande-pret",
     methods=["POST"]
 )
-def mobile_demande_pret(current_user):
+def mobile_demande_pret():
 
     try:
+
+        # ----------------------------------------------------
+        # AUTHENTIFICATION JWT MOBILE
+        # ----------------------------------------------------
+        auth_header = request.headers.get("Authorization", "")
+
+        if not auth_header.startswith("Bearer "):
+            return jsonify({
+                "success": False,
+                "error": "Token manquant."
+            }), 401
+
+        token = auth_header.split(" ", 1)[1]
+
+        try:
+            payload = jwt.decode(
+                token,
+                current_app.config["SECRET_KEY"],
+                algorithms=["HS256"]
+            )
+
+        except jwt.ExpiredSignatureError:
+            return jsonify({
+                "success": False,
+                "error": "Session expirée."
+            }), 401
+
+        except jwt.InvalidTokenError:
+            return jsonify({
+                "success": False,
+                "error": "Token invalide."
+            }), 401
+        # ----------------------------------------------------
+        # UTILISATEUR CONNECTÉ
+        # ----------------------------------------------------
+        user = User.query.get(payload.get("user_id"))
+
+        if not user:
+            return jsonify({
+                "success": False,
+                "error": "Utilisateur introuvable."
+            }), 404
+
+        current_user = user
         # ----------------------------------------------------
         # RÉCUPÉRER LE CLIENT CONNECTÉ
         # ----------------------------------------------------
@@ -798,6 +842,7 @@ def mobile_demande_pret(current_user):
                 "success": False,
                 "error": "Le type de prêt est obligatoire."
             }), 400
+
 
         # ----------------------------------------------------
         # CONVERSION
