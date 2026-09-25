@@ -1196,6 +1196,18 @@ def main(page: ft.Page):
                     )
                     resultat.color = GREEN
 
+                    # ==========================================
+                    # MISE À JOUR IMMÉDIATE DU SOLDE DISPONIBLE
+                    # ==========================================
+
+                    nouveau_solde = data.get("solde")
+
+                    if nouveau_solde is not None:
+                        client["solde"] = float(nouveau_solde)
+                        solde_disponible.value = (
+                            f"{float(nouveau_solde):,.2f} HTG"
+                        )
+
                     montant.value = ""
                     motif.value = ""
 
@@ -1220,6 +1232,13 @@ def main(page: ft.Page):
                                 client.update(
                                     me_data.get("client") or {}
                                 )
+
+                                # Mettre également à jour l'affichage
+                                solde_disponible.value = (
+                                    f"{float(client.get('solde', 0)):,.2f} HTG"
+                                )
+
+                                page.update()
 
                     except Exception as ex:
                         print(
@@ -1261,6 +1280,13 @@ def main(page: ft.Page):
             prefix_icon=ft.Icons.PERSON_OUTLINE,
             border_radius=12,
             on_change=rechercher_destinataire,
+        )
+
+        solde_disponible = ft.Text(
+            f"{client.get('solde', 0):,.2f} HTG",
+            size=28,
+            color=PURPLE,
+            weight=ft.FontWeight.BOLD,
         )
 
         page.add(
@@ -1324,12 +1350,7 @@ def main(page: ft.Page):
                                                 color=GREY,
                                             ),
 
-                                            ft.Text(
-                                                f"{client.get('solde', 0):,.2f} HTG",
-                                                size=28,
-                                                color=PURPLE,
-                                                weight=ft.FontWeight.BOLD,
-                                            ),
+                                            solde_disponible,
                                         ],
                                         spacing=5,
                                     ),
