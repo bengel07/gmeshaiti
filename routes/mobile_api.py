@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 import jwt
 from sqlalchemy import or_
-
+from sqlalchemy import func
 from models import (
     db,
     User,
