@@ -642,7 +642,7 @@ def mobile_transfert():
         )
 
         transaction_source = TransactionEpargne(
-            compte_epargne_id=compte_source.id,
+            compte_id=compte_source.id,
             montant=-montant,
             type_transaction="transfert_sortant",
             description=(
@@ -667,7 +667,7 @@ def mobile_transfert():
         )
 
         transaction_destinataire = TransactionEpargne(
-            compte_epargne_id=compte_destinataire.id,
+            compte_id=compte_destinataire.id,
             montant=montant,
             type_transaction="transfert_entrant",
             description=(
