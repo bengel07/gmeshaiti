@@ -656,7 +656,7 @@ def mobile_transfert():
             transfert_source_id=compte_source.id,
             transfert_destination_id=compte_destinataire.id,
             transfert_motif=motif,
-            transfert_effectue_par=client.id
+            transfert_effectue_par=user.id
         )
 
         db.session.add(transaction_source)
@@ -684,7 +684,7 @@ def mobile_transfert():
             transfert_source_id=compte_source.id,
             transfert_destination_id=compte_destinataire.id,
             transfert_motif=motif,
-            transfert_effectue_par=client.id
+            transfert_effectue_par=None
         )
 
         db.session.add(transaction_destinataire)
