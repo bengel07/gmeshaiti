@@ -976,6 +976,36 @@ def main(page: ft.Page):
 
         resultat = ft.Text("", size=13)
 
+        # ==========================================
+        # CHAMPS DU TRANSFERT
+        # ==========================================
+
+        montant = ft.TextField(
+            label="Montant du transfert (HTG)",
+            prefix_icon=ft.Icons.ATTACH_MONEY,
+            keyboard_type=ft.KeyboardType.NUMBER,
+            border_radius=12,
+        )
+
+        motif = ft.TextField(
+            label="Motif du transfert (facultatif)",
+            prefix_icon=ft.Icons.DESCRIPTION_OUTLINED,
+            border_radius=12,
+        )
+
+        confirmation = ft.Text(
+            "",
+            size=13,
+            color=GREY,
+        )
+
+        destinataire_info = ft.Container(
+            visible=False,
+            padding=15,
+            bgcolor="#E8F5E9",
+            border_radius=15,
+        )
+
         def rechercher_destinataire(e):
             numero = destinataire.value.strip()
 
@@ -983,31 +1013,38 @@ def main(page: ft.Page):
             confirmation.value = ""
 
             if not numero:
-                confirmation.value = "Entrez un numéro de compte."
-                confirmation.color = "#D32F2F"
+                page.update()
+                return
+
+            # Ne pas chercher avant que le numéro soit complet
+            if len(numero) < 10:
                 page.update()
                 return
 
             try:
                 response = requests.get(
-                    f"{API_URL}/api/mobile/recherche-compte",
+                    f"{API_URL}/api/mobile/rechercher-destinataire",
                     headers={
                         "Authorization": f"Bearer {token}",
                         "Accept": "application/json",
                     },
                     params={
-                        "numero": numero
+                        "numero_compte": numero
                     },
                     timeout=30,
                 )
 
                 print("================================")
                 print("RECHERCHE DESTINATAIRE")
+                print("NUMERO :", numero)
                 print("STATUT :", response.status_code)
                 print("REPONSE :", response.text[:2000])
                 print("================================")
 
-                data = response.json()
+                try:
+                    data = response.json()
+                except Exception:
+                    data = {}
 
                 if response.status_code != 200 or not data.get("success"):
                     confirmation.value = data.get(
@@ -1028,7 +1065,10 @@ def main(page: ft.Page):
                     numero
                 )
 
-                # Affichage des informations
+                # ==============================
+                # AFFICHER LE DESTINATAIRE
+                # ==============================
+
                 destinataire_info.content = ft.Column(
                     [
                         ft.Text(
@@ -1070,16 +1110,12 @@ def main(page: ft.Page):
                 page.update()
 
             except requests.exceptions.Timeout:
-                confirmation.value = (
-                    "Le serveur GMES ne répond pas."
-                )
+                confirmation.value = "Le serveur GMES ne répond pas."
                 confirmation.color = "#D32F2F"
                 page.update()
 
             except requests.exceptions.ConnectionError:
-                confirmation.value = (
-                    "Impossible de contacter le serveur GMES."
-                )
+                confirmation.value = "Impossible de contacter le serveur GMES."
                 confirmation.color = "#D32F2F"
                 page.update()
 
@@ -1094,62 +1130,6 @@ def main(page: ft.Page):
                 )
                 confirmation.color = "#D32F2F"
                 page.update()
-
-        destinataire = ft.TextField(
-            label="Numéro de compte du destinataire",
-            prefix_icon=ft.Icons.PERSON_OUTLINE,
-            border_radius=12,
-            on_submit=rechercher_destinataire,
-        )
-
-        montant = ft.TextField(
-            label="Montant du transfert (HTG)",
-            prefix_icon=ft.Icons.ATTACH_MONEY,
-            keyboard_type=ft.KeyboardType.NUMBER,
-            border_radius=12,
-        )
-
-        motif = ft.TextField(
-            label="Motif du transfert (facultatif)",
-            prefix_icon=ft.Icons.DESCRIPTION_OUTLINED,
-            border_radius=12,
-        )
-
-        info_destinataire_text = ft.Text(
-            "",
-            size=15,
-            color=TEXT,
-        )
-
-        info_destinataire = ft.Container(
-            visible=False,
-            padding=15,
-            bgcolor="#E8F5E9",
-            border_radius=15,
-            content=ft.Column(
-                [
-                    ft.Text(
-                        "✓ Destinataire vérifié",
-                        size=14,
-                        color=GREEN,
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                    info_destinataire_text,
-                ],
-                spacing=5,
-            ),
-        )
-
-        confirmation = ft.Text(
-            "",
-            size=13,
-            color=GREY,
-        )
-
-
-
-
-
 
         def effectuer_transfert(e):
             numero = destinataire.value.strip()
@@ -1274,6 +1254,14 @@ def main(page: ft.Page):
                 resultat.value = "Une erreur est survenue."
                 resultat.color = "#D32F2F"
                 page.update()
+
+
+        destinataire = ft.TextField(
+            label="Numéro de compte du destinataire",
+            prefix_icon=ft.Icons.PERSON_OUTLINE,
+            border_radius=12,
+            on_change=rechercher_destinataire,
+        )
 
         page.add(
             ft.Column(
