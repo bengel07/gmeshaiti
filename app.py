@@ -259,7 +259,7 @@ csrf.exempt(app.view_functions['mobile_api.mobile_notifications'])
 csrf.exempt(app.view_functions['mobile_api.mobile_notification_lire'])
 csrf.exempt(app.view_functions['mobile_api.mobile_demande_pret'])
 # csrf.exempt(app.view_functions['mobile_api.mobile_retrait'])
-#csrf.exempt(app.view_functions['mobile_api.mobile_transfert'])
+csrf.exempt(app.view_functions['mobile_api.mobile_transfert'])
 
 from functools import wraps
 

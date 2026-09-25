@@ -15,9 +15,11 @@ from models import (
     Client,
     Pret,
     Remboursement,
-    Groupe, Notification, NotificationClient, Retrait, Transaction, Epargne
+    Groupe, Notification,
+    NotificationClient, Retrait,
+    Transaction, Epargne, TransactionEpargne,
 )
-
+from routes.auth import get_compte_epargne_actif
 
 # ============================================================
 # BLUEPRINT
@@ -343,6 +345,198 @@ def mobile_prets(current_user):
         "total": len(resultats)
     }), 200
 
+
+@mobile_api_bp.route("/api/mobile/transfert", methods=["POST"])
+def mobile_transfert():
+    try:
+        # ==============================
+        # AUTHENTIFICATION JWT
+        # ==============================
+        auth_header = request.headers.get("Authorization", "")
+
+        if not auth_header.startswith("Bearer "):
+            return jsonify({
+                "success": False,
+                "error": "Token manquant."
+            }), 401
+
+        token = auth_header.split(" ", 1)[1]
+
+        try:
+            payload = jwt.decode(
+                token,
+                current_app.config["SECRET_KEY"],
+                algorithms=["HS256"]
+            )
+        except jwt.ExpiredSignatureError:
+            return jsonify({
+                "success": False,
+                "error": "Session expirée."
+            }), 401
+        except jwt.InvalidTokenError:
+            return jsonify({
+                "success": False,
+                "error": "Token invalide."
+            }), 401
+
+        # ==============================
+        # UTILISATEUR
+        # ==============================
+        user = User.query.get(payload.get("user_id"))
+
+        if not user:
+            return jsonify({
+                "success": False,
+                "error": "Utilisateur introuvable."
+            }), 404
+
+        client = None
+
+        if getattr(user, "client_id", None):
+            client = Client.query.filter_by(
+                id=user.client_id
+            ).first()
+
+        if not client:
+            client = Client.query.filter_by(
+                user_id=user.id
+            ).first()
+
+        if not client:
+            return jsonify({
+                "success": False,
+                "error": "Profil client introuvable."
+            }), 404
+
+        # ==============================
+        # DONNÉES DU TRANSFERT
+        # ==============================
+        data = request.get_json(silent=True) or {}
+
+        numero_compte_destinataire = str(
+            data.get("numero_compte_destinataire", "")
+        ).strip()
+
+        montant = data.get("montant")
+        motif = str(data.get("motif", "")).strip()
+
+        if not numero_compte_destinataire:
+            return jsonify({
+                "success": False,
+                "error": "Numéro de compte destinataire obligatoire."
+            }), 400
+
+        try:
+            montant = float(montant)
+        except (TypeError, ValueError):
+            return jsonify({
+                "success": False,
+                "error": "Montant invalide."
+            }), 400
+
+        if montant <= 0:
+            return jsonify({
+                "success": False,
+                "error": "Le montant doit être supérieur à zéro."
+            }), 400
+
+        # ==============================
+        # COMPTE ÉPARGNE EXPÉDITEUR
+        # ==============================
+        compte_source = get_compte_epargne_actif(client)
+
+        if not compte_source:
+            return jsonify({
+                "success": False,
+                "error": "Compte épargne introuvable."
+            }), 404
+
+        solde_source = float(compte_source.solde or 0)
+
+        if solde_source < montant:
+            return jsonify({
+                "success": False,
+                "error": "Solde insuffisant."
+            }), 400
+
+        # ==============================
+        # DESTINATAIRE
+        # ==============================
+        compte_destinataire = Epargne.query.filter_by(
+            numero_compte=numero_compte_destinataire
+        ).first()
+
+        if not compte_destinataire:
+            return jsonify({
+                "success": False,
+                "error": "Compte destinataire introuvable."
+            }), 404
+
+        if compte_destinataire.id == compte_source.id:
+            return jsonify({
+                "success": False,
+                "error": "Vous ne pouvez pas transférer vers votre propre compte."
+            }), 400
+
+        # ==============================
+        # TRANSACTION
+        # ==============================
+        compte_source.solde = solde_source - montant
+
+        compte_destinataire.solde = (
+            float(compte_destinataire.solde or 0)
+            + montant
+        )
+
+        # ==============================
+        # ENREGISTREMENT
+        # ==============================
+        # Adapte cette partie aux champs exacts
+        # de ton modèle TransactionEpargne.
+
+        transaction = TransactionEpargne(
+            compte_epargne_id=compte_source.id,
+            montant=-montant,
+            type_transaction="transfert",
+            description=(
+                f"Transfert vers {numero_compte_destinataire}"
+                + (f" - {motif}" if motif else "")
+            )
+        )
+
+        db.session.add(transaction)
+
+        transaction_recue = TransactionEpargne(
+            compte_epargne_id=compte_destinataire.id,
+            montant=montant,
+            type_transaction="transfert",
+            description=(
+                f"Transfert reçu de {compte_source.numero_compte}"
+                + (f" - {motif}" if motif else "")
+            )
+        )
+
+        db.session.add(transaction_recue)
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Transfert effectué avec succès.",
+            "montant": montant,
+            "solde": float(compte_source.solde or 0),
+            "destinataire": numero_compte_destinataire
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+
+        print("❌ ERREUR TRANSFERT :", str(e))
+
+        return jsonify({
+            "success": False,
+            "error": "Erreur interne lors du transfert."
+        }), 500
 
 # ============================================================
 # API MOBILE — DEMANDE DE PRÊT
