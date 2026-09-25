@@ -704,7 +704,7 @@ def main(page: ft.Page):
 
             try:
                 response = requests.post(
-                    f"{API_URL}/prets/demande-pret",
+                    f"{API_URL}/api/mobile/demande-pret",
                     headers={
                         "Authorization": f"Bearer {token}",
                         "Accept": "application/json",
