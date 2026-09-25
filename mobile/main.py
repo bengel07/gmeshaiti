@@ -119,6 +119,7 @@ def main(page: ft.Page):
     token = None
     user = {}
     client = {}
+    photo_profil_path = None  # 👈 AJOUT
 
     # Configuration de la page
     page.title = "GMES App"
@@ -1342,6 +1343,50 @@ def main(page: ft.Page):
     # ÉCRAN PROFIL
     # ============================================================
 
+    # ============================================================
+    # AVATAR DE PROFIL RÉUTILISABLE
+    # ============================================================
+
+    def creer_avatar_profil(taille=64, taille_icone=32):
+        """
+        Retourne un Container contenant :
+        - la photo du client si elle existe
+        - sinon une icône PERSON par défaut
+        """
+
+        url_photo = (
+            client.get("photo_url")
+            or client.get("photo")
+            or photo_profil_path
+        )
+
+        if url_photo:
+            contenu = ft.Image(
+                src=url_photo,
+                width=taille,
+                height=taille,
+                fit=ft.ImageFit.COVER,
+                border_radius=ft.BorderRadius.all(taille / 2),
+            )
+            bgcolor = None
+        else:
+            contenu = ft.Icon(
+                ft.Icons.PERSON,
+                color=ft.Colors.WHITE,
+                size=taille_icone,
+            )
+            bgcolor = PROFILE_GREEN
+
+        return ft.Container(
+            width=taille,
+            height=taille,
+            border_radius=taille / 2,
+            bgcolor=bgcolor,
+            alignment=ft.Alignment.CENTER,
+            clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+            content=contenu,
+        )
+
     def afficher_profil():
 
         print("🔥 ÉCRAN PROFIL")
@@ -1387,18 +1432,9 @@ def main(page: ft.Page):
             padding=ft.Padding.only(left=20, right=20, top=20),
             content=ft.Row(
                 [
-                    ft.Container(
-                        width=64,
-                        height=64,
-                        border_radius=50,
-                        bgcolor=PROFILE_GREEN,
-                        alignment=ft.Alignment.CENTER,
-                        content=ft.Icon(
-                            ft.Icons.PERSON,
-                            color=ft.Colors.WHITE,
-                            size=32,
-                        ),
-                    ),
+                    creer_avatar_profil(taille=64, taille_icone=32),
+
+
                     ft.Column(
                         [
                             ft.Text(
@@ -1717,6 +1753,26 @@ def main(page: ft.Page):
         # APERÇU PHOTO
         # ------------------------------------------------------------
 
+        # ------------------------------------------------------------
+        # APERÇU PHOTO (dynamique)
+        # ------------------------------------------------------------
+
+        def creer_contenu_apercu():
+            url = client.get("photo_url") or photo_profil_path
+            if url:
+                return ft.Image(
+                    src=url,
+                    width=110,
+                    height=110,
+                    fit=ft.ImageFit.COVER,
+                    border_radius=ft.BorderRadius.all(55),
+                )
+            return ft.Icon(
+                ft.Icons.PERSON,
+                color=BLUE,
+                size=55,
+            )
+
         photo_preview = ft.Container(
             width=110,
             height=110,
@@ -1732,11 +1788,8 @@ def main(page: ft.Page):
                 spread_radius=1,
                 color="#25000000",
             ),
-            content=ft.Icon(
-                ft.Icons.PERSON,
-                color=BLUE,
-                size=55,
-            ),
+            clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+            content=creer_contenu_apercu(),
         )
 
         # ============================================================
@@ -1786,7 +1839,9 @@ def main(page: ft.Page):
                 return
 
             fichier = fichiers[0]
+
             photo_selectionnee["path"] = fichier.path
+            client["photo_url"] = fichier.path
 
             print("📷 PHOTO SÉLECTIONNÉE :", fichier.path)
 
@@ -3303,13 +3358,10 @@ def main(page: ft.Page):
             border_radius=ft.BorderRadius.only(bottom_left=35, bottom_right=35),
             content=ft.Row(
                 [
-                    ft.Container(
-                        width=50,
-                        height=50,
-                        border_radius=50,
-                        bgcolor=GOLD,
-                        alignment=ft.Alignment.CENTER,
-                        content=ft.Icon(ft.Icons.GROUPS, color=ft.Colors.WHITE, size=30),
+                    # 👤 PHOTO DU CLIENT
+                    creer_avatar_profil(
+                        taille=50,
+                        taille_icone=30,
                     ),
                     ft.Column(
                         [
