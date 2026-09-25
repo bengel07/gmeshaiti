@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 import jwt
 from sqlalchemy import or_
 
-from app import notifier_directeurs_demande_pret
 from models import (
     db,
     User,
@@ -18,7 +17,7 @@ from models import (
     Remboursement,
     Groupe, Notification, NotificationClient, Retrait, Transaction, Epargne
 )
-from services.notifier_client import notifier_client
+
 
 # ============================================================
 # BLUEPRINT
@@ -538,7 +537,6 @@ def mobile_demande_pret(current_user):
         # ----------------------------------------------------
         # NUMÉRO DE PRÊT
         # ----------------------------------------------------
-        from app import generer_numero_pret
         numero_pret_unique = generer_numero_pret()
 
         # ----------------------------------------------------
