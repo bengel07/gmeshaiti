@@ -969,6 +969,255 @@ def main(page: ft.Page):
 
         page.update()
 
+    def afficher_transfert():
+        print("🔥 ÉCRAN TRANSFERT")
+
+        page.controls.clear()
+
+        resultat = ft.Text("", size=13)
+
+        destinataire = ft.TextField(
+            label="Numéro de compte du destinataire",
+            prefix_icon=ft.Icons.PERSON_OUTLINE,
+            border_radius=12,
+        )
+
+        montant = ft.TextField(
+            label="Montant du transfert (HTG)",
+            prefix_icon=ft.Icons.ATTACH_MONEY,
+            keyboard_type=ft.KeyboardType.NUMBER,
+            border_radius=12,
+        )
+
+        motif = ft.TextField(
+            label="Motif du transfert (facultatif)",
+            prefix_icon=ft.Icons.DESCRIPTION_OUTLINED,
+            border_radius=12,
+        )
+
+        def effectuer_transfert(e):
+            numero = destinataire.value.strip()
+            montant_value = montant.value.strip()
+            motif_value = motif.value.strip()
+
+            if not numero or not montant_value:
+                resultat.value = "Veuillez remplir tous les champs obligatoires."
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            try:
+                montant_float = float(montant_value)
+            except ValueError:
+                resultat.value = "Le montant est invalide."
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            if montant_float <= 0:
+                resultat.value = "Le montant doit être supérieur à zéro."
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            if not token:
+                resultat.value = "Session expirée. Veuillez vous reconnecter."
+                resultat.color = "#D32F2F"
+                page.update()
+                return
+
+            try:
+                response = requests.post(
+                    f"{API_URL}/api/mobile/transfert",
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "numero_compte_destinataire": numero,
+                        "montant": montant_float,
+                        "motif": motif_value,
+                    },
+                    timeout=30,
+                )
+
+                print("================================")
+                print("TRANSFERT")
+                print("STATUT :", response.status_code)
+                print("REPONSE :", response.text[:2000])
+                print("================================")
+
+                try:
+                    data = response.json()
+                except Exception:
+                    data = {}
+
+                if response.status_code in (200, 201) and data.get("success"):
+                    resultat.value = data.get(
+                        "message",
+                        "Transfert effectué avec succès."
+                    )
+                    resultat.color = GREEN
+
+                    montant.value = ""
+                    motif.value = ""
+
+                    page.update()
+
+                    # Recharge les informations du client
+                    try:
+                        me_response = requests.get(
+                            f"{API_URL}/auth/api/mobile/client/me",
+                            headers={
+                                "Authorization": f"Bearer {token}",
+                                "Accept": "application/json",
+                            },
+                            timeout=30,
+                        )
+
+                        if me_response.status_code == 200:
+                            me_data = me_response.json()
+
+                            if me_data.get("success"):
+                                client.clear()
+                                client.update(
+                                    me_data.get("client") or {}
+                                )
+
+                    except Exception as ex:
+                        print(
+                            "⚠️ Impossible de rafraîchir le solde :",
+                            repr(ex)
+                        )
+
+                    return
+
+                resultat.value = data.get(
+                    "error",
+                    data.get(
+                        "message",
+                        f"Erreur serveur ({response.status_code})"
+                    )
+                )
+                resultat.color = "#D32F2F"
+                page.update()
+
+            except requests.exceptions.Timeout:
+                resultat.value = "Le serveur GMES ne répond pas."
+                resultat.color = "#D32F2F"
+                page.update()
+
+            except requests.exceptions.ConnectionError:
+                resultat.value = "Impossible de contacter le serveur GMES."
+                resultat.color = "#D32F2F"
+                page.update()
+
+            except Exception as ex:
+                print("❌ ERREUR TRANSFERT :", repr(ex))
+                resultat.value = "Une erreur est survenue."
+                resultat.color = "#D32F2F"
+                page.update()
+
+        page.add(
+            ft.Column(
+                [
+                    ft.Container(
+                        bgcolor=PURPLE,
+                        padding=ft.Padding.only(
+                            left=10,
+                            right=20,
+                            top=20,
+                            bottom=20,
+                        ),
+                        content=ft.Row(
+                            [
+                                ft.IconButton(
+                                    icon=ft.Icons.ARROW_BACK,
+                                    icon_color=ft.Colors.WHITE,
+                                    on_click=lambda e: afficher_epargne(),
+                                ),
+
+                                ft.Text(
+                                    "Transfert",
+                                    color=ft.Colors.WHITE,
+                                    size=22,
+                                    weight=ft.FontWeight.BOLD,
+                                    expand=True,
+                                ),
+                            ],
+                        ),
+                    ),
+
+                    ft.Container(
+                        padding=20,
+                        content=ft.Column(
+                            [
+                                ft.Text(
+                                    "Transférer de l'argent",
+                                    size=24,
+                                    color=TEXT,
+                                    weight=ft.FontWeight.BOLD,
+                                ),
+
+                                ft.Text(
+                                    "Envoyez de l'argent vers un autre compte GMES.",
+                                    size=14,
+                                    color=GREY,
+                                ),
+
+                                ft.Container(height=15),
+
+                                ft.Container(
+                                    padding=20,
+                                    bgcolor="#F0EDFF",
+                                    border_radius=18,
+                                    content=ft.Column(
+                                        [
+                                            ft.Text(
+                                                "Solde disponible",
+                                                size=14,
+                                                color=GREY,
+                                            ),
+
+                                            ft.Text(
+                                                f"{client.get('solde', 0):,.2f} HTG",
+                                                size=28,
+                                                color=PURPLE,
+                                                weight=ft.FontWeight.BOLD,
+                                            ),
+                                        ],
+                                        spacing=5,
+                                    ),
+                                ),
+
+                                ft.Container(height=10),
+
+                                destinataire,
+                                montant,
+                                motif,
+
+                                resultat,
+
+                                ft.ElevatedButton(
+                                    "Envoyer le transfert",
+                                    icon=ft.Icons.SEND,
+                                    width=300,
+                                    height=50,
+                                    on_click=effectuer_transfert,
+                                ),
+                            ],
+                            spacing=15,
+                        ),
+                    ),
+                ],
+                expand=True,
+                scroll=ft.ScrollMode.AUTO,
+            )
+        )
+
+        page.update()
+
     def afficher_epargne():
         print("🔥 ÉCRAN ÉPARGNE")
 
@@ -1065,6 +1314,14 @@ def main(page: ft.Page):
                                     on_click=lambda e: message(
                                         "Retrait épargne"
                                     ),
+                                ),
+
+                                ft.ElevatedButton(
+                                    "Transférer de l'argent",
+                                    icon=ft.Icons.SEND,
+                                    width=300,
+                                    height=50,
+                                    on_click=lambda e: afficher_transfert(),
                                 ),
                             ],
                             spacing=15,
