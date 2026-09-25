@@ -976,58 +976,6 @@ def main(page: ft.Page):
 
         resultat = ft.Text("", size=13)
 
-        destinataire = ft.TextField(
-            label="Numéro de compte du destinataire",
-            prefix_icon=ft.Icons.PERSON_OUTLINE,
-            border_radius=12,
-            on_submit=rechercher_destinataire,
-        )
-
-        montant = ft.TextField(
-            label="Montant du transfert (HTG)",
-            prefix_icon=ft.Icons.ATTACH_MONEY,
-            keyboard_type=ft.KeyboardType.NUMBER,
-            border_radius=12,
-        )
-
-        motif = ft.TextField(
-            label="Motif du transfert (facultatif)",
-            prefix_icon=ft.Icons.DESCRIPTION_OUTLINED,
-            border_radius=12,
-        )
-
-        info_destinataire_text = ft.Text(
-            "",
-            size=15,
-            color=TEXT,
-        )
-
-        info_destinataire = ft.Container(
-            visible=False,
-            padding=15,
-            bgcolor="#E8F5E9",
-            border_radius=15,
-            content=ft.Column(
-                [
-                    ft.Text(
-                        "✓ Destinataire vérifié",
-                        size=14,
-                        color=GREEN,
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                    info_destinataire_text,
-                ],
-                spacing=5,
-            ),
-        )
-
-        confirmation = ft.Text(
-            "",
-            size=13,
-            color=GREY,
-        )
-
-
         def rechercher_destinataire(e):
             numero = destinataire.value.strip()
 
@@ -1146,6 +1094,60 @@ def main(page: ft.Page):
                 )
                 confirmation.color = "#D32F2F"
                 page.update()
+
+        destinataire = ft.TextField(
+            label="Numéro de compte du destinataire",
+            prefix_icon=ft.Icons.PERSON_OUTLINE,
+            border_radius=12,
+            on_submit=rechercher_destinataire,
+        )
+
+        montant = ft.TextField(
+            label="Montant du transfert (HTG)",
+            prefix_icon=ft.Icons.ATTACH_MONEY,
+            keyboard_type=ft.KeyboardType.NUMBER,
+            border_radius=12,
+        )
+
+        motif = ft.TextField(
+            label="Motif du transfert (facultatif)",
+            prefix_icon=ft.Icons.DESCRIPTION_OUTLINED,
+            border_radius=12,
+        )
+
+        info_destinataire_text = ft.Text(
+            "",
+            size=15,
+            color=TEXT,
+        )
+
+        info_destinataire = ft.Container(
+            visible=False,
+            padding=15,
+            bgcolor="#E8F5E9",
+            border_radius=15,
+            content=ft.Column(
+                [
+                    ft.Text(
+                        "✓ Destinataire vérifié",
+                        size=14,
+                        color=GREEN,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                    info_destinataire_text,
+                ],
+                spacing=5,
+            ),
+        )
+
+        confirmation = ft.Text(
+            "",
+            size=13,
+            color=GREY,
+        )
+
+
+
 
 
 
