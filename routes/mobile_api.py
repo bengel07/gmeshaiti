@@ -637,24 +637,27 @@ def mobile_transfert():
         # 9. DÉBIT SOURCE
         # =====================================================
 
-        compte_source.solde = (
-            float(compte_source.solde or 0) - montant
-        )
+        solde_source_avant = float(compte_source.solde or 0)
+        solde_source_apres = solde_source_avant - montant
+
+        compte_source.solde = solde_source_apres
 
         transaction_source = TransactionEpargne(
             compte_id=compte_source.id,
             montant=-montant,
+            solde_avant=solde_source_avant,
+            solde_apres=solde_source_apres,
             type_transaction="transfert_sortant",
             description=(
-                f"Transfert vers "
-                f"{compte_destinataire.numero_compte}"
+                f"Transfert vers {compte_destinataire.numero_compte}"
                 + (f" - {motif}" if motif else "")
-            )
+            ),
+            transaction_ref=ref_transfert,
+            transfert_source_id=compte_source.id,
+            transfert_destination_id=compte_destinataire.id,
+            transfert_motif=motif,
+            transfert_effectue_par=client.id
         )
-
-        # Si ton modèle possède ce champ
-        if hasattr(transaction_source, "transaction_ref"):
-            transaction_source.transaction_ref = ref_transfert
 
         db.session.add(transaction_source)
 
@@ -662,24 +665,27 @@ def mobile_transfert():
         # 10. CRÉDIT DESTINATAIRE
         # =====================================================
 
-        compte_destinataire.solde = (
-            float(compte_destinataire.solde or 0) + montant
-        )
+        solde_dest_avant = float(compte_destinataire.solde or 0)
+        solde_dest_apres = solde_dest_avant + montant
+
+        compte_destinataire.solde = solde_dest_apres
 
         transaction_destinataire = TransactionEpargne(
             compte_id=compte_destinataire.id,
             montant=montant,
+            solde_avant=solde_dest_avant,
+            solde_apres=solde_dest_apres,
             type_transaction="transfert_entrant",
             description=(
-                f"Transfert reçu de "
-                f"{compte_source.numero_compte}"
+                f"Transfert reçu de {compte_source.numero_compte}"
                 + (f" - {motif}" if motif else "")
-            )
+            ),
+            transaction_ref=ref_transfert,
+            transfert_source_id=compte_source.id,
+            transfert_destination_id=compte_destinataire.id,
+            transfert_motif=motif,
+            transfert_effectue_par=client.id
         )
-
-        # Si ton modèle possède ce champ
-        if hasattr(transaction_destinataire, "transaction_ref"):
-            transaction_destinataire.transaction_ref = ref_transfert
 
         db.session.add(transaction_destinataire)
 
