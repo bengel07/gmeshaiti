@@ -1338,9 +1338,10 @@ def main(page: ft.Page):
                                 ft.Container(height=10),
 
                                 destinataire,
+                                destinataire_info,
+                                confirmation,
                                 montant,
                                 motif,
-
                                 resultat,
 
                                 ft.ElevatedButton(
