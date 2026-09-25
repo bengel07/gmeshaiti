@@ -345,6 +345,108 @@ def mobile_prets(current_user):
         "total": len(resultats)
     }), 200
 
+@mobile_api_bp.route("/api/mobile/rechercher-destinataire", methods=["GET"])
+def rechercher_destinataire():
+    try:
+        numero = request.args.get("numero_compte", "").strip()
+
+        if not numero:
+            return jsonify({
+                "success": False,
+                "error": "Numéro de compte manquant."
+            }), 400
+
+        compte = Epargne.query.filter_by(
+            numero_compte=numero,
+            statut="actif"
+        ).first()
+
+        if not compte:
+            return jsonify({
+                "success": False,
+                "error": "Compte introuvable."
+            }), 404
+
+        destinataire = compte.client
+
+        if not destinataire:
+            return jsonify({
+                "success": False,
+                "error": "Client associé au compte introuvable."
+            }), 404
+
+        return jsonify({
+            "success": True,
+            "destinataire": {
+                "nom": destinataire.nom or "",
+                "prenom": destinataire.prenom or "",
+                "id_client": destinataire.id_client or "",
+                "numero_compte": compte.numero_compte
+            }
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(
+            f"Erreur recherche destinataire : {str(e)}",
+            exc_info=True
+        )
+
+        return jsonify({
+            "success": False,
+            "error": "Erreur lors de la recherche du destinataire."
+        }), 500
+
+@mobile_api_bp.route("/api/mobile/recherche-compte", methods=["GET"])
+def mobile_recherche_compte():
+    try:
+        numero = request.args.get("numero", "").strip()
+
+        if not numero:
+            return jsonify({
+                "success": False,
+                "error": "Numéro de compte manquant."
+            }), 400
+
+        compte = Epargne.query.filter_by(
+            numero_compte=numero,
+            statut="actif"
+        ).first()
+
+        if not compte:
+            return jsonify({
+                "success": False,
+                "error": "Compte introuvable."
+            }), 404
+
+        client_dest = compte.client
+
+        if not client_dest:
+            return jsonify({
+                "success": False,
+                "error": "Client associé au compte introuvable."
+            }), 404
+
+        return jsonify({
+            "success": True,
+            "client": {
+                "id_client": client_dest.id_client,
+                "prenom": client_dest.prenom,
+                "nom": client_dest.nom,
+                "numero_compte": compte.numero_compte
+            }
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(
+            f"Erreur recherche compte mobile : {str(e)}",
+            exc_info=True
+        )
+
+        return jsonify({
+            "success": False,
+            "error": "Erreur lors de la recherche du compte."
+        }), 500
+
 
 @mobile_api_bp.route("/api/mobile/transfert", methods=["POST"])
 def mobile_transfert():
