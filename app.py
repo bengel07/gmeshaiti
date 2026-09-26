@@ -5064,7 +5064,7 @@ def directeur_approuver_dossier(client_id):
     """Le directeur approuve ou rejette le dossier"""
     from models import User, Notification, Action, Client
     from datetime import datetime, timedelta
-    from clients import creer_acces_client
+    from routes.clients import creer_acces_client
     import os
     import requests
 
