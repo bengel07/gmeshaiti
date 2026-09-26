@@ -996,11 +996,6 @@ def mobile_demande_pret():
 
             montant_rembourse=0,
 
-            solde_restant=round(
-                montant_total,
-                2
-            ),
-
             duree_mois=duree,
 
             motif=objet,
