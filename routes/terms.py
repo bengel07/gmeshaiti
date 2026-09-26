@@ -43,7 +43,7 @@ def accept_terms(token):
         db.session.commit()
 
         from models import Pret
-        from app import notifier_directeurs_demande_pret
+        from utils.mobo import notifier_directeurs_demande_pret
 
         pret_en_attente = Pret.query.filter_by(client_id=client.id, statut='en_attente').first()
 

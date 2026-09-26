@@ -20,6 +20,8 @@ from models import (
     Transaction, Epargne, TransactionEpargne,
 )
 from routes.auth import get_compte_epargne_actif
+from services.notifier_client import notifier_client
+from utils.mobo import notifier_directeurs_demande_pret, generer_numero_pret
 
 # ============================================================
 # BLUEPRINT
