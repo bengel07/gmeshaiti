@@ -3133,7 +3133,10 @@ def approuver_pret(pret_id):
         pret.decision = 'approuve'
         pret.statut = 'approuve'  # ← AJOUTEZ CETTE LIGNE
 
+        client = pret.client
+
         if client:
+            client.statut = "suspendu"
             client.suspendre_compte_pret()
 
         # Montant accordé et taux

@@ -231,39 +231,41 @@ def mobile_login():
             ).first()
 
         # ====================================================
-        # 5. VÉRIFICATION STATUT USER
+        # 5. VÉRIFICATION DU STATUT DU COMPTE CLIENT
         # ====================================================
 
-        if user.statut != "actif":
+        if client:
 
-            if user.statut == "en_attente":
+            # Le statut du dossier Client est le statut
+            # utilisé pour autoriser ou bloquer la connexion.
+            if client.statut != "actif":
 
-                message = (
-                    "Compte en attente d'approbation."
-                )
+                if client.statut == "en_attente":
+                    message = "Votre compte est en attente d'approbation."
 
-            elif user.statut == "rejete":
+                elif client.statut == "suspendu":
+                    message = "Votre compte est suspendu."
 
-                message = (
-                    "Compte rejeté par l'administration."
-                )
+                elif client.statut == "rejete":
+                    message = "Votre compte a été rejeté par l'administration."
 
-            else:
+                else:
+                    message = (
+                        f"Votre compte n'est pas actif "
+                        f"(statut : {client.statut})."
+                    )
 
-                message = (
-                    f"Compte désactivé "
-                    f"(statut : {user.statut})."
-                )
+                return jsonify({
+                    "success": False,
+                    "error": message,
+                    "statut": client.statut
+                }), 403
 
+        else:
             return jsonify({
-
                 "success": False,
-
-                "error": message,
-
-                "statut": user.statut
-
-            }), 403
+                "error": "Profil client introuvable."
+            }), 404
 
         # ====================================================
         # 6. VÉRIFICATION STATUT CLIENT
