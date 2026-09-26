@@ -2535,55 +2535,216 @@ def detail_pret(pret_id):
             reference2 = {}
 
     # Préparer les données du formulaire
+    # ============================================================
+    # DONNÉES DU DOSSIER POUR PRÉ-REMPLIR LA FICHE
+    # ============================================================
+
     form_data = {
-        'nom': client.nom if client else '',
-        'prenom': client.prenom if client else '',
-        'sexe': client.sexe if client else '',
-        'date_naissance': client.date_naissance.strftime('%Y-%m-%d') if client.date_naissance else '',
-        'lieu_naissance': client.lieu_naissance if client else '',
-        'nationalite': client.nationalite if client else 'Haïtienne',
-        'autre_nationalite': client.autre_nationalite if client else '',
-        'cin_nif': client.cin_nif if client else '',
-        'telephone': client.telephone if client else '',
-        'email': client.email if client else '',
-        'adresse': client.adresse if client else '',
-        'commune': client.commune if client else '',
-        'departement': client.departement if client else '',
-        'duree_adresse': client.duree_adresse if client else 0,
-        'etat_civil': client.etat_civil if client else '',
-        'nom_conjoint': client.nom_conjoint if client else '',
-        'nb_enfants': client.nb_enfants if client else 0,
-        'profession': client.profession if client else '',
-        'entreprise': client.entreprise if client else '',
-        'adresse_travail': client.adresse_travail if client else '',
-        'tel_travail': client.tel_travail if client else '',
-        'revenu_mensuel': client.revenu_mensuel if client else 0,
-        'autres_revenus': client.autres_revenus if client else '',
-        'photo_face': client.photo_face if client else '',
-        'photo_dos': client.photo_dos if client else '',
-        'montant_demande': pret.montant,
-        'duree': pret.duree_mois,
-        'objet': pret.motif,
-        'type_pret': pret.type_pret,
-        'autre_type_pret': pret.autre_type_pret,
-        'taux_interet': pret.taux_interet,
-        'a_garant': 'oui' if pret.garantie else 'non',
-        'nom_garant': pret.garantie if pret.garantie else '',
-        'tel_garant': info_garant.get('telephone') if info_garant else '',
-        'adresse_garant': info_garant.get('adresse') if info_garant else '',
-        'relation_garant': info_garant.get('relation') if info_garant else '',
-        'profession_garant': info_garant.get('profession') if info_garant else '',
-        'ref1_nom': reference1.get('nom') if reference1 else '',
-        'ref1_tel': reference1.get('telephone') if reference1 else '',
-        'ref2_nom': reference2.get('nom') if reference2 else '',
-        'ref2_tel': reference2.get('telephone') if reference2 else '',
-        'signature': pret.signature,
-        'date_demande': pret.date_demande.strftime('%Y-%m-%d') if pret.date_demande else '',
-        'num_dossier': pret.numero_dossier or f"PRET-{datetime.now().strftime('%Y%m%d%H%M%S')}",
-        'decision': pret.decision if hasattr(pret, 'decision') else 'en_attente',
-        'montant_accorde': pret.montant_accorde if hasattr(pret, 'montant_accorde') else pret.montant,
-        'signature_responsable': pret.signature_responsable if hasattr(pret, 'signature_responsable') else '',
-        'motif_refus': pret.motif_refus if hasattr(pret, 'motif_refus') else ''
+        # --------------------------------------------------------
+        # 1. INFORMATIONS CLIENT
+        # --------------------------------------------------------
+        'nom': client.nom or '',
+        'prenom': client.prenom or '',
+        'sexe': client.sexe or '',
+        'date_naissance': (
+            client.date_naissance.strftime('%Y-%m-%d')
+            if client.date_naissance else ''
+        ),
+        'lieu_naissance': client.lieu_naissance or '',
+        'nationalite': client.nationalite or 'Haïtienne',
+        'autre_nationalite': client.autre_nationalite or '',
+        'cin_nif': client.cin_nif or '',
+        'telephone': client.telephone or '',
+        'email': client.email or '',
+
+        # --------------------------------------------------------
+        # 2. ADRESSE
+        # --------------------------------------------------------
+        'adresse': client.adresse or '',
+        'commune': client.commune or '',
+        'departement': client.departement or '',
+        'duree_adresse': client.duree_adresse or 0,
+
+        # --------------------------------------------------------
+        # 3. SITUATION FAMILIALE
+        # --------------------------------------------------------
+        'etat_civil': client.etat_civil or '',
+        'nom_conjoint': client.nom_conjoint or '',
+        'nb_enfants': client.nb_enfants or 0,
+
+        # --------------------------------------------------------
+        # 4. PROFESSION
+        # --------------------------------------------------------
+        'profession': client.profession or '',
+        'entreprise': client.entreprise or '',
+        'adresse_travail': client.adresse_travail or '',
+        'tel_travail': client.tel_travail or '',
+        'revenu_mensuel': client.revenu_mensuel or 0,
+        'autres_revenus': client.autres_revenus or '',
+
+        # --------------------------------------------------------
+        # 5. PHOTOS
+        # --------------------------------------------------------
+        'photo_face': client.photo_face or '',
+        'photo_dos': client.photo_dos or '',
+
+        # --------------------------------------------------------
+        # 6. INFORMATIONS DU PRÊT
+        # --------------------------------------------------------
+        'montant_demande': (
+            pret.montant_demande
+            if pret.montant_demande is not None
+            else pret.montant or 0
+        ),
+
+        'duree': pret.duree_mois or 0,
+
+        'objet': pret.motif or '',
+
+        'type_pret': pret.type_pret or '',
+
+        'autre_type_pret': pret.autre_type_pret or '',
+
+        'taux_interet': (
+            pret.taux_interet
+            if pret.taux_interet is not None
+            else 0
+        ),
+
+        # --------------------------------------------------------
+        # 7. GARANT
+        # --------------------------------------------------------
+        'a_garant': (
+            'oui'
+            if pret.garantie
+            else 'non'
+        ),
+
+        'nom_garant': pret.garantie or '',
+
+        'tel_garant': (
+            info_garant.get('telephone', '')
+            if info_garant else ''
+        ),
+
+        'adresse_garant': (
+            info_garant.get('adresse', '')
+            if info_garant else ''
+        ),
+
+        'relation_garant': (
+            info_garant.get('relation', '')
+            if info_garant else ''
+        ),
+
+        'profession_garant': (
+            info_garant.get('profession', '')
+            if info_garant else ''
+        ),
+
+        # --------------------------------------------------------
+        # 8. RÉFÉRENCE 1
+        # --------------------------------------------------------
+        'ref1_nom': (
+            reference1.get('nom', '')
+            if reference1 else ''
+        ),
+
+        'ref1_tel': (
+            reference1.get('telephone', '')
+            if reference1 else ''
+        ),
+
+        # --------------------------------------------------------
+        # 9. RÉFÉRENCE 2
+        # --------------------------------------------------------
+        'ref2_nom': (
+            reference2.get('nom', '')
+            if reference2 else ''
+        ),
+
+        'ref2_tel': (
+            reference2.get('telephone', '')
+            if reference2 else ''
+        ),
+
+        # --------------------------------------------------------
+        # 10. SIGNATURE DU CLIENT
+        # --------------------------------------------------------
+        'signature': pret.signature or '',
+
+        # --------------------------------------------------------
+        # 11. DATE DE DEMANDE
+        # --------------------------------------------------------
+        'date_demande': (
+            pret.date_demande.strftime('%Y-%m-%d')
+            if pret.date_demande else ''
+        ),
+
+        # --------------------------------------------------------
+        # 12. NUMÉRO DOSSIER
+        # --------------------------------------------------------
+        'num_dossier': (
+                pret.numero_dossier
+                or pret.numero_pret
+                or f"PRET-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        ),
+
+        # --------------------------------------------------------
+        # 13. DÉCISION
+        # --------------------------------------------------------
+        'decision': (
+            pret.decision
+            if getattr(pret, 'decision', None)
+            else 'en_attente'
+        ),
+
+        # --------------------------------------------------------
+        # 14. MONTANT ACCORDÉ
+        # --------------------------------------------------------
+        'montant_accorde': (
+            pret.montant_accorde
+            if pret.montant_accorde is not None
+            else pret.montant_demande
+                 or pret.montant
+                 or 0
+        ),
+
+        # --------------------------------------------------------
+        # 15. MENSUALITÉ
+        # --------------------------------------------------------
+        'mensualite': (
+            pret.mensualite
+            if getattr(pret, 'mensualite', None) is not None
+            else 0
+        ),
+
+        # --------------------------------------------------------
+        # 16. TOTAL À REMBOURSER
+        # --------------------------------------------------------
+        'montant_total': (
+            pret.montant_total
+            if getattr(pret, 'montant_total', None) is not None
+            else 0
+        ),
+
+        # --------------------------------------------------------
+        # 17. SIGNATURE RESPONSABLE
+        # --------------------------------------------------------
+        'signature_responsable': (
+            pret.signature_responsable
+            if getattr(pret, 'signature_responsable', None)
+            else ''
+        ),
+
+        # --------------------------------------------------------
+        # 18. MOTIF DE REFUS
+        # --------------------------------------------------------
+        'motif_refus': (
+            pret.motif_refus
+            if getattr(pret, 'motif_refus', None)
+            else ''
+        ),
     }
 
     # Récupérer l'échéancier et les documents
