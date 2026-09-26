@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 import jwt
 from sqlalchemy import or_
 from sqlalchemy import func
+
+from emails import envoyer_email_demande_pret
 from models import (
     db,
     User,
@@ -1041,6 +1043,34 @@ def mobile_demande_pret():
             nouveau_pret.id,
             nouveau_pret.numero_pret
         )
+
+        # ----------------------------------------------------
+        # ENVOYER LES CONDITIONS DU PRÊT AU CLIENT
+        # ----------------------------------------------------
+        try:
+            envoyer_email_demande_pret(
+                client,
+                nouveau_pret
+            )
+
+            print(
+                "✅ EMAIL CONDITIONS PRÊT ENVOYÉ :",
+                nouveau_pret.numero_pret
+            )
+
+        except Exception as email_error:
+
+            print(
+                "❌ ERREUR ENVOI EMAIL CONDITIONS PRÊT :",
+                repr(email_error)
+            )
+
+            db.session.rollback()
+
+            return jsonify({
+                "success": False,
+                "error": "Impossible d'envoyer les conditions du prêt au client."
+            }), 500
 
         # ----------------------------------------------------
         # COMMIT
