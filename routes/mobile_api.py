@@ -1348,3 +1348,53 @@ def mobile_notification_lire(current_user, notification_id):
             "error": "Erreur interne du serveur."
         }), 500
 
+@mobile_api_bp.route("/api/mobile/transactions", methods=["GET"])
+@token_required
+def mobile_transactions(current_user):
+
+    try:
+        client = obtenir_client(current_user)
+
+        if not client:
+            return jsonify({
+                "success": False,
+                "error": "Profil client introuvable"
+            }), 404
+
+        transactions = Transaction.query.filter_by(
+            client_id=client.id
+        ).order_by(
+            Transaction.date_creation.desc()
+        ).limit(100).all()
+
+        resultats = []
+
+        for t in transactions:
+
+            resultats.append({
+                "id": t.id,
+                "type": getattr(t, "type", None),
+                "description": getattr(t, "description", None),
+                "montant": float(t.montant or 0),
+                "statut": getattr(t, "statut", "Effectué"),
+                "date": (
+                    t.date_creation.isoformat()
+                    if getattr(t, "date_creation", None)
+                    else None
+                )
+            })
+
+        return jsonify({
+            "success": True,
+            "transactions": resultats
+        }), 200
+
+    except Exception as e:
+
+        import traceback
+        traceback.print_exc()
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500

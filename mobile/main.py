@@ -440,114 +440,117 @@ def main(page: ft.Page):
                         nid=notification_id,
                         deja_lue=lue
                 ):
-                    # ---------------------------------------------
-                    # MARQUER COMME LUE ET RÉCUPÉRER LE LIEN
-                    # ---------------------------------------------
-                    if not deja_lue:
-                        lien = marquer_notification_lue(nid)
-                    else:
-                        lien = notification.get("lien")
+                    print("🔔 CLIC NOTIFICATION :", nid)
 
-                    # ---------------------------------------------
-                    # VÉRIFIER LE LIEN
-                    # ---------------------------------------------
+                    # Marquer comme lue
+                    if not deja_lue:
+                        marquer_notification_lue(nid)
+
+                    # Récupérer le lien
+                    lien = notification.get("lien")
+
+                    print("🔗 LIEN :", lien)
+
                     if not lien:
+                        print("⚠️ Cette notification n'a aucun lien.")
                         message("Cette notification n'a pas de lien.")
                         return
 
-                    # ---------------------------------------------
-                    # TRANSFORMER URL RELATIVE EN URL COMPLÈTE
-                    # ---------------------------------------------
                     if lien.startswith("/"):
                         lien = API_URL + lien
 
-                    print("🔗 Ouverture :", lien)
+                    print("🌐 OUVERTURE :", lien)
 
-                    # ---------------------------------------------
-                    # OUVRIR LE LIEN
-                    # ---------------------------------------------
                     async def ouvrir_url_async():
-                        await ft.UrlLauncher().launch_url(lien)
+                        try:
+                            await ft.UrlLauncher().launch_url(lien)
+                            print("✅ Lien ouvert")
+                        except Exception as ex:
+                            print("❌ Erreur ouverture lien :", repr(ex))
 
                     page.run_task(ouvrir_url_async)
 
                 liste.controls.append(
-                    ft.Container(
-                        margin=ft.Margin.only(
-                            left=15,
-                            right=15,
-                            top=5
-                        ),
-                        padding=15,
-                        bgcolor=(
-                            ft.Colors.WHITE
-                            if lue
-                            else "#EEF4FF"
-                        ),
-                        border_radius=15,
-                        border=ft.Border.all(
-                            1,
-                            "#E1E7F0"
-                        ),
-                        on_click=cliquer_notification,
-                        content=ft.Row(
-                            [
-                                ft.Container(
-                                    width=45,
-                                    height=45,
-                                    border_radius=50,
-                                    bgcolor=couleur,
-                                    alignment=ft.Alignment.CENTER,
-                                    content=ft.Icon(
-                                        icone,
-                                        color=ft.Colors.WHITE,
-                                        size=22
-                                    )
-                                ),
+                    ft.GestureDetector(
+                        on_tap=cliquer_notification,
 
-                                ft.Column(
-                                    [
-                                        ft.Text(
-                                            titre,
-                                            size=15,
-                                            color=TEXT,
-                                            weight=(
-                                                ft.FontWeight.BOLD
-                                                if not lue
-                                                else ft.FontWeight.NORMAL
-                                            )
-                                        ),
+                        content=ft.Container(
+                            margin=ft.Margin.only(
+                                left=15,
+                                right=15,
+                                top=5
+                            ),
+                            padding=15,
+                            bgcolor=(
+                                ft.Colors.WHITE
+                                if lue
+                                else "#EEF4FF"
+                            ),
+                            border_radius=15,
+                            border=ft.Border.all(
+                                1,
+                                "#E1E7F0"
+                            ),
 
-                                        ft.Text(
-                                            texte,
-                                            size=13,
-                                            color=GREY,
-                                            max_lines=3,
-                                            overflow=ft.TextOverflow.ELLIPSIS
-                                        ),
-
-                                        ft.Text(
-                                            date_creation,
-                                            size=10,
-                                            color=GREY
-                                        )
-                                    ],
-                                    expand=True,
-                                    spacing=4
-                                ),
-
-                                (
+                            content=ft.Row(
+                                [
                                     ft.Container(
-                                        width=9,
-                                        height=9,
-                                        bgcolor="#D32F2F",
-                                        border_radius=50
+                                        width=45,
+                                        height=45,
+                                        border_radius=50,
+                                        bgcolor=couleur,
+                                        alignment=ft.Alignment.CENTER,
+                                        content=ft.Icon(
+                                            icone,
+                                            color=ft.Colors.WHITE,
+                                            size=22
+                                        )
+                                    ),
+
+                                    ft.Column(
+                                        [
+                                            ft.Text(
+                                                titre,
+                                                size=15,
+                                                color=TEXT,
+                                                weight=(
+                                                    ft.FontWeight.BOLD
+                                                    if not lue
+                                                    else ft.FontWeight.NORMAL
+                                                )
+                                            ),
+
+                                            ft.Text(
+                                                texte,
+                                                size=13,
+                                                color=GREY,
+                                                max_lines=3,
+                                                overflow=ft.TextOverflow.ELLIPSIS
+                                            ),
+
+                                            ft.Text(
+                                                date_creation,
+                                                size=10,
+                                                color=GREY
+                                            )
+                                        ],
+                                        expand=True,
+                                        spacing=4
+                                    ),
+
+                                    (
+                                        ft.Container(
+                                            width=9,
+                                            height=9,
+                                            bgcolor="#D32F2F",
+                                            border_radius=50
+                                        )
+                                        if not lue
+                                        else ft.Container(width=9)
                                     )
-                                    if not lue
-                                    else ft.Container(width=9)
-                                )
-                            ],
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER
+                                ],
+                                vertical_alignment=ft.CrossAxisAlignment.CENTER
+                            )
                         )
                     )
                 )
@@ -1518,36 +1521,158 @@ def main(page: ft.Page):
             expand=True,
         )
 
-        liste_transactions.controls.extend(
-            [
-                transaction_item(
-                    ft.Icons.ARROW_DOWNWARD,
-                    "Remboursement prêt",
-                    "12 sept. 2026",
-                    "- 6,200 HTG",
-                    "Reçu",
-                    "green",
-                ),
+        # ----------------------------------------------------
+        # RÉCUPÉRER LES TRANSACTIONS RÉELLES
+        # ----------------------------------------------------
 
-                transaction_item(
-                    ft.Icons.ARROW_UPWARD,
-                    "Dépôt épargne",
-                    "08 sept. 2026",
-                    "+ 2,000 HTG",
-                    "Crédité",
-                    "green",
-                ),
+        transactions_reelles = []
 
+        try:
+
+            response = requests.get(
+                f"{API_URL}/api/mobile/transactions",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/json",
+                },
+                timeout=30,
+            )
+
+            print("================================")
+            print("TRANSACTIONS")
+            print("STATUT :", response.status_code)
+            print("REPONSE :", response.text[:2000])
+            print("================================")
+
+            if response.status_code == 200:
+
+                data = response.json()
+
+                if data.get("success"):
+                    transactions_reelles = data.get(
+                        "transactions",
+                        []
+                    )
+
+                    print(
+                        "✅ Transactions récupérées :",
+                        len(transactions_reelles)
+                    )
+
+                else:
+                    print(
+                        "❌ API transactions :",
+                        data.get("error")
+                    )
+
+            else:
+                print(
+                    "❌ Impossible de récupérer les transactions"
+                )
+
+        except Exception as ex:
+
+            print(
+                "❌ Erreur transactions :",
+                repr(ex)
+            )
+
+        # ----------------------------------------------------
+        # CONSTRUIRE LA LISTE
+        # ----------------------------------------------------
+
+        for t in transactions_reelles:
+
+            montant = float(
+                t.get("montant", 0) or 0
+            )
+
+            description = (
+                    t.get("description")
+                    or t.get("type")
+                    or "Transaction"
+            )
+
+            statut = (
+                    t.get("statut")
+                    or "Effectué"
+            )
+
+            date_transaction = (
+                    t.get("date")
+                    or ""
+            )
+
+            # Déterminer le sens de la transaction
+            if montant < 0:
+
+                icone = ft.Icons.ARROW_DOWNWARD
+                montant_affiche = (
+                    f"- {abs(montant):,.2f} HTG"
+                )
+                couleur = "green"
+
+            else:
+
+                icone = ft.Icons.ARROW_UPWARD
+                montant_affiche = (
+                    f"+ {abs(montant):,.2f} HTG"
+                )
+                couleur = "green"
+
+            liste_transactions.controls.append(
                 transaction_item(
-                    ft.Icons.CREDIT_CARD,
-                    "Retrait guichet",
-                    "05 sept. 2026",
-                    "- 3,000 HTG",
-                    "Effectué",
-                    "blue",
-                ),
-            ]
-        )
+                    icone,
+                    description,
+                    date_transaction,
+                    montant_affiche,
+                    statut,
+                    couleur,
+                )
+            )
+
+        # ----------------------------------------------------
+        # AUCUNE TRANSACTION
+        # ----------------------------------------------------
+
+        if not transactions_reelles:
+            liste_transactions.controls.append(
+                ft.Container(
+                    padding=30,
+                    alignment=ft.Alignment.CENTER,
+                    content=ft.Column(
+                        [
+                            ft.Icon(
+                                ft.Icons.RECEIPT_LONG,
+                                size=55,
+                                color=GREY,
+                            ),
+
+                            ft.Text(
+                                "Aucune transaction",
+                                size=18,
+                                color=TEXT,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+
+                            ft.Text(
+                                "Vous n'avez aucune opération récente.",
+                                size=14,
+                                color=GREY,
+                                text_align=ft.TextAlign.CENTER,
+                            ),
+                        ],
+                        horizontal_alignment=(
+                            ft.CrossAxisAlignment.CENTER
+                        ),
+                        spacing=10,
+                    ),
+                )
+            )
+
+        # ----------------------------------------------------
+        # TON DESIGN ORIGINAL — CONSERVÉ
+        # ----------------------------------------------------
 
         page.add(
             ft.Column(
@@ -1567,6 +1692,7 @@ def main(page: ft.Page):
                                     icon_color=ft.Colors.WHITE,
                                     on_click=lambda e: afficher_dashboard(),
                                 ),
+
                                 ft.Text(
                                     "Transactions",
                                     color=ft.Colors.WHITE,
