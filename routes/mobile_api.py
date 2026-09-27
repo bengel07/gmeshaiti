@@ -1319,7 +1319,20 @@ def mobile_notification_lire(current_user, notification_id):
         db.session.commit()
 
         return jsonify({
-            "success": True
+            "success": True,
+            "notification": {
+                "id": notif.id,
+                "titre": notif.titre,
+                "message": notif.message,
+                "type": notif.type,
+                "lien": notif.lien,
+                "lue": True,
+                "date_creation": (
+                    notif.date_creation.isoformat()
+                    if notif.date_creation
+                    else None
+                )
+            }
         }), 200
 
     except Exception as e:

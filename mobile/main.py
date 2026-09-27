@@ -440,20 +440,32 @@ def main(page: ft.Page):
                         nid=notification_id,
                         deja_lue=lue
                 ):
+                    # ---------------------------------------------
+                    # MARQUER COMME LUE ET RÉCUPÉRER LE LIEN
+                    # ---------------------------------------------
                     if not deja_lue:
-                        marquer_notification_lue(nid)
+                        lien = marquer_notification_lue(nid)
+                    else:
+                        lien = notification.get("lien")
 
-                    lien = notification.get("lien")
-
+                    # ---------------------------------------------
+                    # VÉRIFIER LE LIEN
+                    # ---------------------------------------------
                     if not lien:
                         message("Cette notification n'a pas de lien.")
                         return
 
+                    # ---------------------------------------------
+                    # TRANSFORMER URL RELATIVE EN URL COMPLÈTE
+                    # ---------------------------------------------
                     if lien.startswith("/"):
                         lien = API_URL + lien
 
                     print("🔗 Ouverture :", lien)
 
+                    # ---------------------------------------------
+                    # OUVRIR LE LIEN
+                    # ---------------------------------------------
                     async def ouvrir_url_async():
                         await ft.UrlLauncher().launch_url(lien)
 
@@ -553,21 +565,11 @@ def main(page: ft.Page):
 
         page.update()
 
-    # def ouvrir_notification(notification):
-    #     lien = notification.get("lien") or notification.get("url")
-    #
-    #     if not lien:
-    #         message("Cette notification n'a pas de lien.")
-    #         return
-    #
-    #     print("🔗 Lien notification :", lien)
-    #
-    #     # Ici on ouvre le lien
 
     def marquer_notification_lue(notification_id):
 
         if not token:
-            return
+            return None
 
         try:
 
@@ -593,7 +595,10 @@ def main(page: ft.Page):
                     if notification.get("id") == notification_id:
                         notification["lue"] = True
 
-                nonlocal_nombre = None
+                        # Récupérer le lien
+                        return notification.get("lien")
+
+                return None
 
         except Exception as ex:
 
