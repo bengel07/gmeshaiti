@@ -125,10 +125,33 @@ def token_required(f):
                     "error": "Utilisateur introuvable"
                 }), 401
 
-            if user.statut != "actif":
+            # ----------------------------------------------------
+            # RÉCUPÉRER LE PROFIL CLIENT
+            # ----------------------------------------------------
+            client = obtenir_client(user)
+
+            if not client:
+                return jsonify({
+                    "success": False,
+                    "error": "Profil client introuvable"
+                }), 404
+
+            # ----------------------------------------------------
+            # VÉRIFIER L'ÉTAT DU COMPTE CLIENT
+            # ----------------------------------------------------
+            if not client.compte_actif or client.statut != "actif":
                 return jsonify({
                     "success": False,
                     "error": "Compte inactif"
+                }), 403
+
+            # ----------------------------------------------------
+            # COMPTE SUSPENDU
+            # ----------------------------------------------------
+            if getattr(client, "compte_suspendu", False):
+                return jsonify({
+                    "success": False,
+                    "error": "Compte suspendu"
                 }), 403
 
             return f(user, *args, **kwargs)
