@@ -1135,6 +1135,18 @@ def mobile_demande_pret():
                 "numero_pret":
                     nouveau_pret.numero_pret,
 
+                "numero_compte":
+                    client.numero_compte,
+
+                "id_client":
+                    client.id_client,
+
+                "email":
+                    client.email,
+
+                "adresse":
+                    client.adresse,
+
                 "montant":
                     nouveau_pret.montant,
 
