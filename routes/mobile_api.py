@@ -1361,28 +1361,109 @@ def mobile_transactions(current_user):
                 "error": "Profil client introuvable"
             }), 404
 
+        # ----------------------------------------------------
+        # RÉCUPÉRER LE COMPTE D'ÉPARGNE DU CLIENT
+        # ----------------------------------------------------
+        compte = Epargne.query.filter_by(
+            numero_compte=client.numero_compte,
+            statut="actif"
+        ).first()
+
+        if not compte:
+            return jsonify({
+                "success": True,
+                "transactions": []
+            }), 200
+
+        # ----------------------------------------------------
+        # TRANSACTIONS DU COMPTE
+        # ----------------------------------------------------
         transactions = TransactionEpargne.query.filter_by(
-            client_id=client.id
+            compte_id=compte.id
         ).order_by(
-            TransactionEpargne.date_creation.desc()
+            TransactionEpargne.id.desc()
         ).limit(100).all()
 
         resultats = []
 
         for t in transactions:
 
+            montant = float(t.montant or 0)
+
+            # Type de transaction
+            type_transaction = (
+                getattr(t, "type_transaction", None)
+                or "Transaction"
+            )
+
+            description = (
+                getattr(t, "description", None)
+                or type_transaction
+            )
+
+            # Référence
+            reference = getattr(
+                t,
+                "transaction_ref",
+                None
+            )
+
+            # Statut
+            statut = (
+                getattr(t, "statut", None)
+                or "Effectué"
+            )
+
+            # Date
+            date_transaction = getattr(
+                t,
+                "date_creation",
+                None
+            )
+
             resultats.append({
+
                 "id": t.id,
-                "type": getattr(t, "type", None),
-                "description": getattr(t, "description", None),
-                "montant": float(t.montant or 0),
-                "statut": getattr(t, "statut", "Effectué"),
+
+                "type": type_transaction,
+
+                "description": description,
+
+                "montant": montant,
+
+                "statut": statut,
+
+                "reference": reference,
+
                 "date": (
-                    t.date_creation.isoformat()
-                    if getattr(t, "date_creation", None)
+                    date_transaction.isoformat()
+                    if date_transaction
                     else None
+                ),
+
+                "solde_avant": float(
+                    getattr(
+                        t,
+                        "solde_avant",
+                        0
+                    ) or 0
+                ),
+
+                "solde_apres": float(
+                    getattr(
+                        t,
+                        "solde_apres",
+                        0
+                    ) or 0
                 )
             })
+
+        print(
+            "✅ Transactions récupérées :",
+            len(resultats),
+            "| COMPTE :",
+            client.numero_compte
+        )
 
         return jsonify({
             "success": True,
