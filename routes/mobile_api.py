@@ -1361,12 +1361,12 @@ def mobile_transactions(current_user):
                 "error": "Profil client introuvable"
             }), 404
 
-        # ----------------------------------------------------
-        # RÉCUPÉRER LE COMPTE D'ÉPARGNE DU CLIENT
-        # ----------------------------------------------------
+        # ====================================================
+        # COMPTE DU CLIENT CONNECTÉ
+        # ====================================================
+
         compte = Epargne.query.filter_by(
-            numero_compte=client.numero_compte,
-            statut="actif"
+            numero_compte=client.numero_compte
         ).first()
 
         if not compte:
@@ -1375,9 +1375,10 @@ def mobile_transactions(current_user):
                 "transactions": []
             }), 200
 
-        # ----------------------------------------------------
-        # TRANSACTIONS DU COMPTE
-        # ----------------------------------------------------
+        # ====================================================
+        # TRANSACTIONS
+        # ====================================================
+
         transactions = TransactionEpargne.query.filter_by(
             compte_id=compte.id
         ).order_by(
@@ -1388,9 +1389,10 @@ def mobile_transactions(current_user):
 
         for t in transactions:
 
-            montant = float(t.montant or 0)
+            montant = float(
+                getattr(t, "montant", 0) or 0
+            )
 
-            # Type de transaction
             type_transaction = (
                 getattr(t, "type_transaction", None)
                 or "Transaction"
@@ -1401,25 +1403,99 @@ def mobile_transactions(current_user):
                 or type_transaction
             )
 
-            # Référence
+            statut = (
+                getattr(t, "statut", None)
+                or "Effectué"
+            )
+
             reference = getattr(
                 t,
                 "transaction_ref",
                 None
             )
 
-            # Statut
-            statut = (
-                getattr(t, "statut", None)
-                or "Effectué"
-            )
+            # =================================================
+            # DATE
+            # =================================================
 
-            # Date
             date_transaction = getattr(
                 t,
                 "date_creation",
                 None
             )
+
+            # =================================================
+            # TRANSFERT
+            # =================================================
+
+            destinataire_nom = None
+            destinataire_compte_masque = None
+
+            transfert_destination_id = getattr(
+                t,
+                "transfert_destination_id",
+                None
+            )
+
+            if transfert_destination_id:
+
+                # ---------------------------------------------
+                # Récupérer le client destinataire
+                # ---------------------------------------------
+
+                destinataire = Client.query.get(
+                    transfert_destination_id
+                )
+
+                if destinataire:
+
+                    nom_complet = " ".join(
+                        part
+                        for part in [
+                            destinataire.prenom,
+                            destinataire.nom
+                        ]
+                        if part
+                    ).strip()
+
+                    destinataire_nom = (
+                        nom_complet
+                        or destinataire.id_client
+                        or "Destinataire"
+                    )
+
+                    # -----------------------------------------
+                    # Masquer le numéro de compte
+                    # -----------------------------------------
+
+                    numero_compte_dest = (
+                        destinataire.numero_compte
+                        or ""
+                    )
+
+                    if len(numero_compte_dest) >= 2:
+
+                        destinataire_compte_masque = (
+                            f"XXX{numero_compte_dest[-2:]}"
+                        )
+
+                    else:
+
+                        destinataire_compte_masque = "XXX"
+
+                    # -----------------------------------------
+                    # Description affichée
+                    # -----------------------------------------
+
+                    description = (
+                        f"Transfert vers "
+                        f"{destinataire_nom} "
+                        f"{destinataire_compte_masque}"
+                    )
+
+            # =================================================
+            # RÉSULTAT
+            # =================================================
 
             resultats.append({
 
@@ -1455,14 +1531,22 @@ def mobile_transactions(current_user):
                         "solde_apres",
                         0
                     ) or 0
+                ),
+
+                # Informations séparées si l'application
+                # veut les utiliser plus tard
+                "destinataire_nom": destinataire_nom,
+
+                "destinataire_compte": (
+                    destinataire_compte_masque
                 )
             })
 
         print(
             "✅ Transactions récupérées :",
             len(resultats),
-            "| COMPTE :",
-            client.numero_compte
+            "| CLIENT :",
+            client.id_client
         )
 
         return jsonify({

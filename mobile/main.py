@@ -3901,6 +3901,17 @@ def main(page: ft.Page):
         page.update()
 
 
+    def formater_compte_nom(nom_complet, numero_compte):
+        nom = (nom_complet or "Client").strip()
+
+        compte = str(numero_compte or "")
+
+        if len(compte) >= 2:
+            return f"{nom} XXX{compte[-2:]}"
+
+        return nom
+
+
 
     # --- ÉCRAN DASHBOARD ---
     def afficher_dashboard():
@@ -4264,12 +4275,36 @@ def main(page: ft.Page):
                 t.get("montant", 0) or 0
             )
 
+            # ------------------------------------------------------------
+            # DESCRIPTION TRANSACTION
+            # ------------------------------------------------------------
+
             description = (
                     t.get("description")
                     or t.get("type")
                     or t.get("type_transaction")
                     or "Transaction"
             )
+
+            # ------------------------------------------------------------
+            # POUR UN TRANSFERT :
+            # nom réel + 2 derniers chiffres du compte
+            # ------------------------------------------------------------
+
+            destinataire_nom = t.get("destinataire_nom")
+            destinataire_compte = t.get("destinataire_compte")
+
+            if destinataire_nom:
+
+                if destinataire_compte:
+                    description = (
+                        f"Transfert vers {destinataire_nom} "
+                        f"{destinataire_compte}"
+                    )
+                else:
+                    description = (
+                        f"Transfert vers {destinataire_nom}"
+                    )
 
             date_transaction = (
                     t.get("date")
