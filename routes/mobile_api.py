@@ -1361,10 +1361,10 @@ def mobile_transactions(current_user):
                 "error": "Profil client introuvable"
             }), 404
 
-        transactions = Transaction.query.filter_by(
+        transactions = TransactionEpargne.query.filter_by(
             client_id=client.id
         ).order_by(
-            Transaction.date_creation.desc()
+            TransactionEpargne.date_creation.desc()
         ).limit(100).all()
 
         resultats = []
