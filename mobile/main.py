@@ -4215,28 +4215,173 @@ def main(page: ft.Page):
             ),
         )
 
-        # Transactions
+        # ============================================================
+        # DERNIÈRES TRANSACTIONS
+        # ============================================================
+
+        transactions_recentes = []
+
+        try:
+            response = requests.get(
+                f"{API_URL}/api/mobile/transactions",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/json",
+                },
+                timeout=30,
+            )
+
+            if response.status_code == 200:
+
+                data_transactions = response.json()
+
+                if data_transactions.get("success"):
+                    transactions_recentes = (
+                        data_transactions.get("transactions", [])
+                    )
+
+                    print(
+                        "✅ Dashboard transactions :",
+                        len(transactions_recentes)
+                    )
+
+        except Exception as ex:
+
+            print(
+                "❌ Erreur transactions dashboard :",
+                repr(ex)
+            )
+
+        # ------------------------------------------------------------
+        # CONSTRUIRE LES DERNIÈRES TRANSACTIONS
+        # ------------------------------------------------------------
+
+        transaction_controls = []
+
+        for t in transactions_recentes[:3]:
+
+            montant = float(
+                t.get("montant", 0) or 0
+            )
+
+            description = (
+                    t.get("description")
+                    or t.get("type")
+                    or t.get("type_transaction")
+                    or "Transaction"
+            )
+
+            date_transaction = (
+                    t.get("date")
+                    or ""
+            )
+
+            statut = (
+                    t.get("statut")
+                    or "Effectué"
+            )
+
+            # --------------------------------------------------------
+            # DÉBIT
+            # --------------------------------------------------------
+
+            if montant < 0:
+
+                icone = ft.Icons.ARROW_DOWNWARD
+
+                montant_affiche = (
+                    f"- {abs(montant):,.0f} HTG"
+                )
+
+                couleur = "green"
+
+            # --------------------------------------------------------
+            # CRÉDIT
+            # --------------------------------------------------------
+
+            else:
+
+                icone = ft.Icons.ARROW_UPWARD
+
+                montant_affiche = (
+                    f"+ {abs(montant):,.0f} HTG"
+                )
+
+                couleur = "green"
+
+            transaction_controls.append(
+                transaction_item(
+                    icone,
+                    description,
+                    date_transaction,
+                    montant_affiche,
+                    statut,
+                    couleur,
+                )
+            )
+
+        # ------------------------------------------------------------
+        # AUCUNE TRANSACTION
+        # ------------------------------------------------------------
+
+        if not transaction_controls:
+            transaction_controls.append(
+                ft.Container(
+                    padding=20,
+                    alignment=ft.Alignment.CENTER,
+                    content=ft.Text(
+                        "Aucune transaction récente",
+                        size=14,
+                        color=GREY,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                )
+            )
+
+        # ============================================================
+        # CARTE TRANSACTIONS
+        # ============================================================
+
         transactions_card = ft.Container(
-            margin=ft.Margin.only(left=20, right=20, top=18, bottom=20),
+            margin=ft.Margin.only(
+                left=20,
+                right=20,
+                top=18,
+                bottom=20
+            ),
+
             padding=18,
+
             bgcolor=ft.Colors.WHITE,
+
             border_radius=22,
+
             content=ft.Column(
                 [
                     ft.Row(
                         [
-                            ft.Text("Dernières transactions", size=18, color=TEXT, weight=ft.FontWeight.BOLD),
-                            ft.Container(expand=True),
-                            ft.TextButton("Voir tout ›", on_click=lambda e: message("Transactions")),
+                            ft.Text(
+                                "Dernières transactions",
+                                size=18,
+                                color=TEXT,
+                                weight=ft.FontWeight.BOLD
+                            ),
+
+                            ft.Container(
+                                expand=True
+                            ),
+
+                            ft.TextButton(
+                                "Voir tout ›",
+                                on_click=lambda e: afficher_transactions()
+                            ),
                         ]
                     ),
-                    transaction_item(ft.Icons.ARROW_DOWNWARD, "Remboursement prêt", "12 sept. 2026", "- 6,200 HTG",
-                                     "Reçu", "green"),
-                    transaction_item(ft.Icons.ARROW_UPWARD, "Dépôt épargne", "08 sept. 2026", "+ 2,000 HTG", "Crédité",
-                                     "green"),
-                    transaction_item(ft.Icons.CREDIT_CARD, "Retrait guichet", "05 sept. 2026", "- 3,000 HTG",
-                                     "Effectué", "blue"),
+
+                    *transaction_controls,
+
                 ],
+
                 spacing=0,
             ),
         )
