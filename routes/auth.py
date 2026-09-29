@@ -859,7 +859,9 @@ def mobile_client_me():
                 "email": user.email,
                 "first_name": user.prenom,
                 "last_name": user.nom,
-                "role": user.role
+                "role": user.role,
+                "telephone": user.telephone,
+                "photo": user.photos if user.photos else None,
             },
             "client": client_data
         }), 200

@@ -1904,32 +1904,34 @@ def main(page: ft.Page):
 
     def creer_avatar_profil(taille=64, taille_icone=32):
         """
-        Retourne un Container contenant :
-        - la photo du client si elle existe
-        - sinon une icône PERSON par défaut
+        Affiche la photo du User connecté.
         """
 
-        url_photo = (
-            client.get("photo_url")
-            or client.get("photo")
-            or photo_profil_path
-        )
+        url_photo = user.get("photo") or photo_profil_path
 
         if url_photo:
+
+            # Si Flask renvoie un chemin relatif
+            if url_photo.startswith("/"):
+                url_photo = API_URL + url_photo
+
             contenu = ft.Image(
                 src=url_photo,
                 width=taille,
                 height=taille,
                 fit=ft.ImageFit.COVER,
-                border_radius=ft.BorderRadius.all(taille / 2),
             )
+
             bgcolor = None
+
         else:
+
             contenu = ft.Icon(
                 ft.Icons.PERSON,
                 color=ft.Colors.WHITE,
                 size=taille_icone,
             )
+
             bgcolor = PROFILE_GREEN
 
         return ft.Container(
