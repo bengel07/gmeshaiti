@@ -1414,10 +1414,6 @@ def mobile_transactions(current_user):
                 None
             )
 
-            # =================================================
-            # DATE
-            # =================================================
-
             date_transaction = getattr(
                 t,
                 "date_creation",
@@ -1425,53 +1421,67 @@ def mobile_transactions(current_user):
             )
 
             # =================================================
-            # TRANSFERT
+            # DESTINATAIRE
             # =================================================
 
             destinataire_nom = None
             destinataire_compte_masque = None
 
-            transfert_destination_id = getattr(
-                t,
-                "transfert_destination_id",
-                None
-            )
+            # Exemple :
+            # Transfert vers 7-12519-00001-98586 - vp
 
-            if transfert_destination_id:
+            if description and description.startswith("Transfert vers"):
 
-                # ---------------------------------------------
-                # Récupérer le client destinataire
-                # ---------------------------------------------
+                try:
 
-                destinataire = Client.query.get(
-                    transfert_destination_id
-                )
-
-                if destinataire:
-
-                    nom_complet = " ".join(
-                        part
-                        for part in [
-                            destinataire.prenom,
-                            destinataire.nom
-                        ]
-                        if part
+                    # Retirer "Transfert vers"
+                    reste = description.replace(
+                        "Transfert vers",
+                        "",
+                        1
                     ).strip()
 
-                    destinataire_nom = (
-                        nom_complet
-                        or destinataire.id_client
-                        or "Destinataire"
-                    )
+                    # Exemple :
+                    # 7-12519-00001-98586 - vp
+                    morceaux = reste.split(" - ", 1)
 
-                    # -----------------------------------------
-                    # Masquer le numéro de compte
-                    # -----------------------------------------
+                    numero_compte_dest = morceaux[0].strip()
 
-                    numero_compte_dest = (
-                        destinataire.numero_compte
-                        or ""
-                    )
+                    # =================================================
+                    # RECHERCHER LE CLIENT DESTINATAIRE
+                    # =================================================
+
+                    destinataire = Client.query.filter_by(
+                        numero_compte=numero_compte_dest
+                    ).first()
+
+                    if destinataire:
+
+                        # Nom + prénom réels
+                        nom_complet = " ".join(
+                            part
+                            for part in [
+                                destinataire.prenom,
+                                destinataire.nom
+                            ]
+                            if part
+                        ).strip()
+
+                        destinataire_nom = (
+                            nom_complet
+                            or destinataire.id_client
+                            or "Destinataire"
+                        )
+
+                    else:
+
+                        # Si le client n'est pas trouvé,
+                        # ne jamais afficher le numéro complet.
+                        destinataire_nom = "Destinataire"
+
+                    # =================================================
+                    # MASQUER LE NUMÉRO
+                    # =================================================
 
                     if len(numero_compte_dest) >= 2:
 
@@ -1483,15 +1493,29 @@ def mobile_transactions(current_user):
 
                         destinataire_compte_masque = "XXX"
 
-                    # -----------------------------------------
-                    # Description affichée
-                    # -----------------------------------------
+                    # =================================================
+                    # DESCRIPTION FINALE
+                    # =================================================
 
                     description = (
                         f"Transfert vers "
                         f"{destinataire_nom} "
                         f"{destinataire_compte_masque}"
                     )
+
+                except Exception as transfert_error:
+
+                    print(
+                        "⚠️ Erreur identification destinataire :",
+                        repr(transfert_error)
+                    )
+
+                    # Sécurité :
+                    # ne jamais retourner le numéro complet
+                    description = "Transfert"
+
+                    destinataire_nom = None
+                    destinataire_compte_masque = None
 
             # =================================================
             # RÉSULTAT
@@ -1533,14 +1557,16 @@ def mobile_transactions(current_user):
                     ) or 0
                 ),
 
-                # Informations séparées si l'application
-                # veut les utiliser plus tard
                 "destinataire_nom": destinataire_nom,
 
                 "destinataire_compte": (
                     destinataire_compte_masque
                 )
             })
+
+        # ====================================================
+        # LOG
+        # ====================================================
 
         print(
             "✅ Transactions récupérées :",
