@@ -640,7 +640,8 @@ def mobile_register():
 
             nom=last_name,
 
-            nom_complet= f"{first_name} {last_name}",
+            nom_complet=
+                f"{first_name} {last_name}",
 
             telephone=phone,
 
@@ -859,9 +860,7 @@ def mobile_client_me():
                 "email": user.email,
                 "first_name": user.prenom,
                 "last_name": user.nom,
-                "role": user.role,
-                "telephone": user.telephone,
-                "photo": client.photos if user.photos else None,
+                "role": user.role
             },
             "client": client_data
         }), 200
