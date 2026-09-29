@@ -3324,7 +3324,7 @@ def main(page: ft.Page):
         page.controls.clear()
 
         # ============================================================
-        # RÉCUPÉRER LES VRAIES TRANSACTIONS
+        # DONNÉES RÉELLES DES OPÉRATIONS
         # ============================================================
 
         operations = []
@@ -3334,7 +3334,6 @@ def main(page: ft.Page):
             return
 
         try:
-
             response = requests.get(
                 f"{API_URL}/api/mobile/transactions",
                 headers={
@@ -3365,18 +3364,15 @@ def main(page: ft.Page):
                 )
                 return
 
-            transactions = data.get(
-                "transactions",
-                []
-            )
+            transactions = data.get("transactions", [])
 
             print(
-                "✅ Opérations récupérées :",
+                "✅ Opérations réelles récupérées :",
                 len(transactions)
             )
 
             # ========================================================
-            # TRANSFORMER LES DONNÉES API EN FORMAT OPERATIONS
+            # TRANSFORMER L'API EN FORMAT DE TON ÉCRAN
             # ========================================================
 
             for t in transactions:
@@ -3385,34 +3381,21 @@ def main(page: ft.Page):
                     t.get("montant", 0) or 0
                 )
 
-                description = (
-                        t.get("description")
-                        or t.get("type")
-                        or "Transaction"
-                )
-
-                date_transaction = (
-                        t.get("date")
-                        or ""
-                )
-
-                statut = (
-                        t.get("statut")
-                        or "Effectué"
-                )
-
                 type_transaction = (
                         t.get("type")
                         or ""
+                ).lower()
+
+                description = (
+                        t.get("description")
+                        or "Transaction"
                 )
 
                 # ----------------------------------------------------
-                # TYPE D'OPÉRATION
+                # TYPE
                 # ----------------------------------------------------
 
-                type_lower = type_transaction.lower()
-
-                if "transfert" in type_lower:
+                if "transfert" in type_transaction:
 
                     if montant < 0:
                         type_operation = "transfert_envoye"
@@ -3422,39 +3405,87 @@ def main(page: ft.Page):
                         titre = "Transfert reçu"
 
                 elif (
-                        "remboursement" in type_lower
-                        or "pret" in type_lower
+                        "remboursement" in type_transaction
+                        or "pret" in type_transaction
+                        or "prêt" in type_transaction
                 ):
 
                     type_operation = "remboursement"
                     titre = "Remboursement prêt"
 
                 elif (
-                        "depot" in type_lower
-                        or "dépôt" in type_lower
+                        "depot" in type_transaction
+                        or "dépôt" in type_transaction
                 ):
 
                     type_operation = "depot_epargne"
                     titre = "Dépôt épargne"
 
-                elif (
-                        "retrait" in type_lower
-                ):
+                elif "retrait" in type_transaction:
 
                     type_operation = "retrait_epargne"
                     titre = "Retrait épargne"
 
                 else:
 
-                    type_operation = type_transaction
-                    titre = (
-                        description
-                        if description
-                        else "Transaction"
+                    type_operation = "autre"
+                    titre = t.get(
+                        "type",
+                        "Transaction"
                     )
 
                 # ----------------------------------------------------
-                # AJOUTER À LA LISTE
+                # DATE
+                # ----------------------------------------------------
+
+                date_transaction = t.get(
+                    "date"
+                ) or ""
+
+                # ----------------------------------------------------
+                # DESTINATAIRE
+                # L'API fournit déjà le nom et le compte masqué
+                # ----------------------------------------------------
+
+                destinataire_nom = t.get(
+                    "destinataire_nom"
+                )
+
+                destinataire_compte = t.get(
+                    "destinataire_compte"
+                )
+
+                if destinataire_nom:
+
+                    description = (
+                        f"Vers : {destinataire_nom}"
+                    )
+
+                    if destinataire_compte:
+                        description += (
+                            f" {destinataire_compte}"
+                        )
+
+                # ----------------------------------------------------
+                # POUR UN TRANSFERT REÇU
+                # ----------------------------------------------------
+
+                if (
+                        type_operation == "transfert_recu"
+                        and destinataire_nom
+                ):
+
+                    description = (
+                        f"De : {destinataire_nom}"
+                    )
+
+                    if destinataire_compte:
+                        description += (
+                            f" {destinataire_compte}"
+                        )
+
+                # ----------------------------------------------------
+                # AJOUT
                 # ----------------------------------------------------
 
                 operations.append({
@@ -3469,7 +3500,10 @@ def main(page: ft.Page):
 
                     "montant": montant,
 
-                    "statut": statut,
+                    "statut": (
+                            t.get("statut")
+                            or "Effectué"
+                    ),
 
                     "reference": t.get(
                         "reference"
@@ -3499,279 +3533,6 @@ def main(page: ft.Page):
                 "Erreur lors du chargement de l'historique."
             )
             return
-
-        # ============================================================
-        # LISTE VISUELLE
-        # ============================================================
-
-        liste_operations = ft.Column(
-            spacing=10,
-            scroll=ft.ScrollMode.AUTO,
-            expand=True,
-        )
-
-        # ============================================================
-        # AUCUNE OPÉRATION
-        # ============================================================
-
-        if not operations:
-
-            liste_operations.controls.append(
-                ft.Container(
-                    padding=40,
-                    alignment=ft.Alignment.CENTER,
-                    content=ft.Column(
-                        [
-                            ft.Icon(
-                                ft.Icons.RECEIPT_LONG,
-                                size=60,
-                                color=GREY
-                            ),
-
-                            ft.Text(
-                                "Aucune opération",
-                                size=18,
-                                color=TEXT,
-                                weight=ft.FontWeight.BOLD
-                            ),
-
-                            ft.Text(
-                                "Vous n'avez encore effectué aucune opération.",
-                                size=14,
-                                color=GREY,
-                                text_align=ft.TextAlign.CENTER
-                            ),
-                        ],
-                        horizontal_alignment=(
-                            ft.CrossAxisAlignment.CENTER
-                        ),
-                        spacing=10,
-                    ),
-                )
-            )
-
-        # ============================================================
-        # AFFICHER LES OPÉRATIONS RÉELLES
-        # ============================================================
-
-        else:
-
-            for operation in operations:
-
-                montant = float(
-                    operation.get("montant", 0) or 0
-                )
-
-                titre = operation.get(
-                    "titre",
-                    "Transaction"
-                )
-
-                description = operation.get(
-                    "description",
-                    ""
-                )
-
-                date = operation.get(
-                    "date",
-                    ""
-                )
-
-                statut = operation.get(
-                    "statut",
-                    "Effectué"
-                )
-
-                type_operation = operation.get(
-                    "type",
-                    ""
-                )
-
-                # ----------------------------------------------------
-                # ICÔNE
-                # ----------------------------------------------------
-
-                if type_operation == "transfert_envoye":
-
-                    icone = ft.Icons.ARROW_UPWARD
-                    couleur = "#D32F2F"
-
-                elif type_operation == "transfert_recu":
-
-                    icone = ft.Icons.ARROW_DOWNWARD
-                    couleur = GREEN
-
-                elif type_operation == "remboursement":
-
-                    icone = ft.Icons.CREDIT_CARD
-                    couleur = "#D32F2F"
-
-                elif type_operation == "depot_epargne":
-
-                    icone = ft.Icons.SAVINGS
-                    couleur = GREEN
-
-                elif type_operation == "retrait_epargne":
-
-                    icone = ft.Icons.ACCOUNT_BALANCE_WALLET
-                    couleur = "#D32F2F"
-
-                else:
-
-                    if montant >= 0:
-                        icone = ft.Icons.ARROW_DOWNWARD
-                        couleur = GREEN
-                    else:
-                        icone = ft.Icons.ARROW_UPWARD
-                        couleur = "#D32F2F"
-
-                # ----------------------------------------------------
-                # MONTANT
-                # ----------------------------------------------------
-
-                if montant < 0:
-
-                    montant_affiche = (
-                        f"- {abs(montant):,.0f} HTG"
-                    )
-
-                else:
-
-                    montant_affiche = (
-                        f"+ {abs(montant):,.0f} HTG"
-                    )
-
-                # ----------------------------------------------------
-                # ITEM
-                # ----------------------------------------------------
-
-                liste_operations.controls.append(
-
-                    transaction_item(
-                        icone,
-                        titre,
-                        date,
-                        montant_affiche,
-                        statut,
-                        couleur,
-                    )
-                )
-
-                # ----------------------------------------------------
-                # DESCRIPTION SOUS L'OPÉRATION
-                # ----------------------------------------------------
-
-                if description:
-                    liste_operations.controls.append(
-
-                        ft.Container(
-                            padding=ft.Padding.only(
-                                left=65,
-                                right=15,
-                                bottom=8
-                            ),
-
-                            content=ft.Text(
-                                description,
-                                size=12,
-                                color=GREY,
-                                max_lines=2,
-                                overflow=(
-                                    ft.TextOverflow.ELLIPSIS
-                                ),
-                            )
-                        )
-                    )
-
-        # ============================================================
-        # HEADER
-        # ============================================================
-
-        header = ft.Container(
-            bgcolor=PURPLE,
-
-            padding=ft.Padding.only(
-                left=10,
-                right=20,
-                top=20,
-                bottom=20,
-            ),
-
-            content=ft.Row(
-                [
-                    ft.IconButton(
-                        icon=ft.Icons.ARROW_BACK,
-                        icon_color=ft.Colors.WHITE,
-                        on_click=lambda e: afficher_dashboard(),
-                    ),
-
-                    ft.Text(
-                        "Historique des opérations",
-                        color=ft.Colors.WHITE,
-                        size=21,
-                        weight=ft.FontWeight.BOLD,
-                        expand=True,
-                    ),
-                ],
-
-                vertical_alignment=(
-                    ft.CrossAxisAlignment.CENTER
-                ),
-            ),
-        )
-
-        # ============================================================
-        # ÉCRAN
-        # ============================================================
-
-        page.add(
-
-            ft.Column(
-                [
-
-                    header,
-
-                    ft.Container(
-                        padding=20,
-                        expand=True,
-
-                        content=ft.Column(
-                            [
-
-                                ft.Text(
-                                    "Toutes vos opérations",
-                                    size=23,
-                                    color=TEXT,
-                                    weight=ft.FontWeight.BOLD,
-                                ),
-
-                                ft.Text(
-                                    "Consultez votre historique réel.",
-                                    size=14,
-                                    color=GREY,
-                                ),
-
-                                ft.Container(
-                                    height=10
-                                ),
-
-                                liste_operations,
-
-                            ],
-
-                            spacing=10,
-                            expand=True,
-                        ),
-                    ),
-
-                ],
-
-                expand=True,
-                spacing=0,
-            )
-        )
-
-        page.update()
 
         # ============================================================
         # VARIABLES POUR LES FILTRES
