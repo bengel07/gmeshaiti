@@ -4291,20 +4291,59 @@ def main(page: ft.Page):
             # nom réel + 2 derniers chiffres du compte
             # ------------------------------------------------------------
 
+            # ------------------------------------------------------------
+            # TRANSFERT : AFFICHAGE PRIVÉ
+            # ------------------------------------------------------------
+
             destinataire_nom = t.get("destinataire_nom")
             destinataire_compte = t.get("destinataire_compte")
 
             if destinataire_nom:
 
+                # Si l'API fournit le nom + compte masqué
+                description = (
+                    f"Transfert vers {destinataire_nom}"
+                )
+
                 if destinataire_compte:
+                    description += f" {destinataire_compte}"
+
+            else:
+
+                # L'ancienne API envoie encore le numéro complet
+                # Exemple :
+                # Transfert vers 7-12519-00001-98586 - vp
+
+                description_originale = (
+                        t.get("description")
+                        or t.get("type")
+                        or "Transaction"
+                )
+
+                if description_originale.startswith("Transfert vers"):
+
+                    reste = description_originale.replace(
+                        "Transfert vers",
+                        "",
+                        1
+                    ).strip()
+
+                    morceaux = reste.split(" - ")
+
+                    numero = morceaux[0].strip()
+
+                    # On masque le numéro complet
+                    if len(numero) >= 2:
+                        numero_masque = f"XXX{numero[-2:]}"
+                    else:
+                        numero_masque = "XXX"
+
                     description = (
-                        f"Transfert vers {destinataire_nom} "
-                        f"{destinataire_compte}"
+                        f"Transfert vers {numero_masque}"
                     )
+
                 else:
-                    description = (
-                        f"Transfert vers {destinataire_nom}"
-                    )
+                    description = description_originale
 
             date_transaction = (
                     t.get("date")
