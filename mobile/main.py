@@ -3324,59 +3324,454 @@ def main(page: ft.Page):
         page.controls.clear()
 
         # ============================================================
-        # DONNÉES DES OPÉRATIONS
+        # RÉCUPÉRER LES VRAIES TRANSACTIONS
         # ============================================================
 
-        operations = [
-            {
-                "type": "transfert_envoye",
-                "titre": "Transfert envoyé",
-                "description": "Vers : 7-12519-1234567890",
-                "date": "20 sept. 2026",
-                "montant": -5000,
-                "statut": "Effectué",
-            },
-            {
-                "type": "transfert_recu",
-                "titre": "Transfert reçu",
-                "description": "De : 7-12519-9876543210",
-                "date": "18 sept. 2026",
-                "montant": 8000,
-                "statut": "Reçu",
-            },
-            {
-                "type": "remboursement",
-                "titre": "Remboursement prêt",
-                "description": "Prêt : GMES_Pret-20260912-66403",
-                "date": "15 sept. 2026",
-                "montant": -6200,
-                "statut": "Effectué",
-            },
-            {
-                "type": "depot_epargne",
-                "titre": "Dépôt épargne",
-                "description": "Compte épargne",
-                "date": "12 sept. 2026",
-                "montant": 2000,
-                "statut": "Crédité",
-            },
-            {
-                "type": "retrait_epargne",
-                "titre": "Retrait épargne",
-                "description": "Compte épargne",
-                "date": "08 sept. 2026",
-                "montant": -3000,
-                "statut": "Effectué",
-            },
-            {
-                "type": "transfert_recu",
-                "titre": "Transfert reçu",
-                "description": "De : 7-12519-5555555555",
-                "date": "28 août 2026",
-                "montant": 4500,
-                "statut": "Reçu",
-            },
-        ]
+        operations = []
+
+        if not token:
+            message("Session expirée.")
+            return
+
+        try:
+
+            response = requests.get(
+                f"{API_URL}/api/mobile/transactions",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/json",
+                },
+                timeout=30,
+            )
+
+            print("================================")
+            print("HISTORIQUE DES OPÉRATIONS")
+            print("STATUT :", response.status_code)
+            print("REPONSE :", response.text[:3000])
+            print("================================")
+
+            if response.status_code != 200:
+                message("Impossible de récupérer les opérations.")
+                return
+
+            data = response.json()
+
+            if not data.get("success"):
+                message(
+                    data.get(
+                        "error",
+                        "Impossible de récupérer les opérations."
+                    )
+                )
+                return
+
+            transactions = data.get(
+                "transactions",
+                []
+            )
+
+            print(
+                "✅ Opérations récupérées :",
+                len(transactions)
+            )
+
+            # ========================================================
+            # TRANSFORMER LES DONNÉES API EN FORMAT OPERATIONS
+            # ========================================================
+
+            for t in transactions:
+
+                montant = float(
+                    t.get("montant", 0) or 0
+                )
+
+                description = (
+                        t.get("description")
+                        or t.get("type")
+                        or "Transaction"
+                )
+
+                date_transaction = (
+                        t.get("date")
+                        or ""
+                )
+
+                statut = (
+                        t.get("statut")
+                        or "Effectué"
+                )
+
+                type_transaction = (
+                        t.get("type")
+                        or ""
+                )
+
+                # ----------------------------------------------------
+                # TYPE D'OPÉRATION
+                # ----------------------------------------------------
+
+                type_lower = type_transaction.lower()
+
+                if "transfert" in type_lower:
+
+                    if montant < 0:
+                        type_operation = "transfert_envoye"
+                        titre = "Transfert envoyé"
+                    else:
+                        type_operation = "transfert_recu"
+                        titre = "Transfert reçu"
+
+                elif (
+                        "remboursement" in type_lower
+                        or "pret" in type_lower
+                ):
+
+                    type_operation = "remboursement"
+                    titre = "Remboursement prêt"
+
+                elif (
+                        "depot" in type_lower
+                        or "dépôt" in type_lower
+                ):
+
+                    type_operation = "depot_epargne"
+                    titre = "Dépôt épargne"
+
+                elif (
+                        "retrait" in type_lower
+                ):
+
+                    type_operation = "retrait_epargne"
+                    titre = "Retrait épargne"
+
+                else:
+
+                    type_operation = type_transaction
+                    titre = (
+                        description
+                        if description
+                        else "Transaction"
+                    )
+
+                # ----------------------------------------------------
+                # AJOUTER À LA LISTE
+                # ----------------------------------------------------
+
+                operations.append({
+
+                    "type": type_operation,
+
+                    "titre": titre,
+
+                    "description": description,
+
+                    "date": date_transaction,
+
+                    "montant": montant,
+
+                    "statut": statut,
+
+                    "reference": t.get(
+                        "reference"
+                    ),
+                })
+
+        except requests.exceptions.Timeout:
+
+            print("❌ Timeout historique")
+            message("Le serveur met trop de temps à répondre.")
+            return
+
+        except requests.exceptions.ConnectionError:
+
+            print("❌ Serveur inaccessible")
+            message("Serveur inaccessible.")
+            return
+
+        except Exception as ex:
+
+            print(
+                "❌ Erreur historique :",
+                repr(ex)
+            )
+
+            message(
+                "Erreur lors du chargement de l'historique."
+            )
+            return
+
+        # ============================================================
+        # LISTE VISUELLE
+        # ============================================================
+
+        liste_operations = ft.Column(
+            spacing=10,
+            scroll=ft.ScrollMode.AUTO,
+            expand=True,
+        )
+
+        # ============================================================
+        # AUCUNE OPÉRATION
+        # ============================================================
+
+        if not operations:
+
+            liste_operations.controls.append(
+                ft.Container(
+                    padding=40,
+                    alignment=ft.Alignment.CENTER,
+                    content=ft.Column(
+                        [
+                            ft.Icon(
+                                ft.Icons.RECEIPT_LONG,
+                                size=60,
+                                color=GREY
+                            ),
+
+                            ft.Text(
+                                "Aucune opération",
+                                size=18,
+                                color=TEXT,
+                                weight=ft.FontWeight.BOLD
+                            ),
+
+                            ft.Text(
+                                "Vous n'avez encore effectué aucune opération.",
+                                size=14,
+                                color=GREY,
+                                text_align=ft.TextAlign.CENTER
+                            ),
+                        ],
+                        horizontal_alignment=(
+                            ft.CrossAxisAlignment.CENTER
+                        ),
+                        spacing=10,
+                    ),
+                )
+            )
+
+        # ============================================================
+        # AFFICHER LES OPÉRATIONS RÉELLES
+        # ============================================================
+
+        else:
+
+            for operation in operations:
+
+                montant = float(
+                    operation.get("montant", 0) or 0
+                )
+
+                titre = operation.get(
+                    "titre",
+                    "Transaction"
+                )
+
+                description = operation.get(
+                    "description",
+                    ""
+                )
+
+                date = operation.get(
+                    "date",
+                    ""
+                )
+
+                statut = operation.get(
+                    "statut",
+                    "Effectué"
+                )
+
+                type_operation = operation.get(
+                    "type",
+                    ""
+                )
+
+                # ----------------------------------------------------
+                # ICÔNE
+                # ----------------------------------------------------
+
+                if type_operation == "transfert_envoye":
+
+                    icone = ft.Icons.ARROW_UPWARD
+                    couleur = "#D32F2F"
+
+                elif type_operation == "transfert_recu":
+
+                    icone = ft.Icons.ARROW_DOWNWARD
+                    couleur = GREEN
+
+                elif type_operation == "remboursement":
+
+                    icone = ft.Icons.CREDIT_CARD
+                    couleur = "#D32F2F"
+
+                elif type_operation == "depot_epargne":
+
+                    icone = ft.Icons.SAVINGS
+                    couleur = GREEN
+
+                elif type_operation == "retrait_epargne":
+
+                    icone = ft.Icons.ACCOUNT_BALANCE_WALLET
+                    couleur = "#D32F2F"
+
+                else:
+
+                    if montant >= 0:
+                        icone = ft.Icons.ARROW_DOWNWARD
+                        couleur = GREEN
+                    else:
+                        icone = ft.Icons.ARROW_UPWARD
+                        couleur = "#D32F2F"
+
+                # ----------------------------------------------------
+                # MONTANT
+                # ----------------------------------------------------
+
+                if montant < 0:
+
+                    montant_affiche = (
+                        f"- {abs(montant):,.0f} HTG"
+                    )
+
+                else:
+
+                    montant_affiche = (
+                        f"+ {abs(montant):,.0f} HTG"
+                    )
+
+                # ----------------------------------------------------
+                # ITEM
+                # ----------------------------------------------------
+
+                liste_operations.controls.append(
+
+                    transaction_item(
+                        icone,
+                        titre,
+                        date,
+                        montant_affiche,
+                        statut,
+                        couleur,
+                    )
+                )
+
+                # ----------------------------------------------------
+                # DESCRIPTION SOUS L'OPÉRATION
+                # ----------------------------------------------------
+
+                if description:
+                    liste_operations.controls.append(
+
+                        ft.Container(
+                            padding=ft.Padding.only(
+                                left=65,
+                                right=15,
+                                bottom=8
+                            ),
+
+                            content=ft.Text(
+                                description,
+                                size=12,
+                                color=GREY,
+                                max_lines=2,
+                                overflow=(
+                                    ft.TextOverflow.ELLIPSIS
+                                ),
+                            )
+                        )
+                    )
+
+        # ============================================================
+        # HEADER
+        # ============================================================
+
+        header = ft.Container(
+            bgcolor=PURPLE,
+
+            padding=ft.Padding.only(
+                left=10,
+                right=20,
+                top=20,
+                bottom=20,
+            ),
+
+            content=ft.Row(
+                [
+                    ft.IconButton(
+                        icon=ft.Icons.ARROW_BACK,
+                        icon_color=ft.Colors.WHITE,
+                        on_click=lambda e: afficher_dashboard(),
+                    ),
+
+                    ft.Text(
+                        "Historique des opérations",
+                        color=ft.Colors.WHITE,
+                        size=21,
+                        weight=ft.FontWeight.BOLD,
+                        expand=True,
+                    ),
+                ],
+
+                vertical_alignment=(
+                    ft.CrossAxisAlignment.CENTER
+                ),
+            ),
+        )
+
+        # ============================================================
+        # ÉCRAN
+        # ============================================================
+
+        page.add(
+
+            ft.Column(
+                [
+
+                    header,
+
+                    ft.Container(
+                        padding=20,
+                        expand=True,
+
+                        content=ft.Column(
+                            [
+
+                                ft.Text(
+                                    "Toutes vos opérations",
+                                    size=23,
+                                    color=TEXT,
+                                    weight=ft.FontWeight.BOLD,
+                                ),
+
+                                ft.Text(
+                                    "Consultez votre historique réel.",
+                                    size=14,
+                                    color=GREY,
+                                ),
+
+                                ft.Container(
+                                    height=10
+                                ),
+
+                                liste_operations,
+
+                            ],
+
+                            spacing=10,
+                            expand=True,
+                        ),
+                    ),
+
+                ],
+
+                expand=True,
+                spacing=0,
+            )
+        )
+
+        page.update()
 
         # ============================================================
         # VARIABLES POUR LES FILTRES

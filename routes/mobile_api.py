@@ -1348,6 +1348,8 @@ def mobile_notification_lire(current_user, notification_id):
             "error": "Erreur interne du serveur."
         }), 500
 
+
+
 @mobile_api_bp.route("/api/mobile/transactions", methods=["GET"])
 @token_required
 def mobile_transactions(current_user):

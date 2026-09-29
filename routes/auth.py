@@ -640,8 +640,7 @@ def mobile_register():
 
             nom=last_name,
 
-            nom_complet=
-                f"{first_name} {last_name}",
+            nom_complet= f"{first_name} {last_name}",
 
             telephone=phone,
 
