@@ -269,6 +269,9 @@ def main(page: ft.Page):
             user = data.get("user") or {}
             client = data.get("client") or {}
 
+            # PHOTO DU USER CONNECTÉ
+            photo_profil_path = user.get("photo")
+
             # Récupérer les données fraîches depuis l'API
             me_response = requests.get(
                 f"{API_URL}/auth/api/mobile/client/me",
