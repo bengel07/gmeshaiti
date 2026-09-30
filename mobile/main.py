@@ -1910,9 +1910,8 @@ def main(page: ft.Page):
         """
 
         url_photo = (
-            client.get("photo_url")
-            or client.get("photo")
-            or photo_profil_path
+                client.get("photo_selfie")
+                or photo_profil_path
         )
 
         if url_photo:
@@ -1920,7 +1919,7 @@ def main(page: ft.Page):
                 src=url_photo,
                 width=taille,
                 height=taille,
-                fit=ft.ImageFit.COVER,
+                fit=ft.BoxFit.COVER,
                 border_radius=ft.BorderRadius.all(taille / 2),
             )
             bgcolor = None
@@ -2319,7 +2318,7 @@ def main(page: ft.Page):
                     src=url,
                     width=110,
                     height=110,
-                    fit=ft.ImageFit.COVER,
+                    fit=ft.BoxFit.COVER,
                     border_radius=ft.BorderRadius.all(55),
                 )
             return ft.Icon(
@@ -2366,7 +2365,7 @@ def main(page: ft.Page):
                 src=fichier.path,
                 width=110,
                 height=110,
-                fit=ft.ImageFit.COVER,
+                fit=ft.BoxFit.COVER,
                 border_radius=ft.BorderRadius.all(55),
             )
 
@@ -2404,7 +2403,7 @@ def main(page: ft.Page):
                 src=fichier.path,
                 width=110,
                 height=110,
-                fit=ft.ImageFit.COVER,
+                fit=ft.BoxFit.COVER,
                 border_radius=ft.BorderRadius.all(55),
             )
 
@@ -4066,6 +4065,50 @@ def main(page: ft.Page):
             return f"{nom} XXX{compte[-2:]}"
 
         return nom
+
+    # ============================================================
+    # 📸 CONSTRUIRE L'URL DE LA PHOTO DU CLIENT
+    # ============================================================
+
+    def obtenir_url_photo_client():
+
+        # 1️⃣ Photo envoyée par l'API
+        photo = client.get("photo_selfie") if client else None
+
+        # 2️⃣ Anciennes possibilités déjà utilisées dans ton application
+        if not photo and client:
+            photo = client.get("photo_url")
+
+        if not photo:
+            photo = photo_profil_path
+
+        if not photo:
+            return None
+
+        photo = str(photo).strip()
+
+        if not photo:
+            return None
+
+        # ========================================================
+        # SI L'API RENVOIE DÉJÀ UNE URL COMPLÈTE
+        # ========================================================
+
+        if photo.startswith("http://") or photo.startswith("https://"):
+            return photo
+
+        # ========================================================
+        # SI LA BASE RENVOIE UN CHEMIN COMMENÇANT PAR /
+        # ========================================================
+
+        if photo.startswith("/"):
+            return f"{API_URL}{photo}"
+
+        # ========================================================
+        # SI LA BASE RENVOIE uploads/...
+        # ========================================================
+
+        return f"{API_URL}/{photo.lstrip('/')}"
 
 
 

@@ -402,6 +402,10 @@ def mobile_login():
                 "telephone":
                     client.telephone,
 
+                # 📸 PHOTO RÉELLE DU CLIENT
+                "photo":
+                    client.photo_selfie,
+
                 "solde":
                     solde_reel or 0,
 
@@ -430,6 +434,11 @@ def mobile_login():
         # ====================================================
         # 12. RÉPONSE
         # ====================================================
+
+        print("======================================")
+        print("📸 PHOTO CLIENT ID :", client.id)
+        print("📸 PHOTO CLIENT :", repr(client.photo))
+        print("======================================")
 
         return jsonify({
 
