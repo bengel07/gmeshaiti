@@ -1904,32 +1904,48 @@ def main(page: ft.Page):
 
     def creer_avatar_profil(taille=64, taille_icone=32):
         """
-        Retourne un Container contenant :
-        - la photo du client si elle existe
-        - sinon une icône PERSON par défaut
+        Affiche la vraie photo du client si elle existe.
+        Sinon affiche l'icône PERSON.
         """
 
-        url_photo = (
-                client.get("photo_selfie")
-                or photo_profil_path
-        )
+        # ========================================================
+        # 📸 RÉCUPÉRER L'URL DE LA PHOTO RÉELLE
+        # ========================================================
+
+        url_photo = obtenir_url_photo_client()
+
+        # ========================================================
+        # 📸 PHOTO DISPONIBLE
+        # ========================================================
 
         if url_photo:
+
             contenu = ft.Image(
                 src=url_photo,
                 width=taille,
                 height=taille,
                 fit=ft.BoxFit.COVER,
-                border_radius=ft.BorderRadius.all(taille / 2),
             )
+
             bgcolor = None
+
+        # ========================================================
+        # 👤 AUCUNE PHOTO
+        # ========================================================
+
         else:
+
             contenu = ft.Icon(
                 ft.Icons.PERSON,
                 color=ft.Colors.WHITE,
                 size=taille_icone,
             )
+
             bgcolor = PROFILE_GREEN
+
+        # ========================================================
+        # CONTAINER CIRCULAIRE
+        # ========================================================
 
         return ft.Container(
             width=taille,
@@ -4072,10 +4088,10 @@ def main(page: ft.Page):
 
     def obtenir_url_photo_client():
 
-        # 1️⃣ Photo envoyée par l'API
+        # 📸 Photo réelle venant de Client.photo_selfie
         photo = client.get("photo_selfie") if client else None
 
-        # 2️⃣ Anciennes possibilités déjà utilisées dans ton application
+        # Ancienne compatibilité
         if not photo and client:
             photo = client.get("photo_url")
 
@@ -4090,26 +4106,16 @@ def main(page: ft.Page):
         if not photo:
             return None
 
-        # ========================================================
-        # SI L'API RENVOIE DÉJÀ UNE URL COMPLÈTE
-        # ========================================================
-
+        # URL déjà complète
         if photo.startswith("http://") or photo.startswith("https://"):
             return photo
 
-        # ========================================================
-        # SI LA BASE RENVOIE UN CHEMIN COMMENÇANT PAR /
-        # ========================================================
-
+        # Chemin commençant par /
         if photo.startswith("/"):
             return f"{API_URL}{photo}"
 
-        # ========================================================
-        # SI LA BASE RENVOIE uploads/...
-        # ========================================================
-
+        # Chemin relatif : uploads/...
         return f"{API_URL}/{photo.lstrip('/')}"
-
 
 
     # --- ÉCRAN DASHBOARD ---
