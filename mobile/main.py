@@ -1912,7 +1912,11 @@ def main(page: ft.Page):
         # 📸 RÉCUPÉRER L'URL DE LA PHOTO RÉELLE
         # ========================================================
 
-        url_photo = obtenir_url_photo_client()
+        url_photo = obtenir_url_photo_client() or client.get("photo_selfie")
+
+        # Si aucune photo dans client, utiliser la photo locale sélectionnée
+        if not url_photo and photo_profil_path:
+            url_photo = photo_profil_path
 
         # ========================================================
         # 📸 PHOTO DISPONIBLE
@@ -2558,6 +2562,10 @@ def main(page: ft.Page):
             client["email"] = email
 
             user["email"] = email
+
+            # 📷 CONSERVER LA PHOTO SÉLECTIONNÉE POUR LE DASHBOARD
+            if photo_profil_path:
+                client["photo_selfie"] = photo_profil_path
 
             resultat.value = (
                 "✓ Vos informations ont été mises à jour."

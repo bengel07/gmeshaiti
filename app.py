@@ -15746,64 +15746,6 @@ def export_rapports_risque():
 
 
 
-# ============================================
-# MODÈLES DE DONNÉES POUR LE SCORING
-# ============================================
-
-class ParametreScoring(db.Model):
-    """Modèle pour les paramètres de scoring"""
-    __tablename__ = 'parametres_scoring'
-
-    id = db.Column(db.Integer, primary_key=True)
-    categorie = db.Column(db.String(50), nullable=False)  # client, pret, garantie, etc.
-    sous_categorie = db.Column(db.String(50))
-    nom = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text)
-    poids = db.Column(db.Float, default=0)  # Poids dans le score total
-    valeur_min = db.Column(db.Float)  # Valeur minimale acceptable
-    valeur_max = db.Column(db.Float)  # Valeur maximale acceptable
-    seuil_alerte = db.Column(db.Float)  # Seuil d'alerte
-    score_min = db.Column(db.Integer, default=0)  # Score minimum pour ce critère
-    score_max = db.Column(db.Integer, default=100)  # Score maximum pour ce critère
-    actif = db.Column(db.Boolean, default=True)
-    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
-    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    cree_par = db.Column(db.Integer, db.ForeignKey('employes.id'))
-    modifie_par = db.Column(db.Integer, db.ForeignKey('employes.id'))
-
-    def __repr__(self):
-        return f"<ParametreScoring {self.nom}>"
-
-
-class RegleScoring(db.Model):
-    """Modèle pour les règles de scoring"""
-    __tablename__ = 'regles_scoring'
-
-    id = db.Column(db.Integer, primary_key=True)
-    nom = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text)
-    condition = db.Column(db.Text)  # Expression JSON de la condition
-    action = db.Column(db.String(50))  # approuver, refuser, alerter, ajuster
-    score_ajustement = db.Column(db.Integer)  # Ajustement du score
-    priorite = db.Column(db.Integer, default=0)
-    actif = db.Column(db.Boolean, default=True)
-    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
-    date_modification = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-
-class HistoriqueScoring(db.Model):
-    """Modèle pour l'historique des scores"""
-    __tablename__ = 'historique_scoring'
-
-    id = db.Column(db.Integer, primary_key=True)
-    pret_id = db.Column(db.Integer, db.ForeignKey('prets.id'))
-    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
-    score_total = db.Column(db.Integer)
-    details = db.Column(db.Text)  # JSON des détails du score
-    decision = db.Column(db.String(50))  # approuve, refuse, en_attente
-    date_calcul = db.Column(db.DateTime, default=datetime.utcnow)
-    calcule_par = db.Column(db.Integer, db.ForeignKey('employes.id'))
-
 
 # ============================================
 # FONCTION PRINCIPALE
