@@ -30580,7 +30580,7 @@ def liste_recus():
             'montant': remboursement.montant,
             'client_id': item.client_id,
             'client_nom': f"{item.prenom} {item.nom}",
-            'compte_numero': remboursement.compte_numero or 'N/A',
+            'compte_numero': client.numero_compte if client else 'N/A',
             'succursale_nom': item.succursale_nom,
             'succursale_id': item.succursale_id,
             'employe_nom': f"{item.employe_prenom} {item.employe_nom}" if item.employe_prenom else "N/A",
