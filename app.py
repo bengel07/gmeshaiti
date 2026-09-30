@@ -30561,6 +30561,8 @@ def liste_recus():
     # Remboursements
     for item in query_remboursements.all():
         remboursement = item[0]
+        client = Client.query.get(remboursement.client_id)
+
         if type_op and type_op != 'remboursement':
             continue
         if date_debut and remboursement.date_remboursement < datetime.strptime(date_debut, '%Y-%m-%d'):
@@ -30568,7 +30570,7 @@ def liste_recus():
         if date_fin and remboursement.date_remboursement > datetime.strptime(date_fin + ' 23:59:59',
                                                                              '%Y-%m-%d %H:%M:%S'):
             continue
-        if compte_numero and compte_numero.lower() not in (remboursement.compte_numero or '').lower():
+        if compte_numero and compte_numero.lower() not in (client.compte_numero or '').lower():
             continue
 
         recus.append({
