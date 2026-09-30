@@ -437,7 +437,7 @@ def mobile_login():
 
         print("======================================")
         print("📸 PHOTO CLIENT ID :", client.id)
-        print("📸 PHOTO CLIENT :", repr(client.photo))
+        print("📸 PHOTO SELFIE :", repr(client.photo_selfie))
         print("======================================")
 
         return jsonify({
