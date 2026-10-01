@@ -22629,40 +22629,69 @@ def api_employes_list():
         'data': data
     }
 
+
+
+
 @app.route('/admin/utilisateurs')
 @login_required
 def gestion_utilisateurs():
 
-    statut_filter = request.args.get('statut')
-    niveau_filter = request.args.get('niveau')
-    search = request.args.get('search')
+    statut_filter = request.args.get('statut', '').strip()
+    niveau_filter = request.args.get('niveau', '').strip()
+    search = request.args.get('search', '').strip()
 
     query = User.query
 
-    # 🔎 Filtre statut
-    if statut_filter and statut_filter != "Tous les statuts":
-        query = query.filter(User.statut == statut_filter)
+    # ==============================
+    # 🔎 FILTRE STATUT
+    # ==============================
+    if statut_filter:
+        query = query.filter(
+            User.statut == statut_filter
+        )
 
-    # 🔎 Filtre niveau
-    if niveau_filter and niveau_filter != "Tous niveaux":
-        query = query.filter(User.niveau_habilitation == int(niveau_filter))
+    # ==============================
+    # 🔎 FILTRE NIVEAU
+    # ==============================
+    if niveau_filter:
+        try:
+            query = query.filter(
+                User.niveau_habilitation == int(niveau_filter)
+            )
+        except (ValueError, TypeError):
+            pass
 
-    # 🔎 Recherche texte
+    # ==============================
+    # 🔎 RECHERCHE
+    # ==============================
     if search:
-        from sqlalchemy import or_
+
+        recherche = f"%{search}%"
+
         query = query.filter(
             or_(
-                User.nom.ilike(f"%{search}%"),
-                User.matricule.ilike(f"%{search}%"),
-                User.telephone.ilike(f"%{search}%")
+                User.nom.ilike(recherche),
+                User.prenom.ilike(recherche),
+                User.username.ilike(recherche),
+                User.matricule.ilike(recherche),
+                User.telephone.ilike(recherche)
             )
         )
 
-    users = query.all()
+    # ==============================
+    # 📋 RÉSULTATS
+    # ==============================
+    users = query.order_by(
+        User.nom.asc(),
+        User.prenom.asc()
+    ).all()
 
     return render_template(
         "admin_central/utilisateurs.html",
-        users=users
+        users=users,
+        statut_filter=statut_filter,
+        niveau_filter=niveau_filter,
+        search=search
     )
 
 

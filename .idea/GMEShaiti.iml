@@ -6,6 +6,12 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
+      <excludeFolder url="file://$MODULE_DIR$/mobile/build/flutter/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/mobile/build/flutter/android/.gradle" />
+      <excludeFolder url="file://$MODULE_DIR$/mobile/build/flutter/build" />
+      <excludeFolder url="file://$MODULE_DIR$/mobile/build/flutter/ios/Flutter/ephemeral" />
+      <excludeFolder url="file://$MODULE_DIR$/mobile/build/flutter/macos/Flutter/ephemeral" />
+      <excludeFolder url="file://$MODULE_DIR$/mobile/build/flutter/windows/flutter/ephemeral" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.11" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
