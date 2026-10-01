@@ -160,6 +160,8 @@ from sqlalchemy import func, and_, or_
 import json
 import logging
 
+from views import super_admin_required
+
 logger = logging.getLogger(__name__)
 
 
@@ -20316,15 +20318,13 @@ def transferer_employe(employe_id):
 
 @app.route('/liste_users')
 @login_required
+@super_admin_required
 def liste_users():
     # DÉBOGAGE - À SUPPRIMER APRÈS
     print(f"Utilisateur: {current_user.username}")
     print(f"Rôle actuel: '{current_user.role}'")
     print(f"ID: {current_user.id}")
     # Vérifier les permissions
-    if current_user.role != "super_admin":
-        flash(f'Accès non autorisé. Votre rôle est "{current_user.role}"', 'danger')
-        abort(403)
 
     # 🔹 RÉCUPÉRER LES PARAMÈTRES DE FILTRE
     search = request.args.get('search', '')

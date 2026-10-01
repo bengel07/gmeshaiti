@@ -6,15 +6,33 @@ from flask import current_app as app
 # =============================================
 # DÉCORATEUR POUR VÉRIFIER SUPER_ADMIN
 # =============================================
+
+
+from flask_login import current_user
+
+
 def super_admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if session.get('role') != 'super_admin':
-            flash('⛔ Accès réservé aux super administrateurs', 'danger')
-            return redirect(url_for('admin_dashboard'))
-        return f(*args, **kwargs)
-    return decorated_function
 
+        if not current_user.is_authenticated:
+            flash(
+                "⛔ Vous devez être connecté.",
+                "danger"
+            )
+            return redirect(url_for("login"))
+
+        if current_user.role != "super_admin":
+            flash(
+                f"⛔ Accès réservé aux super administrateurs. "
+                f"Rôle actuel : {current_user.role}",
+                "danger"
+            )
+            return redirect(url_for("admin_dashboard"))
+
+        return f(*args, **kwargs)
+
+    return decorated_function
 # views.py - Ajoutez cette fonction après PAGES
 
 
