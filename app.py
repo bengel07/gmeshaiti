@@ -140,6 +140,9 @@ from utils.errors import humanize_unique_error
 from utils.notifications import notification_manager
 from jinja2.exceptions import TemplateNotFound
 
+from utils.mobo import notifier_directeurs_demande_pret, generer_numero_pret
+
+
 # ==================== SCHEDULER (si utilisé) ====================
 import schedule
 import threading
