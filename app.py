@@ -18796,8 +18796,12 @@ def conseiller_dashboard():
     # Préparer les données pour l'affichage
     clients_avec_prets = []
     for client in clients:
-        # Compter les prêts du client (à adapter selon votre modèle)
-        nb_prets = 0  # Remplacer par votre logique
+
+        # Compter les prêts réellement liés au client
+        nb_prets = Pret.query.filter_by(
+            client_id=client.id
+        ).count()
+
         clients_avec_prets.append({
             'client': client,
             'nb_prets': nb_prets
