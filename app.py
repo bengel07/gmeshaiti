@@ -189,7 +189,7 @@ if os.environ.get('DATABASE_URL'):
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 else:
     # Développement local
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gmes.db2'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gmes.db4'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -334,7 +334,7 @@ async def track(data: dict):
     lat = data["lat"]
     lon = data["lon"]
 
-    conn = sqlite3.connect("gmes.db2")
+    conn = sqlite3.connect("gmes.db4")
     cur = conn.cursor()
 
     cur.execute("""
