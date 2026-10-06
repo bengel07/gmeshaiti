@@ -6822,9 +6822,16 @@ def check_database_state():
 
 @app.route('/connexion', methods=['GET', 'POST'])
 def connexion():
+    print("🔥 ROUTE /connexion APPELÉE", flush=True)
+
     if request.method == 'POST':
+
+        print("🔥 POST /connexion REÇU", flush=True)
+
         identifiant = request.form.get('identifiant')
         password = request.form.get('password')
+
+        print("🔥 IDENTIFIANT REÇU :", identifiant, flush=True)
 
 
 
@@ -6837,17 +6844,6 @@ def connexion():
             (User.username == identifiant) | (User.email == identifiant)
         ).first()
 
-        print("=== DEBUG CONNEXION ===")
-        print("Identifiant reçu :", identifiant)
-        print("Utilisateur trouvé :", user)
-        if user:
-            print("ID :", user.id)
-            print("Username :", user.username)
-            print("Email :", user.email)
-            print("Role :", user.role)
-            print("Statut :", user.statut)
-            print("Password hash présent :", bool(user.password_hash))
-        print("======================")
 
 
         # 🔴 BLOQUAGE STATUT
