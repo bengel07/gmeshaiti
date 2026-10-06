@@ -6844,6 +6844,20 @@ def connexion():
             (User.username == identifiant) | (User.email == identifiant)
         ).first()
 
+        print("========== DEBUG LOGIN ==========", flush=True)
+        print("Identifiant reçu :", identifiant, flush=True)
+        print("Utilisateur trouvé :", user is not None, flush=True)
+
+        if user:
+            print("ID :", user.id, flush=True)
+            print("Username :", user.username, flush=True)
+            print("Email :", user.email, flush=True)
+            print("Role :", user.role, flush=True)
+            print("Statut :", user.statut, flush=True)
+            print("Hash présent :", bool(user.password_hash), flush=True)
+
+        print("=================================", flush=True)
+
 
 
         # 🔴 BLOQUAGE STATUT
