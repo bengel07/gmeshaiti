@@ -31568,12 +31568,19 @@ def init_app_data():
             print("❌ Erreur lors de l'initialisation:")
             print(e)
 
+try:
+    print("🚀 Démarrage de l'initialisation GMES...", flush=True)
+    init_app_data()
+    print("✅ Initialisation GMES terminée.", flush=True)
+except Exception as e:
+    print("❌ ERREUR INITIALISATION GMES :", e, flush=True)
+
 
 if __name__ == '__main__':
     import os
 
     # Exécuter l'initialisation uniquement lors du lancement local
-    init_app_data()
+    # init_app_data()
 
     port = int(os.environ.get("PORT", 10000))
     socketio.run(app, host='0.0.0.0', port=port, debug=False, use_reloader=False)
