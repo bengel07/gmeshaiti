@@ -190,6 +190,7 @@ if os.environ.get('DATABASE_URL'):
 else:
     # Développement local
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gmes.db4'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -267,6 +268,18 @@ csrf.exempt(app.view_functions['mobile_api.mobile_demande_pret'])
 csrf.exempt(app.view_functions['mobile_api.mobile_transfert'])
 
 from functools import wraps
+
+ALLOWED_DOCUMENT_EXTENSIONS = {
+    'pdf',
+    'jpg',
+    'jpeg',
+    'png',
+    'doc',
+    'docx',
+    'xls',
+    'xlsx',
+}
+
 
 
 def role_required(*roles):
@@ -384,40 +397,19 @@ caissier_bp = Blueprint(
 def accueil():
     return "Bienvenue sur GMES"
 
+
 def document_extension_autorisee(filename):
-    return (
-        '.' in filename
-        and filename.rsplit('.', 1)[1].lower()
-        in ALLOWED_DOCUMENT_EXTENSIONS
-    )
+    if not filename or not isinstance(filename, str):
+        return False
 
+    filename = filename.strip()
 
+    if '.' not in filename:
+        return False
 
-def compare_faces(id_image_path, selfie_image_path):
-    """Compare les visages entre photo ID et selfie avec DeepFace"""
-    try:
-        # Utiliser DeepFace pour comparer les visages
-        result = DeepFace.verify(
-            img1_path=id_image_path,
-            img2_path=selfie_image_path,
-            model_name="VGG-Face",  # Modèle recommandé
-            detector_backend="opencv",  # Détecteur rapide
-            distance_metric="cosine",  # Métrique de distance
-            enforce_detection=True
-        )
+    extension = filename.rsplit('.', 1)[1].lower()
 
-        # result contient 'verified' (bool) et 'distance' (float)
-        match = result["verified"]
-        distance = result["distance"]
-        similarity = 1 - distance
-
-        return match, f"Similarité: {round(similarity * 100, 2)}%"
-
-    except Exception as e:
-        # Si DeepFace échoue (pas de visage détecté), retourner False
-        if "Face could not be detected" in str(e):
-            return False, "Aucun visage détecté dans une des images"
-        return False, f"Erreur de comparaison: {str(e)}"
+    return extension in ALLOWED_DOCUMENT_EXTENSIONS
 
 
 
@@ -6844,6 +6836,18 @@ def connexion():
         user = User.query.filter(
             (User.username == identifiant) | (User.email == identifiant)
         ).first()
+
+        print("=== DEBUG CONNEXION ===")
+        print("Identifiant reçu :", identifiant)
+        print("Utilisateur trouvé :", user)
+        if user:
+            print("ID :", user.id)
+            print("Username :", user.username)
+            print("Email :", user.email)
+            print("Role :", user.role)
+            print("Statut :", user.statut)
+            print("Password hash présent :", bool(user.password_hash))
+        print("======================")
 
 
         # 🔴 BLOQUAGE STATUT
