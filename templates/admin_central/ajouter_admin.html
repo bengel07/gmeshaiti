@@ -734,6 +734,12 @@
             const section = document.getElementById("questionsSecretes");
             const bouton = document.getElementById("toggleQuestionsBtn");
 
+
+            if (!section || !button) {
+                console.error("❌ Section des questions ou bouton introuvable.");
+                return;
+            }
+
             if (section.style.display === "none" || section.style.display === "") {
 
                 section.style.display = "block";
@@ -741,12 +747,18 @@
                 bouton.innerHTML =
                     '<i class="fas fa-eye-slash"></i> Masquer les questions secrètes';
 
+                button.classList.remove("btn-outline-info");
+                button.classList.add("btn-info");
+
             } else {
 
                 section.style.display = "none";
 
                 bouton.innerHTML =
                     '<i class="fas fa-question-circle"></i> Ajouter des questions secrètes (obligatoire)';
+
+                button.classList.remove("btn-info");
+                button.classList.add("btn-outline-info");
             }
         }
 

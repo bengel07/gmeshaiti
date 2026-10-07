@@ -818,6 +818,44 @@
             }
         }
 
+
+        // =========================================================
+        // AFFICHER / MASQUER LES QUESTIONS SECRÈTES
+        // =========================================================
+        function toggleQuestions() {
+
+            const section = document.getElementById("questionsSecretes");
+            const button = document.getElementById("toggleQuestionsBtn");
+
+            if (!section || !button) {
+                console.error("❌ Section des questions ou bouton introuvable.");
+                return;
+            }
+
+            if (section.style.display === "none" || section.style.display === "") {
+
+                // Afficher
+                section.style.display = "block";
+
+                button.innerHTML =
+                    '<i class="fas fa-eye-slash"></i> Masquer les questions secrètes';
+
+                button.classList.remove("btn-outline-info");
+                button.classList.add("btn-info");
+
+            } else {
+
+                // Masquer
+                section.style.display = "none";
+
+                button.innerHTML =
+                    '<i class="fas fa-question-circle"></i> Ajouter des questions secrètes (obligatoire)';
+
+                button.classList.remove("btn-info");
+                button.classList.add("btn-outline-info");
+            }
+        }
+
         function previewPhoto(input, previewId) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
