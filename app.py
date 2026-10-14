@@ -12696,38 +12696,33 @@ def admin_notifications():
     unread_count = 0
 
     try:
-        # Essayer de récupérer depuis la base de données si la table existe
-        if hasattr(db, 'Notification') or 'Notification' in dir(db.Model):
-            # Requête pour les 50 dernières notifications de l'utilisateur
-            notifications_query = db.session.query(
-                Notification.id,
-                Notification.message,
-                Notification.level,
-                Notification.read,
-                Notification.timestamp
-            ).filter(
-                Notification.employe_id == current_user.id
-            ).order_by(
-                Notification.timestamp.desc()
-            ).limit(50).all()
+        from models import Notification
 
-            for n in notifications_query:
-                notifications.append({
-                    'id': n.id,
-                    'message': n.message,
-                    'level': n.level or 'info',
-                    'read': n.read or False,
-                    'time': n.timestamp.strftime('%d/%m/%Y %H:%M') if n.timestamp else 'Date inconnue'
-                })
+        notifs = (Notification.query
+                  .filter_by(employe_id=current_user.id)
+                  .order_by(Notification.date_creation.desc())  # ou date_envoi selon ton modèle
+                  .limit(50).all())
 
-            unread_count = db.session.query(Notification).filter_by(
-                employe_id=current_user.id,
-                read=False
-            ).count()
+        for n in notifs:
+            d = n.date_creation  # idem
+            notifications.append({
+                'id': n.id,
+                'titre': n.titre,
+                'message': n.message,
+                'level': n.type_notification or 'info',
+                'read': bool(n.lue),
+                'lien': n.lien,
+                'time': d.strftime('%d/%m/%Y %H:%M') if d else 'Date inconnue'
+            })
+
+        unread_count = Notification.query.filter_by(
+            employe_id=current_user.id, lue=False
+        ).count()
 
     except Exception as e:
-        # Si la table n'existe pas, on utilise des notifications fictives pour la démo
+        db.session.rollback()
         app.logger.warning(f"Table Notification non accessible: {e}")
+        # ... garde ton bloc de démonstration
 
         # Notifications de démonstration
         demo_notifications = [
@@ -19162,24 +19157,6 @@ def api_notifications_unread():
         print(f"❌ Erreur notifications: {e}")
         return jsonify([])
 
-#
-# @app.route('/notification/marquer/<int:notification_id>')
-# @login_required
-# def mark_notification_read(notification_id):
-#     """Marquer une notification comme lue"""
-#     from models import Notification
-#
-#     notification = Notification.query.get_or_404(notification_id)
-#
-#     # Vérifier que la notification appartient bien à l'utilisateur
-#     if notification.employe_id == current_user.id:
-#         notification.lue = True
-#         db.session.commit()
-#         flash('Notification marquée comme lue', 'success')
-#     else:
-#         flash('Accès non autorisé', 'danger')
-#
-#     return redirect(url_for('voir_toutes_notifications'))
 
 
 @app.route('/notification/marquer/<int:notification_id>', methods=['GET', 'POST'])
@@ -19263,6 +19240,7 @@ def api_notifications():
 @app.route('/api/notifications/count')
 @login_required
 def api_notifications_count():
+    from models import Notification
     """API pour compter les notifications non lues"""
     try:
         count = Notification.query.filter_by(
@@ -19291,6 +19269,20 @@ def marquer_notification_lue_api(notif_id):
     except Exception as e:
         print(f"❌ Erreur marquer lue: {e}")
         return jsonify({'success': False}), 500
+
+
+@app.context_processor
+def inject_unread_count():
+    try:
+        if current_user.is_authenticated:
+            from models import Notification
+            count = Notification.query.filter_by(
+                employe_id=current_user.id, lue=False
+            ).count()
+            return {'unread_notifications': count}
+    except Exception:
+        db.session.rollback()
+    return {'unread_notifications': 0}
 
 
 @app.route('/api/notifications/tout-lu', methods=['POST'])
