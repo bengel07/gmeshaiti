@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "Your Company" "\0"
-            VALUE "FileDescription", "mobile" "\0"
+            VALUE "CompanyName", "GMES Haiti" "\0"
+            VALUE "FileDescription", "GMES Haiti" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "mobile" "\0"
+            VALUE "InternalName", "gmes-haiti" "\0"
             VALUE "LegalCopyright", "Copyright (c) 2026 Your Company" "\0"
-            VALUE "OriginalFilename", "mobile.exe" "\0"
-            VALUE "ProductName", "mobile" "\0"
+            VALUE "OriginalFilename", "gmes-haiti.exe" "\0"
+            VALUE "ProductName", "GMES Haiti" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

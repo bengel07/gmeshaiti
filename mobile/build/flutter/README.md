@@ -1,15 +1,15 @@
-# mobile
+# GMES Haiti
 
 
 
 ## Template variables
 
-* `mobile` - project identifier (lowercase, no spaces, i.e. "snake_case") used for bundle IDs and package names.
+* `gmes_haiti` - project identifier (lowercase, no spaces, i.e. "snake_case") used for bundle IDs and package names.
 * `` - project description.
-* `mobile` - executable or bundle name on disk.
-* `mobile` - display name shown in window titles and about app dialogs.
-* `com.flet` - org name in reverse domain name notation, e.g. `com.mycompany.myproject`.
-* `Your Company` - the name of the company.
+* `gmes-haiti` - executable or bundle name on disk.
+* `GMES Haiti` - display name shown in window titles and about app dialogs.
+* `com.gmeshaiti` - org name in reverse domain name notation, e.g. `com.mycompany.myproject`.
+* `GMES Haiti` - the name of the company.
 * `Copyright (c) 2026 Your Company` - the copyright notice.
 
 ## Icons

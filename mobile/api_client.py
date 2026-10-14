@@ -3,7 +3,7 @@ import requests
 
 class GmesAPI:
 
-    BASE_URL = "https://gmeshaiti-aeo3.onrender.com"
+    BASE_URL = "https://gmeshaiti.com"
 
     def __init__(self):
         self.token = None

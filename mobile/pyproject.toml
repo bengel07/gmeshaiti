@@ -1,0 +1,15 @@
+[project]
+name = "gmes-haiti"
+version = "1.0.0"
+description = "Application mobile GMES Haiti"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "flet==0.85.2",
+    "requests==2.34.2"
+]
+
+[tool.flet]
+org = "com.gmeshaiti"
+product = "GMES Haiti"
+company = "GMES Haiti"

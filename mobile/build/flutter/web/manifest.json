@@ -1,6 +1,6 @@
 {
-    "name": "mobile",
-    "short_name": "mobile",
+    "name": "GMES Haiti",
+    "short_name": "gmes_haiti",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FFFFFF",

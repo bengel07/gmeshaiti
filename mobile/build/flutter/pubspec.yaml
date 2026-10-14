@@ -62,6 +62,6 @@ flutter_native_splash:
   image_web: images/icon.png
   ios: true
   web: true
-name: mobile
+name: gmes_haiti
 publish_to: none
 version: 1.0.0+1

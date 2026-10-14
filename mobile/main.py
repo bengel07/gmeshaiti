@@ -1,7 +1,7 @@
 import flet as ft
 import requests
 
-API_URL = "https://gmeshaiti-aeo3.onrender.com"
+API_URL = "https://gmeshaiti.com"
 
 # ============================================================
 # COULEURS GMES
