@@ -21938,57 +21938,6 @@ def exporter_attentes():
     )
 
 
-# @app.route('/admin/approuver-compte/<int:employe_id>')
-# @login_required
-# def approuver_compte(employe_id):
-#     """Approuver un compte en attente"""
-#     if current_user.role not in ['super_admin', 'admin']:
-#         flash("⛔ Accès non autorisé", "danger")
-#         return redirect(url_for('admin_dashboard'))
-#
-#     user = User.query.get_or_404(employe_id)
-#
-#
-#     if user.statut != 'en_attente':
-#         flash(f"❌ Ce compte n'est pas en attente (statut: {user.statut})", "warning")
-#         return redirect(url_for('admin_dashboard'))
-#
-#     # Approuver le compte
-#     user.statut = 'actif'
-#     db.session.commit()
-#
-#     nouveau_client = Client.query.get_or_404()
-#
-#     # ✅ Envoyer un email de confirmation
-#     try:
-#         send_approval_email(user)
-#
-#         activation_link = creer_acces_client(
-#             nouveau_client
-#         )
-#
-#         envoyer_email_activation_client(
-#             nouveau_client,
-#             activation_link
-#         )
-#
-#     except Exception as e:
-#         db.session.rollback()
-#         flash(f"❌ Erreur: {str(e)}", "danger")
-#
-#     flash(f"✅ Compte de {user.prenom} {user.nom} approuvé et activé", "success")
-#
-#     # Log l'action
-#     HistoriqueAction.ajouter(
-#         employe_id=current_user.id,
-#         action="approbation_compte",
-#         details=f"Approbation du compte {user.username} (ID: {user.id})",
-#         request=request
-#     )
-#
-#     return redirect(url_for('liste_users'))
-#
-#
 
 
 @app.route('/admin/approuver-compte/<int:employe_id>')
@@ -22171,6 +22120,8 @@ def approuver_compte(employe_id):
     # ==========================================================
     # 5️⃣ CRÉER LE LIEN D'ACCÈS CLIENT SI UN CLIENT EXISTE
     # ==========================================================
+
+    activation_link = None
 
     if nouveau_client:
 
