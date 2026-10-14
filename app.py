@@ -191,12 +191,32 @@ else:
     # Développement local
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gmes.db4'
 
+# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# app.config['SESSION_PERMANENT'] = False
+# app.config['SESSION_TYPE'] = 'filesystem'
+# app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
+# app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+
+from datetime import timedelta
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SESSION_PERMANENT'] = False
-app.config['SESSION_TYPE'] = 'filesystem'
+
+# Sessions
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
-app.config['DEBUG'] = True  # Pour le développement
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = True       # HTTPS uniquement
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+# Cookie "remember me" de Flask-Login
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(hours=2)
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_SECURE'] = True
+
+login_manager.session_protection = "strong"
+
+
+app.config['DEBUG'] = os.getenv('FLASK_DEBUG') == '1'   # False par défaut
 
 app.config["APP_URL"] = os.environ.get("APP_URL","http://127.0.0.1:10000")
 
@@ -396,6 +416,11 @@ caissier_bp = Blueprint(
 @app.route('/')
 def accueil():
     return "Bienvenue sur GMES"
+
+
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
 
 
 def document_extension_autorisee(filename):
@@ -12441,12 +12466,17 @@ def modifier_client(client_id):
     return render_template("modifier_client.html", client=client)
 
 
+
 @app.route('/deconnexion')
 def deconnexion():
     logout_user()
-    return redirect(url_for('main.accueil'))
+    session.clear()
+    return redirect(url_for('connexion'))
 
 
+@app.before_request
+def refresh_session():
+    session.permanent = True   # applique PERMANENT_SESSION_LIFETIME, renouvelé à chaque requête
 
 
 
@@ -19661,22 +19691,6 @@ def test_login(employe_id):
 from flask import abort
 
 
-
-# @app.route('/<succursale_code>/remboursements/retards')
-# @login_required
-# def remboursements_retards(succursale_code):
-#     """Remboursements en retard pour une succursale"""
-#     succursale = Succursale.query.filter_by(code=succursale_code.upper()).first_or_404()
-#
-#     # Récupérer les remboursements en retard
-#     remboursements_retard = Remboursement.query.filter_by(
-#         succursale_id=succursale.id,
-#         statut='en_retard'  # ou 'retard', 'impaye', selon votre modèle
-#     ).all()
-#
-#     return render_template('succursale/remboursements_retards.html',
-#                            succursale=succursale,
-#                            remboursements=remboursements_retard)
 
 
 @app.route('/<succursale_code>/remboursements/retards')
