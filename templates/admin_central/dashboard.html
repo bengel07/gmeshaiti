@@ -228,6 +228,111 @@
             cursor: pointer;
         }
 
+
+        /* ===== MENU LATÉRAL : BOUTONS UNIFORMES ===== */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+
+        .sidebar h3 {
+            width: 100%;
+            box-sizing: border-box;
+            margin: 18px 0 8px;
+            padding-bottom: 10px;
+            color: #063477;
+            border-bottom: 2px solid #F5B51B;
+        }
+
+        .sidebar a.menu-item,
+        .sidebar a.btn-super-admin,
+        .sidebar a.nav-link,
+        .sidebar a.btn,
+        .sidebar button.menu-item {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+            width: 100%;
+            min-height: 46px;
+            box-sizing: border-box;
+            padding: 12px 14px;
+            margin: 0;
+            border: 1px solid #063477;
+            border-left: 4px solid #0645AD;
+            border-radius: 8px;
+            background: #0645AD;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.4;
+            text-align: left;
+            text-decoration: none;
+            cursor: pointer;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .sidebar a.menu-item:hover,
+        .sidebar a.btn-super-admin:hover,
+        .sidebar a.nav-link:hover,
+        .sidebar a.btn:hover,
+        .sidebar button.menu-item:hover {
+            background: #063477;
+            color: #ffffff;
+            border-color: #F5B51B;
+            transform: none;
+        }
+
+        .sidebar a.menu-item.active {
+            background: #F5B51B;
+            color: #063477;
+            border-color: #F5B51B;
+        }
+
+        .sidebar form {
+            width: 100%;
+            margin: 8px 0;
+        }
+
+        .sidebar form button.menu-item {
+            appearance: none;
+        }
+
+        .sidebar .danger-item {
+            background: #dc3545;
+            border-color: #b02a37;
+            border-left-color: #842029;
+        }
+
+        .sidebar .danger-item:hover {
+            background: #b02a37;
+            border-color: #842029;
+        }
+
+        /* Adaptation aux petits écrans */
+        @media (max-width: 768px) {
+            .admin-container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+
+            .main-content {
+                min-width: 0;
+                overflow-x: auto;
+            }
+        }
+
+
     </style>
 </head>
 
@@ -281,74 +386,113 @@
 </div>
 
 <div class="admin-container">
+
     <!-- MENU LATÉRAL -->
     <div class="sidebar">
         <h3>📋 Menu Principal</h3>
-        <a href="{{ url_for('admin_dashboard') }}" class="menu-item">📊 Vue d'ensemble</a>
-        <a href="#create" class="menu-item active">➕ Création</a>
-        <a href="{{ url_for('admin_rapports') }}" class="menu-item"> 📊 Rapports</a>
-        <a href="{{ url_for('gestion_utilisateurs') }}" class="menu-item">👥 Utilisateurs</a>
-        <a href="{{ url_for('statistiques_groupes') }}" class="menu-item">📊 Statistiques</a>
-        <a href="{{ url_for('admin_approbations') }}" class="menu-item">⏳ Approbations</a>
-        <a href="{{ url_for('parametres') }}" class="menu-item">⚙️ Paramètres</a>
-        <a href="{{ url_for('liste_cartes') }}" class="menu-item">‍💼 Cartes des Employés</a>
 
-        <h3 style="margin-top: 30px;">🚨 Actions Rapides</h3>
-        <a href="#" onclick="goToDashboard()" class="menu-item">🏢 Visualiser</a>
-        <a href="{{ url_for('create_succursale') }}" class="menu-item">🏢 Nouvelle Succursale</a>
-        <a href="{{ url_for('ajouter_admin') }}" class="menu-item">👑 Nouvel Admin</a>
-        <a href="{{ url_for('ajouter_employe') }}" class="menu-item">👨‍💼 Nouvel Agent</a>
-        <a href="{{ url_for('liste_employes') }}" class="menu-item">👥 Employés par succursale</a>
-        <a href="{{ url_for('admin_employes') }}" class="menu-item">👥 Gestion des Employés</a>
-        <a href="{{ url_for('gestion_utilisateurs') }}" class="menu-item"> ⚙ Gestion des utilisateurs</a>
-        <a href="{{ url_for('liste_users') }}" class="menu-item"> ⚙ Gestion des Eployees </a>
-        <a href="{{ url_for('liste_succursales') }}" class="btn btn-danger">🏢 Gestion des succursales</a>
+        <a href="{{ url_for('admin_dashboard') }}" class="menu-item">
+            📊 Vue d'ensemble
+        </a>
 
+        <a href="#create" class="menu-item active">
+            ➕ Création
+        </a>
 
-        <li class="nav-item">
-            <a href="{{ url_for('centre_it') }}" class="nav-link">
-                <i class="fas fa-shield-alt"></i>
-                <span>Centre IT</span>
-            </a>
-        </li>
+        <a href="{{ url_for('admin_rapports') }}" class="menu-item">
+            📊 Rapports
+        </a>
 
+        <a href="{{ url_for('gestion_utilisateurs') }}" class="menu-item">
+            👥 Utilisateurs
+        </a>
+
+        <a href="{{ url_for('statistiques_groupes') }}" class="menu-item">
+            📈 Statistiques
+        </a>
+
+        <a href="{{ url_for('admin_approbations') }}" class="menu-item">
+            ⏳ Approbations
+        </a>
+
+        <a href="{{ url_for('parametres') }}" class="menu-item">
+            ⚙️ Paramètres
+        </a>
+
+        <a href="{{ url_for('liste_cartes') }}" class="menu-item">
+            💼 Cartes des Employés
+        </a>
+
+        <h3>🚨 Actions Rapides</h3>
+
+        <a href="#" onclick="goToDashboard(); return false;" class="menu-item">
+            🏢 Visualiser
+        </a>
+
+        <a href="{{ url_for('create_succursale') }}" class="menu-item">
+            🏢 Nouvelle Succursale
+        </a>
+
+        <a href="{{ url_for('ajouter_admin') }}" class="menu-item">
+            👑 Nouvel Admin
+        </a>
+
+        <a href="{{ url_for('ajouter_employe') }}" class="menu-item">
+            👨‍💼 Nouvel Agent
+        </a>
+
+        <a href="{{ url_for('liste_employes') }}" class="menu-item">
+            👥 Employés par succursale
+        </a>
+
+        <a href="{{ url_for('admin_employes') }}" class="menu-item">
+            👥 Gestion des Employés
+        </a>
+
+        <a href="{{ url_for('gestion_utilisateurs') }}" class="menu-item">
+            ⚙️ Gestion des utilisateurs
+        </a>
+
+        <a href="{{ url_for('liste_users') }}" class="menu-item">
+            👥 Gestion des employés et utilisateurs
+        </a>
+
+        <a href="{{ url_for('liste_succursales') }}" class="menu-item">
+            🏢 Gestion des succursales
+        </a>
+
+        <a href="{{ url_for('centre_it') }}" class="menu-item">
+            🛡️ Centre IT
+        </a>
+
+        <h3>💳 Gestion des prêts</h3>
 
         {% for succursale in succursales %}
-          <tr>
-            <td>{{ succursale.nom }}</td>
-            <td>{{ succursale.adresse }}</td>
-            <td>
-              <!-- Bouton pour voir les prêts de cette succursale -->
-              <a href="{{ url_for('prets_par_succursale', succursale_id=succursale.id) }}"
-                 class="btn btn-primary btn-sm">
-                Voir les prêts
-              </a>
-            </td>
-          </tr>
-        {% endfor %}{% for succursale in succursales %}
-          <tr>
-            <td>{{ succursale.nom }}</td>
-            <td>{{ succursale.adresse }}</td>
-            <td>
-              <!-- Bouton pour voir les prêts de cette succursale -->
-              <a href="{{ url_for('prets_par_succursale', succursale_id=succursale.id) }}"
-                 class="btn btn-primary btn-sm">
-                Voir les prêts
-              </a>
-            </td>
-          </tr>
+            <a href="{{ url_for('prets_par_succursale', succursale_id=succursale.id) }}"
+               class="menu-item">
+                💳 Prêts — {{ succursale.nom }}
+            </a>
         {% endfor %}
 
-<!--         #Ajoutez ce bouton où vous voulez dans votre template-->
-        <form action="{{ url_for('supprimer_tous_clients') }}" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer TOUS les clients? Cette action est irréversible!');">
-            <button type="submit" style="background-color: red; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                🗑️ SUPPRIMER TOUS LES CLIENTS (TEMPORAIRE)
+        <form action="{{ url_for('supprimer_tous_clients') }}"
+              method="POST"
+              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer TOUS les clients ? Cette action est irréversible !');">
+
+            {# Ajoute ici le champ CSRF si Flask-WTF CSRF est activé. #}
+            {% if csrf_token is defined %}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% endif %}
+
+            <button type="submit" class="menu-item danger-item">
+                🗑️ Supprimer tous les clients
             </button>
         </form>
 
-        <a href="{{ url_for('super_admin.switcher') }}" class="btn-super-admin">
+        <a href="{{ url_for('super_admin.switcher') }}" class="menu-item">
             🔓 Accès Super Admin
         </a>
+    </div>
+
 
 
 
@@ -850,7 +994,31 @@ function updateMarker(employeeId, lat, lon) {
     }
 }
 
+
+function manageSecurity() {
+    toastr.info(
+        'Cette section est à connecter à la page de sécurité.',
+        '🔐 Sécurité'
+    );
+}
+
+function manageFinances() {
+    toastr.info(
+        'Cette section est à connecter à la configuration financière.',
+        '💰 Finances'
+    );
+}
+
+function manageGeneral() {
+    toastr.info(
+        'Cette section est à connecter aux paramètres généraux.',
+        '⚙️ Général'
+    );
+}
+
 console.log('✅ Système de notifications initialisé');
+
+
 </script>
 
 <!-- HTML pour la section Paramètres -->
@@ -988,18 +1156,7 @@ console.log('✅ Système de notifications initialisé');
     background: #2980b9;
 }
 
-/* Gestionnaires pour les boutons */
-function manageSecurity() {
-    toastr.info('Ouverture du panneau de sécurité...', '🔐 Sécurité');
-}
 
-function manageFinances() {
-    toastr.info('Ouverture du panneau financier...', '💰 Finances');
-}
-
-function manageGeneral() {
-    toastr.info('Ouverture des paramètres généraux...', '⚙️ Général');
-}
 </style>
 
 <!-- Footer -->
