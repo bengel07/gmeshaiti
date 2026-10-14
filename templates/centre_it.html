@@ -1,0 +1,473 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GMES Haiti - Centre IT</title>
+
+<style>
+:root {
+  --navy: #073575;
+  --blue: #1264d8;
+  --bg: #f3f7fc;
+  --line: #dce6f3;
+  --text: #18365d;
+  --muted: #71839d;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+.layout { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 225px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #073575, #052653);
+  color: white;
+  padding: 24px 12px;
+}
+.brand {
+  font-size: 28px;
+  font-weight: 800;
+  padding: 0 12px 35px;
+}
+.brand small {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 5px;
+  text-align: right;
+}
+.nav a {
+  display: block;
+  color: #dce9fb;
+  text-decoration: none;
+  padding: 13px 12px;
+  margin: 4px 0;
+  border-radius: 7px;
+  font-size: 13px;
+}
+.nav a.active { background: #1766c9; color: white; font-weight: 700; }
+.main { flex: 1; min-width: 0; }
+.topbar {
+  height: 68px;
+  background: white;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 25px;
+}
+h1 { font-size: 21px; margin: 0; color: var(--navy); }
+.subtitle { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.content { padding: 20px; }
+.panel {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px #123d7008;
+}
+.panel-title {
+  padding: 17px 18px;
+  font-size: 15px;
+  font-weight: 750;
+  color: var(--navy);
+}
+.filters { padding: 0 18px 18px; }
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(130px, 1fr));
+  gap: 14px;
+}
+label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+input, select {
+  width: 100%;
+  height: 39px;
+  border: 1px solid #d3dfef;
+  border-radius: 6px;
+  padding: 0 9px;
+  background: white;
+  color: #294b76;
+}
+.buttons { display: flex; gap: 8px; align-items: end; }
+.btn {
+  border: 1px solid #cfe0f6;
+  border-radius: 6px;
+  padding: 11px 15px;
+  background: #eff5ff;
+  color: #174d91;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 12px;
+}
+.btn-primary { background: var(--blue); color: white; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 14px;
+}
+.stat {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 15px;
+}
+.stat-label { color: var(--muted); font-size: 11px; }
+.stat-number { color: var(--navy); font-size: 27px; font-weight: 800; margin-top: 6px; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tab {
+  display: inline-block;
+  padding: 15px 18px;
+  text-decoration: none;
+  color: #607694;
+  font-size: 12px;
+  font-weight: 700;
+}
+.tab.active { color: var(--blue); border-bottom: 3px solid var(--blue); }
+.table-wrap { overflow-x: auto; padding: 0 12px 12px; }
+table { width: 100%; border-collapse: collapse; white-space: nowrap; font-size: 11px; }
+th { background: #eef4fb; color: #244b7c; text-align: left; padding: 11px 9px; }
+td { padding: 11px 9px; border-bottom: 1px solid #e7eef8; }
+tr:hover td { background: #f8fbff; }
+.pill { display: inline-block; padding: 5px 9px; border-radius: 15px; font-weight: 700; }
+.success { background: #dff5ea; color: #08794e; }
+.failure { background: #ffe4e4; color: #b4232a; }
+.action { background: #dcecff; color: #145bb8; }
+.footer { color: var(--muted); font-size: 11px; padding: 12px 18px; }
+@media(max-width:1050px) {
+  .sidebar { width: 180px; }
+  .filter-grid { grid-template-columns: repeat(2, minmax(130px, 1fr)); }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+}
+@media(max-width:650px) {
+  .sidebar { display: none; }
+  .content { padding: 10px; }
+  .filter-grid { grid-template-columns: 1fr; }
+  .topbar { padding: 0 14px; }
+}
+</style>
+</head>
+
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="brand">◢ GMES<small>HAITI</small></div>
+  <nav class="nav">
+    <a href="#">⌂ &nbsp; Tableau de bord</a>
+    <a href="#">♙ &nbsp; Clients</a>
+    <a href="#">↪ &nbsp; Prêts</a>
+    <a href="#">＄ &nbsp; Épargne</a>
+    <a href="#">⇄ &nbsp; Transferts</a>
+    <a href="#">▤ &nbsp; Rapports</a>
+    <a href="#">♧ &nbsp; Utilisateurs</a>
+    <a href="#">⌂ &nbsp; Succursales</a>
+    <a href="#">⚙ &nbsp; Paramètres</a>
+    <a class="active" href="{{ url_for('centre_it') }}">⬡ &nbsp; Centre IT</a>
+  </nav>
+</aside>
+
+<main class="main">
+<header class="topbar">
+  <div>
+    <h1>Centre IT</h1>
+    <div class="subtitle">Journal d'audit et suivi des opérations</div>
+  </div>
+  <div><strong>IT</strong> · Centre informatique</div>
+</header>
+
+<div class="content">
+
+<section class="panel">
+  <div class="panel-title">⌕ &nbsp; Filtres de recherche</div>
+  <form method="GET" action="{{ url_for('centre_it') }}" class="filters">
+    <div class="filter-grid">
+      <div>
+        <label>ID utilisateur / Employé</label>
+        <input type="number" name="employe_id" value="{{ filtres.employe_id }}" placeholder="Ex. : 123">
+      </div>
+      <div>
+        <label>ID client</label>
+        <input type="text" name="client_id" value="{{ filtres.client_id }}" placeholder="Ex. : 456">
+      </div>
+      <div>
+        <label>Téléphone</label>
+        <input type="text" name="telephone" value="{{ filtres.telephone }}" placeholder="+509 ...">
+      </div>
+      <div>
+        <label>Date de naissance</label>
+        <input type="date" name="date_naissance" value="{{ filtres.date_naissance }}">
+      </div>
+      <div>
+        <label>Succursale</label>
+        <select name="succursale">
+          <option value="">Toutes les succursales</option>
+          {% for s in succursales %}
+          <option value="{{ s.id }}" {% if filtres.succursale == s.id|string %}selected{% endif %}>
+            {{ s.nom }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>Type d'action</label>
+        <select name="action">
+          <option value="">Toutes les actions</option>
+          {% for a in ['login','create','update','delete','Connexion','Création','Modification','Suppression'] %}
+          <option value="{{ a }}" {% if filtres.action == a %}selected{% endif %}>{{ a }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>Type d'opération</label>
+        <select name="operation">
+          <option value="">Toutes les opérations</option>
+          {% for op in ['Paiement','Dépôt','Retrait','Transfert'] %}
+          <option value="{{ op }}" {% if filtres.operation == op %}selected{% endif %}>{{ op }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>Résultat</label>
+        <select name="resultat">
+          <option value="">Tous les résultats</option>
+          <option value="SUCCES" {% if filtres.resultat == 'SUCCES' %}selected{% endif %}>Succès</option>
+          <option value="ECHEC" {% if filtres.resultat == 'ECHEC' %}selected{% endif %}>Échec</option>
+        </select>
+      </div>
+      <div>
+        <label>Date de début</label>
+        <input type="date" name="date_debut" value="{{ filtres.date_debut }}">
+      </div>
+      <div>
+        <label>Date de fin</label>
+        <input type="date" name="date_fin" value="{{ filtres.date_fin }}">
+      </div>
+      <div class="buttons">
+        <button class="btn btn-primary" type="submit">⌕ Rechercher</button>
+        <a class="btn" href="{{ url_for('centre_it') }}">↻ Réinitialiser</a>
+      </div>
+    </div>
+  </form>
+</section>
+
+<section class="panel">
+
+    <div class="tabs">
+      <a class="tab {% if onglet != 'operations' %}active{% endif %}"
+         href="{{ url_for('centre_it', onglet='audit') }}">
+        ☷ Journal des actions (AuditLog)
+        <span>{{ total_actions }}</span>
+      </a>
+
+      <a class="tab {% if onglet == 'operations' %}active{% endif %}"
+         href="{{ url_for('centre_it', onglet='operations') }}">
+        ▥ Opérations financières (AuditOperation)
+        <span>{{ total_operations }}</span>
+      </a>
+    </div>
+
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Total des actions</div>
+      <div class="stat-number">{{ total_actions }}</div>
+      <div class="subtitle">Historique enregistré</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Utilisateurs concernés</div>
+      <div class="stat-number">{{ utilisateurs_count }}</div>
+      <div class="subtitle">Selon les filtres</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Opérations financières</div>
+      <div class="stat-number">{{ total_operations }}</div>
+      <div class="subtitle">Historique enregistré</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Échecs d'opération</div>
+      <div class="stat-number">{{ echecs_count }}</div>
+      <div class="subtitle">Résultats signalés en échec</div>
+    </div>
+  </div>
+
+  {% if onglet == 'operations' %}
+  <div class="panel-title">♧ &nbsp; Historique des opérations financières</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date et heure</th><th>ID utilisateur</th><th>Type d'opération</th>
+          <th>Référence</th><th>Montant</th><th>Ancien solde</th>
+          <th>Nouveau solde</th><th>Adresse IP</th><th>Résultat</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for op in operations %}
+        <tr>
+          <td>{{ op.date_operation.strftime('%d/%m/%Y %H:%M') if op.date_operation else '—' }}</td>
+          <td>{{ op.utilisateur_id if op.utilisateur_id is not none else '—' }}</td>
+          <td><span class="pill action">{{ op.type_operation or '—' }}</span></td>
+          <td>{{ op.reference or '—' }}</td>
+          <td>{{ "{:,.2f}".format(op.montant or 0) }}</td>
+          <td>{{ "{:,.2f}".format(op.ancien_solde or 0) }}</td>
+          <td>{{ "{:,.2f}".format(op.nouveau_solde or 0) }}</td>
+          <td>{{ op.adresse_ip or '—' }}</td>
+          <td>
+            <span class="pill {% if (op.resultat or '').upper() in ['SUCCES','SUCCÈS'] %}success{% else %}failure{% endif %}">
+              {{ op.resultat or 'Inconnu' }}
+            </span>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="9">Aucune opération trouvée.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="panel-title">▤ &nbsp; Historique des actions (AuditLog)</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date et heure</th><th>Utilisateur</th><th>Succursale</th>
+          <th>Action</th><th>Module</th><th>Détails</th>
+          <th>Adresse IP</th><th>Résultat</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for log in logs %}
+        <tr>
+          <td>{{ (log.timestamp or log.date).strftime('%d/%m/%Y %H:%M') if (log.timestamp or log.date) else '—' }}</td>
+          <td>
+            <strong>{{ log.user_name or 'Utilisateur' }}</strong>
+            <span class="subtitle">ID : {{ log.employe_id }} · {{ log.user_role or '—' }}</span>
+          </td>
+          <td>{{ log.succursale_nom or '—' }}</td>
+          <td><span class="pill action">{{ log.action or '—' }}</span></td>
+          <td>{{ log.module or '—' }}</td>
+          <td style="white-space:normal;min-width:160px">{{ log.details or '—' }}</td>
+          <td>{{ log.ip_address or '—' }}</td>
+          <td><span class="pill success">Enregistré</span></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8">Aucune action trouvée pour ces filtres.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  <div class="footer">Les données affichées proviennent des journaux enregistrés dans GMES Haiti.</div>
+</section>
+</div>
+</main>
+</div>
+
+<!-- GMES SERVICE - PANNEAU DE SURVEILLANCE -->
+<section style="margin:24px; padding:20px; background:#171923;
+                color:#f3f4f6; border-radius:12px;
+                border:1px solid #343746;">
+
+    <div style="display:flex; justify-content:space-between;
+                align-items:center; gap:12px; flex-wrap:wrap;">
+        <div>
+            <h2 style="margin:0 0 8px;">GMES Service</h2>
+            <div style="color:#a6adbb; font-size:13px;">
+                Serveur Ubuntu · Journaux systemd
+            </div>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center;">
+            <span id="gmes-status"
+                  style="padding:7px 12px; border-radius:20px;
+                         background:#343746;">
+                Vérification...
+            </span>
+
+            <button onclick="chargerLogsGmes()"
+                    style="padding:9px 14px; border:0;
+                           border-radius:7px; cursor:pointer;">
+                ↻ Actualiser
+            </button>
+        </div>
+    </div>
+
+    <hr style="border-color:#343746; margin:20px 0;">
+
+    <div style="display:flex; justify-content:space-between;
+                flex-wrap:wrap; gap:8px;">
+        <strong>Logs du service</strong>
+        <span id="gmes-log-time"
+              style="color:#a6adbb; font-size:12px;">
+            En attente
+        </span>
+    </div>
+
+    <pre id="gmes-logs"
+         style="background:#0d0f14; color:#d1d5db;
+                padding:16px; margin-top:12px;
+                border-radius:8px; border:1px solid #343746;
+                min-height:240px; max-height:500px;
+                overflow:auto; white-space:pre-wrap;
+                overflow-wrap:anywhere; font-size:12px;
+                line-height:1.7;">Chargement des journaux...</pre>
+
+    <div style="color:#a6adbb; font-size:12px; margin-top:10px;">
+        Affichage des 100 dernières lignes disponibles.
+    </div>
+</section>
+
+<script>
+async function chargerLogsGmes() {
+    const status = document.getElementById("gmes-status");
+    const logs = document.getElementById("gmes-logs");
+    const heure = document.getElementById("gmes-log-time");
+
+    status.textContent = "Chargement...";
+    logs.textContent = "Lecture des journaux en cours...";
+
+    try {
+        const response = await fetch(
+            "{{ url_for('centre_it_service') }}",
+            { credentials: "same-origin" }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Erreur HTTP " + response.status);
+        }
+
+        status.textContent = data.etat || "inconnu";
+        status.style.background = data.actif ? "#123d2b" : "#57252a";
+        status.style.color = data.actif ? "#4ade80" : "#fca5a5";
+
+        logs.textContent = data.logs || "Aucun journal disponible.";
+        heure.textContent = "Actualisé à " +
+            new Date().toLocaleTimeString();
+
+    } catch (error) {
+        status.textContent = "Erreur";
+        status.style.background = "#57252a";
+        status.style.color = "#fca5a5";
+        logs.textContent = "Impossible de charger les journaux.\n" +
+            error.message;
+    }
+}
+
+chargerLogsGmes();
+</script>
+
+</body>
+</html>

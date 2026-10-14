@@ -114,7 +114,7 @@ from models import (
     Client, Groupe, User, Document, Dossier, Action, RetardPaiement,
     ScoringCredit, HistoriqueEmploye, Epargne, TransactionEpargne,
     Depense, PartnerIntegration, PartnerWebhook, Partner, ProjetSocial,
-    Satisfaction, Emploi, Famille, ProduitEpargne, RetraitConfirmation, CronTrigger, BackgroundScheduler
+    Satisfaction, Emploi, Famille, ProduitEpargne, RetraitConfirmation, CronTrigger, BackgroundScheduler, AuditOperation
 )
 
 # ==================== ROUTES / BLUEPRINTS ====================
@@ -1002,7 +1002,7 @@ def resend_conditions_email(client_id):
 
         APP_URL = os.environ.get(
             "APP_URL",
-            "https://gmeshaiti-aeo3.onrender.com"
+            "https://gmeshaiti.com"
         ).rstrip("/")
 
         lien_terms = f"{APP_URL}/client/terms/{nouveau_token}"
@@ -5484,7 +5484,7 @@ def envoyer_email_conditions2(client):
 
         APP_URL = os.environ.get(
             "APP_URL",
-            "https://gmeshaiti-aeo3.onrender.com"
+            "https://gmeshaiti.com"
         ).rstrip("/")
 
         lien_terms = f"{APP_URL}/client/terms/{nouveau_token}"
@@ -23221,7 +23221,7 @@ def envoyer_email_conditions(client):
         # 2. Remplacer localhost par l'IP réelle pour les clients externes
         APP_URL = os.environ.get(
             "APP_URL",
-            "https://gmeshaiti-aeo3.onrender.com"
+            "https://gmeshaiti.com"
         )
 
         lien_terms = f"{APP_URL}/client/terms/{nouveau_token}"
@@ -23461,7 +23461,7 @@ def renvoyer_lien(client_id):
         # 2. Remplacer localhost par l'IP réelle pour les clients externes
         APP_URL = os.environ.get(
             "APP_URL",
-            "https://gmeshaiti-aeo3.onrender.com"
+            "https://gmeshaiti.com"
         )
 
         lien_terms = f"{APP_URL}/client/terms/{nouveau_token}"
@@ -31495,6 +31495,280 @@ def mobile_health():
         "api": "GMES Haiti",
         "status": "online"
     })
+
+
+import time
+from datetime import datetime, time as datetime_time
+from flask import render_template, request, abort, jsonify
+from flask_login import login_required, current_user
+
+import subprocess
+
+
+
+@app.route("/admin/centre-it/service")
+@login_required
+def centre_it_service():
+    if getattr(current_user, "role", None) not in {
+        "super_admin", "admin_central"
+    }:
+        abort(403)
+
+    import subprocess
+
+    # État du service
+    try:
+        etat_resultat = subprocess.run(
+            ["systemctl", "is-active", "gmes.service"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        etat = etat_resultat.stdout.strip() or "inconnu"
+    except Exception:
+        etat = "indisponible"
+
+    # Dernières lignes des journaux système
+    try:
+        logs_resultat = subprocess.run(
+            [
+                "journalctl",
+                "-u", "gmes.service",
+                "-n", "100",
+                "--no-pager",
+                "-o", "short-iso"
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+
+        logs = logs_resultat.stdout.strip()
+
+        if logs_resultat.returncode != 0:
+            logs = (
+                "Impossible de lire les journaux.\n"
+                + (logs_resultat.stderr.strip() or
+                   "Vérifie les permissions journalctl de l'utilisateur Flask.")
+            )
+
+    except Exception as e:
+        logs = f"Erreur de lecture des journaux : {e}"
+
+    return jsonify({
+        "service": "gmes.service",
+        "etat": etat,
+        "actif": etat == "active",
+        "logs": logs
+    })
+
+
+
+@app.route("/admin/centre-it", methods=["GET"])
+@login_required
+def centre_it():
+    # Réserver la page aux administrateurs autorisés.
+    roles_autorises = {
+        "super_admin",
+        "admin_central",
+    }
+
+    if getattr(current_user, "role", None) not in roles_autorises:
+        abort(403)
+
+    # Récupération des filtres
+    filtres = {
+        "employe_id": request.args.get("employe_id", "").strip(),
+        "client_id": request.args.get("client_id", "").strip(),
+        "telephone": request.args.get("telephone", "").strip(),
+        "date_naissance": request.args.get("date_naissance", "").strip(),
+        "succursale": request.args.get("succursale", "").strip(),
+        "action": request.args.get("action", "").strip(),
+        "operation": request.args.get("operation", "").strip(),
+        "resultat": request.args.get("resultat", "").strip(),
+        "date_debut": request.args.get("date_debut", "").strip(),
+        "date_fin": request.args.get("date_fin", "").strip(),
+    }
+
+    # ==========================================================
+    # FILTRES CLIENT : ID, TÉLÉPHONE ET DATE DE NAISSANCE
+    # À adapter aux noms exacts des champs du modèle Client
+    # ==========================================================
+
+    if (
+            filtres["client_id"]
+            or filtres["telephone"]
+            or filtres["date_naissance"]
+    ):
+        clients_query = Client.query
+
+        if filtres["client_id"].isdigit():
+            clients_query = clients_query.filter(
+                Client.id == int(filtres["client_id"])
+            )
+
+        if filtres["telephone"]:
+            clients_query = clients_query.filter(
+                Client.telephone.ilike(
+                    f"%{filtres['telephone']}%"
+                )
+            )
+
+        if filtres["date_naissance"]:
+            try:
+                naissance = datetime.strptime(
+                    filtres["date_naissance"], "%Y-%m-%d"
+                ).date()
+
+                clients_query = clients_query.filter(
+                    db.func.date(Client.date_naissance) == naissance
+                )
+            except ValueError:
+                pass
+
+        # IDs des clients répondant aux critères
+        clients_ids = [
+            client.id for client in clients_query.all()
+        ]
+
+        # À appliquer aux journaux uniquement si ceux-ci contiennent
+        # une référence client dans leur champ details.
+        # AuditLog ne possède actuellement aucun client_id direct.
+        #
+        # Pour AuditOperation, utilisateur_id désigne un utilisateur,
+        # pas nécessairement le client. Ne pas le confondre avec client_id.
+
+    onglet = request.args.get("onglet", "audit")
+
+    # Journaux d'audit existants
+    logs_query = AuditLog.query
+    operations_query = AuditOperation.query
+
+    # Filtre par identifiant de l'employé/utilisateur
+    if filtres["employe_id"].isdigit():
+        identifiant = int(filtres["employe_id"])
+        logs_query = logs_query.filter(
+            AuditLog.employe_id == identifiant
+        )
+        operations_query = operations_query.filter(
+            AuditOperation.utilisateur_id == identifiant
+        )
+
+    # Filtre par succursale
+    if filtres["succursale"].isdigit():
+        succursale_id = int(filtres["succursale"])
+        logs_query = logs_query.filter(
+            AuditLog.succursale_id == succursale_id
+        )
+
+    # Filtre par action
+    if filtres["action"]:
+        logs_query = logs_query.filter(
+            AuditLog.action.ilike(f"%{filtres['action']}%")
+        )
+
+    # Filtre par type d'opération
+    if filtres["operation"]:
+        operations_query = operations_query.filter(
+            AuditOperation.type_operation.ilike(
+                f"%{filtres['operation']}%"
+            )
+        )
+
+    # Filtre par dates : les deux modèles ont des dates différentes
+    if filtres["date_debut"]:
+        try:
+            debut = datetime.strptime(
+                filtres["date_debut"], "%Y-%m-%d"
+            )
+            logs_query = logs_query.filter(
+                AuditLog.timestamp >= debut
+            )
+            operations_query = operations_query.filter(
+                AuditOperation.date_operation >= debut
+            )
+        except ValueError:
+            pass
+
+    if filtres["date_fin"]:
+        try:
+            fin = datetime.combine(
+                datetime.strptime(
+                    filtres["date_fin"], "%Y-%m-%d"
+                ).date(),
+                time.max
+            )
+            logs_query = logs_query.filter(
+                AuditLog.timestamp <= fin
+            )
+            operations_query = operations_query.filter(
+                AuditOperation.date_operation <= fin
+            )
+        except ValueError:
+            pass
+
+    # Filtre de résultat pour les opérations financières
+    if filtres["resultat"]:
+        if filtres["resultat"] == "SUCCES":
+            operations_query = operations_query.filter(
+                AuditOperation.resultat.in_(["SUCCES", "SUCCÈS"])
+            )
+        elif filtres["resultat"] == "ECHEC":
+            operations_query = operations_query.filter(
+                AuditOperation.resultat.ilike("%ECHEC%")
+            )
+
+    # Trier les résultats du plus récent au plus ancien
+    logs_query = logs_query.order_by(
+        AuditLog.timestamp.desc()
+    )
+    operations_query = operations_query.order_by(
+        AuditOperation.date_operation.desc()
+    )
+
+    # Totaux calculés à partir des filtres
+    total_actions = logs_query.count()
+    total_operations = operations_query.count()
+
+    utilisateurs_count = db.session.query(
+        db.func.count(db.distinct(AuditLog.employe_id))
+    ).filter(
+        AuditLog.id.in_(
+            logs_query.with_entities(AuditLog.id).subquery()
+        )
+    ).scalar() or 0
+
+    echecs_count = operations_query.filter(
+        AuditOperation.resultat.ilike("%ECHEC%")
+    ).count()
+
+    # Limiter le volume chargé dans la page
+    logs = logs_query.limit(200).all()
+    operations = operations_query.limit(200).all()
+
+    # Succursales : utilise ici le nom de modèle de ton projet
+    succursales = []
+    try:
+        succursales = Succursale.query.order_by(
+            Succursale.nom
+        ).all()
+    except NameError:
+        pass
+
+    return render_template(
+        "centre_it.html",
+        logs=logs,
+        operations=operations,
+        succursales=succursales,
+        filtres=filtres,
+        onglet=onglet,
+        total_actions=total_actions,
+        total_operations=total_operations,
+        utilisateurs_count=utilisateurs_count,
+        echecs_count=echecs_count,
+    )
+
+
 
 # === FONCTION D'INITIALISATION DE LA BASE ===
 def init_app_data():

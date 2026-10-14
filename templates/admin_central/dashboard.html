@@ -304,6 +304,15 @@
         <a href="{{ url_for('liste_users') }}" class="menu-item"> ⚙ Gestion des Eployees </a>
         <a href="{{ url_for('liste_succursales') }}" class="btn btn-danger">🏢 Gestion des succursales</a>
 
+
+        <li class="nav-item">
+            <a href="{{ url_for('centre_it') }}" class="nav-link">
+                <i class="fas fa-shield-alt"></i>
+                <span>Centre IT</span>
+            </a>
+        </li>
+
+
         {% for succursale in succursales %}
           <tr>
             <td>{{ succursale.nom }}</td>
@@ -338,8 +347,8 @@
         </form>
 
         <a href="{{ url_for('super_admin.switcher') }}" class="btn-super-admin">
-    🔓 Accès Super Admin
-</a>
+            🔓 Accès Super Admin
+        </a>
 
 
 

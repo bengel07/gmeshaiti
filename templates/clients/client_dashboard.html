@@ -148,11 +148,39 @@
 
         <!-- Application Mobile -->
         <div class="mobile-app">
-            <h3>📱 Application Mobile</h3>
-            <p>Téléchargez notre application mobile pour une expérience optimale :</p>
-            <div style="margin: 1.5rem 0;">
-                <a href="{{ url_for('mobile_dashboard') }}" class="btn" style="background: white; color: #667eea; margin-right: 1rem;">📲 Télécharger l'app</a>
-                <a href="{{ url_for('mobile_dashboard') }}" class="btn" style="background: rgba(255,255,255,0.2); color: white;">🔗 Lien mobile</a>
+
+            <h3>📱 Application Mobile GMES Haiti</h3>
+
+            <p>
+                Téléchargez notre application mobile officielle pour accéder
+                facilement à vos comptes, prêts, remboursements et épargne.
+            </p>
+
+            <div style="margin: 1.5rem 0; display: flex; flex-wrap: wrap; gap: 1rem;">
+
+                <a href="/downloads/gmes-haiti.apk"
+                   class="btn"
+                   download
+                   style="background: white; color: #0645AD;">
+                    📲 Télécharger l'application Android (APK)
+                </a>
+
+                <a href="/downloads/gmes-haiti.apk"
+                   class="btn"
+                   style="background: rgba(255,255,255,0.2); color: white;"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                    🔗 Lien de téléchargement
+                </a>
+
+            </div>
+
+            <p style="font-size: 0.9rem;">
+                Compatible avec les appareils Android.
+                Après le téléchargement, ouvrez le fichier APK pour installer
+                l'application.
+            </p>
+
             </div>
             <div class="feature-tags">
                 <span class="feature-tag">✅ Reconnaissance faciale</span>
