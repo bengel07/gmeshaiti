@@ -229,106 +229,91 @@
         }
 
 
-        /* ===== MENU LATÉRAL : BOUTONS UNIFORMES ===== */
+
+
+        /* ===== MENU GMES : STYLE UNIFORME ===== */
+        .admin-container {
+            display: grid;
+            grid-template-columns: 300px minmax(0, 1fr);
+            gap: 25px;
+            align-items: start;
+        }
+
         .sidebar {
             display: flex;
             flex-direction: column;
             align-items: stretch;
-            gap: 8px;
+            gap: 9px;
             min-width: 0;
+            padding: 20px;
             box-sizing: border-box;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .1);
         }
 
         .sidebar h3 {
-            width: 100%;
-            box-sizing: border-box;
-            margin: 18px 0 8px;
+            margin: 16px 0 6px;
             padding-bottom: 10px;
             color: #063477;
             border-bottom: 2px solid #F5B51B;
         }
 
-        .sidebar a.menu-item,
-        .sidebar a.btn-super-admin,
-        .sidebar a.nav-link,
-        .sidebar a.btn,
-        .sidebar button.menu-item {
+        .sidebar > a.menu-item,
+        .sidebar > a.btn,
+        .sidebar > a.btn-super-admin,
+        .sidebar > a.nav-link,
+        .sidebar > form > button.menu-item {
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            gap: 10px;
             width: 100%;
             min-height: 46px;
-            box-sizing: border-box;
-            padding: 12px 14px;
             margin: 0;
+            padding: 12px 14px;
+            box-sizing: border-box;
             border: 1px solid #063477;
-            border-left: 4px solid #0645AD;
             border-radius: 8px;
             background: #0645AD;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            font-weight: 600;
-            line-height: 1.4;
+            color: #fff;
+            font: 600 14px/1.4 Arial, sans-serif;
             text-align: left;
             text-decoration: none;
-            cursor: pointer;
-            white-space: normal;
             overflow-wrap: anywhere;
-            transition: background 0.2s ease, border-color 0.2s ease;
+            cursor: pointer;
+            transition: background .2s, border-color .2s;
         }
 
-        .sidebar a.menu-item:hover,
-        .sidebar a.btn-super-admin:hover,
-        .sidebar a.nav-link:hover,
-        .sidebar a.btn:hover,
-        .sidebar button.menu-item:hover {
+        .sidebar > a:hover,
+        .sidebar > form > button.menu-item:hover {
             background: #063477;
-            color: #ffffff;
+            color: #fff;
             border-color: #F5B51B;
-            transform: none;
         }
 
-        .sidebar a.menu-item.active {
+        .sidebar > a.menu-item.active {
             background: #F5B51B;
             color: #063477;
             border-color: #F5B51B;
         }
 
-        .sidebar form {
+        .sidebar > form {
             width: 100%;
             margin: 8px 0;
         }
 
-        .sidebar form button.menu-item {
-            appearance: none;
-        }
-
-        .sidebar .danger-item {
+        .sidebar > form > button.danger-item {
             background: #dc3545;
             border-color: #b02a37;
-            border-left-color: #842029;
         }
 
-        .sidebar .danger-item:hover {
+        .sidebar > form > button.danger-item:hover {
             background: #b02a37;
-            border-color: #842029;
         }
 
-        /* Adaptation aux petits écrans */
         @media (max-width: 768px) {
             .admin-container {
-                grid-template-columns: 1fr;
-            }
-
-            .sidebar {
-                width: 100%;
-            }
-
-            .main-content {
-                min-width: 0;
-                overflow-x: auto;
+                grid-template-columns: minmax(0, 1fr);
             }
         }
 
@@ -386,99 +371,41 @@
 </div>
 
 <div class="admin-container">
-
     <!-- MENU LATÉRAL -->
     <div class="sidebar">
         <h3>📋 Menu Principal</h3>
+        <a href="{{ url_for('admin_dashboard') }}" class="menu-item">📊 Vue d'ensemble</a>
+        <a href="#create" class="menu-item active">➕ Création</a>
+        <a href="{{ url_for('admin_rapports') }}" class="menu-item"> 📊 Rapports</a>
+        <a href="{{ url_for('gestion_utilisateurs') }}" class="menu-item">👥 Utilisateurs</a>
+        <a href="{{ url_for('statistiques_groupes') }}" class="menu-item">📊 Statistiques</a>
+        <a href="{{ url_for('admin_approbations') }}" class="menu-item">⏳ Approbations</a>
+        <a href="{{ url_for('parametres') }}" class="menu-item">⚙️ Paramètres</a>
+        <a href="{{ url_for('liste_cartes') }}" class="menu-item">‍💼 Cartes des Employés</a>
 
-        <a href="{{ url_for('admin_dashboard') }}" class="menu-item">
-            📊 Vue d'ensemble
-        </a>
+        <h3 style="margin-top: 30px;">🚨 Actions Rapides</h3>
+        <a href="#" onclick="goToDashboard()" class="menu-item">🏢 Visualiser</a>
+        <a href="{{ url_for('create_succursale') }}" class="menu-item">🏢 Nouvelle Succursale</a>
+        <a href="{{ url_for('ajouter_admin') }}" class="menu-item">👑 Nouvel Admin</a>
+        <a href="{{ url_for('ajouter_employe') }}" class="menu-item">👨‍💼 Nouvel Agent</a>
+        <a href="{{ url_for('liste_employes') }}" class="menu-item">👥 Employés par succursale</a>
+        <a href="{{ url_for('admin_employes') }}" class="menu-item">👥 Gestion des Employés</a>
+        <a href="{{ url_for('gestion_utilisateurs') }}" class="menu-item"> ⚙ Gestion des utilisateurs</a>
+        <a href="{{ url_for('liste_users') }}" class="menu-item"> ⚙ Gestion des Eployees </a>
+        <a href="{{ url_for('liste_succursales') }}" class="btn btn-danger">🏢 Gestion des succursales</a>
 
-        <a href="#create" class="menu-item active">
-            ➕ Création
-        </a>
-
-        <a href="{{ url_for('admin_rapports') }}" class="menu-item">
-            📊 Rapports
-        </a>
-
-        <a href="{{ url_for('gestion_utilisateurs') }}" class="menu-item">
-            👥 Utilisateurs
-        </a>
-
-        <a href="{{ url_for('statistiques_groupes') }}" class="menu-item">
-            📈 Statistiques
-        </a>
-
-        <a href="{{ url_for('admin_approbations') }}" class="menu-item">
-            ⏳ Approbations
-        </a>
-
-        <a href="{{ url_for('parametres') }}" class="menu-item">
-            ⚙️ Paramètres
-        </a>
-
-        <a href="{{ url_for('liste_cartes') }}" class="menu-item">
-            💼 Cartes des Employés
-        </a>
-
-        <h3>🚨 Actions Rapides</h3>
-
-        <a href="#" onclick="goToDashboard(); return false;" class="menu-item">
-            🏢 Visualiser
-        </a>
-
-        <a href="{{ url_for('create_succursale') }}" class="menu-item">
-            🏢 Nouvelle Succursale
-        </a>
-
-        <a href="{{ url_for('ajouter_admin') }}" class="menu-item">
-            👑 Nouvel Admin
-        </a>
-
-        <a href="{{ url_for('ajouter_employe') }}" class="menu-item">
-            👨‍💼 Nouvel Agent
-        </a>
-
-        <a href="{{ url_for('liste_employes') }}" class="menu-item">
-            👥 Employés par succursale
-        </a>
-
-        <a href="{{ url_for('admin_employes') }}" class="menu-item">
-            👥 Gestion des Employés
-        </a>
-
-        <a href="{{ url_for('gestion_utilisateurs') }}" class="menu-item">
-            ⚙️ Gestion des utilisateurs
-        </a>
-
-        <a href="{{ url_for('liste_users') }}" class="menu-item">
-            👥 Gestion des employés et utilisateurs
-        </a>
-
-        <a href="{{ url_for('liste_succursales') }}" class="menu-item">
-            🏢 Gestion des succursales
-        </a>
 
         <a href="{{ url_for('centre_it') }}" class="menu-item">
             🛡️ Centre IT
         </a>
 
-        <h3>💳 Gestion des prêts</h3>
 
-        {% for succursale in succursales %}
-            <a href="{{ url_for('prets_par_succursale', succursale_id=succursale.id) }}"
-               class="menu-item">
-                💳 Prêts — {{ succursale.nom }}
-            </a>
-        {% endfor %}
+<!--         #Ajoutez ce bouton où vous voulez dans votre template-->
 
         <form action="{{ url_for('supprimer_tous_clients') }}"
               method="POST"
-              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer TOUS les clients ? Cette action est irréversible !');">
+              onsubmit="return confirm('Attention : supprimer tous les clients est irréversible. Continuer ?');">
 
-            {# Ajoute ici le champ CSRF si Flask-WTF CSRF est activé. #}
             {% if csrf_token is defined %}
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             {% endif %}
@@ -488,11 +415,10 @@
             </button>
         </form>
 
-        <a href="{{ url_for('super_admin.switcher') }}" class="menu-item">
+
+        <a href="{{ url_for('super_admin.switcher') }}" class="btn-super-admin">
             🔓 Accès Super Admin
         </a>
-    </div>
-
 
 
 
@@ -679,38 +605,6 @@
     {% endif %}
 </div>
 
-<!-- SECTION 5: PARAMÈTRES -->
-<div id="settings" style="margin-top: 40px; padding: 0 20px;">
-    <h2>⚙️ Paramètres du Système</h2>
-    <p>Configuration générale du système GMES.</p>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
-        <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; border-left: 5px solid #007bff;">
-            <h3 style="margin-top: 0; color: #007bff;">🔐 Sécurité</h3>
-            <p>✔️ Gestion des rôles et permissions</p>
-            <p>✔️ Politique de mots de passe</p>
-            <p>✔️ Authentification à deux facteurs</p>
-        </div>
-
-        <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; border-left: 5px solid #28a745;">
-            <h3 style="margin-top: 0; color: #28a745;">💰 Finances</h3>
-            <p>✔️ Configuration des taux d'intérêt</p>
-            <p>✔️ Plafonds de crédit</p>
-            <p>✔️ Frais de dossier</p>
-        </div>
-
-        <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; border-left: 5px solid #ffc107;">
-            <h3 style="margin-top: 0; color: #ffc107;">⚙️ Général</h3>
-            <p>✔️ Paramètres globaux du système</p>
-            <p>✔️ Configuration email</p>
-            <p>✔️ Sauvegarde automatique</p>
-        </div>
-    </div>
-</div>
-
-<footer style="text-align:center; margin-top:40px; color:#777; padding-top:20px; border-top:1px solid #ddd;">
-    © 2024 GMES Microcrédit - Système de Gestion
-</footer>
 
 <!-- AJOUT 5: Toastr JS et script de notification -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
@@ -994,31 +888,7 @@ function updateMarker(employeeId, lat, lon) {
     }
 }
 
-
-function manageSecurity() {
-    toastr.info(
-        'Cette section est à connecter à la page de sécurité.',
-        '🔐 Sécurité'
-    );
-}
-
-function manageFinances() {
-    toastr.info(
-        'Cette section est à connecter à la configuration financière.',
-        '💰 Finances'
-    );
-}
-
-function manageGeneral() {
-    toastr.info(
-        'Cette section est à connecter aux paramètres généraux.',
-        '⚙️ Général'
-    );
-}
-
 console.log('✅ Système de notifications initialisé');
-
-
 </script>
 
 <!-- HTML pour la section Paramètres -->
