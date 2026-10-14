@@ -31276,7 +31276,7 @@ def mon_profil():
         return redirect(url_for('profil_client', client_id=current_user.client_personnel.id))
 
     # CAS 2 : L'utilisateur est un employé (admin, agent, directeur, etc.)
-    if current_user.role in ['admin_succursale','admin' 'super_admin', 'direction', 'agent_credit', 'conseiller', 'employe']:
+    if current_user.role in ['admin_succursale','admin', 'super_admin', 'direction', 'agent_credit', 'conseiller', 'employe']:
         return redirect(url_for('profil_employe', employe_id=current_user.id))
 
     # CAS 3 : Rôle non reconnu
@@ -31312,9 +31312,22 @@ def profil_employe(employe_id):
     # sauf s'il est admin/super_admin/direction (accès aux autres profils)
     roles_admin = ['admin_succursale', 'super_admin', 'direction']
 
-    if current_user.id != employe.id and current_user.role not in roles_admin:
+    def peut_voir_profil(cible):
+        if current_user.id == cible.id or current_user.role == 'super_admin':
+            return True
+        if current_user.role in ['admin_succursale', 'direction', 'directeur', 'admin_general']:
+            return cible.role not in ['super_admin'] and cible.succursale_id == current_user.succursale_id
+        return False
+
+    if not peut_voir_profil(employe):
         flash("⛔ Vous n'êtes pas autorisé à voir ce profil", "danger")
         return redirect(url_for('tableau_de_bord'))
+
+    elif action == 'update_password':
+        if current_user.id != employe.id:
+            flash("⛔ Vous ne pouvez changer que votre propre mot de passe", "danger")
+            return redirect(url_for('profil_employe', employe_id=employe.id))
+
 
     # ========== TRAITEMENT POST ==========
     if request.method == 'POST':
@@ -31327,6 +31340,11 @@ def profil_employe(employe_id):
                 employe.prenom = request.form.get('prenom', '').strip().capitalize() or employe.prenom
                 employe.email = request.form.get('email', '').strip().lower() or employe.email
                 employe.telephone = request.form.get('telephone', '').strip() or employe.telephone
+
+                nouvel_email = request.form.get('email', '').strip().lower()
+                if nouvel_email and User.query.filter(User.email == nouvel_email, User.id != employe.id).first():
+                    flash("⛔ Cet email est déjà utilisé", "danger")
+                    return redirect(url_for('profil_employe', employe_id=employe.id))
 
                 db.session.commit()
 
@@ -31445,6 +31463,8 @@ def profil_employe(employe_id):
         historique=historique,
         est_admin=current_user.role in roles_admin
     )
+
+
 
 
 @app.route('/api/mobile/health')
