@@ -361,10 +361,12 @@
         </div>
         <div style="display: flex; align-items: center;">
             <!-- AJOUT 4: Icône de notification avec badge -->
-            <div class="notification-icon" id="notificationBell">
-                <i class="fas fa-bell" style="font-size: 1.2rem; color: white;"></i>
-                <span class="notification-badge" id="notificationBadge">0</span>
-            </div>
+            <a href="{{ url_for('admin_notifications') }}" class="notification-icon" id="notificationBell"
+               style="color:white; text-decoration:none;">
+                <i class="fas fa-bell" style="font-size: 1.2rem;"></i>
+                <span class="notification-badge" id="notificationBadge"
+                      style="{% if unread_notifications %}display:inline;{% endif %}">{{ unread_notifications or 0 }}</span>
+            </a>
             <a href="{{ url_for('deconnexion') }}" style="color: #ffdd40; margin-left: 15px;">Déconnexion</a>
         </div>
     </div>
@@ -695,143 +697,74 @@
 // ============================================
 // 2. GESTION DES NOTIFICATIONS TOASTR
 // ============================================
+// ============================================
+// 2. GESTION DES NOTIFICATIONS TOASTR
+// ============================================
 (function setupNotifications() {
-    // Configuration Toastr
     toastr.options = {
-        "closeButton": true,
-        "progressBar": true,
-        "positionClass": "toast-top-right",
-        "showDuration": "300",
-        "hideDuration": "1000",
-        "timeOut": "10000",
-        "extendedTimeOut": "2000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut",
-        "preventDuplicates": true,
-        "newestOnTop": true,
-        "tapToDismiss": false
+        closeButton: true, progressBar: true, positionClass: "toast-top-right",
+        timeOut: "10000", extendedTimeOut: "2000", preventDuplicates: true,
+        newestOnTop: true, tapToDismiss: false
     };
 
-    let unreadCount = 0;
     const badge = document.getElementById('notificationBadge');
-    const notificationBell = document.getElementById('notificationBell');
+    const shownIds = new Set();
+    let firstLoad = true;
 
-    // Mise à jour du badge
     function updateBadge(count) {
-        unreadCount = Math.max(0, count);
-        if (badge) {
-            if (unreadCount > 0) {
-                badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-                badge.style.display = 'inline';
-                document.title = `(${unreadCount}) Dashboard Super Admin - GMES`;
-            } else {
-                badge.style.display = 'none';
-                document.title = 'Dashboard Super Admin - GMES';
-            }
+        count = Math.max(0, parseInt(count, 10) || 0);
+        if (!badge) return;
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = 'inline';
+            document.title = `(${count}) Dashboard Super Admin - GMES`;
+        } else {
+            badge.style.display = 'none';
+            document.title = 'Dashboard Super Admin - GMES';
         }
     }
 
-    // Affichage d'une notification
+    function refreshBadge() {
+        fetch('/api/notifications/count', { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(data => updateBadge(data.count))
+            .catch(() => {});
+    }
+
     function showAdminNotification(notif) {
-        // Déterminer l'icône selon le niveau
-        const icons = {
-            'error': '🚨',
-            'warning': '⚠️',
-            'success': '✅',
-            'info': 'ℹ️'
-        };
-        const icon = icons[notif.level] || '🔔';
-
-        // Afficher avec Toastr
+        const icons = { error: '🚨', warning: '⚠️', success: '✅', info: 'ℹ️' };
+        const level = icons[notif.level] ? notif.level : 'info';
         const options = {
-            timeOut: notif.level === 'error' ? 0 : 10000,
-            extendedTimeOut: notif.level === 'error' ? 0 : 2000
+            timeOut: level === 'error' ? 0 : 10000,
+            extendedTimeOut: level === 'error' ? 0 : 2000
         };
-
         const message = `${notif.message}<br><small>${notif.time || new Date().toLocaleTimeString()}</small>`;
-
-        toastr[notif.level || 'info'](
-            message,
-            `${icon} ${notif.title || 'Notification Admin'}`,
-            options
-        );
-
-        // Incrémenter le compteur
-        if (notif.level !== 'success') {
-            updateBadge(unreadCount + 1);
-        }
-
-        // Marquer comme lu automatiquement si ce n'est pas critique
-        if (notif.id && notif.level !== 'error') {
-            setTimeout(() => {
-                fetch(`/api/notifications/mark-read/${notif.id}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        updateBadge(unreadCount - 1);
-                    }
-                })
-                .catch(() => {});
-            }, 8000);
-        }
+        toastr[level](message, `${icons[level]} ${notif.titre || notif.title || 'Notification'}`, options);
+        refreshBadge();
     }
 
-    // Vérifier les notifications en attente
     function checkPendingNotifications() {
-        fetch('/api/notifications/unread')
-            .then(response => response.json())
-            .then(notifications => {
-                if (Array.isArray(notifications) && notifications.length > 0) {
-                    updateBadge(notifications.length);
-
-                    notifications.forEach(notif => {
-                        // Éviter les doublons en vérifiant si la notification existe déjà
-                        const existingToasts = document.querySelectorAll('.toast-message');
-                        const isDuplicate = Array.from(existingToasts).some(toast =>
-                            toast.textContent.includes(notif.message)
-                        );
-
-                        if (!isDuplicate) {
-                            showAdminNotification(notif);
-                        }
-                    });
-                }
+        fetch('/api/notifications/unread', { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(list => {
+                if (!Array.isArray(list)) return;
+                updateBadge(list.length);
+                list.forEach(n => {
+                    if (shownIds.has(n.id)) return;
+                    shownIds.add(n.id);
+                    if (!firstLoad) showAdminNotification(n);   // pas de toasts au chargement
+                });
+                firstLoad = false;
             })
-            .catch(error => console.error('Erreur checkNotifications:', error));
+            .catch(err => console.error('Erreur checkNotifications:', err));
     }
 
-    // Vérifier toutes les 15 secondes
+    checkPendingNotifications();
     setInterval(checkPendingNotifications, 15000);
 
-    // Vérifier au chargement
-    document.addEventListener('DOMContentLoaded', function() {
-        checkPendingNotifications();
-    });
-
-    // Gestionnaire clic sur la cloche
-    if (notificationBell) {
-        notificationBell.addEventListener('click', function(e) {
-            e.preventDefault();
-            // Réinitialiser le compteur
-            updateBadge(0);
-            // Rediriger vers la page des notifications
-            const pathParts = window.location.pathname.split('/');
-            const succursaleCode = pathParts[1] || '';
-            window.location.href = '/' + succursaleCode + '/admin/notifications';
-        });
-    }
-
-    // Export pour utilisation globale
     window.showAdminNotification = showAdminNotification;
     window.updateBadge = updateBadge;
+    window.refreshBadge = refreshBadge;
 })();
 
 // ============================================
