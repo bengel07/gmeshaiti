@@ -20531,13 +20531,15 @@ def afficher_succursales():
 
 
 
-# app.py ou ton fichier Flask principal
-
-
 
 @app.route('/admin-central/succursales/<int:succ_id>/edit', methods=['GET', 'POST'])
 @app.route('/admin-central/succursales/<int:succ_id>/editer', methods=['GET', 'POST'])  # alias
+@login_required
 def edit_succursale(succ_id):
+    if current_user.role != 'super_admin':
+        flash("⛔ Accès non autorisé.", "danger")
+        return redirect(url_for('admin_dashboard'))
+
     # Récupère la succursale depuis la base de données
     succursale = Succursale.query.get_or_404(succ_id)
 
