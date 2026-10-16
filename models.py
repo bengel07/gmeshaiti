@@ -10278,8 +10278,6 @@ class HistoriqueScoring(db.Model):
 # ==========================================================
 # MODÈLES (à ajouter dans models.py)
 # ==========================================================
-from datetime import datetime, date, timedelta
-from extensions import db   # adapte selon ton projet
 
 
 class Investisseur(db.Model):
