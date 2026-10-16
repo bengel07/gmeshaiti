@@ -82,9 +82,45 @@
         .pagination .active .page-link { background:var(--blue); border-color:var(--blue); color:#fff; }
 
         /* ===== CORRECTION DU FORMULAIRE D'AJOUT (défilement + bouton visible) ===== */
-        .modal-dialog-scrollable .modal-content > form {
-            display:flex; flex-direction:column; flex:1 1 auto; min-height:0; overflow:hidden;
+        /* Formulaire d'ajout : défilement et boutons toujours accessibles */
+        #modalInvestisseur .modal-dialog {
+            height: calc(100% - 1rem);
+            max-height: 95vh;
         }
+
+        #modalInvestisseur .modal-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #modalInvestisseur form.modal-content {
+            min-height: 0;
+        }
+
+        #modalInvestisseur .modal-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        #modalInvestisseur .modal-header,
+        #modalInvestisseur .modal-footer {
+            flex-shrink: 0;
+            background: #fff;
+        }
+
+        #modalInvestisseur .modal-header {
+            background: var(--green);
+        }
+
+        #modalInvestisseur .modal-footer {
+            position: relative;
+            z-index: 2;
+            border-top: 1px solid var(--line);
+        }
+
         .modal-dialog-scrollable .modal-content > form .modal-body { overflow-y:auto; }
         .modal-dialog-scrollable .modal-content > form .modal-footer { background:#fff; }
 
@@ -356,8 +392,9 @@
 <!-- ================= MODAL : AJOUTER UN INVESTISSEUR ================= -->
 <div class="modal fade" id="modalInvestisseur" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <form method="POST" action="{{ url_for('ajouter_investisseur') }}" enctype="multipart/form-data">
+    <form class="modal-content" method="POST"
+          action="{{ url_for('ajouter_investisseur') }}"
+          enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-header" style="background:var(--green);color:#fff">
           <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Ajouter un investisseur</h5>
@@ -406,8 +443,16 @@
                   <option value="NIF">NIF</option>
                 </select>
                 <input name="piece{{ n }}_numero" class="form-control form-control-sm mt-2" placeholder="Numéro" required>
+
                 <label class="small text-muted mt-2">Date d'émission (jj/mm/aaaa)</label>
-                <input type="date" name="piece{{ n }}_date" class="form-control form-control-sm" required>
+                <input type="text"
+                   name="piece{{ n }}_date"
+                   class="form-control form-control-sm"
+                   placeholder="JJ/MM/AAAA"
+                   pattern="(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/[0-9]{4}"
+                   title="Saisissez la date au format JJ/MM/AAAA"
+                   required>
+
                 <label class="small text-muted mt-2">Fichier de la pièce (JPG, PNG ou PDF)</label>
                 <input type="file" name="piece{{ n }}_fichier" class="form-control form-control-sm"
                        accept=".jpg,.jpeg,.png,.pdf" required>

@@ -115,7 +115,7 @@ from models import (
     ScoringCredit, HistoriqueEmploye, Epargne, TransactionEpargne,
     Depense, PartnerIntegration, PartnerWebhook, Partner, ProjetSocial,
     Satisfaction, Emploi, Famille, ProduitEpargne, RetraitConfirmation, CronTrigger, BackgroundScheduler,
-    AuditOperation, Investisseur
+    AuditOperation, Investisseur, Investissement
 )
 
 # ==================== ROUTES / BLUEPRINTS ====================
@@ -31989,6 +31989,8 @@ def voir_piece_investisseur(inv_id, numero):
 # INVESTISSEMENTS : AJOUT D'UN INVESTISSEMENT + CHANGEMENT DE STATUT
 # (à ajouter à la fin de app.py, après voir_piece_investisseur)
 # ==========================================================
+from datetime import date as _date
+from flask import abort as _abort
 
 
 def _investisseur_autorise(inv):
