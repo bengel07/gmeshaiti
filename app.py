@@ -114,7 +114,8 @@ from models import (
     Client, Groupe, User, Document, Dossier, Action, RetardPaiement,
     ScoringCredit, HistoriqueEmploye, Epargne, TransactionEpargne,
     Depense, PartnerIntegration, PartnerWebhook, Partner, ProjetSocial,
-    Satisfaction, Emploi, Famille, ProduitEpargne, RetraitConfirmation, CronTrigger, BackgroundScheduler, AuditOperation
+    Satisfaction, Emploi, Famille, ProduitEpargne, RetraitConfirmation, CronTrigger, BackgroundScheduler,
+    AuditOperation, Investisseur
 )
 
 # ==================== ROUTES / BLUEPRINTS ====================
@@ -623,7 +624,7 @@ def renvoyer_email_conditions_pret(pret_id):
 
         APP_URL = os.environ.get(
             "APP_URL",
-            "https://gmeshaiti.onrender.com"
+            "https://gmeshaiti.com"
         ).rstrip("/")
 
         lien_signature = (
@@ -31746,6 +31747,219 @@ def centre_it():
         utilisateurs_count=utilisateurs_count,
         echecs_count=echecs_count,
     )
+
+
+# ==========================================================
+# ROUTES (à ajouter dans app.py)
+# ==========================================================
+import os, uuid
+from flask import (render_template, request, redirect, url_for, flash,
+                   send_from_directory, abort, jsonify)
+from flask_login import login_required, current_user
+from sqlalchemy import or_, func
+
+ROLES_INVESTISSEURS = ['super_admin', 'admin_succursale', 'directeur', 'direction', 'admin_general']
+TYPES_INVESTISSEMENT = ['Épargne à terme', 'Placement fixe', 'Compte d\'investissement']
+EXT_PIECES = {'jpg', 'jpeg', 'png', 'pdf'}
+EXT_PHOTO = {'jpg', 'jpeg', 'png'}
+TAILLE_MAX = 5 * 1024 * 1024
+
+# Les pièces d'identité sont stockées HORS de static/ (jamais publiques)
+DOSSIER_PIECES = os.path.join(app.instance_path, 'pieces_identite')
+
+
+def role_ok():
+    return current_user.role in ROLES_INVESTISSEURS
+
+
+def sauvegarder(fichier, extensions, dossier):
+    """Valide (extension, taille) et enregistre. Retourne le nom du fichier ou None."""
+    if not fichier or not fichier.filename or '.' not in fichier.filename:
+        return None
+    ext = fichier.filename.rsplit('.', 1)[1].lower()
+    if ext not in extensions:
+        return None
+    fichier.seek(0, os.SEEK_END)
+    taille = fichier.tell()
+    fichier.seek(0)
+    if taille > TAILLE_MAX:
+        return None
+    os.makedirs(dossier, exist_ok=True)
+    nom = f"{uuid.uuid4().hex}.{ext}"
+    fichier.save(os.path.join(dossier, nom))
+    return nom
+
+
+def generer_numero_compte():
+    dernier = Investisseur.query.order_by(Investisseur.id.desc()).first()
+    return f"7-{datetime.now().year}-{((dernier.id + 1) if dernier else 1):05d}"
+
+
+def parse_date(valeur):
+    try:
+        return datetime.strptime(valeur, '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return None
+
+
+
+
+@app.route('/investisseurs')
+@login_required
+def liste_investisseurs():
+    from models import Succursale
+    if not role_ok():
+        flash("⛔ Accès non autorisé.", "danger")
+        return redirect(url_for('admin_dashboard'))
+
+    q = request.args.get('q', '').strip()
+    statut = request.args.get('statut', '').strip()
+    type_inv = request.args.get('type', '').strip()
+    succursale_id = request.args.get('succursale', type=int)
+    page = request.args.get('page', 1, type=int)
+
+    base = Investisseur.query
+    # Un admin de succursale ne voit que sa propre succursale
+    if current_user.role != 'super_admin' and getattr(current_user, 'succursale_id', None):
+        base = base.filter(Investisseur.succursale_id == current_user.succursale_id)
+
+    requete = base
+    if q:
+        m = f"%{q}%"
+        requete = requete.filter(or_(
+            Investisseur.nom.ilike(m), Investisseur.prenom.ilike(m), Investisseur.numero_compte.ilike(m),
+            Investisseur.telephone.ilike(m), Investisseur.email.ilike(m)))
+    if statut:
+        requete = requete.filter(Investisseur.statut == statut)
+    if type_inv:
+        requete = requete.filter(Investisseur.type_investissement == type_inv)
+    if succursale_id:
+        requete = requete.filter(Investisseur.succursale_id == succursale_id)
+
+    pagination = requete.order_by(Investisseur.nom).paginate(page=page, per_page=8, error_out=False)
+
+    # Statistiques globales (sur tous les investisseurs visibles, pas seulement la page)
+    tous = base.all()
+    debut_mois = date.today().replace(day=1)
+    stats = {
+        'nb_investisseurs': len(tous),
+        'nouveaux_mois': sum(1 for i in tous if i.date_creation and i.date_creation.date() >= debut_mois),
+        'total_investi': sum(i.total_investi for i in tous),
+        'total_interets': sum(i.total_interets for i in tous),
+        'investi_mois': sum(float(inv.montant) for i in tous for inv in i.investissements
+                            if inv.date_debut and inv.date_debut >= debut_mois),
+    }
+
+    return render_template('investisseurs.html', pagination=pagination, stats=stats,
+                           q=q, statut=statut, type=type_inv, succursale_id=succursale_id,
+                           succursales=Succursale.query.order_by(Succursale.nom).all(),
+                           types_investissement=TYPES_INVESTISSEMENT, now=datetime.now())
+
+
+@app.route('/investisseurs/<int:inv_id>/json')
+@login_required
+def detail_investisseur_json(inv_id):
+    if not role_ok():
+        abort(403)
+    inv = Investisseur.query.get_or_404(inv_id)
+    if current_user.role != 'super_admin' and inv.succursale_id != getattr(current_user, 'succursale_id', None):
+        abort(403)
+
+    def piece(n):
+        fichier = getattr(inv, f'piece{n}_fichier')
+        d = getattr(inv, f'piece{n}_date')
+        return {'type': getattr(inv, f'piece{n}_type'), 'numero': getattr(inv, f'piece{n}_numero'),
+                'date': d.strftime('%d/%m/%Y') if d else '—', 'ext': fichier.rsplit('.', 1)[-1].lower()}
+
+    return jsonify({
+        'id': inv.id, 'code': f"INV-{inv.id:04d}", 'numero_compte': inv.numero_compte,
+        'nom_complet': f"{inv.prenom} {inv.nom}", 'initiales': (inv.prenom[:1] + inv.nom[:1]).upper(),
+        'photo': url_for('static', filename='uploads/' + inv.photo) if inv.photo else None,
+        'statut': inv.statut, 'telephone': inv.telephone, 'email': inv.email, 'adresse': inv.adresse,
+        'date_creation': inv.date_creation.strftime('%d/%m/%Y') if inv.date_creation else '—',
+        'profession': inv.profession, 'type_investissement': inv.type_investissement,
+        'revenu_mensuel': float(inv.revenu_mensuel) if inv.revenu_mensuel else None,
+        'total_investi': inv.total_investi, 'total_interets': inv.total_interets,
+        'piece1': piece(1), 'piece2': piece(2),
+        'investissements': [{
+            'date': i.date_debut.strftime('%d/%m/%Y'), 'montant': float(i.montant),
+            'taux': float(i.taux_annuel), 'echeance': i.date_echeance.strftime('%d/%m/%Y'),
+            'statut': i.statut} for i in sorted(inv.investissements, key=lambda x: x.date_debut)],
+    })
+
+
+@app.route('/investisseurs/ajouter', methods=['POST'])
+@login_required
+def ajouter_investisseur():
+    if not role_ok():
+        flash("⛔ Accès non autorisé.", "danger")
+        return redirect(url_for('admin_dashboard'))
+
+    f = request.form
+    nom, prenom = f.get('nom', '').strip().upper(), f.get('prenom', '').strip().capitalize()
+    email = f.get('email', '').strip().lower()
+    telephone, adresse = f.get('telephone', '').strip(), f.get('adresse', '').strip()
+    numero_compte = f.get('numero_compte', '').strip().upper() or generer_numero_compte()
+
+    if not all([nom, prenom, email, telephone, adresse]):
+        flash("❌ Tous les champs obligatoires doivent être remplis.", "danger")
+        return redirect(url_for('liste_investisseurs'))
+
+    if f.get('piece1_type') == f.get('piece2_type'):
+        flash("❌ Les deux pièces d'identité doivent être de types différents.", "danger")
+        return redirect(url_for('liste_investisseurs'))
+
+    if Investisseur.query.filter(or_(Investisseur.email == email,
+                                     Investisseur.numero_compte == numero_compte)).first():
+        flash("❌ Email ou numéro de compte déjà utilisé.", "danger")
+        return redirect(url_for('liste_investisseurs'))
+
+    fichier1 = sauvegarder(request.files.get('piece1_fichier'), EXT_PIECES, DOSSIER_PIECES)
+    fichier2 = sauvegarder(request.files.get('piece2_fichier'), EXT_PIECES, DOSSIER_PIECES)
+    if not fichier1 or not fichier2:
+        flash("❌ Pièces invalides (JPG, PNG ou PDF, 5 Mo maximum).", "danger")
+        return redirect(url_for('liste_investisseurs'))
+
+    photo = None
+    if request.files.get('photo') and request.files['photo'].filename:
+        photo = sauvegarder(request.files['photo'], EXT_PHOTO, os.path.join(app.static_folder, 'uploads'))
+
+    try:
+        revenu = float(f['revenu_mensuel']) if f.get('revenu_mensuel') else None
+        succ = f.get('succursale_id', type=int) if hasattr(f, 'get') else None
+        if current_user.role != 'super_admin':
+            succ = getattr(current_user, 'succursale_id', None)
+
+        db.session.add(Investisseur(
+            numero_compte=numero_compte, nom=nom, prenom=prenom, telephone=telephone,
+            email=email, adresse=adresse, photo=photo, profession=f.get('profession', '').strip() or None,
+            revenu_mensuel=revenu, type_investissement=f.get('type_investissement'),
+            succursale_id=succ, statut='en_attente',
+            piece1_type=f['piece1_type'], piece1_numero=f['piece1_numero'].strip(),
+            piece1_date=parse_date(f.get('piece1_date')), piece1_fichier=fichier1,
+            piece2_type=f['piece2_type'], piece2_numero=f['piece2_numero'].strip(),
+            piece2_date=parse_date(f.get('piece2_date')), piece2_fichier=fichier2))
+        db.session.commit()
+        flash(f"✅ Investisseur {prenom} {nom} enregistré ({numero_compte}), en attente de validation.", "success")
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Erreur enregistrement investisseur")
+        flash("❌ Erreur lors de l'enregistrement.", "danger")
+
+    return redirect(url_for('liste_investisseurs'))
+
+
+@app.route('/investisseurs/piece/<int:inv_id>/<int:numero>')
+@login_required
+def voir_piece_investisseur(inv_id, numero):
+    """Affiche une pièce d'identité (accès protégé)."""
+    if not role_ok() or numero not in (1, 2):
+        abort(403)
+    inv = Investisseur.query.get_or_404(inv_id)
+    if current_user.role != 'super_admin' and inv.succursale_id != getattr(current_user, 'succursale_id', None):
+        abort(403)
+    return send_from_directory(DOSSIER_PIECES, inv.piece1_fichier if numero == 1 else inv.piece2_fichier)
+
 
 
 

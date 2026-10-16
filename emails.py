@@ -11,7 +11,7 @@ from database import db
 # ============================================
 
 BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
-APP_URL = os.environ.get('APP_URL', 'https://gmeshaiti.onrender.com')
+APP_URL = os.environ.get('APP_URL', 'https://gmeshaiti.com')
 
 # Email expéditeur (doit être vérifié sur Brevo)
 FROM_EMAIL = "gmeshaiti@gmail.com"
@@ -347,7 +347,7 @@ def envoyer_email_demande_pret(client, pret):
         # URL Render
         APP_URL = os.environ.get(
             "APP_URL",
-            "https://gmeshaiti.onrender.com"
+            "https://gmeshaiti.com"
         )
 
         lien_signature = f"{APP_URL}/accepter-conditions-pret/{token}"

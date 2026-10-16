@@ -10274,6 +10274,88 @@ class HistoriqueScoring(db.Model):
     calcule_par = db.Column(db.Integer, db.ForeignKey('employes.id'))
 
 
+
+# ==========================================================
+# MODÈLES (à ajouter dans models.py)
+# ==========================================================
+from datetime import datetime, date, timedelta
+from extensions import db   # adapte selon ton projet
+
+
+class Investisseur(db.Model):
+    __tablename__ = 'investisseurs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    numero_compte = db.Column(db.String(30), unique=True, nullable=False, index=True)
+    nom = db.Column(db.String(80), nullable=False)
+    prenom = db.Column(db.String(80), nullable=False)
+    telephone = db.Column(db.String(30), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    adresse = db.Column(db.String(255), nullable=False)
+    photo = db.Column(db.String(255))
+    profession = db.Column(db.String(100))
+    revenu_mensuel = db.Column(db.Numeric(14, 2))
+    type_investissement = db.Column(db.String(60))
+    statut = db.Column(db.String(20), default='en_attente')    # actif / en_attente / inactif
+    succursale_id = db.Column(db.Integer, db.ForeignKey('succursale.id'))   # adapte le nom de table
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Pièces d'identité
+    piece1_type = db.Column(db.String(40), nullable=False)
+    piece1_numero = db.Column(db.String(50), nullable=False)
+    piece1_date = db.Column(db.Date)
+    piece1_fichier = db.Column(db.String(255), nullable=False)
+    piece2_type = db.Column(db.String(40), nullable=False)
+    piece2_numero = db.Column(db.String(50), nullable=False)
+    piece2_date = db.Column(db.Date)
+    piece2_fichier = db.Column(db.String(255), nullable=False)
+
+    investissements = db.relationship('Investissement', backref='investisseur',
+                                      cascade='all, delete-orphan', lazy=True)
+    succursale = db.relationship('Succursale', lazy=True)
+
+    @property
+    def total_investi(self):
+        return sum(float(i.montant) for i in self.investissements)
+
+    @property
+    def total_interets(self):
+        """Intérêts totaux sur la durée des contrats (comme dans la maquette)."""
+        return sum(i.interet_total for i in self.investissements)
+
+
+class Investissement(db.Model):
+    __tablename__ = 'investissements'
+
+    id = db.Column(db.Integer, primary_key=True)
+    investisseur_id = db.Column(db.Integer, db.ForeignKey('investisseurs.id'), nullable=False)
+    montant = db.Column(db.Numeric(14, 2), nullable=False)
+    taux_annuel = db.Column(db.Numeric(5, 2), nullable=False)      # 9.00 = 9 % par an
+    duree_mois = db.Column(db.Integer, nullable=False, default=12)
+    date_debut = db.Column(db.Date, default=date.today)
+    statut = db.Column(db.String(20), default='en_cours')          # en_cours / termine
+
+    @property
+    def date_echeance(self):
+        mois = self.date_debut.month - 1 + self.duree_mois
+        annee = self.date_debut.year + mois // 12
+        try:
+            return self.date_debut.replace(year=annee, month=mois % 12 + 1)
+        except ValueError:                       # ex. 31 février
+            return self.date_debut.replace(year=annee, month=mois % 12 + 1, day=28)
+
+    @property
+    def interet_total(self):
+        return float(self.montant) * float(self.taux_annuel) / 100 * self.duree_mois / 12
+
+    @property
+    def interet_accumule(self):
+        jours = max((date.today() - self.date_debut).days, 0)
+        return min(float(self.montant) * float(self.taux_annuel) / 100 * jours / 365, self.interet_total)
+
+
+
+
     
 
 

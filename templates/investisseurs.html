@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Gestion des investisseurs - GMES Haiti</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root { --navy:#0a2a5e; --navy2:#0d3270; --blue:#0b63d8; --green:#0f8a4f; --line:#e4e9f2; }
+        body { background:#f4f7fb; font-family: "Segoe UI", Arial, sans-serif; color:#1c2b4a; }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar { position:fixed; inset:0 auto 0 0; width:240px; background:linear-gradient(180deg,#0a2a5e,#0b2f68);
+                   color:#fff; display:flex; flex-direction:column; z-index:1040; transition:transform .25s; }
+        .brand { display:flex; align-items:center; gap:12px; padding:20px 18px; }
+        .brand-logo { width:46px; height:46px; border-radius:12px; background:#fff; color:var(--navy);
+                      display:flex; align-items:center; justify-content:center; font-size:1.6rem; }
+        .brand b { font-size:1.2rem; display:block; line-height:1.1; }
+        .brand small { opacity:.8; font-size:.72rem; }
+        .menu { padding:8px 10px; flex:1; overflow-y:auto; }
+        .menu a { display:flex; align-items:center; gap:12px; padding:11px 14px; margin-bottom:4px; border-radius:8px;
+                  color:#dbe6ff; text-decoration:none; font-size:.93rem; }
+        .menu a:hover { background:rgba(255,255,255,.1); color:#fff; }
+        .menu a.active { background:#0b63d8; color:#fff; font-weight:600; }
+        .menu i { font-size:1.15rem; }
+        .side-user { border-top:1px solid rgba(255,255,255,.15); padding:14px 18px; display:flex; align-items:center; gap:10px; }
+        .side-user small { opacity:.75; display:block; }
+
+        /* ===== CONTENU ===== */
+        .content { margin-left:240px; min-height:100vh; }
+        .topbar { background:#fff; border-bottom:1px solid var(--line); padding:12px 28px;
+                  display:flex; align-items:center; justify-content:space-between; }
+        .topbar .right { display:flex; align-items:center; gap:22px; font-size:.85rem; color:#47577a; }
+        .bell { position:relative; font-size:1.25rem; color:var(--navy); text-decoration:none; }
+        .bell span { position:absolute; top:-6px; right:-8px; background:#dc3545; color:#fff; font-size:.6rem;
+                     border-radius:50%; padding:2px 5px; }
+        .page { padding:24px 28px 40px; }
+        .page-title { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:22px; }
+        .page-title h1 { font-size:1.55rem; font-weight:700; color:var(--navy); margin:0; }
+        .page-title p { margin:2px 0 0; color:#6b7a99; font-size:.9rem; }
+        .title-icon { font-size:2.3rem; color:var(--blue); margin-right:14px; }
+        .btn-add { background:var(--green); color:#fff; font-weight:600; padding:11px 22px; border-radius:8px; border:0; }
+        .btn-add:hover { background:#0b7340; color:#fff; }
+
+        /* ===== CARTES STATS ===== */
+        .kpi { border-radius:12px; padding:18px 20px; display:flex; gap:16px; align-items:flex-start; border:1px solid; height:100%; }
+        .kpi .ico { width:46px; height:46px; border-radius:50%; color:#fff; display:flex; align-items:center;
+                    justify-content:center; font-size:1.3rem; flex-shrink:0; }
+        .kpi .lbl { font-size:.88rem; font-weight:600; }
+        .kpi .val { font-size:1.65rem; font-weight:700; color:var(--navy); line-height:1.25; }
+        .kpi .val small { font-size:.95rem; font-weight:500; }
+        .kpi .trend { font-size:.78rem; color:var(--green); }
+        .kpi-blue  { background:#eef5ff; border-color:#cfe0fb; } .kpi-blue .ico  { background:#0b63d8; } .kpi-blue .lbl  { color:#0b63d8; }
+        .kpi-green { background:#ecfaf3; border-color:#c4ebd6; } .kpi-green .ico { background:#0f8a4f; } .kpi-green .lbl { color:#0f8a4f; }
+        .kpi-purple{ background:#f5f0ff; border-color:#ddd0f7; } .kpi-purple .ico{ background:#7c4dd6; } .kpi-purple .lbl{ color:#7c4dd6; }
+        .kpi-cyan  { background:#eafafd; border-color:#bfeaf1; } .kpi-cyan .ico  { background:#0ea5c0; } .kpi-cyan .lbl  { color:#0b8aa1; }
+
+        /* ===== FILTRES + TABLEAU ===== */
+        .box { background:#fff; border:1px solid var(--line); border-radius:12px; }
+        .filters { padding:14px; margin:22px 0 14px; }
+        .table-box thead th { background:#f4f7fc; color:#33466d; font-size:.76rem; font-weight:700; white-space:nowrap;
+                              border-bottom:1px solid var(--line); padding:13px 10px; }
+        .table-box tbody td { font-size:.8rem; padding:12px 10px; vertical-align:middle; border-color:#eef1f7; }
+        .avatar { width:40px; height:40px; border-radius:50%; object-fit:cover; flex-shrink:0; }
+        .avatar-init { width:40px; height:40px; border-radius:50%; color:#fff; font-weight:700; font-size:.85rem;
+                       display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .inv-name { font-weight:600; color:var(--navy); line-height:1.2; }
+        .inv-code { color:#6b7a99; font-size:.72rem; }
+        .st { display:inline-block; padding:4px 14px; border-radius:6px; font-size:.75rem; font-weight:600; }
+        .st-actif { background:#d7f3e3; color:#0f7a45; }
+        .st-en_attente { background:#fff0cf; color:#b86e00; }
+        .st-inactif { background:#e7e9ee; color:#555e70; }
+        .act { width:30px; height:30px; border-radius:50%; border:0; background:transparent; color:#33466d; }
+        .act:hover { background:#eef3fb; }
+        .doc-card { border:1px solid var(--line); border-radius:8px; padding:10px; display:flex; gap:10px; align-items:center; }
+        .doc-card img { width:64px; height:44px; object-fit:cover; border-radius:4px; border:1px solid var(--line); }
+        .doc-ph { width:64px; height:44px; background:#eef3fb; border-radius:4px; display:flex; align-items:center;
+                  justify-content:center; color:#6b7a99; font-size:1.4rem; }
+        .pagination .page-link { border-radius:6px; margin:0 2px; color:#33466d; }
+        .pagination .active .page-link { background:var(--blue); border-color:var(--blue); color:#fff; }
+
+        /* ===== FICHE DÉTAIL ===== */
+        .nav-tabs .nav-link { color:#47577a; font-size:.88rem; border:0; border-bottom:3px solid transparent; }
+        .nav-tabs .nav-link.active { color:var(--blue); font-weight:600; border-bottom-color:var(--blue); background:transparent; }
+        .pane-title { padding:9px 14px; font-weight:700; font-size:.9rem; border-radius:8px 8px 0 0; }
+        .pane-blue { background:#e6f0fc; color:#0b3a7a; } .pane-green { background:#e3f6ec; color:#0b6a3b; }
+        .pane-body { border:1px solid var(--line); border-top:0; border-radius:0 0 8px 8px; padding:14px; }
+        .kv { display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid #f0f2f7; font-size:.88rem; }
+        .kv:last-child { border:0; }
+
+        @media (max-width: 992px) {
+            .sidebar { transform:translateX(-100%); } .sidebar.open { transform:none; }
+            .content { margin-left:0; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Messages Flash Flask -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash-message flash-{{ category }}">
+                    {% if category == 'success' %}
+                        <span class="flash-icon">✅</span>
+                    {% elif category == 'danger' or category == 'error' %}
+                        <span class="flash-icon">❌</span>
+                    {% elif category == 'warning' %}
+                        <span class="flash-icon">⚠️</span>
+                    {% elif category == 'info' %}
+                        <span class="flash-icon">ℹ️</span>
+                    {% else %}
+                        <span class="flash-icon">📢</span>
+                    {% endif %}
+
+                    <span>{{ message }}</span>
+
+                    <button type="button"
+                            class="flash-close"
+                            onclick="this.parentElement.remove()">
+                        ×
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<!-- ================= MENU LATÉRAL ================= -->
+<aside class="sidebar" id="sidebar">
+    <div class="brand">
+        <div class="brand-logo"><i class="bi bi-bank2"></i></div>
+        <div><b>GMES Haiti</b><small>Votre partenaire financier</small></div>
+    </div>
+    <nav class="menu">
+        <!-- Remplace les "#" par tes vrais url_for(...) -->
+        <a href="{{ url_for('admin_dashboard') }}"><i class="bi bi-house-door"></i> Tableau de bord</a>
+        <a href="#"><i class="bi bi-people"></i> Clients</a>
+        <a href="#"><i class="bi bi-wallet2"></i> Comptes</a>
+        <a href="#"><i class="bi bi-piggy-bank"></i> Épargnes</a>
+        <a href="{{ url_for('liste_investisseurs') }}" class="active"><i class="bi bi-person-badge-fill"></i> Investisseurs</a>
+        <a href="#"><i class="bi bi-cash-coin"></i> Crédits</a>
+        <a href="#"><i class="bi bi-arrow-left-right"></i> Transactions</a>
+        <a href="{{ url_for('admin_rapports') }}"><i class="bi bi-bar-chart-line"></i> Rapports</a>
+        <a href="{{ url_for('parametres') }}"><i class="bi bi-gear"></i> Paramètres</a>
+    </nav>
+    <div class="side-user">
+        <div class="avatar-init" style="background:#3a6fd8">{{ (current_user.prenom or current_user.username)[:1]|upper }}</div>
+        <div style="flex:1">
+            <b style="font-size:.9rem">{{ current_user.prenom or '' }} {{ current_user.nom or current_user.username }}</b>
+            <small>{{ current_user.role|replace('_',' ')|capitalize }}</small>
+        </div>
+        <a href="{{ url_for('deconnexion') }}" class="text-white" title="Déconnexion"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+</aside>
+
+<div class="content">
+    <!-- ================= BARRE DU HAUT ================= -->
+    <div class="topbar">
+        <button class="btn btn-link text-dark d-lg-none p-0" onclick="document.getElementById('sidebar').classList.toggle('open')">
+            <i class="bi bi-list fs-3"></i>
+        </button>
+        <i class="bi bi-list fs-4 d-none d-lg-block" style="color:var(--navy)"></i>
+        <div class="right">
+            <a href="{{ url_for('admin_notifications') }}" class="bell">
+                <i class="bi bi-bell"></i>
+                {% if unread_notifications %}<span>{{ unread_notifications }}</span>{% endif %}
+            </a>
+            <span class="d-none d-md-inline"><i class="bi bi-geo-alt me-1"></i>
+                Succursale : {{ current_user.succursale.nom if current_user.succursale else 'Toutes' }}</span>
+            <span class="d-none d-md-inline"><i class="bi bi-clock me-1"></i>{{ now.strftime('%d %b. %Y %H:%M') }}</span>
+        </div>
+    </div>
+
+    <div class="page">
+
+        <!-- Messages flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category in ('danger','error') else category }} alert-dismissible fade show">
+                    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endwith %}
+
+        <!-- ================= TITRE ================= -->
+        <div class="page-title">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-people-fill title-icon"></i>
+                <div>
+                    <h1>Gestion des investisseurs</h1>
+                    <p>Consultez et gérez tous les investisseurs de GMES Haiti</p>
+                </div>
+            </div>
+            <button class="btn-add" data-bs-toggle="modal" data-bs-target="#modalInvestisseur">
+                <i class="bi bi-plus-lg me-2"></i>Ajouter un investisseur
+            </button>
+        </div>
+
+        <!-- ================= CARTES ================= -->
+        <div class="row g-3">
+            <div class="col-md-6 col-xl-3">
+                <div class="kpi kpi-blue">
+                    <div class="ico"><i class="bi bi-people"></i></div>
+                    <div>
+                        <div class="lbl">Total investisseurs</div>
+                        <div class="val">{{ stats.nb_investisseurs }}</div>
+                        <div class="trend"><i class="bi bi-arrow-up"></i> +{{ stats.nouveaux_mois }} ce mois</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="kpi kpi-green">
+                    <div class="ico"><i class="bi bi-building"></i></div>
+                    <div>
+                        <div class="lbl">Investissement total</div>
+                        <div class="val">{{ '{:,.0f}'.format(stats.total_investi) }} <small>HTG</small></div>
+                        <div class="trend"><i class="bi bi-arrow-up"></i> +{{ '{:,.0f}'.format(stats.investi_mois) }} ce mois</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="kpi kpi-purple">
+                    <div class="ico"><i class="bi bi-graph-up-arrow"></i></div>
+                    <div>
+                        <div class="lbl">Intérêts cumulés</div>
+                        <div class="val">{{ '{:,.0f}'.format(stats.total_interets) }} <small>HTG</small></div>
+                        <div class="trend"><i class="bi bi-arrow-up"></i> Sur la durée des contrats</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="kpi kpi-cyan">
+                    <div class="ico"><i class="bi bi-safe2"></i></div>
+                    <div>
+                        <div class="lbl">Montant total à recevoir</div>
+                        <div class="val">{{ '{:,.0f}'.format(stats.total_investi + stats.total_interets) }} <small>HTG</small></div>
+                        <div class="trend"><i class="bi bi-arrow-up"></i> Capital + intérêts</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= FILTRES ================= -->
+        <form method="GET" class="box filters">
+            <div class="row g-2 align-items-center">
+                <div class="col-lg-4">
+                    <div class="input-group">
+                        <input type="text" name="q" value="{{ q }}" class="form-control"
+                               placeholder="Rechercher un investisseur (nom, compte, téléphone...)">
+                        <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <select name="statut" class="form-select" onchange="this.form.submit()">
+                        <option value="">Tous les statuts</option>
+                        {% for v, l in [('actif','Actif'),('en_attente','En attente'),('inactif','Inactif')] %}
+                        <option value="{{ v }}" {% if statut == v %}selected{% endif %}>{{ l }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <select name="type" class="form-select" onchange="this.form.submit()">
+                        <option value="">Tous les types</option>
+                        {% for t in types_investissement %}
+                        <option value="{{ t }}" {% if type == t %}selected{% endif %}>{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <select name="succursale" class="form-select" onchange="this.form.submit()">
+                        <option value="">Toutes les succursales</option>
+                        {% for s in succursales %}
+                        <option value="{{ s.id }}" {% if succursale_id == s.id %}selected{% endif %}>{{ s.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-lg-2 d-grid">
+                    <a href="{{ url_for('liste_investisseurs') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Réinitialiser
+                    </a>
+                </div>
+            </div>
+        </form>
+
+        <!-- ================= TABLEAU ================= -->
+        <div class="box table-box">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>#</th><th>Investisseur</th><th>Compte</th><th>Téléphone</th><th>Email</th>
+                            <th>Adresse</th><th>Investissement total</th><th>Intérêts cumulés</th>
+                            <th>Total à recevoir</th><th>Statut</th><th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% set couleurs = ['#7c4dd6','#0b63d8','#0f8a4f','#d6336c','#e8590c','#0ea5c0'] %}
+                    {% for inv in pagination.items %}
+                        <tr>
+                            <td>{{ (pagination.page - 1) * pagination.per_page + loop.index }}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    {% if inv.photo %}
+                                        <img class="avatar" src="{{ url_for('static', filename='uploads/' ~ inv.photo) }}" alt="">
+                                    {% else %}
+                                        <div class="avatar-init" style="background:{{ couleurs[inv.id % 6] }}">
+                                            {{ inv.prenom[:1]|upper }}{{ inv.nom[:1]|upper }}</div>
+                                    {% endif %}
+                                    <div>
+                                        <div class="inv-name">{{ inv.prenom }} {{ inv.nom }}</div>
+                                        <div class="inv-code">INV-{{ '%04d'|format(inv.id) }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ inv.numero_compte }}</td>
+                            <td>{{ inv.telephone }}</td>
+                            <td>{{ inv.email }}</td>
+                            <td>{{ inv.adresse }}</td>
+                            <td>{{ '{:,.0f}'.format(inv.total_investi) }}</td>
+                            <td>{{ '{:,.0f}'.format(inv.total_interets) }}</td>
+                            <td><strong>{{ '{:,.0f}'.format(inv.total_investi + inv.total_interets) }}</strong></td>
+                            <td><span class="st st-{{ inv.statut }}">{{ inv.statut|replace('_',' ')|capitalize }}</span></td>
+                            <td class="text-nowrap">
+                                <button class="act" title="Voir" onclick="ouvrirDetail({{ inv.id }})"><i class="bi bi-eye"></i></button>
+                                <button class="act" title="Modifier" onclick="ouvrirDetail({{ inv.id }})"><i class="bi bi-pencil"></i></button>
+                                <button class="act" title="Plus"><i class="bi bi-three-dots"></i></button>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="11" class="text-center text-muted py-5">Aucun investisseur trouvé.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-3">
+                <small class="text-muted">
+                    {% if pagination.total %}
+                    Affichage de {{ (pagination.page - 1) * pagination.per_page + 1 }} à
+                    {{ (pagination.page - 1) * pagination.per_page + pagination.items|length }}
+                    sur {{ pagination.total }} investisseurs
+                    {% else %}Aucun résultat{% endif %}
+                </small>
+                {% if pagination.pages > 1 %}
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('liste_investisseurs', page=pagination.prev_num, q=q, statut=statut, type=type, succursale=succursale_id) }}">&lsaquo;</a>
+                    </li>
+                    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if p %}
+                        <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('liste_investisseurs', page=p, q=q, statut=statut, type=type, succursale=succursale_id) }}">{{ p }}</a>
+                        </li>
+                        {% else %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('liste_investisseurs', page=pagination.next_num, q=q, statut=statut, type=type, succursale=succursale_id) }}">&rsaquo;</a>
+                    </li>
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= MODAL : FICHE DÉTAIL ================= -->
+<div class="modal fade" id="modalDetail" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-body p-0" id="detailBody">
+        <div class="text-center p-5 text-muted">Chargement…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL : AJOUTER ================= -->
+<div class="modal fade" id="modalInvestisseur" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('ajouter_investisseur') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header" style="background:var(--green);color:#fff">
+          <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Ajouter un investisseur</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+
+          <h6 class="text-primary mb-3">Informations personnelles</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6"><label class="form-label">Nom *</label><input name="nom" class="form-control" required></div>
+            <div class="col-md-6"><label class="form-label">Prénom *</label><input name="prenom" class="form-control" required></div>
+            <div class="col-md-6"><label class="form-label">N° de compte</label>
+                <input name="numero_compte" class="form-control" placeholder="Vide = généré automatiquement"></div>
+            <div class="col-md-6"><label class="form-label">Photo</label>
+                <input type="file" name="photo" class="form-control" accept=".jpg,.jpeg,.png"></div>
+            <div class="col-md-6"><label class="form-label">Téléphone *</label>
+                <input type="tel" name="telephone" class="form-control" placeholder="+509 ..." required></div>
+            <div class="col-md-6"><label class="form-label">Email *</label>
+                <input type="email" name="email" class="form-control" required></div>
+            <div class="col-12"><label class="form-label">Adresse *</label><input name="adresse" class="form-control" required></div>
+            <div class="col-md-4"><label class="form-label">Profession</label><input name="profession" class="form-control"></div>
+            <div class="col-md-4"><label class="form-label">Revenu mensuel (HTG)</label>
+                <input type="number" step="0.01" min="0" name="revenu_mensuel" class="form-control"></div>
+            <div class="col-md-4"><label class="form-label">Type d'investissement</label>
+                <select name="type_investissement" class="form-select">
+                    {% for t in types_investissement %}<option>{{ t }}</option>{% endfor %}
+                </select></div>
+            <div class="col-md-6"><label class="form-label">Succursale</label>
+                <select name="succursale_id" class="form-select">
+                    <option value="">—</option>
+                    {% for s in succursales %}<option value="{{ s.id }}">{{ s.nom }}</option>{% endfor %}
+                </select></div>
+          </div>
+
+          <h6 class="text-primary mb-3">Pièces d'identité (2 obligatoires, de types différents)</h6>
+          <div class="row g-3">
+            {% for n in [1, 2] %}
+            <div class="col-md-6">
+              <div class="border rounded p-3 bg-light">
+                <strong>Pièce n° {{ n }}</strong>
+                <select name="piece{{ n }}_type" class="form-select form-select-sm mt-2" required>
+                  <option value="">Type de pièce…</option>
+                  <option value="Carte d'identité nationale">Carte d'identité nationale</option>
+                  <option value="Passeport">Passeport</option>
+                  <option value="Permis de conduire">Permis de conduire</option>
+                  <option value="NIF">NIF</option>
+                </select>
+                <input name="piece{{ n }}_numero" class="form-control form-control-sm mt-2" placeholder="Numéro" required>
+                <label class="small text-muted mt-2">Date d'émission</label>
+                <input type="date" name="piece{{ n }}_date" class="form-control form-control-sm" required>
+                <input type="file" name="piece{{ n }}_fichier" class="form-control form-control-sm mt-2"
+                       accept=".jpg,.jpeg,.png,.pdf" required>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <small class="text-muted d-block mt-2">JPG, PNG ou PDF, 5 Mo maximum par fichier.</small>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-success"><i class="bi bi-save me-1"></i>Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const fmt = n => new Intl.NumberFormat('en-US', {maximumFractionDigits: 0}).format(n);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const badge = s => `<span class="st st-${esc(s)}">${esc(s.replace('_',' '))}</span>`;
+
+function pieceHtml(id, n, p) {
+    const apercu = p.ext === 'pdf'
+        ? `<div class="doc-ph"><i class="bi bi-file-earmark-pdf"></i></div>`
+        : `<img src="/investisseurs/piece/${id}/${n}" alt="">`;
+    return `<div class="col-6"><a class="doc-card text-decoration-none text-dark" target="_blank"
+                href="/investisseurs/piece/${id}/${n}">${apercu}
+                <div style="font-size:.75rem"><b>${esc(p.type)}</b><br>Numéro : ${esc(p.numero)}<br>
+                Émise le : ${esc(p.date)}</div></a></div>`;
+}
+
+function ouvrirDetail(id) {
+    const body = document.getElementById('detailBody');
+    body.innerHTML = '<div class="text-center p-5 text-muted">Chargement…</div>';
+    new bootstrap.Modal(document.getElementById('modalDetail')).show();
+
+    fetch(`/investisseurs/${id}/json`, {credentials: 'same-origin'})
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(d => {
+        const lignes = d.investissements.map(i => `
+            <tr><td>${esc(i.date)}</td><td>${fmt(i.montant)}</td><td>${i.taux}%</td>
+                <td>${esc(i.echeance)}</td>
+                <td><span class="st ${i.statut === 'en_cours' ? 'st-en_attente' : 'st-actif'}">
+                    ${esc(i.statut.replace('_',' '))}</span></td></tr>`).join('')
+            || '<tr><td colspan="5" class="text-center text-muted">Aucun investissement</td></tr>';
+
+        const photo = d.photo
+            ? `<img src="${esc(d.photo)}" class="rounded-circle" style="width:72px;height:72px;object-fit:cover">`
+            : `<div class="avatar-init" style="width:72px;height:72px;font-size:1.4rem;background:#0b63d8">${esc(d.initiales)}</div>`;
+
+        body.innerHTML = `
+        <div class="d-flex justify-content-end p-2"><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="row g-0 px-4 pb-4">
+          <div class="col-lg-4 pe-lg-4">
+            <div class="d-flex gap-3 align-items-center mb-3">${photo}
+              <div><h4 class="mb-1" style="color:var(--navy)">${esc(d.nom_complet)}</h4>
+              ${badge(d.statut)}<div class="inv-code mt-1">${esc(d.code)}</div></div></div>
+            <div class="mb-2"><small class="text-muted">Téléphone</small><div>${esc(d.telephone)}</div></div>
+            <div class="mb-2"><small class="text-muted">Email</small><div>${esc(d.email)}</div></div>
+            <div class="mb-3"><small class="text-muted">Adresse</small><div>${esc(d.adresse)}</div></div>
+            <h6 class="mt-4">Pièces d'identité</h6>
+            <div class="row g-2">${pieceHtml(d.id, 1, d.piece1)}${pieceHtml(d.id, 2, d.piece2)}</div>
+          </div>
+          <div class="col-lg-8">
+            <ul class="nav nav-tabs mb-3" role="tablist">
+              <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#t-res"><i class="bi bi-person me-1"></i>Résumé</button></li>
+              <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-inv"><i class="bi bi-building me-1"></i>Investissements</button></li>
+              <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-doc"><i class="bi bi-file-earmark-text me-1"></i>Documents</button></li>
+            </ul>
+            <div class="tab-content">
+              <div class="tab-pane fade show active" id="t-res">
+                <div class="row g-3">
+                  <div class="col-md-7">
+                    <div class="pane-title pane-blue">Compte d'investissement</div>
+                    <div class="pane-body">
+                      <div class="d-flex justify-content-between"><b>Compte n° ${esc(d.numero_compte)}</b>${badge(d.statut)}</div>
+                      <div class="mt-2">Type : Compte d'investissement</div>
+                      <div>Ouverture : ${esc(d.date_creation)}</div>
+                    </div>
+                    <div class="pane-title pane-blue mt-3">Investissements</div>
+                    <div class="pane-body p-0"><table class="table table-sm mb-0" style="font-size:.82rem">
+                      <thead><tr><th>Date</th><th>Montant investi</th><th>Taux</th><th>Échéance</th><th>Statut</th></tr></thead>
+                      <tbody>${lignes}</tbody></table>
+                      <div class="p-2 bg-light fw-semibold">Total investi : ${fmt(d.total_investi)} HTG</div></div>
+                  </div>
+                  <div class="col-md-5">
+                    <div class="pane-title pane-green">Résumé financier</div>
+                    <div class="pane-body">
+                      <div class="kv"><span>Investissement total</span><span>${fmt(d.total_investi)} HTG</span></div>
+                      <div class="kv"><span>Intérêts cumulés</span><span>${fmt(d.total_interets)} HTG</span></div>
+                      <div class="kv"><b>Total à recevoir</b><b class="text-success">${fmt(d.total_investi + d.total_interets)} HTG</b></div>
+                    </div>
+                    <div class="pane-title pane-green mt-3">Informations complémentaires</div>
+                    <div class="pane-body">
+                      <div class="kv"><span>Revenu mensuel</span><span>${d.revenu_mensuel ? fmt(d.revenu_mensuel) + ' HTG' : '—'}</span></div>
+                      <div class="kv"><span>Profession</span><span>${esc(d.profession || '—')}</span></div>
+                      <div class="kv"><span>Type d'investissement</span><span>${esc(d.type_investissement || '—')}</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="tab-pane fade" id="t-inv"><table class="table table-sm" style="font-size:.85rem">
+                <thead><tr><th>Date</th><th>Montant</th><th>Taux</th><th>Échéance</th><th>Statut</th></tr></thead>
+                <tbody>${lignes}</tbody></table></div>
+              <div class="tab-pane fade" id="t-doc"><div class="row g-2">
+                ${pieceHtml(d.id, 1, d.piece1)}${pieceHtml(d.id, 2, d.piece2)}</div></div>
+            </div>
+          </div>
+        </div>`;
+      })
+      .catch(() => { body.innerHTML = '<div class="alert alert-danger m-4">Impossible de charger la fiche.</div>'; });
+}
+</script>
+</body>
+</html>
