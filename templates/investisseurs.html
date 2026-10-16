@@ -81,6 +81,13 @@
         .pagination .page-link { border-radius:6px; margin:0 2px; color:#33466d; }
         .pagination .active .page-link { background:var(--blue); border-color:var(--blue); color:#fff; }
 
+        /* ===== CORRECTION DU FORMULAIRE D'AJOUT (défilement + bouton visible) ===== */
+        .modal-dialog-scrollable .modal-content > form {
+            display:flex; flex-direction:column; flex:1 1 auto; min-height:0; overflow:hidden;
+        }
+        .modal-dialog-scrollable .modal-content > form .modal-body { overflow-y:auto; }
+        .modal-dialog-scrollable .modal-content > form .modal-footer { background:#fff; }
+
         /* ===== FICHE DÉTAIL ===== */
         .nav-tabs .nav-link { color:#47577a; font-size:.88rem; border:0; border-bottom:3px solid transparent; }
         .nav-tabs .nav-link.active { color:var(--blue); font-weight:600; border-bottom-color:var(--blue); background:transparent; }
@@ -97,37 +104,6 @@
     </style>
 </head>
 <body>
-
-<!-- Messages Flash Flask -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        <div class="flash-messages">
-            {% for category, message in messages %}
-                <div class="flash-message flash-{{ category }}">
-                    {% if category == 'success' %}
-                        <span class="flash-icon">✅</span>
-                    {% elif category == 'danger' or category == 'error' %}
-                        <span class="flash-icon">❌</span>
-                    {% elif category == 'warning' %}
-                        <span class="flash-icon">⚠️</span>
-                    {% elif category == 'info' %}
-                        <span class="flash-icon">ℹ️</span>
-                    {% else %}
-                        <span class="flash-icon">📢</span>
-                    {% endif %}
-
-                    <span>{{ message }}</span>
-
-                    <button type="button"
-                            class="flash-close"
-                            onclick="this.parentElement.remove()">
-                        ×
-                    </button>
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
-{% endwith %}
 
 <!-- ================= MENU LATÉRAL ================= -->
 <aside class="sidebar" id="sidebar">
@@ -177,7 +153,7 @@
 
     <div class="page">
 
-        <!-- Messages flash -->
+        <!-- Messages flash (un seul bloc) -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% for category, message in messages %}
                 <div class="alert alert-{{ 'danger' if category in ('danger','error') else category }} alert-dismissible fade show">
@@ -326,8 +302,7 @@
                             <td><span class="st st-{{ inv.statut }}">{{ inv.statut|replace('_',' ')|capitalize }}</span></td>
                             <td class="text-nowrap">
                                 <button class="act" title="Voir" onclick="ouvrirDetail({{ inv.id }})"><i class="bi bi-eye"></i></button>
-                                <button class="act" title="Modifier" onclick="ouvrirDetail({{ inv.id }})"><i class="bi bi-pencil"></i></button>
-                                <button class="act" title="Plus"><i class="bi bi-three-dots"></i></button>
+                                <button class="act" title="Investissements" onclick="ouvrirDetail({{ inv.id }}, 'inv')"><i class="bi bi-cash-stack"></i></button>
                             </td>
                         </tr>
                     {% else %}
@@ -378,7 +353,7 @@
   </div>
 </div>
 
-<!-- ================= MODAL : AJOUTER ================= -->
+<!-- ================= MODAL : AJOUTER UN INVESTISSEUR ================= -->
 <div class="modal fade" id="modalInvestisseur" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
@@ -431,19 +406,20 @@
                   <option value="NIF">NIF</option>
                 </select>
                 <input name="piece{{ n }}_numero" class="form-control form-control-sm mt-2" placeholder="Numéro" required>
-                <label class="small text-muted mt-2">Date d'émission</label>
+                <label class="small text-muted mt-2">Date d'émission (jj/mm/aaaa)</label>
                 <input type="date" name="piece{{ n }}_date" class="form-control form-control-sm" required>
-                <input type="file" name="piece{{ n }}_fichier" class="form-control form-control-sm mt-2"
+                <label class="small text-muted mt-2">Fichier de la pièce (JPG, PNG ou PDF)</label>
+                <input type="file" name="piece{{ n }}_fichier" class="form-control form-control-sm"
                        accept=".jpg,.jpeg,.png,.pdf" required>
               </div>
             </div>
             {% endfor %}
           </div>
-          <small class="text-muted d-block mt-2">JPG, PNG ou PDF, 5 Mo maximum par fichier.</small>
+          <small class="text-muted d-block mt-2">5 Mo maximum par fichier.</small>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-          <button type="submit" class="btn btn-success"><i class="bi bi-save me-1"></i>Enregistrer</button>
+          <button type="submit" class="btn btn-success"><i class="bi bi-save me-1"></i>Enregistrer l'investisseur</button>
         </div>
       </form>
     </div>
@@ -452,6 +428,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const fmt = n => new Intl.NumberFormat('en-US', {maximumFractionDigits: 0}).format(n);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const badge = s => `<span class="st st-${esc(s)}">${esc(s.replace('_',' '))}</span>`;
@@ -466,20 +443,53 @@ function pieceHtml(id, n, p) {
                 Émise le : ${esc(p.date)}</div></a></div>`;
 }
 
-function ouvrirDetail(id) {
+function boutonStatut(id, statut, texte, classe) {
+    return `<form method="POST" action="/investisseurs/${id}/statut" class="d-inline"
+                  onsubmit="return confirm('${texte} cet investisseur ?')">
+                <input type="hidden" name="csrf_token" value="${CSRF}">
+                <input type="hidden" name="statut" value="${statut}">
+                <button class="btn btn-sm ${classe} w-100 mt-2">${texte}</button></form>`;
+}
+
+function ouvrirDetail(id, onglet) {
     const body = document.getElementById('detailBody');
     body.innerHTML = '<div class="text-center p-5 text-muted">Chargement…</div>';
-    new bootstrap.Modal(document.getElementById('modalDetail')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetail')).show();
 
     fetch(`/investisseurs/${id}/json`, {credentials: 'same-origin'})
       .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(d => {
         const lignes = d.investissements.map(i => `
             <tr><td>${esc(i.date)}</td><td>${fmt(i.montant)}</td><td>${i.taux}%</td>
+                <td class="text-success fw-semibold">${fmt(i.interet || 0)}</td>
                 <td>${esc(i.echeance)}</td>
                 <td><span class="st ${i.statut === 'en_cours' ? 'st-en_attente' : 'st-actif'}">
                     ${esc(i.statut.replace('_',' '))}</span></td></tr>`).join('')
-            || '<tr><td colspan="5" class="text-center text-muted">Aucun investissement</td></tr>';
+            || '<tr><td colspan="6" class="text-center text-muted">Aucun investissement</td></tr>';
+
+        const entete = '<thead><tr><th>Date</th><th>Montant</th><th>Taux</th><th>Intérêt</th><th>Échéance</th><th>Statut</th></tr></thead>';
+        const aujourdhui = new Date().toISOString().slice(0, 10);
+
+        const formInvestissement = d.statut === 'actif' ? `
+            <form method="POST" action="/investisseurs/${d.id}/investissement"
+                  class="row g-2 align-items-end mb-3 p-3 border rounded bg-light">
+              <input type="hidden" name="csrf_token" value="${CSRF}">
+              <div class="col-md-3"><label class="form-label small mb-1">Montant (HTG)</label>
+                <input type="number" name="montant" min="1" step="0.01" class="form-control form-control-sm" required></div>
+              <div class="col-md-2"><label class="form-label small mb-1">Taux annuel (%)</label>
+                <input type="number" name="taux_annuel" min="0.01" max="100" step="0.01" class="form-control form-control-sm" required></div>
+              <div class="col-md-2"><label class="form-label small mb-1">Durée (mois)</label>
+                <input type="number" name="duree_mois" min="1" max="120" value="12" class="form-control form-control-sm" required></div>
+              <div class="col-md-3"><label class="form-label small mb-1">Date de début</label>
+                <input type="date" name="date_debut" value="${aujourdhui}" class="form-control form-control-sm" required></div>
+              <div class="col-md-2 d-grid"><button class="btn btn-success btn-sm">➕ Ajouter</button></div>
+            </form>`
+          : `<div class="alert alert-warning small">Cet investisseur doit être <b>actif</b> pour recevoir un investissement.
+             Vérifiez ses pièces d'identité puis cliquez sur « Valider et activer ».</div>`;
+
+        const actionStatut = d.statut === 'actif'
+            ? boutonStatut(d.id, 'inactif', 'Désactiver', 'btn-outline-secondary')
+            : boutonStatut(d.id, 'actif', d.statut === 'en_attente' ? 'Valider et activer' : 'Réactiver', 'btn-success');
 
         const photo = d.photo
             ? `<img src="${esc(d.photo)}" class="rounded-circle" style="width:72px;height:72px;object-fit:cover">`
@@ -497,15 +507,16 @@ function ouvrirDetail(id) {
             <div class="mb-3"><small class="text-muted">Adresse</small><div>${esc(d.adresse)}</div></div>
             <h6 class="mt-4">Pièces d'identité</h6>
             <div class="row g-2">${pieceHtml(d.id, 1, d.piece1)}${pieceHtml(d.id, 2, d.piece2)}</div>
+            ${actionStatut}
           </div>
           <div class="col-lg-8">
             <ul class="nav nav-tabs mb-3" role="tablist">
-              <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#t-res"><i class="bi bi-person me-1"></i>Résumé</button></li>
-              <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-inv"><i class="bi bi-building me-1"></i>Investissements</button></li>
+              <li class="nav-item"><button class="nav-link ${onglet === 'inv' ? '' : 'active'}" data-bs-toggle="tab" data-bs-target="#t-res"><i class="bi bi-person me-1"></i>Résumé</button></li>
+              <li class="nav-item"><button class="nav-link ${onglet === 'inv' ? 'active' : ''}" data-bs-toggle="tab" data-bs-target="#t-inv"><i class="bi bi-building me-1"></i>Investissements</button></li>
               <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#t-doc"><i class="bi bi-file-earmark-text me-1"></i>Documents</button></li>
             </ul>
             <div class="tab-content">
-              <div class="tab-pane fade show active" id="t-res">
+              <div class="tab-pane fade ${onglet === 'inv' ? '' : 'show active'}" id="t-res">
                 <div class="row g-3">
                   <div class="col-md-7">
                     <div class="pane-title pane-blue">Compte d'investissement</div>
@@ -515,9 +526,8 @@ function ouvrirDetail(id) {
                       <div>Ouverture : ${esc(d.date_creation)}</div>
                     </div>
                     <div class="pane-title pane-blue mt-3">Investissements</div>
-                    <div class="pane-body p-0"><table class="table table-sm mb-0" style="font-size:.82rem">
-                      <thead><tr><th>Date</th><th>Montant investi</th><th>Taux</th><th>Échéance</th><th>Statut</th></tr></thead>
-                      <tbody>${lignes}</tbody></table>
+                    <div class="pane-body p-0"><table class="table table-sm mb-0" style="font-size:.8rem">
+                      ${entete}<tbody>${lignes}</tbody></table>
                       <div class="p-2 bg-light fw-semibold">Total investi : ${fmt(d.total_investi)} HTG</div></div>
                   </div>
                   <div class="col-md-5">
@@ -536,9 +546,13 @@ function ouvrirDetail(id) {
                   </div>
                 </div>
               </div>
-              <div class="tab-pane fade" id="t-inv"><table class="table table-sm" style="font-size:.85rem">
-                <thead><tr><th>Date</th><th>Montant</th><th>Taux</th><th>Échéance</th><th>Statut</th></tr></thead>
-                <tbody>${lignes}</tbody></table></div>
+              <div class="tab-pane fade ${onglet === 'inv' ? 'show active' : ''}" id="t-inv">
+                ${formInvestissement}
+                <table class="table table-sm" style="font-size:.85rem">${entete}<tbody>${lignes}</tbody>
+                  <tfoot class="table-light"><tr><th colspan="3">Totaux</th>
+                    <th class="text-success">${fmt(d.total_interets)}</th>
+                    <th colspan="2">Capital : ${fmt(d.total_investi)} HTG</th></tr></tfoot></table>
+              </div>
               <div class="tab-pane fade" id="t-doc"><div class="row g-2">
                 ${pieceHtml(d.id, 1, d.piece1)}${pieceHtml(d.id, 2, d.piece2)}</div></div>
             </div>
@@ -547,6 +561,10 @@ function ouvrirDetail(id) {
       })
       .catch(() => { body.innerHTML = '<div class="alert alert-danger m-4">Impossible de charger la fiche.</div>'; });
 }
+
+// Rouvre automatiquement la fiche après un ajout ou un changement de statut
+const voir = new URLSearchParams(location.search).get('voir');
+if (voir) { ouvrirDetail(parseInt(voir, 10), 'inv'); }
 </script>
 </body>
 </html>

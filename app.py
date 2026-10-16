@@ -31985,6 +31985,79 @@ def voir_piece_investisseur(inv_id, numero):
 
 
 
+# ==========================================================
+# INVESTISSEMENTS : AJOUT D'UN INVESTISSEMENT + CHANGEMENT DE STATUT
+# (à ajouter à la fin de app.py, après voir_piece_investisseur)
+# ==========================================================
+
+
+def _investisseur_autorise(inv):
+    """Même règle que les autres routes : rôle autorisé + même succursale (sauf super admin)."""
+    if current_user.role not in ['super_admin', 'admin_succursale', 'directeur', 'direction', 'admin_general']:
+        _abort(403)
+    if current_user.role != 'super_admin' and inv.succursale_id != getattr(current_user, 'succursale_id', None):
+        _abort(403)
+
+
+@app.route('/investisseurs/<int:inv_id>/investissement', methods=['POST'])
+@login_required
+def ajouter_investissement(inv_id):
+    inv = Investisseur.query.get_or_404(inv_id)
+    _investisseur_autorise(inv)
+
+    if inv.statut != 'actif':
+        flash("❌ L'investisseur doit être actif pour recevoir un investissement.", "danger")
+        return redirect(url_for('liste_investisseurs', voir=inv.id))
+
+    try:
+        montant = float(request.form.get('montant', '').replace(',', '.'))
+        taux = float(request.form.get('taux_annuel', '').replace(',', '.'))
+        duree = int(request.form.get('duree_mois', '12'))
+        debut = datetime.strptime(request.form.get('date_debut', ''), '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        flash("❌ Montant, taux, durée ou date invalide.", "danger")
+        return redirect(url_for('liste_investisseurs', voir=inv.id))
+
+    if montant <= 0 or not (0 < taux <= 100) or not (1 <= duree <= 120):
+        flash("❌ Valeurs hors limites (montant > 0, taux 0-100 %, durée 1-120 mois).", "danger")
+        return redirect(url_for('liste_investisseurs', voir=inv.id))
+
+    try:
+        db.session.add(Investissement(investisseur_id=inv.id, montant=montant,
+                                      taux_annuel=taux, duree_mois=duree, date_debut=debut))
+        db.session.commit()
+        flash(f"✅ Investissement de {montant:,.0f} HTG à {taux:g} % pendant {duree} mois enregistré.", "success")
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Erreur ajout investissement")
+        flash("❌ Erreur lors de l'enregistrement de l'investissement.", "danger")
+
+    return redirect(url_for('liste_investisseurs', voir=inv.id))
+
+
+@app.route('/investisseurs/<int:inv_id>/statut', methods=['POST'])
+@login_required
+def changer_statut_investisseur(inv_id):
+    inv = Investisseur.query.get_or_404(inv_id)
+    _investisseur_autorise(inv)
+
+    nouveau = request.form.get('statut')
+    if nouveau not in ('actif', 'en_attente', 'inactif'):
+        _abort(400)
+
+    try:
+        inv.statut = nouveau
+        db.session.commit()
+        flash(f"✅ Statut de {inv.prenom} {inv.nom} : {nouveau.replace('_', ' ')}.", "success")
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Erreur changement de statut investisseur")
+        flash("❌ Impossible de changer le statut.", "danger")
+
+    return redirect(url_for('liste_investisseurs', voir=inv.id))
+
+
+
 
 # === FONCTION D'INITIALISATION DE LA BASE ===
 def init_app_data():
