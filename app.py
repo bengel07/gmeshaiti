@@ -218,7 +218,10 @@ app.config['REMEMBER_COOKIE_SECURE'] = True
 
 app.config['DEBUG'] = os.getenv('FLASK_DEBUG') == '1'   # False par défaut
 
-app.config["APP_URL"] = os.environ.get("APP_URL","http://127.0.0.1:10000")
+app.config["APP_URL"] = os.environ.get(
+    "APP_URL",
+    "https://gmeshaiti.com"
+).rstrip("/")
 
 app.config.from_object(Config)  # ← Charge TOUTES les configs (y compris email)
 
@@ -4467,8 +4470,8 @@ def creer_dossier():
             # Créer le lien
             APP_URL = os.environ.get(
                 "APP_URL",
-                "http://127.0.0.1:10000"
-            )
+                "https://gmeshaiti.com"
+            ).rstrip("/")
 
             token = generer_token_conditions(nouveau_client)
             lien_terms = f"{APP_URL}/client/terms/{token}"
@@ -27110,7 +27113,7 @@ def generate_qr(user):
     db.session.commit()
 
     # URL pour le pointage
-    url = f"http://127.0.0.1:5000/punch/{token}"
+    url = f"{app.config['APP_URL'].rstrip('/')}/punch/{token}"
 
     # Générer le QR code
     qr = qrcode.make(url)
@@ -27385,7 +27388,7 @@ def generate_secure_qr(user):
     db.session.commit()
 
     # URL pour le pointage
-    url = f"http://127.0.0.1:5000/punch/{token}"
+    url = f"{app.config['APP_URL'].rstrip('/')}/punch/{token}"
 
     # Générer le QR code
     img = qrcode.make(url)
