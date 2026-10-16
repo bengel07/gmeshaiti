@@ -4607,21 +4607,44 @@ from models import db, Client  # Adaptez selon vos modèles
 
 
 @app.route('/supprimer-tous-clients', methods=['POST'])
+@login_required
 def supprimer_tous_clients():
+    from models import Client, Journal
+
+    # 1. Seul le super admin peut le faire
+    if current_user.role != 'super_admin':
+        app.logger.warning(f"Tentative de suppression de tous les clients par {current_user.username}")
+        abort(403)
+
+    # 2. Mot de confirmation obligatoire
+    if request.form.get('confirmation') != 'SUPPRIMER':
+        flash("❌ Confirmation incorrecte : aucune suppression effectuée.", "danger")
+        return redirect(url_for('admin_dashboard'))
+
     try:
-        # Méthode 1: Si vous utilisez SQLAlchemy ORM
+        nombre = Client.query.count()
         Client.query.delete()
         db.session.commit()
 
-        # Méthode 2: Si vous préférez du SQL direct
-        # db.engine.execute("DELETE FROM clients;")
+        # 3. Trace dans le journal
+        db.session.add(Journal(
+            employe_id=current_user.id,
+            action='SUPPRESSION_TOUS_CLIENTS',
+            details=f"{nombre} clients supprimés",
+            ip_address=request.remote_addr,
+            user_agent=request.user_agent.string
+        ))
+        db.session.commit()
 
-        flash('Tous les clients ont été supprimés avec succès!', 'success')
-    except Exception as e:
+        flash(f"✅ {nombre} clients supprimés.", "success")
+
+    except Exception:
         db.session.rollback()
-        flash(f'Erreur lors de la suppression: {str(e)}', 'error')
+        app.logger.exception("Erreur suppression de tous les clients")
+        flash("❌ Suppression impossible : des données dépendent encore de ces clients (crédits, comptes...).", "danger")
 
-    return redirect(url_for('employe_gestion_clients'))  # Redirigez vers la page appropriée
+    return redirect(url_for('admin_dashboard'))
+
 
 
 # Route pour voir le contenu du dossier employees

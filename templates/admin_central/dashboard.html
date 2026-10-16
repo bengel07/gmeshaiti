@@ -317,6 +317,27 @@
             }
         }
 
+        .sidebar > button.danger-item {
+            display: flex; align-items: center; width: 100%; min-height: 46px;
+            padding: 12px 14px; box-sizing: border-box; border: 1px solid #b02a37;
+            border-radius: 8px; background: #dc3545; color: #fff;
+            font: 600 14px/1.4 Arial, sans-serif; text-align: left; cursor: pointer;
+        }
+        .sidebar > button.danger-item:hover { background: #b02a37; }
+
+        .modal-gmes { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55);
+                      align-items: center; justify-content: center; z-index: 10000; }
+        .modal-gmes .boite { background: #fff; border-radius: 12px; padding: 26px; width: min(460px, 92%);
+                             box-shadow: 0 10px 40px rgba(0,0,0,.3); }
+        .modal-gmes h3 { margin: 0 0 10px; color: #b02a37; }
+        .modal-gmes input[type=text] { width: 100%; padding: 10px; margin: 12px 0; box-sizing: border-box;
+                                       border: 2px solid #dc3545; border-radius: 6px; font-size: 16px; }
+        .modal-gmes .actions { display: flex; justify-content: flex-end; gap: 10px; }
+        .modal-gmes button { padding: 10px 18px; border: 0; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .modal-gmes .btn-annuler { background: #e9ecef; }
+        .modal-gmes .btn-confirmer { background: #dc3545; color: #fff; }
+        .modal-gmes .btn-confirmer:disabled { opacity: .4; cursor: not-allowed; }
+
 
     </style>
 </head>
@@ -406,18 +427,12 @@
 
 <!--         #Ajoutez ce bouton où vous voulez dans votre template-->
 
-        <form action="{{ url_for('supprimer_tous_clients') }}"
-              method="POST"
-              onsubmit="return confirm('Attention : supprimer tous les clients est irréversible. Continuer ?');">
-
-            {% if csrf_token is defined %}
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            {% endif %}
-
-            <button type="submit" class="menu-item danger-item">
-                🗑️ Supprimer tous les clients
-            </button>
-        </form>
+        {% if current_user.role == 'super_admin' %}
+        <button type="button" class="menu-item danger-item"
+                onclick="document.getElementById('modalSuppression').style.display='flex'">
+            🗑️ Supprimer tous les clients
+        </button>
+        {% endif %}
 
 
         <a href="{{ url_for('super_admin.switcher') }}" class="btn-super-admin">
@@ -609,6 +624,28 @@
     {% endif %}
 </div>
 
+{% if current_user.role == 'super_admin' %}
+<div class="modal-gmes" id="modalSuppression">
+    <form class="boite" action="{{ url_for('supprimer_tous_clients') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <h3>⚠️ Supprimer tous les clients</h3>
+        <p>Cette action est <strong>irréversible</strong>. Pensez à faire une sauvegarde de la base avant.</p>
+        <p>Tapez <strong>SUPPRIMER</strong> pour confirmer :</p>
+        <input type="text" name="confirmation" id="champConfirmation" autocomplete="off">
+        <div class="actions">
+            <button type="button" class="btn-annuler"
+                    onclick="document.getElementById('modalSuppression').style.display='none'">Annuler</button>
+            <button type="submit" class="btn-confirmer" id="btnConfirmer" disabled>Supprimer définitivement</button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('champConfirmation').addEventListener('input', function () {
+    document.getElementById('btnConfirmer').disabled = (this.value !== 'SUPPRIMER');
+});
+</script>
+{% endif %}
 
 <!-- AJOUT 5: Toastr JS et script de notification -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
