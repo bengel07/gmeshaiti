@@ -214,7 +214,6 @@ app.config['REMEMBER_COOKIE_DURATION'] = timedelta(hours=2)
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_SECURE'] = True
 
-login_manager.session_protection = "strong"
 
 
 app.config['DEBUG'] = os.getenv('FLASK_DEBUG') == '1'   # False par défaut
@@ -275,6 +274,7 @@ logger = logging.getLogger(__name__)
 # Si tu utilises un Blueprint
 partner_portal_bp = Blueprint('partner_portal', __name__, url_prefix='/api/partner/portal')
 
+login_manager.session_protection = "strong"
 
 csrf.exempt(app.view_functions['auth.mobile_login'])
 csrf.exempt(app.view_functions['auth.mobile_register'])
