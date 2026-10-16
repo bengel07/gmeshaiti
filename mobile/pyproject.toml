@@ -13,3 +13,52 @@ dependencies = [
 org = "com.gmeshaiti"
 product = "GMES Haiti"
 company = "GMES Haiti"
+
+
+
+sudo journalctl -u gmes.service -f
+
+
+
+sudo journalctl -u gmes.service -n 20 --no-pager
+
+cmd /k deploy.bat
+
+
+git commit -m "Mise a jour Centre IT et deploiement"
+
+git push origin main
+
+
+Mise a jour Centre IT
+
+cd ~/gmeshaiti
+nano app.py
+
+
+sudo systemctl status gmes --no-pager -l
+sudo journalctl -u gmes -n 100 --no-pager
+sudo nginx -t
+
+sudo journalctl -u gmes -n 100 --no-pager -o cat
+
+
+nano ~/gmeshaiti/templates/admin_central/dashboard.html
+
+Efface tout (maintiens Ctrl+K), colle le contenu avec un clic droit, puis Ctrl+O, Entrée, Ctrl+X. Fais pareil pour investisseurs.html, avec nano ~/gmeshaiti/templates/investisseurs.html (le fichier est nouveau, il sera créé).
+
+
+nano ~/gmeshaiti/templates/investisseurs.html
+
+nano ~/gmeshaiti/templates/admin_central/dashboard.html
+
+
+sudo systemctl status gmes --no-pager -l
+
+sudo systemctl restart gmes
+
+cd ~/gmeshaiti
+.venv/bin/python -m py_compile app.py
+
+sudo systemctl restart gmes
+sudo systemctl status gmes --no-pager -l
