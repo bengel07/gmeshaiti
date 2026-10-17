@@ -3901,9 +3901,12 @@ def accepter_conditions(token):
 
     # ===== 2. VÉRIFIER SI DÉJÀ ACCEPTÉ =====
     if client.terms_accepted:
-        print(f"⚠️ Déjà accepté: {client.email}")
+        print(f"⚠️ Conditions déjà acceptées : {client.email}")
         flash("Vous avez déjà accepté les conditions", "info")
-        return redirect(url_for('connexion'))
+        return render_template(
+            "confirmation_signature.html",
+            client=client
+        )
 
     # ===== 3. CRÉER OU RÉCUPÉRER USER =====
     user = User.query.filter_by(email=client.email).first()
@@ -4073,7 +4076,12 @@ def accepter_conditions(token):
             return render_template("accepter_conditions.html", user=user, token_valide=True)
 
     # ===== 5. GET =====
-    return render_template('accepter_conditions.html', user=user, token_valide=True)
+    return render_template(
+        'accepter_conditions.html',
+        user=user,
+        token=token,
+        token_valide=True
+    )
 
 
 def generer_token_conditions(client):
