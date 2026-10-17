@@ -269,7 +269,9 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 # Créer le blueprint
 # employees_bp = Blueprint('employees', __name__, url_prefix='/employees')
 
+from werkzeug.middleware.proxy_fix import ProxyFix
 
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1) 
 import rappels_echeances
 
 logger = logging.getLogger(__name__)
@@ -23162,7 +23164,7 @@ def debug_liens_clients():
 
     html = "<h1>Liens de signature</h1>"
     for client in clients:
-        lien = url_for('client_terms', token=client.token_signature, _external=True)
+        lien = f"{app.config['APP_URL']}/client/terms/{client.token_signature}"
         html += f"""
         <div style="border:1px solid #ccc; margin:10px; padding:10px;">
             <h3>{client.prenom} {client.nom} (ID: {client.id})</h3>
@@ -24752,7 +24754,7 @@ def envoyer_confirmation_retrait(client_id):
     db.session.commit()
 
     # Construire le lien sécurisé
-    lien_signature = url_for('page_signature_client', token=token, _external=True)
+    lien_signature = f"{app.config['APP_URL']}/signature-client/{token}"
 
     # Préparer le contenu de l'email
     html_content = render_template('email_confirmation_retrait.html',
