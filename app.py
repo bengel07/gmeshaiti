@@ -31824,10 +31824,12 @@ def generer_numero_compte():
 
 
 def parse_date(valeur):
-    try:
-        return datetime.strptime(valeur, '%Y-%m-%d').date()
-    except (TypeError, ValueError):
-        return None
+    for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime((valeur or "").strip(), fmt).date()
+        except ValueError:
+            continue
+    return None
 
 
 
@@ -31911,7 +31913,7 @@ def detail_investisseur_json(inv_id):
         'piece1': piece(1), 'piece2': piece(2),
         'investissements': [{
             'date': i.date_debut.strftime('%d/%m/%Y'), 'montant': float(i.montant),
-            'taux': float(i.taux_annuel), 'echeance': i.date_echeance.strftime('%d/%m/%Y'),
+            'taux': float(i.taux_annuel), 'interet': i.interet_total, 'echeance': i.date_echeance.strftime('%d/%m/%Y'),
             'statut': i.statut} for i in sorted(inv.investissements, key=lambda x: x.date_debut)],
     })
 
