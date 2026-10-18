@@ -4126,7 +4126,7 @@ def creer_dossier():
     is_super_admin = (current_user.role == 'super_admin')
     is_conseiller = (current_user.role == 'employe' and current_user.fonction == 'conseiller')
 
-    if not (is_super_admin or is_conseiller):
+    if not (is_super_admin or is_conseiller or is_direction):
         flash('⛔ Accès non autorisé', 'danger')
         return redirect(url_for('employe_dashboard_generique'))
     # Récupérer la succursale du conseiller connecté
@@ -4272,7 +4272,9 @@ def creer_dossier():
 
         from decimal import Decimal, InvalidOperation
 
-        montant_initial_str = request.form.get('montant_initial', '').strip()
+        montant_initial_str = request.form.get(
+            'montant_initial', ''
+        ).strip()
 
         try:
             montant_initial = Decimal(montant_initial_str)
@@ -4287,16 +4289,37 @@ def creer_dossier():
                 succursale=succursale,
                 branch_code=branch_code,
                 produits_epargne=charger_produits_epargne(),
-                default_code=default_code,
-                default_suffix=default_suffix
+                default_code=numero_compte,
+                default_suffix=suffix
             )
 
-        montant_min = Decimal(str(produit_selectionne.depot_initial_min))
-        montant_max = Decimal(str(produit_selectionne.depot_initial_max))
+        try:
+            montant_min = Decimal(
+                str(produit_selectionne.depot_initial_min)
+            )
+            montant_max = Decimal(
+                str(produit_selectionne.depot_initial_max)
+            )
+        except (InvalidOperation, ValueError, TypeError, AttributeError):
+            raise ValueError(
+                "Les limites de dépôt du produit sélectionné "
+                "ne sont pas correctement configurées."
+            )
+
+        if (
+                not montant_min.is_finite()
+                or not montant_max.is_finite()
+                or montant_min < 0
+                or montant_max < montant_min
+        ):
+            raise ValueError(
+                "La configuration des dépôts minimum et maximum "
+                "de ce produit est invalide."
+            )
 
         if montant_initial < montant_min:
             flash(
-                f"Création impossible : le dépôt minimum pour ce produit est de "
+                f"Le dépôt minimum pour ce produit est de "
                 f"{montant_min} GDS.",
                 "danger"
             )
@@ -4306,13 +4329,13 @@ def creer_dossier():
                 succursale=succursale,
                 branch_code=branch_code,
                 produits_epargne=charger_produits_epargne(),
-                default_code=default_code,
-                default_suffix=default_suffix
+                default_code=numero_compte,
+                default_suffix=suffix
             )
 
         if montant_initial > montant_max:
             flash(
-                f"Création impossible : le dépôt maximum pour ce produit est de "
+                f"Le dépôt maximum pour ce produit est de "
                 f"{montant_max} GDS.",
                 "danger"
             )
@@ -4322,8 +4345,8 @@ def creer_dossier():
                 succursale=succursale,
                 branch_code=branch_code,
                 produits_epargne=charger_produits_epargne(),
-                default_code=default_code,
-                default_suffix=default_suffix
+                default_code=numero_compte,
+                default_suffix=suffix
             )
 
         # Validation
