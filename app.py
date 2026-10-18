@@ -6334,7 +6334,7 @@ def conseiller_dossier_en_attente(succursale_code=None):
 
         # ✅ FILTRE IMPORTANT : SEULEMENT les dossiers créés par CET agent
     dossiers = Client.query.filter_by(
-        employer_id=current_user.id,  # ← Clé : créé par CET agent
+        employe_id=current_user.id,  # ← Clé : créé par CET agent
     ).order_by(Client.date_inscription.desc()).all()
 
     print(f"✅ {len(dossiers)} dossier(s) trouvé(s) pour l'agent {current_user.prenom}")
