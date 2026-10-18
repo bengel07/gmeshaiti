@@ -574,7 +574,7 @@
                         max="{{ produit_selectionne.depot_initial_max if produit_selectionne is defined and produit_selectionne else '' }}"
                         step="0.01"
                         required
-                        placeholder="{% if produit_selectionne %}Minimum : {{ produit_selectionne.depot_initial_min }} GDS{% else %}Sélectionnez d'abord un produit d'épargne{% endif %}"
+                        placeholder="{% if produit_selectionne is defined and produit_selectionne %}Minimum : {{ produit_selectionne.depot_initial_min }} GDS{% else %}Sélectionnez d'abord un produit d'épargne{% endif %}"
                     >
                 </div>
 
