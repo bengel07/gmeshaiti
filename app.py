@@ -4142,7 +4142,7 @@ def creer_dossier():
         ).all()
 
     produits_epargne = charger_produits_epargne()
-    produit_selectionne = None
+
 
 
 
@@ -4166,7 +4166,8 @@ def creer_dossier():
                                branch_code=branch_code,
                                default_code=default_code,
                                default_suffix=default_suffix,
-                               produits_epargne=produits_epargne)
+                               produits_epargne=produits_epargne,
+                               produit_selectionne = None)
 
     # Fonctions utilitaires
     def allowed_file(filename):
