@@ -570,7 +570,7 @@
                         type="number"
                         id="montant_initial"
                         name="montant_initial"
-                        min="{{ produit_selectionne.depot_initial_min }}"
+                        min="{{ produit_selectionne.depot_initial_min if produit_selectionne else '' }}"
                         step="0.01"
                         required
                         placeholder="Minimum : {{ produit_selectionne.depot_initial_min }} GDS"

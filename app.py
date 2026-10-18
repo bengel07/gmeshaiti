@@ -4125,6 +4125,7 @@ def creer_dossier():
     # Vérification des permissions
     is_super_admin = (current_user.role == 'super_admin')
     is_conseiller = (current_user.role == 'employe' and current_user.fonction == 'conseiller')
+    is_direction = (current_user.role == 'direction')
 
     if not (is_super_admin or is_conseiller or is_direction):
         flash('⛔ Accès non autorisé', 'danger')
@@ -4141,6 +4142,7 @@ def creer_dossier():
         ).all()
 
     produits_epargne = charger_produits_epargne()
+    produit_selectionne = None
 
 
 
