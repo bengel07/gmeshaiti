@@ -4252,50 +4252,58 @@ def creer_dossier():
         photo_selfie_data = request.form.get('photo_selfie_data')
 
         # Produit d'épargne sélectionné dans le formulaire
-        produit_id = request.form.get(
-            'produit_epargne_id',
-            type=int
-        )
+
+        from decimal import Decimal, InvalidOperation
+
+        # ============================================================
+        # 1. RÉCUPÉRER ET VÉRIFIER LE PRODUIT D'ÉPARGNE
+        # ============================================================
+        produit_id = request.form.get("produit_epargne_id", type=int)
 
         if not produit_id:
-            raise ValueError(
-                "Veuillez sélectionner un produit d'épargne."
-            )
+            raise ValueError("Veuillez sélectionner un produit d'épargne.")
 
         produit_selectionne = ProduitEpargne.query.filter_by(
             id=produit_id,
             est_actif=True
         ).first()
 
-        if not produit_selectionne:
+        if produit_selectionne is None:
             raise ValueError(
                 "Le produit d'épargne sélectionné n'existe pas "
                 "ou n'est plus actif."
             )
 
-        from decimal import Decimal, InvalidOperation
-
-        montant_initial_str = request.form.get(
-            'montant_initial', ''
-        ).strip()
+        # ============================================================
+        # 2. LIRE ET VALIDER LE MONTANT INITIAL
+        # ============================================================
+        montant_initial_str = (
+            request.form.get("montant_initial", "").strip()
+        )
 
         try:
             montant_initial = Decimal(montant_initial_str)
-        except (InvalidOperation, ValueError):
-            montant_initial = Decimal('0')
+        except (InvalidOperation, ValueError, TypeError):
+            montant_initial = Decimal("0")
 
         if not montant_initial.is_finite() or montant_initial <= 0:
             flash("Veuillez saisir un montant initial valide.", "danger")
+
             return render_template(
-                'creer_dossier.html',
+                "creer_dossier.html",
                 succursales=Succursale.query.all(),
                 succursale=succursale,
                 branch_code=branch_code,
                 produits_epargne=charger_produits_epargne(),
+                produit_selectionne=produit_selectionne,
+                montant_initial_saisi=montant_initial_str,
                 default_code=numero_compte,
                 default_suffix=suffix
             )
 
+        # ============================================================
+        # 3. LIRE LES LIMITES CONFIGURÉES PAR L'ADMINISTRATEUR
+        # ============================================================
         try:
             montant_min = Decimal(
                 str(produit_selectionne.depot_initial_min)
@@ -4320,37 +4328,52 @@ def creer_dossier():
                 "de ce produit est invalide."
             )
 
+        # ============================================================
+        # 4. REFUSER UN MONTANT INFÉRIEUR AU MINIMUM
+        # ============================================================
         if montant_initial < montant_min:
             flash(
                 f"Le dépôt minimum pour ce produit est de "
                 f"{montant_min} GDS.",
                 "danger"
             )
+
             return render_template(
-                'creer_dossier.html',
+                "creer_dossier.html",
                 succursales=Succursale.query.all(),
                 succursale=succursale,
                 branch_code=branch_code,
                 produits_epargne=charger_produits_epargne(),
+                produit_selectionne=produit_selectionne,
+                montant_initial_saisi=montant_initial_str,
                 default_code=numero_compte,
                 default_suffix=suffix
             )
 
+        # ============================================================
+        # 5. REFUSER UN MONTANT SUPÉRIEUR AU MAXIMUM
+        # ============================================================
         if montant_initial > montant_max:
             flash(
                 f"Le dépôt maximum pour ce produit est de "
                 f"{montant_max} GDS.",
                 "danger"
             )
+
             return render_template(
-                'creer_dossier.html',
+                "creer_dossier.html",
                 succursales=Succursale.query.all(),
                 succursale=succursale,
                 branch_code=branch_code,
                 produits_epargne=charger_produits_epargne(),
+                produit_selectionne=produit_selectionne,
+                montant_initial_saisi=montant_initial_str,
                 default_code=numero_compte,
                 default_suffix=suffix
             )
+
+        # Si le code arrive ici, le montant est valide
+        # et respecte les limites configurées du produit.
 
         # Validation
         if not all([nom, prenom, civilite , email, telephone, cin, date_naissance, sexe, adresse, code_postal, ville,
