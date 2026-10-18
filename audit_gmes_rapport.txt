@@ -1,0 +1,1447 @@
+AUDIT STATIQUE GMES HAITI
+========================================================================
+Racine : C:\Users\conta\Desktop\GMEShaiti
+Fichiers texte analysés : 310
+Fichiers Python analysés : 56
+Fichiers Python syntaxiquement valides : 56
+Routes Flask détectées : 440
+
+RÉSUMÉ
+------------------------------------------------------------------------
+Critiques : 3
+À vérifier : 484
+Informations : 0
+
+1) PROBLÈMES DÉTECTÉS
+------------------------------------------------------------------------
+1. [CRITIQUE] DEBUG_ACTIF — audit_gmes.py
+   Ligne 167: DEBUG=True trouvé. Désactiver en production.
+2. [CRITIQUE] DEBUG_ACTIF — config.py
+   Ligne 65: DEBUG=True trouvé. Désactiver en production.
+3. [CRITIQUE] TOKENS_MIXTES — projet entier
+   Le projet utilise à la fois JWT et itsdangerous. Vérifier que le lien généré et la route qui le valide utilisent le même format, la même clé, le même identifiant de client et des dates d'expiration compatibles. JWT trouvé : app.py:484, app.py:609, app.py:1021, app.py:3740, app.py:3869, app.py:4099, app.py:4763, app.py:5534 ; itsdangerous trouvé : app.py:34, app.py:3736, app.py:3736, app.py:23212, app.py:23212, app.py:23213, app.py:23452, app.py:23452
+4. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — admin_notifications.html
+   Ligne 6: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+5. [À VÉRIFIER] AUTH_ROUTE_TOKEN — app.py
+   Ligne 17912: une route de token/signature semble proche de login_required. Vérifier qu'un client sans session peut ouvrir le lien signé.
+6. [À VÉRIFIER] AUTH_ROUTE_TOKEN — app.py
+   Ligne 25603: une route de token/signature semble proche de login_required. Vérifier qu'un client sans session peut ouvrir le lien signé.
+7. [À VÉRIFIER] AUTH_ROUTE_TOKEN — app.py
+   Ligne 25622: une route de token/signature semble proche de login_required. Vérifier qu'un client sans session peut ouvrir le lien signé.
+8. [À VÉRIFIER] AUTH_ROUTE_TOKEN — app.py
+   Ligne 25677: une route de token/signature semble proche de login_required. Vérifier qu'un client sans session peut ouvrir le lien signé.
+9. [À VÉRIFIER] CLE_SECRETE — app.py
+   Ligne 187: clé secrète lue avec une valeur de secours ou directement depuis l'environnement. Comparer avec app.config['SECRET_KEY']; ne jamais utiliser une clé de développement en production.
+10. [À VÉRIFIER] CLIENT_DEJA_SIGNE_RENVOI_LOGIN — app.py
+   Ligne 4743: la route client_terms renvoie vers connexion si terms_accepted est vrai.
+11. [À VÉRIFIER] DONNEES_SENSIBLES_LOG — app.py
+   Ligne 23417: impression possible d'un token, mot de passe, secret ou URL de base de données.
+12. [À VÉRIFIER] DONNEES_SENSIBLES_LOG — app.py
+   Ligne 23640: impression possible d'un token, mot de passe, secret ou URL de base de données.
+13. [À VÉRIFIER] DONNEES_SENSIBLES_LOG — app.py
+   Ligne 3863: impression possible d'un token, mot de passe, secret ou URL de base de données.
+14. [À VÉRIFIER] DONNEES_SENSIBLES_LOG — app.py
+   Ligne 3870: impression possible d'un token, mot de passe, secret ou URL de base de données.
+15. [À VÉRIFIER] DONNEES_SENSIBLES_LOG — app.py
+   Ligne 3880: impression possible d'un token, mot de passe, secret ou URL de base de données.
+16. [À VÉRIFIER] DONNEES_SENSIBLES_LOG — app.py
+   Ligne 4750: impression possible d'un token, mot de passe, secret ou URL de base de données.
+17. [À VÉRIFIER] DONNEES_SENSIBLES_LOG — app.py
+   Ligne 4790: impression possible d'un token, mot de passe, secret ou URL de base de données.
+18. [À VÉRIFIER] DONNEES_SENSIBLES_LOG — app.py
+   Ligne 4800: impression possible d'un token, mot de passe, secret ou URL de base de données.
+19. [À VÉRIFIER] DONNEES_SENSIBLES_LOG — app.py
+   Ligne 6919: impression possible d'un token, mot de passe, secret ou URL de base de données.
+20. [À VÉRIFIER] EXCEPT_SILENCIEUX — app.py
+   Un except nu est présent. Vérifier qu'il ne masque pas une erreur importante.
+21. [À VÉRIFIER] SIGNATURE_RENVOI_LOGIN — app.py
+   Ligne 4782: redirection vers la connexion dans un contexte de signature/conditions. Si le client ouvre un lien public, afficher une confirmation ou une erreur claire plutôt que forcer une connexion.
+22. [À VÉRIFIER] SIGNATURE_RENVOI_LOGIN — app.py
+   Ligne 4797: redirection vers la connexion dans un contexte de signature/conditions. Si le client ouvre un lien public, afficher une confirmation ou une erreur claire plutôt que forcer une connexion.
+23. [À VÉRIFIER] SIGNATURE_RENVOI_LOGIN — app.py
+   Ligne 4807: redirection vers la connexion dans un contexte de signature/conditions. Si le client ouvre un lien public, afficher une confirmation ou une erreur claire plutôt que forcer une connexion.
+24. [À VÉRIFIER] SIGNATURE_RENVOI_LOGIN — app.py
+   Ligne 4817: redirection vers la connexion dans un contexte de signature/conditions. Si le client ouvre un lien public, afficher une confirmation ou une erreur claire plutôt que forcer une connexion.
+25. [À VÉRIFIER] SIGNATURE_RENVOI_LOGIN — app.py
+   Ligne 4836: redirection vers la connexion dans un contexte de signature/conditions. Si le client ouvre un lien public, afficher une confirmation ou une erreur claire plutôt que forcer une connexion.
+26. [À VÉRIFIER] SIGNATURE_RENVOI_LOGIN — app.py
+   Ligne 492: redirection vers la connexion dans un contexte de signature/conditions. Si le client ouvre un lien public, afficher une confirmation ou une erreur claire plutôt que forcer une connexion.
+27. [À VÉRIFIER] SIGNATURE_RENVOI_LOGIN — app.py
+   Ligne 499: redirection vers la connexion dans un contexte de signature/conditions. Si le client ouvre un lien public, afficher une confirmation ou une erreur claire plutôt que forcer une connexion.
+28. [À VÉRIFIER] SIGNATURE_RENVOI_LOGIN — app.py
+   Ligne 5007: redirection vers la connexion dans un contexte de signature/conditions. Si le client ouvre un lien public, afficher une confirmation ou une erreur claire plutôt que forcer une connexion.
+29. [À VÉRIFIER] SIGNATURE_RENVOI_LOGIN — app.py
+   Ligne 5909: redirection vers la connexion dans un contexte de signature/conditions. Si le client ouvre un lien public, afficher une confirmation ou une erreur claire plutôt que forcer une connexion.
+30. [À VÉRIFIER] SIGNATURE_RENVOI_LOGIN — app.py
+   Ligne 9648: redirection vers la connexion dans un contexte de signature/conditions. Si le client ouvre un lien public, afficher une confirmation ou une erreur claire plutôt que forcer une connexion.
+31. [À VÉRIFIER] SIGNATURE_RENVOI_LOGIN — app.py
+   Ligne 9668: redirection vers la connexion dans un contexte de signature/conditions. Si le client ouvre un lien public, afficher une confirmation ou une erreur claire plutôt que forcer une connexion.
+32. [À VÉRIFIER] SLEEP_IMPORT — app.py
+   Ligne 17159: vérifier le nom time/datetime importé et les éventuels conflits.
+33. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 10095: url_for('superviseur_dashboard_generique') ne correspond à aucune route trouvée dans les fichiers Python.
+34. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 10700: url_for('visites_en_retard') ne correspond à aucune route trouvée dans les fichiers Python.
+35. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 10716: url_for('collectes_impayees') ne correspond à aucune route trouvée dans les fichiers Python.
+36. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 10735: url_for('agents_sans_tournee') ne correspond à aucune route trouvée dans les fichiers Python.
+37. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 11694: url_for('liste_maintenances') ne correspond à aucune route trouvée dans les fichiers Python.
+38. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 13052: url_for('tableu_de_bord') ne correspond à aucune route trouvée dans les fichiers Python.
+39. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 13327: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+40. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 13359: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+41. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 13411: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+42. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 13492: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+43. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 14901: url_for('direction_dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+44. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 15073: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+45. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 15373: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+46. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 15683: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+47. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 15846: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+48. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 17206: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+49. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 18361: url_for('tableau_bord') ne correspond à aucune route trouvée dans les fichiers Python.
+50. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 18437: url_for('tableau_bord') ne correspond à aucune route trouvée dans les fichiers Python.
+51. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 18540: url_for('tableau_analyste_credit') ne correspond à aucune route trouvée dans les fichiers Python.
+52. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 19862: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+53. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 20648: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+54. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 21076: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+55. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 21673: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+56. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 21680: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+57. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 21806: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+58. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 24018: url_for('liste_documents.html') ne correspond à aucune route trouvée dans les fichiers Python.
+59. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 24042: url_for('liste_documents.html') ne correspond à aucune route trouvée dans les fichiers Python.
+60. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 24064: url_for('liste_documents.html') ne correspond à aucune route trouvée dans les fichiers Python.
+61. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 26249: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+62. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 26665: url_for('dashboard_employe') ne correspond à aucune route trouvée dans les fichiers Python.
+63. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 26843: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+64. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 26849: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+65. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 26862: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+66. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 27057: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+67. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 27108: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+68. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 27572: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+69. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 2984: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+70. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 31288: url_for('login') ne correspond à aucune route trouvée dans les fichiers Python.
+71. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 31313: url_for('profil_client') ne correspond à aucune route trouvée dans les fichiers Python.
+72. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 31915: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+73. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 6075: url_for('direction_tous_les_dossiers') ne correspond à aucune route trouvée dans les fichiers Python.
+74. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 9887: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+75. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 9891: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+76. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 9929: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+77. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 9933: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+78. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — app.py
+   Ligne 9947: url_for('conseiller_liste_dossiers') ne correspond à aucune route trouvée dans les fichiers Python.
+79. [À VÉRIFIER] TOKEN_TYPE_NON_VERIFIE — app.py
+   Ligne 17932: route login_qr décode un JWT mais la vérification du champ type n'a pas été détectée.
+80. [À VÉRIFIER] TOKEN_TYPE_NON_VERIFIE — app.py
+   Ligne 27062: route verify_qr décode un JWT mais la vérification du champ type n'a pas été détectée.
+81. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 10095: url_for('superviseur_dashboard_generique') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+82. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 10700: url_for('visites_en_retard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+83. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 10716: url_for('collectes_impayees') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+84. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 10735: url_for('agents_sans_tournee') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+85. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 11694: url_for('liste_maintenances') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+86. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 13052: url_for('tableu_de_bord') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+87. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 13327: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+88. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 13359: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+89. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 13411: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+90. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 13492: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+91. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 14901: url_for('direction_dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+92. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 15073: url_for('static') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+93. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 15373: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+94. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 15683: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+95. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 15846: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+96. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 17206: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+97. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 18361: url_for('tableau_bord') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+98. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 18437: url_for('tableau_bord') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+99. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 18540: url_for('tableau_analyste_credit') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+100. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 19862: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+101. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 20648: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+102. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 21076: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+103. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 21673: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+104. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 21680: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+105. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 21806: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+106. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 24018: url_for('liste_documents.html') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+107. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 24042: url_for('liste_documents.html') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+108. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 24064: url_for('liste_documents.html') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+109. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 26249: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+110. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 26665: url_for('dashboard_employe') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+111. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 26843: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+112. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 26849: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+113. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 26862: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+114. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 27057: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+115. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 27108: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+116. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 27572: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+117. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 2984: url_for('static') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+118. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 31313: url_for('profil_client') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+119. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 31915: url_for('static') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+120. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 6075: url_for('direction_tous_les_dossiers') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+121. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 9887: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+122. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 9891: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+123. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 9929: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+124. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 9933: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+125. [À VÉRIFIER] URL_FOR_INCONNU — app.py
+   Ligne 9947: url_for('conseiller_liste_dossiers') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+126. [À VÉRIFIER] ROUTE_DUPLIQUEE — app.py:14146 (/client/dashboard); routes\clients.py:23 (/dashboard)
+   Plusieurs routes détectées pour l'endpoint 'client_dashboard'.
+127. [À VÉRIFIER] ROUTE_DUPLIQUEE — app.py:17173 (/admin/ajouter-employe/); app.py:17173 (/admin/ajouter-employe/<string:succursale_code>/)
+   Plusieurs routes détectées pour l'endpoint 'ajouter_employe'.
+128. [À VÉRIFIER] ROUTE_DUPLIQUEE — app.py:19509 (/employe/dashboard); employees\routes.py:11 (/dashboard)
+   Plusieurs routes détectées pour l'endpoint 'employe_dashboard'.
+129. [À VÉRIFIER] ROUTE_DUPLIQUEE — app.py:20575 (/admin-central/succursales/<int:succ_id>/edit); app.py:20575 (/admin-central/succursales/<int:succ_id>/editer)
+   Plusieurs routes détectées pour l'endpoint 'edit_succursale'.
+130. [À VÉRIFIER] ROUTE_DUPLIQUEE — app.py:20937 (/<succursale_code>/clients); routes\employees.py:22 (/<succursale_code>)
+   Plusieurs routes détectées pour l'endpoint 'list'.
+131. [À VÉRIFIER] ROUTE_DUPLIQUEE — app.py:423 (/); routes\accueil.py:7 (/)
+   Plusieurs routes détectées pour l'endpoint 'accueil'.
+132. [À VÉRIFIER] ROUTE_DUPLIQUEE — app.py:5367 (/direction/tous_dossiers); app.py:5367 (/direction/tous_dossiers/<succursale_code>)
+   Plusieurs routes détectées pour l'endpoint 'directeur_tous_les_dossiers'.
+133. [À VÉRIFIER] ROUTE_DUPLIQUEE — app.py:6135 (/conseiller/dossiers-en-attente); app.py:6135 (/conseiller/dossiers-en-attente/<succursale_code>)
+   Plusieurs routes détectées pour l'endpoint 'conseiller_dossier_en_attente'.
+134. [À VÉRIFIER] APP_RUN_DEBUG — audit_gmes.py
+   app.run(debug=True) trouvé. Ne pas utiliser comme serveur de production.
+135. [À VÉRIFIER] CLE_SECRETE — audit_gmes.py
+   Ligne 163: clé secrète lue avec une valeur de secours ou directement depuis l'environnement. Comparer avec app.config['SECRET_KEY']; ne jamais utiliser une clé de développement en production.
+136. [À VÉRIFIER] EXCEPT_SILENCIEUX — audit_gmes.py
+   Un except nu est présent. Vérifier qu'il ne masque pas une erreur importante.
+137. [À VÉRIFIER] SIGNATURE_RENVOI_LOGIN — audit_gmes.py
+   Ligne 199: redirection vers la connexion dans un contexte de signature/conditions. Si le client ouvre un lien public, afficher une confirmation ou une erreur claire plutôt que forcer une connexion.
+138. [À VÉRIFIER] DONNEES_SENSIBLES_LOG — create_succursale.py
+   Ligne 101: impression possible d'un token, mot de passe, secret ou URL de base de données.
+139. [À VÉRIFIER] EXCEPT_SILENCIEUX — desktop\reception_app.py
+   Un except nu est présent. Vérifier qu'il ne masque pas une erreur importante.
+140. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — employees\routes.py
+   Ligne 18: url_for('clients.dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+141. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — employees\routes.py
+   Ligne 22: url_for('terms.accept_terms_notice') ne correspond à aucune route trouvée dans les fichiers Python.
+142. [À VÉRIFIER] URL_FOR_INCONNU — employees\routes.py
+   Ligne 18: url_for('clients.dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+143. [À VÉRIFIER] URL_FOR_INCONNU — employees\routes.py
+   Ligne 22: url_for('terms.accept_terms_notice') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+144. [À VÉRIFIER] ROUTE_DUPLIQUEE — routes\auth.py:743 (/api/mobile/test); routes\mobile_api.py:192 (/api/mobile/test)
+   Plusieurs routes détectées pour l'endpoint 'mobile_test'.
+145. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — routes\clients.py
+   Ligne 225: url_for('login') ne correspond à aucune route trouvée dans les fichiers Python.
+146. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — routes\clients.py
+   Ligne 32: url_for('employees.employee_dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+147. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — routes\clients.py
+   Ligne 46: url_for('terms.accept_terms_notice') ne correspond à aucune route trouvée dans les fichiers Python.
+148. [À VÉRIFIER] URL_FOR_INCONNU — routes\clients.py
+   Ligne 225: url_for('login') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+149. [À VÉRIFIER] URL_FOR_INCONNU — routes\clients.py
+   Ligne 32: url_for('employees.employee_dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+150. [À VÉRIFIER] URL_FOR_INCONNU — routes\clients.py
+   Ligne 46: url_for('terms.accept_terms_notice') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+151. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — routes\employees.py
+   Ligne 188: url_for('admin.dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+152. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — routes\employees.py
+   Ligne 192: url_for('employees.employee_dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+153. [À VÉRIFIER] URL_FOR_INCONNU — routes\employees.py
+   Ligne 188: url_for('admin.dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+154. [À VÉRIFIER] URL_FOR_INCONNU — routes\employees.py
+   Ligne 192: url_for('employees.employee_dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+155. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — routes\functions.py
+   Ligne 101: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+156. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — routes\functions.py
+   Ligne 110: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+157. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — routes\functions.py
+   Ligne 17: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+158. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — routes\functions.py
+   Ligne 83: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+159. [À VÉRIFIER] URL_FOR_INCONNU — routes\functions.py
+   Ligne 101: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+160. [À VÉRIFIER] URL_FOR_INCONNU — routes\functions.py
+   Ligne 110: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+161. [À VÉRIFIER] URL_FOR_INCONNU — routes\functions.py
+   Ligne 17: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+162. [À VÉRIFIER] URL_FOR_INCONNU — routes\functions.py
+   Ligne 83: url_for('dashboard') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+163. [À VÉRIFIER] DONNEES_SENSIBLES_LOG — routes\terms.py
+   Ligne 16: impression possible d'un token, mot de passe, secret ou URL de base de données.
+164. [À VÉRIFIER] APP_RUN_DEBUG — run.py
+   app.run(debug=True) trouvé. Ne pas utiliser comme serveur de production.
+165. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\admin\dossier_utilisateur.html
+   Ligne 537: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+166. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\admin\historique_global.html
+   Ligne 475: url_for('exporter_historique') ne correspond à aucune route trouvée dans les fichiers Python.
+167. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\admin\historique_global.html
+   Ligne 478: url_for('exporter_historique_pdf') ne correspond à aucune route trouvée dans les fichiers Python.
+168. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\admin\liste_documents.html
+   Ligne 491: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+169. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\admin\liste_documents.html
+   Ligne 525: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+170. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\admin\liste_documents.html
+   Ligne 528: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+171. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\admin\liste_documents.html
+   Ligne 593: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+172. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\admin\liste_documents.html
+   Ligne 596: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+173. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\admin_central\dashboard.html
+   Ligne 6: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+174. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\admin_central\edit_succursale.html
+   Ligne 86: url_for('edit_admin') ne correspond à aucune route trouvée dans les fichiers Python.
+175. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\admin_rapports.html
+   Ligne 7: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+176. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\agent\dashboard_agent.html
+   Ligne 186: url_for('traiter_demande') ne correspond à aucune route trouvée dans les fichiers Python.
+177. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\agent\dashboard_agent.html
+   Ligne 259: url_for('voir_credit') ne correspond à aucune route trouvée dans les fichiers Python.
+178. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\analyste_dashboard.html
+   Ligne 86: url_for('analyser_pret') ne correspond à aucune route trouvée dans les fichiers Python.
+179. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\base.html
+   Ligne 13: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+180. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\base.html
+   Ligne 174: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+181. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\clients\list.html
+   Ligne 7: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+182. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\clients\voir_pret.html
+   Ligne 191: url_for('download_document') ne correspond à aucune route trouvée dans les fichiers Python.
+183. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\conseiller\voir_dossier.html
+   Ligne 161: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+184. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\conseiller\voir_dossier.html
+   Ligne 173: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+185. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\conseiller\voir_dossier.html
+   Ligne 185: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+186. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\dashboard_succursale.html
+   Ligne 20: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+187. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\analyse_strategique.html
+   Ligne 529: url_for('presentation_strategique') ne correspond à aucune route trouvée dans les fichiers Python.
+188. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\approuver_dossier.html
+   Ligne 139: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+189. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\approuver_dossier.html
+   Ligne 150: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+190. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\approuver_dossier.html
+   Ligne 188: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+191. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\approuver_dossier.html
+   Ligne 198: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+192. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\approuver_dossier.html
+   Ligne 208: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+193. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\comite_direction.html
+   Ligne 524: url_for('planifier_comite') ne correspond à aucune route trouvée dans les fichiers Python.
+194. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\decisions.html
+   Ligne 220: url_for('editer_decision') ne correspond à aucune route trouvée dans les fichiers Python.
+195. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\decisions.html
+   Ligne 396: url_for('creer_decision') ne correspond à aucune route trouvée dans les fichiers Python.
+196. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\decisions.html
+   Ligne 466: url_for('update_progression') ne correspond à aucune route trouvée dans les fichiers Python.
+197. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\detail_pret.html
+   Ligne 182: url_for('download_document') ne correspond à aucune route trouvée dans les fichiers Python.
+198. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_commercial_dashboard.html
+   Ligne 273: url_for('voir_credit') ne correspond à aucune route trouvée dans les fichiers Python.
+199. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_commercial_dashboard.html
+   Ligne 369: url_for('rapport_commercial') ne correspond à aucune route trouvée dans les fichiers Python.
+200. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_commercial_dashboard.html
+   Ligne 375: url_for('objectifs_commerciaux') ne correspond à aucune route trouvée dans les fichiers Python.
+201. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_commercial_dashboard.html
+   Ligne 381: url_for('campagnes_commerciales') ne correspond à aucune route trouvée dans les fichiers Python.
+202. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_commercial_dashboard.html
+   Ligne 387: url_for('suivi_performance') ne correspond à aucune route trouvée dans les fichiers Python.
+203. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_commercial_dashboard.html
+   Ligne 393: url_for('produits') ne correspond à aucune route trouvée dans les fichiers Python.
+204. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_commercial_dashboard.html
+   Ligne 399: url_for('analyse_marche') ne correspond à aucune route trouvée dans les fichiers Python.
+205. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_conformite_dashboard.html
+   Ligne 167: url_for('traiter_alerte') ne correspond à aucune route trouvée dans les fichiers Python.
+206. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_conformite_dashboard.html
+   Ligne 212: url_for('verifier_client') ne correspond à aucune route trouvée dans les fichiers Python.
+207. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_conformite_dashboard.html
+   Ligne 294: url_for('renouveler_document') ne correspond à aucune route trouvée dans les fichiers Python.
+208. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_conformite_dashboard.html
+   Ligne 326: url_for('liste_kyc') ne correspond à aucune route trouvée dans les fichiers Python.
+209. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_conformite_dashboard.html
+   Ligne 332: url_for('liste_alertes_aml') ne correspond à aucune route trouvée dans les fichiers Python.
+210. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_conformite_dashboard.html
+   Ligne 338: url_for('documents_expires') ne correspond à aucune route trouvée dans les fichiers Python.
+211. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_conformite_dashboard.html
+   Ligne 344: url_for('rapport_conformite') ne correspond à aucune route trouvée dans les fichiers Python.
+212. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_financier_dashboard.html
+   Ligne 341: url_for('voir_impaye') ne correspond à aucune route trouvée dans les fichiers Python.
+213. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_financier_dashboard.html
+   Ligne 476: url_for('rapport_financier') ne correspond à aucune route trouvée dans les fichiers Python.
+214. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_financier_dashboard.html
+   Ligne 482: url_for('gerer_provisions') ne correspond à aucune route trouvée dans les fichiers Python.
+215. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_financier_dashboard.html
+   Ligne 488: url_for('analyse_par') ne correspond à aucune route trouvée dans les fichiers Python.
+216. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_financier_dashboard.html
+   Ligne 494: url_for('previsions') ne correspond à aucune route trouvée dans les fichiers Python.
+217. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_financier_dashboard.html
+   Ligne 500: url_for('budget') ne correspond à aucune route trouvée dans les fichiers Python.
+218. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_financier_dashboard.html
+   Ligne 506: url_for('tresorerie') ne correspond à aucune route trouvée dans les fichiers Python.
+219. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_financier_dashboard.html
+   Ligne 512: url_for('analyse_risque') ne correspond à aucune route trouvée dans les fichiers Python.
+220. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_financier_dashboard.html
+   Ligne 518: url_for('audit_financier') ne correspond à aucune route trouvée dans les fichiers Python.
+221. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_general_dashboard.html
+   Ligne 136: url_for('details_client') ne correspond à aucune route trouvée dans les fichiers Python.
+222. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_regional_dashboard.html
+   Ligne 276: url_for('voir_succursale') ne correspond à aucune route trouvée dans les fichiers Python.
+223. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_regional_dashboard.html
+   Ligne 280: url_for('rapport_succursale') ne correspond à aucune route trouvée dans les fichiers Python.
+224. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_regional_dashboard.html
+   Ligne 284: url_for('visite_succursale') ne correspond à aucune route trouvée dans les fichiers Python.
+225. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_regional_dashboard.html
+   Ligne 360: url_for('planifier_visite') ne correspond à aucune route trouvée dans les fichiers Python.
+226. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_regional_dashboard.html
+   Ligne 364: url_for('analyse_succursale') ne correspond à aucune route trouvée dans les fichiers Python.
+227. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_regional_dashboard.html
+   Ligne 415: url_for('voir_visite') ne correspond à aucune route trouvée dans les fichiers Python.
+228. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_regional_dashboard.html
+   Ligne 430: url_for('planifier_visite') ne correspond à aucune route trouvée dans les fichiers Python.
+229. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_regional_dashboard.html
+   Ligne 565: url_for('rapport_regional') ne correspond à aucune route trouvée dans les fichiers Python.
+230. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_regional_dashboard.html
+   Ligne 571: url_for('calendrier_visites') ne correspond à aucune route trouvée dans les fichiers Python.
+231. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_regional_dashboard.html
+   Ligne 577: url_for('reunion_regionale') ne correspond à aucune route trouvée dans les fichiers Python.
+232. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_regional_dashboard.html
+   Ligne 583: url_for('analyse_marche_regional') ne correspond à aucune route trouvée dans les fichiers Python.
+233. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_regional_dashboard.html
+   Ligne 589: url_for('objectifs_regionaux') ne correspond à aucune route trouvée dans les fichiers Python.
+234. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_regional_dashboard.html
+   Ligne 595: url_for('formations_regionales') ne correspond à aucune route trouvée dans les fichiers Python.
+235. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_regional_dashboard.html
+   Ligne 601: url_for('budget_regional') ne correspond à aucune route trouvée dans les fichiers Python.
+236. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_regional_dashboard.html
+   Ligne 607: url_for('concours_regional') ne correspond à aucune route trouvée dans les fichiers Python.
+237. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_rh_dashboard.html
+   Ligne 255: url_for('approuver_conge') ne correspond à aucune route trouvée dans les fichiers Python.
+238. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_rh_dashboard.html
+   Ligne 259: url_for('refuser_conge') ne correspond à aucune route trouvée dans les fichiers Python.
+239. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_rh_dashboard.html
+   Ligne 263: url_for('voir_demande_conge') ne correspond à aucune route trouvée dans les fichiers Python.
+240. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_rh_dashboard.html
+   Ligne 316: url_for('planifier_formation') ne correspond à aucune route trouvée dans les fichiers Python.
+241. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_rh_dashboard.html
+   Ligne 345: url_for('voir_recrutement') ne correspond à aucune route trouvée dans les fichiers Python.
+242. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_rh_dashboard.html
+   Ligne 356: url_for('nouveau_recrutement') ne correspond à aucune route trouvée dans les fichiers Python.
+243. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_rh_dashboard.html
+   Ligne 418: url_for('liste_conges') ne correspond à aucune route trouvée dans les fichiers Python.
+244. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_rh_dashboard.html
+   Ligne 424: url_for('liste_formations') ne correspond à aucune route trouvée dans les fichiers Python.
+245. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_rh_dashboard.html
+   Ligne 430: url_for('recrutements') ne correspond à aucune route trouvée dans les fichiers Python.
+246. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_rh_dashboard.html
+   Ligne 436: url_for('bulletins_paie') ne correspond à aucune route trouvée dans les fichiers Python.
+247. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_rh_dashboard.html
+   Ligne 442: url_for('evaluations') ne correspond à aucune route trouvée dans les fichiers Python.
+248. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_rh_dashboard.html
+   Ligne 448: url_for('contrats') ne correspond à aucune route trouvée dans les fichiers Python.
+249. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\directeur_rh_dashboard.html
+   Ligne 454: url_for('rapport_rh') ne correspond à aucune route trouvée dans les fichiers Python.
+250. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\direction_dashboard_generique.html
+   Ligne 255: url_for('rapport_global') ne correspond à aucune route trouvée dans les fichiers Python.
+251. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\direction_dashboard_generique.html
+   Ligne 261: url_for('logs_audit') ne correspond à aucune route trouvée dans les fichiers Python.
+252. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\gerer_succursales.html
+   Ligne 172: url_for('voir_succursale_details') ne correspond à aucune route trouvée dans les fichiers Python.
+253. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\gerer_succursales.html
+   Ligne 235: url_for('modifier_succursale') ne correspond à aucune route trouvée dans les fichiers Python.
+254. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\optimiser_flux.html
+   Ligne 133: url_for('rapport_optimisation') ne correspond à aucune route trouvée dans les fichiers Python.
+255. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\rapport_strategique.html
+   Ligne 59: url_for('details_client') ne correspond à aucune route trouvée dans les fichiers Python.
+256. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\superviser_transactions.html
+   Ligne 210: url_for('voir_succursale_transactions') ne correspond à aucune route trouvée dans les fichiers Python.
+257. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\superviser_transactions.html
+   Ligne 345: url_for('exporter_transactions_excel') ne correspond à aucune route trouvée dans les fichiers Python.
+258. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\tous_dossiers.html
+   Ligne 628: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+259. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\tous_dossiers.html
+   Ligne 773: url_for('renvoyer_conditions_pret') ne correspond à aucune route trouvée dans les fichiers Python.
+260. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\voir_dossier.html
+   Ligne 183: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+261. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\voir_dossier.html
+   Ligne 207: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+262. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\direction\voir_dossier.html
+   Ligne 231: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+263. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\dossiers\details.html
+   Ligne 103: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+264. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\dossiers\details.html
+   Ligne 120: url_for('voir_dossier_utilisateur') ne correspond à aucune route trouvée dans les fichiers Python.
+265. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\dossiers\details.html
+   Ligne 210: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+266. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\dossiers\liste.html
+   Ligne 13: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+267. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employe_gestion_clients.html
+   Ligne 60: url_for('api_clients_list') ne correspond à aucune route trouvée dans les fichiers Python.
+268. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_conformite_dashboard.html
+   Ligne 100: url_for('agent_conformite_alertes') ne correspond à aucune route trouvée dans les fichiers Python.
+269. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_conformite_dashboard.html
+   Ligne 105: url_for('agent_conformite_historique') ne correspond à aucune route trouvée dans les fichiers Python.
+270. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_conformite_dashboard.html
+   Ligne 110: url_for('agent_conformite_rapports') ne correspond à aucune route trouvée dans les fichiers Python.
+271. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_conformite_dashboard.html
+   Ligne 166: url_for('agent_conformite_voir') ne correspond à aucune route trouvée dans les fichiers Python.
+272. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_conformite_dashboard.html
+   Ligne 170: url_for('agent_conformite_traiter') ne correspond à aucune route trouvée dans les fichiers Python.
+273. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_conformite_dashboard.html
+   Ligne 219: url_for('agent_conformite_alerte_traiter') ne correspond à aucune route trouvée dans les fichiers Python.
+274. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_conformite_dashboard.html
+   Ligne 95: url_for('agent_conformite_verifier') ne correspond à aucune route trouvée dans les fichiers Python.
+275. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_remboursement_dashboard.html
+   Ligne 100: url_for('agent_remboursement_echeances') ne correspond à aucune route trouvée dans les fichiers Python.
+276. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_remboursement_dashboard.html
+   Ligne 105: url_for('agent_remboursement_retards') ne correspond à aucune route trouvée dans les fichiers Python.
+277. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_remboursement_dashboard.html
+   Ligne 110: url_for('agent_remboursement_historique') ne correspond à aucune route trouvée dans les fichiers Python.
+278. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_remboursement_dashboard.html
+   Ligne 179: url_for('agent_remboursement_nouveau') ne correspond à aucune route trouvée dans les fichiers Python.
+279. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_remboursement_dashboard.html
+   Ligne 220: url_for('agent_remboursement_effectuer') ne correspond à aucune route trouvée dans les fichiers Python.
+280. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_remboursement_dashboard.html
+   Ligne 286: url_for('agent_remboursement_voir_client') ne correspond à aucune route trouvée dans les fichiers Python.
+281. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_remboursement_dashboard.html
+   Ligne 290: url_for('agent_remboursement_contacter') ne correspond à aucune route trouvée dans les fichiers Python.
+282. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_remboursement_dashboard.html
+   Ligne 294: url_for('agent_remboursement_effectuer') ne correspond à aucune route trouvée dans les fichiers Python.
+283. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_remboursement_dashboard.html
+   Ligne 95: url_for('agent_remboursement_nouveau') ne correspond à aucune route trouvée dans les fichiers Python.
+284. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_risque_dashboard.html
+   Ligne 100: url_for('agent_risque_critiques') ne correspond à aucune route trouvée dans les fichiers Python.
+285. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_risque_dashboard.html
+   Ligne 105: url_for('agent_risque_historique') ne correspond à aucune route trouvée dans les fichiers Python.
+286. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_risque_dashboard.html
+   Ligne 110: url_for('agent_risque_rapports') ne correspond à aucune route trouvée dans les fichiers Python.
+287. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_risque_dashboard.html
+   Ligne 172: url_for('agent_risque_voir') ne correspond à aucune route trouvée dans les fichiers Python.
+288. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_risque_dashboard.html
+   Ligne 176: url_for('agent_risque_traiter') ne correspond à aucune route trouvée dans les fichiers Python.
+289. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_risque_dashboard.html
+   Ligne 180: url_for('agent_risque_atténuer') ne correspond à aucune route trouvée dans les fichiers Python.
+290. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_risque_dashboard.html
+   Ligne 95: url_for('agent_risque_evaluer') ne correspond à aucune route trouvée dans les fichiers Python.
+291. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_saisie_dashboard.html
+   Ligne 100: url_for('agent_saisie_attente') ne correspond à aucune route trouvée dans les fichiers Python.
+292. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_saisie_dashboard.html
+   Ligne 105: url_for('agent_saisie_historique') ne correspond à aucune route trouvée dans les fichiers Python.
+293. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_saisie_dashboard.html
+   Ligne 110: url_for('agent_saisie_rapports') ne correspond à aucune route trouvée dans les fichiers Python.
+294. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_saisie_dashboard.html
+   Ligne 166: url_for('agent_saisie_voir_dossier') ne correspond à aucune route trouvée dans les fichiers Python.
+295. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_saisie_dashboard.html
+   Ligne 170: url_for('agent_saisie_saisir') ne correspond à aucune route trouvée dans les fichiers Python.
+296. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_saisie_dashboard.html
+   Ligne 95: url_for('agent_saisie_nouveau') ne correspond à aucune route trouvée dans les fichiers Python.
+297. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_terrain_dashboard.html
+   Ligne 100: url_for('agent_terrain_clients') ne correspond à aucune route trouvée dans les fichiers Python.
+298. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_terrain_dashboard.html
+   Ligne 105: url_for('agent_terrain_pointage') ne correspond à aucune route trouvée dans les fichiers Python.
+299. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_terrain_dashboard.html
+   Ligne 110: url_for('agent_terrain_rapports') ne correspond à aucune route trouvée dans les fichiers Python.
+300. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_terrain_dashboard.html
+   Ligne 163: url_for('agent_terrain_visite_detail') ne correspond à aucune route trouvée dans les fichiers Python.
+301. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_terrain_dashboard.html
+   Ligne 167: url_for('agent_terrain_valider_visite') ne correspond à aucune route trouvée dans les fichiers Python.
+302. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_terrain_dashboard.html
+   Ligne 181: url_for('agent_terrain_visites') ne correspond à aucune route trouvée dans les fichiers Python.
+303. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\agent_terrain_dashboard.html
+   Ligne 95: url_for('agent_terrain_visites') ne correspond à aucune route trouvée dans les fichiers Python.
+304. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\animateur_groupe_dashboard.html
+   Ligne 100: url_for('animateur_groupe_liste') ne correspond à aucune route trouvée dans les fichiers Python.
+305. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\animateur_groupe_dashboard.html
+   Ligne 105: url_for('animateur_groupe_session') ne correspond à aucune route trouvée dans les fichiers Python.
+306. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\animateur_groupe_dashboard.html
+   Ligne 110: url_for('animateur_groupe_rapports') ne correspond à aucune route trouvée dans les fichiers Python.
+307. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\animateur_groupe_dashboard.html
+   Ligne 173: url_for('animateur_groupe_voir') ne correspond à aucune route trouvée dans les fichiers Python.
+308. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\animateur_groupe_dashboard.html
+   Ligne 177: url_for('animateur_groupe_membres') ne correspond à aucune route trouvée dans les fichiers Python.
+309. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\animateur_groupe_dashboard.html
+   Ligne 181: url_for('animateur_groupe_session_nouvelle') ne correspond à aucune route trouvée dans les fichiers Python.
+310. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\animateur_groupe_dashboard.html
+   Ligne 196: url_for('animateur_groupe_creer') ne correspond à aucune route trouvée dans les fichiers Python.
+311. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\animateur_groupe_dashboard.html
+   Ligne 243: url_for('animateur_groupe_session_voir') ne correspond à aucune route trouvée dans les fichiers Python.
+312. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\animateur_groupe_dashboard.html
+   Ligne 247: url_for('animateur_groupe_session_preparer') ne correspond à aucune route trouvée dans les fichiers Python.
+313. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\animateur_groupe_dashboard.html
+   Ligne 259: url_for('animateur_groupe_session') ne correspond à aucune route trouvée dans les fichiers Python.
+314. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\animateur_groupe_dashboard.html
+   Ligne 95: url_for('animateur_groupe_creer') ne correspond à aucune route trouvée dans les fichiers Python.
+315. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\archiviste_dashboard.html
+   Ligne 100: url_for('archiviste_recherche') ne correspond à aucune route trouvée dans les fichiers Python.
+316. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\archiviste_dashboard.html
+   Ligne 105: url_for('archiviste_categories') ne correspond à aucune route trouvée dans les fichiers Python.
+317. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\archiviste_dashboard.html
+   Ligne 110: url_for('archiviste_rapports') ne correspond à aucune route trouvée dans les fichiers Python.
+318. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\archiviste_dashboard.html
+   Ligne 164: url_for('archiviste_voir_document') ne correspond à aucune route trouvée dans les fichiers Python.
+319. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\archiviste_dashboard.html
+   Ligne 168: url_for('archiviste_archiver') ne correspond à aucune route trouvée dans les fichiers Python.
+320. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\archiviste_dashboard.html
+   Ligne 244: url_for('archiviste_voir_document') ne correspond à aucune route trouvée dans les fichiers Python.
+321. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\archiviste_dashboard.html
+   Ligne 248: url_for('archiviste_telecharger') ne correspond à aucune route trouvée dans les fichiers Python.
+322. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\archiviste_dashboard.html
+   Ligne 319: url_for('archiviste_recherche') ne correspond à aucune route trouvée dans les fichiers Python.
+323. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\archiviste_dashboard.html
+   Ligne 95: url_for('archiviste_nouveau_document') ne correspond à aucune route trouvée dans les fichiers Python.
+324. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\charge_rh_dashboard.html
+   Ligne 100: url_for('charge_rh_pointage') ne correspond à aucune route trouvée dans les fichiers Python.
+325. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\charge_rh_dashboard.html
+   Ligne 105: url_for('charge_rh_conges') ne correspond à aucune route trouvée dans les fichiers Python.
+326. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\charge_rh_dashboard.html
+   Ligne 110: url_for('charge_rh_paie') ne correspond à aucune route trouvée dans les fichiers Python.
+327. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\charge_rh_dashboard.html
+   Ligne 115: url_for('charge_rh_formation') ne correspond à aucune route trouvée dans les fichiers Python.
+328. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\charge_rh_dashboard.html
+   Ligne 120: url_for('charge_rh_rapports') ne correspond à aucune route trouvée dans les fichiers Python.
+329. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\charge_rh_dashboard.html
+   Ligne 177: url_for('charge_rh_voir_employe') ne correspond à aucune route trouvée dans les fichiers Python.
+330. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\charge_rh_dashboard.html
+   Ligne 95: url_for('charge_rh_nouvel_employe') ne correspond à aucune route trouvée dans les fichiers Python.
+331. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\collecteur_dashboard.html
+   Ligne 100: url_for('collecteurs_clients') ne correspond à aucune route trouvée dans les fichiers Python.
+332. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\collecteur_dashboard.html
+   Ligne 105: url_for('collecteurs_collectes') ne correspond à aucune route trouvée dans les fichiers Python.
+333. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\collecteur_dashboard.html
+   Ligne 110: url_for('collecteurs_rapports') ne correspond à aucune route trouvée dans les fichiers Python.
+334. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\collecteur_dashboard.html
+   Ligne 152: url_for('collecteur_visiter_client') ne correspond à aucune route trouvée dans les fichiers Python.
+335. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\collecteur_dashboard.html
+   Ligne 210: url_for('collecteurs_collectes') ne correspond à aucune route trouvée dans les fichiers Python.
+336. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\collecteur_dashboard.html
+   Ligne 95: url_for('collecteurs_visites') ne correspond à aucune route trouvée dans les fichiers Python.
+337. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\conseiller_dossiers_en_attente.html
+   Ligne 435: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+338. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\conseiller_dossiers_en_attente.html
+   Ligne 559: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+339. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\controlleur_interne_dashboard.html
+   Ligne 100: url_for('controlleur_interne_audit') ne correspond à aucune route trouvée dans les fichiers Python.
+340. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\controlleur_interne_dashboard.html
+   Ligne 105: url_for('controlleur_interne_non_conformites') ne correspond à aucune route trouvée dans les fichiers Python.
+341. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\controlleur_interne_dashboard.html
+   Ligne 110: url_for('controlleur_interne_rapports') ne correspond à aucune route trouvée dans les fichiers Python.
+342. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\controlleur_interne_dashboard.html
+   Ligne 169: url_for('controlleur_interne_voir') ne correspond à aucune route trouvée dans les fichiers Python.
+343. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\controlleur_interne_dashboard.html
+   Ligne 173: url_for('controlleur_interne_realiser') ne correspond à aucune route trouvée dans les fichiers Python.
+344. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\controlleur_interne_dashboard.html
+   Ligne 226: url_for('controlleur_interne_nc_voir') ne correspond à aucune route trouvée dans les fichiers Python.
+345. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\controlleur_interne_dashboard.html
+   Ligne 95: url_for('controlleur_interne_nouveau') ne correspond à aucune route trouvée dans les fichiers Python.
+346. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\employe_dashboard.html
+   Ligne 124: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+347. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\employe_dashboard.html
+   Ligne 195: url_for('reinitialiser_mdp') ne correspond à aucune route trouvée dans les fichiers Python.
+348. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\employes_approuves.html
+   Ligne 266: url_for('generer_carte_employe') ne correspond à aucune route trouvée dans les fichiers Python.
+349. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\employes_approuves.html
+   Ligne 279: url_for('regenerer_carte') ne correspond à aucune route trouvée dans les fichiers Python.
+350. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\formateur_dashboard.html
+   Ligne 100: url_for('liste_formations') ne correspond à aucune route trouvée dans les fichiers Python.
+351. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\formateur_dashboard.html
+   Ligne 105: url_for('formateurs_clients') ne correspond à aucune route trouvée dans les fichiers Python.
+352. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\formateur_dashboard.html
+   Ligne 110: url_for('rapports_formation') ne correspond à aucune route trouvée dans les fichiers Python.
+353. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\formateur_dashboard.html
+   Ligne 162: url_for('voir_formation') ne correspond à aucune route trouvée dans les fichiers Python.
+354. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\formateur_dashboard.html
+   Ligne 176: url_for('creer_formation') ne correspond à aucune route trouvée dans les fichiers Python.
+355. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\formateur_dashboard.html
+   Ligne 95: url_for('creer_formation') ne correspond à aucune route trouvée dans les fichiers Python.
+356. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\gestionnaire_portefeuille_dashboard.html
+   Ligne 100: url_for('portefeuille_clients') ne correspond à aucune route trouvée dans les fichiers Python.
+357. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\gestionnaire_portefeuille_dashboard.html
+   Ligne 105: url_for('portefeuille_retards') ne correspond à aucune route trouvée dans les fichiers Python.
+358. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\gestionnaire_portefeuille_dashboard.html
+   Ligne 110: url_for('portefeuille_rapports') ne correspond à aucune route trouvée dans les fichiers Python.
+359. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\gestionnaire_portefeuille_dashboard.html
+   Ligne 212: url_for('portefeuille_voir_pret') ne correspond à aucune route trouvée dans les fichiers Python.
+360. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\gestionnaire_portefeuille_dashboard.html
+   Ligne 216: url_for('portefeuille_suivi') ne correspond à aucune route trouvée dans les fichiers Python.
+361. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\gestionnaire_portefeuille_dashboard.html
+   Ligne 264: url_for('portefeuille_contacter') ne correspond à aucune route trouvée dans les fichiers Python.
+362. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\gestionnaire_portefeuille_dashboard.html
+   Ligne 95: url_for('portefeuille_analyse') ne correspond à aucune route trouvée dans les fichiers Python.
+363. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\informaticien_dashboard.html
+   Ligne 100: url_for('informaticien_tickets') ne correspond à aucune route trouvée dans les fichiers Python.
+364. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\informaticien_dashboard.html
+   Ligne 105: url_for('informaticien_urgents') ne correspond à aucune route trouvée dans les fichiers Python.
+365. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\informaticien_dashboard.html
+   Ligne 110: url_for('informaticien_equipements') ne correspond à aucune route trouvée dans les fichiers Python.
+366. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\informaticien_dashboard.html
+   Ligne 115: url_for('informaticien_rapports') ne correspond à aucune route trouvée dans les fichiers Python.
+367. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\informaticien_dashboard.html
+   Ligne 120: url_for('informaticien_maintenance') ne correspond à aucune route trouvée dans les fichiers Python.
+368. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\informaticien_dashboard.html
+   Ligne 184: url_for('informaticien_voir_ticket') ne correspond à aucune route trouvée dans les fichiers Python.
+369. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\informaticien_dashboard.html
+   Ligne 188: url_for('informaticien_resoudre_ticket') ne correspond à aucune route trouvée dans les fichiers Python.
+370. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\informaticien_dashboard.html
+   Ligne 95: url_for('informaticien_nouveau_ticket') ne correspond à aucune route trouvée dans les fichiers Python.
+371. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\relation_client_dashboard.html
+   Ligne 100: url_for('relation_client_liste') ne correspond à aucune route trouvée dans les fichiers Python.
+372. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\relation_client_dashboard.html
+   Ligne 105: url_for('relation_client_suivi') ne correspond à aucune route trouvée dans les fichiers Python.
+373. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\relation_client_dashboard.html
+   Ligne 110: url_for('relation_client_sondage') ne correspond à aucune route trouvée dans les fichiers Python.
+374. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\relation_client_dashboard.html
+   Ligne 156: url_for('relation_client_voir') ne correspond à aucune route trouvée dans les fichiers Python.
+375. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\relation_client_dashboard.html
+   Ligne 160: url_for('relation_client_contacter') ne correspond à aucune route trouvée dans les fichiers Python.
+376. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\relation_client_dashboard.html
+   Ligne 174: url_for('relation_client_ajouter') ne correspond à aucune route trouvée dans les fichiers Python.
+377. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\relation_client_dashboard.html
+   Ligne 215: url_for('relation_client_contacter') ne correspond à aucune route trouvée dans les fichiers Python.
+378. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\relation_client_dashboard.html
+   Ligne 219: url_for('relation_client_voir') ne correspond à aucune route trouvée dans les fichiers Python.
+379. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\relation_client_dashboard.html
+   Ligne 344: url_for('relation_client_voir') ne correspond à aucune route trouvée dans les fichiers Python.
+380. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\relation_client_dashboard.html
+   Ligne 348: url_for('relation_client_contacter') ne correspond à aucune route trouvée dans les fichiers Python.
+381. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\relation_client_dashboard.html
+   Ligne 352: url_for('relation_client_notes') ne correspond à aucune route trouvée dans les fichiers Python.
+382. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\relation_client_dashboard.html
+   Ligne 95: url_for('relation_client_ajouter') ne correspond à aucune route trouvée dans les fichiers Python.
+383. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\secretaire_dashboard.html
+   Ligne 100: url_for('secretaire_rendez_vous') ne correspond à aucune route trouvée dans les fichiers Python.
+384. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\secretaire_dashboard.html
+   Ligne 105: url_for('secretaire_documents') ne correspond à aucune route trouvée dans les fichiers Python.
+385. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\secretaire_dashboard.html
+   Ligne 110: url_for('secretaire_archives') ne correspond à aucune route trouvée dans les fichiers Python.
+386. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\secretaire_dashboard.html
+   Ligne 168: url_for('secretaire_voir_document') ne correspond à aucune route trouvée dans les fichiers Python.
+387. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\secretaire_dashboard.html
+   Ligne 172: url_for('secretaire_traiter_document') ne correspond à aucune route trouvée dans les fichiers Python.
+388. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\secretaire_dashboard.html
+   Ligne 226: url_for('secretaire_voir_rendez_vous') ne correspond à aucune route trouvée dans les fichiers Python.
+389. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\secretaire_dashboard.html
+   Ligne 230: url_for('secretaire_confirmer_rendez_vous') ne correspond à aucune route trouvée dans les fichiers Python.
+390. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\secretaire_dashboard.html
+   Ligne 242: url_for('secretaire_rendez_vous') ne correspond à aucune route trouvée dans les fichiers Python.
+391. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\secretaire_dashboard.html
+   Ligne 95: url_for('secretaire_nouveau_document') ne correspond à aucune route trouvée dans les fichiers Python.
+392. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\superviseur_credit_dashboard.html
+   Ligne 100: url_for('superviseur_credit_approuver') ne correspond à aucune route trouvée dans les fichiers Python.
+393. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\superviseur_credit_dashboard.html
+   Ligne 105: url_for('superviseur_credit_agents') ne correspond à aucune route trouvée dans les fichiers Python.
+394. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\superviseur_credit_dashboard.html
+   Ligne 110: url_for('superviseur_credit_rapports') ne correspond à aucune route trouvée dans les fichiers Python.
+395. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\superviseur_credit_dashboard.html
+   Ligne 159: url_for('superviseur_credit_voir_pret') ne correspond à aucune route trouvée dans les fichiers Python.
+396. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\superviseur_credit_dashboard.html
+   Ligne 163: url_for('superviseur_credit_approuver_pret') ne correspond à aucune route trouvée dans les fichiers Python.
+397. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\superviseur_credit_dashboard.html
+   Ligne 167: url_for('superviseur_credit_rejeter_pret') ne correspond à aucune route trouvée dans les fichiers Python.
+398. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\superviseur_credit_dashboard.html
+   Ligne 95: url_for('superviseur_credit_attentes') ne correspond à aucune route trouvée dans les fichiers Python.
+399. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\voir_employe.html
+   Ligne 16: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+400. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\voir_employe.html
+   Ligne 190: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+401. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\employees\voir_employe.html
+   Ligne 197: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+402. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\errors\lien_expire.html
+   Ligne 85: url_for('login') ne correspond à aucune route trouvée dans les fichiers Python.
+403. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\errors\lien_invalide.html
+   Ligne 86: url_for('login') ne correspond à aucune route trouvée dans les fichiers Python.
+404. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\fonctions\agent_credit\agent_credit_dashboard.html
+   Ligne 161: url_for('voir_demande') ne correspond à aucune route trouvée dans les fichiers Python.
+405. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\fonctions\agent_credit\agent_credit_dashboard.html
+   Ligne 165: url_for('analyser_demande') ne correspond à aucune route trouvée dans les fichiers Python.
+406. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\fonctions\agent_credit\agent_credit_dashboard.html
+   Ligne 169: url_for('soumettre_demande') ne correspond à aucune route trouvée dans les fichiers Python.
+407. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\fonctions\agent_credit\agent_credit_dashboard.html
+   Ligne 319: url_for('historique_client') ne correspond à aucune route trouvée dans les fichiers Python.
+408. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\fonctions\agent_credit\rapport_activite.html
+   Ligne 354: url_for('voir_credit') ne correspond à aucune route trouvée dans les fichiers Python.
+409. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\gestionnaire_dashboard.html
+   Ligne 53: url_for('affecter_membres') ne correspond à aucune route trouvée dans les fichiers Python.
+410. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\gestionnaire_dashboard.html
+   Ligne 54: url_for('planifier_reunions') ne correspond à aucune route trouvée dans les fichiers Python.
+411. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\gestionnaire_dashboard.html
+   Ligne 55: url_for('rapports_groupes') ne correspond à aucune route trouvée dans les fichiers Python.
+412. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\interface_fonction.html
+   Ligne 73: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+413. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\investisseurs.html
+   Ligne 320: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+414. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\mes_remboursements.html
+   Ligne 278: url_for('annuler_remboursement') ne correspond à aucune route trouvée dans les fichiers Python.
+415. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\parametres\scoring.html
+   Ligne 19: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+416. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\prets\conditions_deja_acceptees.html
+   Ligne 128: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+417. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\prets\recu_pret.html
+   Ligne 12: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+418. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\prets\voir_pret.html
+   Ligne 328: url_for('download_document') ne correspond à aucune route trouvée dans les fichiers Python.
+419. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\profil_employe.html
+   Ligne 14: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+420. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\programmer_rapports.html
+   Ligne 123: url_for('desactiver_rapport') ne correspond à aucune route trouvée dans les fichiers Python.
+421. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\programmer_rapports.html
+   Ligne 137: url_for('programmer_rapports') ne correspond à aucune route trouvée dans les fichiers Python.
+422. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\programmer_rapports.html
+   Ligne 58: url_for('programmer_rapports') ne correspond à aucune route trouvée dans les fichiers Python.
+423. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\programmer_rapports.html
+   Ligne 64: url_for('arreter_rapports') ne correspond à aucune route trouvée dans les fichiers Python.
+424. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\rapports\risque.html
+   Ligne 169: url_for('details_pret') ne correspond à aucune route trouvée dans les fichiers Python.
+425. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\rapports\risque.html
+   Ligne 20: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+426. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\remboursements\export_retards.html
+   Ligne 49: url_for('dashboard') ne correspond à aucune route trouvée dans les fichiers Python.
+427. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\retards.html
+   Ligne 64: url_for('paiement_detail') ne correspond à aucune route trouvée dans les fichiers Python.
+428. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\retards.html
+   Ligne 65: url_for('paiement_payer') ne correspond à aucune route trouvée dans les fichiers Python.
+429. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\succursale\dashboard.html
+   Ligne 20: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+430. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\succursale\remboursements_retards.html
+   Ligne 140: url_for('remboursement_detail') ne correspond à aucune route trouvée dans les fichiers Python.
+431. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\succursale\remboursements_retards.html
+   Ligne 143: url_for('remboursement_payer') ne correspond à aucune route trouvée dans les fichiers Python.
+432. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\succursale\remboursements_retards.html
+   Ligne 146: url_for('remboursement_edit') ne correspond à aucune route trouvée dans les fichiers Python.
+433. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_agence_dashboard.html
+   Ligne 404: url_for('voir_transaction') ne correspond à aucune route trouvée dans les fichiers Python.
+434. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_agence_dashboard.html
+   Ligne 513: url_for('valider_credit') ne correspond à aucune route trouvée dans les fichiers Python.
+435. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_agence_dashboard.html
+   Ligne 519: url_for('rapport_agence') ne correspond à aucune route trouvée dans les fichiers Python.
+436. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_agence_dashboard.html
+   Ligne 525: url_for('calendrier_conges') ne correspond à aucune route trouvée dans les fichiers Python.
+437. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_agence_dashboard.html
+   Ligne 531: url_for('inventaire') ne correspond à aucune route trouvée dans les fichiers Python.
+438. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_agence_dashboard.html
+   Ligne 537: url_for('cloture_caisse') ne correspond à aucune route trouvée dans les fichiers Python.
+439. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_agence_dashboard.html
+   Ligne 543: url_for('reunion_equipe') ne correspond à aucune route trouvée dans les fichiers Python.
+440. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_agence_dashboard.html
+   Ligne 549: url_for('objectifs_agence') ne correspond à aucune route trouvée dans les fichiers Python.
+441. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_credit_dashboard.html
+   Ligne 155: url_for('voir_demande_credit') ne correspond à aucune route trouvée dans les fichiers Python.
+442. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_credit_dashboard.html
+   Ligne 159: url_for('approuver_credit') ne correspond à aucune route trouvée dans les fichiers Python.
+443. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_credit_dashboard.html
+   Ligne 164: url_for('rejeter_credit') ne correspond à aucune route trouvée dans les fichiers Python.
+444. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_credit_dashboard.html
+   Ligne 169: url_for('simulation_credit') ne correspond à aucune route trouvée dans les fichiers Python.
+445. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_credit_dashboard.html
+   Ligne 348: url_for('voir_credit') ne correspond à aucune route trouvée dans les fichiers Python.
+446. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_credit_dashboard.html
+   Ligne 352: url_for('planifier_recouvrement') ne correspond à aucune route trouvée dans les fichiers Python.
+447. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_credit_dashboard.html
+   Ligne 411: url_for('voir_echeance') ne correspond à aucune route trouvée dans les fichiers Python.
+448. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_credit_dashboard.html
+   Ligne 484: url_for('liste_demandes') ne correspond à aucune route trouvée dans les fichiers Python.
+449. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_credit_dashboard.html
+   Ligne 490: url_for('rapport_credit') ne correspond à aucune route trouvée dans les fichiers Python.
+450. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_credit_dashboard.html
+   Ligne 496: url_for('simulation_credit') ne correspond à aucune route trouvée dans les fichiers Python.
+451. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_credit_dashboard.html
+   Ligne 502: url_for('taux_interet') ne correspond à aucune route trouvée dans les fichiers Python.
+452. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_credit_dashboard.html
+   Ligne 508: url_for('recouvrement') ne correspond à aucune route trouvée dans les fichiers Python.
+453. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_credit_dashboard.html
+   Ligne 514: url_for('produits_credit') ne correspond à aucune route trouvée dans les fichiers Python.
+454. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\chef_credit_dashboard.html
+   Ligne 520: url_for('analyse_risque_credit') ne correspond à aucune route trouvée dans les fichiers Python.
+455. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\conseiller_dossiers_attente.html
+   Ligne 16: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+456. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\conseiller_dossiers_attente.html
+   Ligne 184: url_for('static') ne correspond à aucune route trouvée dans les fichiers Python.
+457. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\coordinateur_terrain_dashboard.html
+   Ligne 151: url_for('voir_visite') ne correspond à aucune route trouvée dans les fichiers Python.
+458. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\coordinateur_terrain_dashboard.html
+   Ligne 226: url_for('voir_agent_terrain') ne correspond à aucune route trouvée dans les fichiers Python.
+459. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\coordinateur_terrain_dashboard.html
+   Ligne 230: url_for('assigner_visite') ne correspond à aucune route trouvée dans les fichiers Python.
+460. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\coordinateur_terrain_dashboard.html
+   Ligne 234: url_for('localiser_agent') ne correspond à aucune route trouvée dans les fichiers Python.
+461. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\coordinateur_terrain_dashboard.html
+   Ligne 380: url_for('suivre_tournee') ne correspond à aucune route trouvée dans les fichiers Python.
+462. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\coordinateur_terrain_dashboard.html
+   Ligne 489: url_for('editer_planning') ne correspond à aucune route trouvée dans les fichiers Python.
+463. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\coordinateur_terrain_dashboard.html
+   Ligne 511: url_for('planifier_tournee') ne correspond à aucune route trouvée dans les fichiers Python.
+464. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\coordinateur_terrain_dashboard.html
+   Ligne 517: url_for('assigner_visite') ne correspond à aucune route trouvée dans les fichiers Python.
+465. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\coordinateur_terrain_dashboard.html
+   Ligne 523: url_for('localiser_tous_agents') ne correspond à aucune route trouvée dans les fichiers Python.
+466. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\coordinateur_terrain_dashboard.html
+   Ligne 529: url_for('rapport_terrain') ne correspond à aucune route trouvée dans les fichiers Python.
+467. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\coordinateur_terrain_dashboard.html
+   Ligne 535: url_for('urgence_terrain') ne correspond à aucune route trouvée dans les fichiers Python.
+468. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\coordinateur_terrain_dashboard.html
+   Ligne 541: url_for('formation_terrain') ne correspond à aucune route trouvée dans les fichiers Python.
+469. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\coordinateur_terrain_dashboard.html
+   Ligne 547: url_for('materiel_terrain') ne correspond à aucune route trouvée dans les fichiers Python.
+470. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\coordinateur_terrain_dashboard.html
+   Ligne 553: url_for('communication_agents') ne correspond à aucune route trouvée dans les fichiers Python.
+471. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\superviseur_operations_dashboard.html
+   Ligne 159: url_for('voir_caisse') ne correspond à aucune route trouvée dans les fichiers Python.
+472. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\superviseur_operations_dashboard.html
+   Ligne 268: url_for('voir_agent') ne correspond à aucune route trouvée dans les fichiers Python.
+473. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\superviseur_operations_dashboard.html
+   Ligne 272: url_for('envoyer_message') ne correspond à aucune route trouvée dans les fichiers Python.
+474. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\superviseur_operations_dashboard.html
+   Ligne 311: url_for('traiter_anomalie') ne correspond à aucune route trouvée dans les fichiers Python.
+475. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\superviseur_operations_dashboard.html
+   Ligne 412: url_for('relancer_agent') ne correspond à aucune route trouvée dans les fichiers Python.
+476. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\superviseur_operations_dashboard.html
+   Ligne 489: url_for('ouvrir_caisse') ne correspond à aucune route trouvée dans les fichiers Python.
+477. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\superviseur_operations_dashboard.html
+   Ligne 495: url_for('fermer_caisse') ne correspond à aucune route trouvée dans les fichiers Python.
+478. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\superviseur_operations_dashboard.html
+   Ligne 501: url_for('valider_transaction') ne correspond à aucune route trouvée dans les fichiers Python.
+479. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\superviseur_operations_dashboard.html
+   Ligne 507: url_for('gerer_pauses') ne correspond à aucune route trouvée dans les fichiers Python.
+480. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\superviseur_operations_dashboard.html
+   Ligne 513: url_for('rapport_operation') ne correspond à aucune route trouvée dans les fichiers Python.
+481. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\superviseur_operations_dashboard.html
+   Ligne 519: url_for('incident') ne correspond à aucune route trouvée dans les fichiers Python.
+482. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\superviseur_operations_dashboard.html
+   Ligne 525: url_for('communication_equipe') ne correspond à aucune route trouvée dans les fichiers Python.
+483. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — templates\superviseurs\superviseur_operations_dashboard.html
+   Ligne 531: url_for('planning_demain') ne correspond à aucune route trouvée dans les fichiers Python.
+484. [À VÉRIFIER] CLE_SECRETE — utils\notifications.py
+   Ligne 55: clé secrète lue avec une valeur de secours ou directement depuis l'environnement. Comparer avec app.config['SECRET_KEY']; ne jamais utiliser une clé de développement en production.
+485. [À VÉRIFIER] CLE_SECRETE — utils\notifications.py
+   Ligne 63: clé secrète lue avec une valeur de secours ou directement depuis l'environnement. Comparer avec app.config['SECRET_KEY']; ne jamais utiliser une clé de développement en production.
+486. [À VÉRIFIER] TEMPLATE_ENDPOINT_INCONNU — views.py
+   Ligne 23: url_for('login') ne correspond à aucune route trouvée dans les fichiers Python.
+487. [À VÉRIFIER] URL_FOR_INCONNU — views.py
+   Ligne 23: url_for('login') ne correspond à aucune route détectée. Vérifier les Blueprints et les routes dynamiques.
+
+2) INVENTAIRE DES ROUTES FLASK DÉTECTÉES
+------------------------------------------------------------------------
+  accept_terms                        /accept/<token>                               routes\terms.py:11
+  accepter_conditions                 /accepter-conditions/<token>                  app.py:3856
+  accepter_conditions_pret            /accepter-conditions-pret/<token>             app.py:475
+  accueil                             /                                             app.py:423
+  accueil                             /                                             routes\accueil.py:7
+  activate_all_employes               /activate-all-employes                        app.py:19562
+  activation_client                   /activation/<token>                           routes\clients.py:178
+  activer_employe                     /admin/activer-employe/<int:employe_id>       app.py:21803
+  admin_approbations                  /admin_central/approbations                   app.py:21931
+  admin_approuver_username            /admin/approuver-username/<int:employe_id>    app.py:9821
+  admin_central_succursales           /admin-central/succursales                    app.py:20460
+  admin_dashboard                     /admin/dashboard                              app.py:22745
+  admin_employes                      /admin/employes                               app.py:22569
+  admin_gerer_demandes_username       /admin/demandes-username                      app.py:9750
+  admin_notifications                 /admin/notifications                          app.py:12734
+  admin_rapport_global                /admin/rapport-global                         app.py:22844
+  admin_rapports                      /admin/rapports                               app.py:13731
+  admin_rejeter_username              /admin/rejeter-username/<int:employe_id>      app.py:9851
+  admin_remboursements                /admin/remboursements                         app.py:12974
+  admin_succursale_dashboard          /admin-succursale/dashboard                   app.py:22719
+  afficher_recu_retrait               /retrait/recu/<int:transaction_id>/<int:client_id> app.py:25283
+  afficher_succursales                /admin-central/succursales                    app.py:20558
+  agent_conformite_dashboard          /employe/agent-conformite                     app.py:29100
+  agent_credit_dashboard              /<succursale_code>/agent-credit/dashboard     app.py:10124
+  agent_credit_nouveau_pret           /agent_credit/nouveau_pret                    routes\functions.py:107
+  agent_nouvelle_demande              /fonctions/agent_credit/<succursale_code>/nouvelle-demande app.py:14008
+  agent_remboursement_dashboard       /employe/agent-remboursement                  app.py:28847
+  agent_risque_dashboard              /employe/agent-risque                         app.py:29242
+  agent_saisie_dashboard              /employe/agent-saisie                         app.py:28986
+  agent_terrain_dashboard             /employe/agent-terrain                        app.py:30040
+  ajouter_admin                       /admin/ajouter_admin                          app.py:20625
+  ajouter_employe                     /admin/ajouter-employe/                       app.py:17173
+  ajouter_employe                     /admin/ajouter-employe/<string:succursale_code>/ app.py:17173
+  ajouter_investissement              /investisseurs/<int:inv_id>/investissement    app.py:32021
+  ajouter_investisseur                /investisseurs/ajouter                        app.py:31931
+  ajouter_pret                        /<succursale_code>/prets/ajouter              routes\prets.py:32
+  ajouter_succursale                  /admin/succursale/ajouter                     app.py:20484
+  analyse_automatique                 /analyste/analyse-automatique                 app.py:18431
+  analyse_strategique                 /direction/analyse-strategique                app.py:6180
+  analyste_dashboard                  /employe/analyste                             app.py:18903
+  analytics_personnel                 /analytics-personnel                          app.py:14834
+  animateur_groupe_dashboard          /employe/animateur-groupe                     app.py:28727
+  annuler_pret                        /pret/<int:pret_id>/annuler                   app.py:2290
+  api_calcul_pret                     /api/calcul-pret                              app.py:22978
+  api_dashboard_data                  /<string:succursale_code>/api/dashboard-data  app.py:16588
+  api_employes_list                   /api/employes                                 app.py:22591
+  api_employes_stats                  /api/employes/stats                           app.py:21386
+  api_employes_succursale             /api/employes/succursale/<int:succursale_id>  app.py:30619
+  api_notifications                   /api/notifications                            app.py:19261
+  api_notifications_count             /api/notifications/count                      app.py:19309
+  api_notifications_unread            /api/notifications/unread                     app.py:19200
+  approuver_admin                     /admin/approuver-admin/<int:employe_id>       app.py:18268
+  approuver_compte                    /admin/approuver-compte/<int:employe_id>      app.py:21998
+  approuver_employe                   /admin/approuver-employe/<int:employe_id>     app.py:18327
+  approuver_pret                      /pret/<int:pret_id>/approuver                 app.py:3144
+  approve_client                      /approve_client/<int:client_id>               employees\routes.py:66
+  approver_utilisateur                /admin/approver-utilisateur/<int:employe_id>  app.py:18937
+  archiviste_dashboard                /employe/archiviste                           app.py:29653
+  assigner_groupe                     /admin/assigner-groupe/<int:employe_id>       app.py:13049
+  attente_confirmation_retrait        /retrait/attente/<int:client_id>/<int:compte_id>/<token> app.py:25605
+  audit_acces                         /admin/audit-acces.html                       app.py:21146
+  audit_logs                          /super-admin/audit-logs                       app.py:21900
+  audit_operations                    /direction/operations/audit                   app.py:11834
+  badges                              /badges                                       app.py:14537
+  bloquer_client                      /bloquer_client/<int:client_id>               app.py:20314
+  branch_dashboard                    /<branch_code>/dashboard                      routes\employees.py:183
+  budget_previsionnel                 /direction/budget-previsionnel                app.py:6455
+  caissier_dashboard                  /<succursale_code>/caissier/dashboard         app.py:22907
+  caissier_transaction                /caissier/transaction                         routes\functions.py:98
+  calcul_pret                         /api/calcul-pret                              app.py:14075
+  calculer_echeancier                 /api/calculer-echeancier/<int:pret_id>        app.py:12997
+  capacite_succursales                /direction/succursales/capacite               app.py:11703
+  centre_it                           /admin/centre-it                              app.py:31585
+  centre_it_service                   /admin/centre-it/service                      app.py:31527
+  changer_statut_investisseur         /investisseurs/<int:inv_id>/statut            app.py:32057
+  charge_rh_dashboard                 /employe/charge-rh                            app.py:29755
+  check_cc_permissions                /check-cc-permissions                         app.py:5014
+  chef_agence_dashboard               /superviseur/chef_agence/dashboard            app.py:10209
+  chef_credit_dashboard               /superviseurs/chef_credit/dashboard           app.py:10376
+  classement                          /classement                                   app.py:14588
+  cleanup_test_users                  /cleanup-test-users                           app.py:23140
+  clear_session                       /debug/clear-session                          app.py:22968
+  client_dashboard                    /client/dashboard                             app.py:14146
+  client_dashboard                    /dashboard                                    routes\clients.py:23
+  client_deposer_documents            /client/documents/<token>                     app.py:30873
+  client_notifications                /client-notifications/<int:client_id>         app.py:23150
+  client_portal                       /client-portal                                app.py:6799
+  client_terms                        /client/terms/<token>                         app.py:4743
+  client_terms_success                /client/terms/success                         app.py:23160
+  client_test                         /client/test                                  app.py:18064
+  client_voir_pret                    /clients/pret/<int:pret_id>                   app.py:2117
+  collecteur_dashboard                /employe/collecteur                           app.py:30134
+  comite_direction                    /direction/comite-direction                   app.py:6276
+  complete_defi                       /api/gamification/complete-defi/<int:defi_id> app.py:14742
+  confirmer_paiement                  /api/payments/confirmer                       routes\payments.py:53
+  confirmer_retrait                   /retrait/confirmer/<token>                    app.py:25811
+  connexion                           /connexion                                    app.py:6886
+  conseil_administration              /direction/conseil-administration             app.py:6480
+  conseiller_dashboard                /employe/conseiller                           app.py:18809
+  conseiller_documents                /conseiller/documents/<int:id>                app.py:30707
+  conseiller_dossier_en_attente       /conseiller/dossiers-en-attente               app.py:6135
+  conseiller_dossier_en_attente       /conseiller/dossiers-en-attente/<succursale_code> app.py:6135
+  conseiller_mes_dossiers             /conseiller/mes-dossiers                      app.py:6114
+  conseiller_voir_dossier             /conseiller/dossier/<int:dossier_id>          app.py:9899
+  contacter_utilisateur               /admin/contacter/<int:employe_id>             app.py:23820
+  controlleur_interne_dashboard       /employe/controlleur-interne                  app.py:29384
+  coordinateur_terrain_dashboard      /direction/coordinateur_terrain/dashboard     app.py:10496
+  create_agent                        /admin/create_agent                           app.py:21684
+  create_partner_integration          /integrations                                 app.py:27693
+  create_partner_integration_direct   /api/partner/portal/integrations              app.py:27864
+  create_succursale                   /admin/create_succursale                      app.py:21464
+  create_superviseur_test             /create-superviseur-test                      app.py:19427
+  creer_dossier                       /conseiller/creer-dossier                     app.py:4110
+  creer_groupe                        /groupe/creer                                 app.py:13090
+  creer_groupes                       /gestionnaire/groupes/creer                   app.py:13353
+  creer_utilisateur                   /admin/creer-utilisateur                      app.py:9546
+  dashboard_agent                     /agent/dashboard                              app.py:12235
+  dashboard_central                   /succursale/dashboard                         app.py:22815
+  dashboard_directeur                 /dashboard_directeur                          app.py:17700
+  dashboard_global                    /admin/dashboard-global                       app.py:16566
+  dashboard_redirect                  /dashboard                                    app.py:9955
+  debloquer_client                    /admin/debloquer-client/<int:client_id>       app.py:20333
+  debug_all_users                     /debug/all-users                              app.py:18211
+  debug_employees_folder              /debug-employees-folder                       app.py:4665
+  debug_employes_fonctions            /debug/employes-fonctions                     app.py:19402
+  debug_fonctions                     /superviseur/debug-fonctions                  app.py:19150
+  debug_liens_clients                 /debug/liens-clients                          app.py:23169
+  debug_password                      /debug-password                               app.py:4696
+  debug_redirect                      /debug-redirect                               app.py:6170
+  debug_routes                        /debug-routes                                 app.py:18047
+  debug_session                       /debug/session                                app.py:22940
+  debug_stats                         /admin/debug-stats                            app.py:18079
+  debug_template                      /debug-template                               app.py:6158
+  debug_users                         /debug-users                                  app.py:4722
+  decisions                           /direction/decisions                          app.py:6377
+  deconnexion                         /deconnexion                                  app.py:12508
+  defis                               /defis                                        app.py:14470
+  delete_client_with_dependencies     /api/clients/<int:client_id>/delete_with_dependencies app.py:28011
+  delete_document                     /admin/document/delete/<int:doc_id>           app.py:24047
+  delete_partner_integration          /integrations/<int:integration_id>            app.py:27834
+  demande_pret                        /prets/demande-pret                           app.py:1390
+  demande_pret_solidaire              /groupe/<int:groupe_id>/demande-pret-solidaire app.py:13625
+  demande_reset_mot_de_passe          /demande-reset-mot-de-passe                   app.py:9583
+  demander_changement_username        /demander-changement-username                 app.py:9722
+  demander_documents                  /conseiller/documents/demander/<int:client_id> app.py:30741
+  demander_informations_supplementaires /pret/<int:pret_id>/demander_informations     app.py:3276
+  depot_client_form                   /client/<int:client_id>/depot                 app.py:24582
+  detail_groupe                       /groupe/<int:groupe_id>                       app.py:13068
+  detail_investisseur_json            /investisseurs/<int:inv_id>/json              app.py:31899
+  detail_pret                         /pret/detail/<int:pret_id>                    app.py:2522
+  detail_succursale                   /admin/succursale/<int:succursale_id>         app.py:20533
+  details_groupe                      /gestionnaire/groupes/details/<int:groupe_id> app.py:13321
+  directeur_approuver_dossier         /direction/approuver-dossier/<int:client_id>  app.py:5125
+  directeur_commercial_dashboard      /direction/commercial/dashboard               app.py:11910
+  directeur_conformite_dashboard      /direction/conformite/dashboard               app.py:12129
+  directeur_demandes_attente          /direction/prets/attente                      app.py:17902
+  directeur_dossiers_attente          /directeur/dossiers-en-attente                app.py:23647
+  directeur_financier_dashboard       /direction/financier/dashboard                app.py:10977
+  directeur_general_dashboard         /direction/general/dashboard                  app.py:10951
+  directeur_modifier_dossier          /direction/modifier-dossier/<int:dossier_id>  app.py:5905
+  directeur_operations_dashboard      /direction/operations/dashboard               app.py:11132
+  directeur_regional_dashboard        /direction/regional/dashboard                 app.py:10834
+  directeur_rejeter_dossier           /directeur/rejeter-dossier/<int:pret_id>      app.py:6056
+  directeur_rh_dashboard              /direction/rh/dashboard                       app.py:12043
+  directeur_tous_les_dossiers         /direction/tous_dossiers                      app.py:5367
+  directeur_tous_les_dossiers         /direction/tous_dossiers/<succursale_code>    app.py:5367
+  directeur_voir_dossier              /direction/voir-dossier/<int:dossier_id>      app.py:5478
+  direction_dashboard_generique       /direction/dashboard-generique                app.py:12196
+  direction_detail_pret               /direction/pret/<int:pret_id>/view            app.py:2812
+  direction_dossiers_en_attente       /direction/dossiers-en-attente                app.py:12177
+  direction_succursale_dashboard      /direction/succursale/dashboard               app.py:2639
+  dossiers_succursale                 /dossiers/succursale/<string:succursale_code> app.py:9880
+  download_carte                      /admin/employe/<int:employe_id>/download-carte app.py:17959
+  echanger_recompense                 /api/gamification/echanger-recompense/<int:recompense_id> app.py:14785
+  edit_succursale                     /admin-central/succursales/<int:succ_id>/edit app.py:20575
+  edit_succursale                     /admin-central/succursales/<int:succ_id>/editer app.py:20575
+  effectuer_depot                     /effectuer-depot                              app.py:24225
+  effectuer_retrait                   /effectuer-retrait                            app.py:24293
+  effectuer_transfert                 /effectuer-transfert                          app.py:24365
+  employe_analyse_prets               /employe/analyse-prets                        app.py:17039
+  employe_dashboard                   /employe/dashboard                            app.py:19509
+  employe_dashboard                   /dashboard                                    employees\routes.py:11
+  employe_dashboard_fallback          /employe/dashboard-fallback                   app.py:19547
+  employe_dashboard_generique         /employees/dashboard-generique                app.py:19554
+  employe_gestion_clients             /employe/gestion-clients                      app.py:17047
+  employe_recu_retrait                /employe/<int:employe_id>/retrait/<int:transaction_id>/recu app.py:25785
+  employe_remboursements              /employe/remboursements                       app.py:14943
+  employe_section                     /employe-section                              app.py:17055
+  employe_transfert_entre_clients     /employe/transfert_client                     app.py:26491
+  employee_profile                    /employee/<int:employe_id>                    app.py:27136
+  employes_approuves                  /directeur/employes-approuves                 app.py:18008
+  envoyer_confirmation_retrait        /client/<int:client_id>/retrait/envoyer_email app.py:24696
+  envoyer_lien_activation             /<int:client_id>/envoyer-lien                 routes\clients.py:451
+  export_employes                     /admin/export/employes                        app.py:21416
+  export_excel_clients                /export-excel-clients                         app.py:7615
+  export_groupes                      /gestionnaire/groupes/export                  app.py:13486
+  export_pdf_rapport                  /export-pdf-rapport                           app.py:8054
+  export_prets_excel                  /admin/export-prets-excel                     app.py:13843
+  export_rapports_risque              /rapports/risque/export                       app.py:15676
+  export_remboursements_csv           /<string:succursale_code>/employees/export-remboursements app.py:16502
+  export_remboursements_retards       /<succursale_code>/remboursements/export-retards app.py:19803
+  export_rh                           /export_rh                                    app.py:27368
+  export_stats                        /export-stats                                 app.py:8306
+  exporter_attentes                   /admin/exporter-attentes                      app.py:21954
+  exporter_dossiers_excel             /direction/exporter-dossiers                  app.py:5043
+  fermeture_caisse                    /fermeture_caisse                             app.py:27630
+  fix_super_admin                     /fix_super_admin                              app.py:28242
+  fonction_dashboard                  /dashboard/<fonction>                         routes\functions.py:13
+  formateur_dashboard                 /employe/formateur                            app.py:30206
+  generer_carte                       /admin/employe/<int:employe_id>/carte         app.py:17511
+  generer_echeancier                  /prets/<int:pret_id>/generer-echeancier       app.py:2350
+  gerer_employes                      /admin/gerer-employes                         app.py:18230
+  gerer_permissions                   /admin/employe/<int:employe_id>/permissions   app.py:18098
+  gerer_pret                          /pret/<int:pret_id>/<action>                  app.py:14190
+  gerer_succursales                   /direction/succursales/gerer                  app.py:11876
+  gestion_retards                     /admin/retards                                app.py:6976
+  gestion_utilisateurs                /admin/utilisateurs                           app.py:22654
+  gestionnaire_dashboard              /employe/gestionnaire                         app.py:18919
+  gestionnaire_groupes_dashboard      /gestionnaire/groupes/dashboard               app.py:13118
+  gestionnaire_portefeuille_dashboard /employe/gestionnaire-portefeuille            app.py:28486
+  get_client_dependencies             /api/clients/<int:client_id>/dependencies     app.py:28156
+  get_gamification_points             /api/gamification/points                      app.py:14724
+  get_partner_integrations            /integrations                                 app.py:27803
+  get_unread_notifications            /api/notifications/unread                     app.py:12882
+  go                                  /go                                           super_admin_bp.py:28
+  historique_employe                  /admin/employe/<int:employe_id>/historique    app.py:21360
+  historique_global                   /admin/historique                             app.py:23926
+  historique_remboursements           /<string:succursale_code>/employees/historique-remboursements app.py:15290
+  historique_utilisateur              /admin/historique/utilisateur/<int:employe_id> app.py:23956
+  import_employes                     /admin/import-employes                        app.py:21085
+  imprimer_recu_retrait               /client/<int:client_id>/retrait/<int:transaction_id>/recu app.py:25305
+  imprimer_recu_retrait_public        /retrait/recu/<token>                         app.py:25371
+  imprimer_recus_jour                 /imprimer_recus_jour                          app.py:27598
+  index                               /                                             app.py:351
+  informaticien_dashboard             /employe/informaticien                        app.py:29912
+  init_fonctions                      /superviseur/init-fonctions                   app.py:19125
+  init_fonctions_employes             /init-fonctions-employes                      app.py:19375
+  init_permissions                    /debug/init-permissions                       app.py:18159
+  initier_paiement                    /api/payments/initier                         routes\payments.py:17
+  interface_fonction                  /interface-fonction/<fonction>                app.py:21668
+  list                                /<succursale_code>/clients                    app.py:20937
+  list                                /<succursale_code>                            routes\employees.py:22
+  list_prets                          /<succursale_code>/prets                      routes\prets.py:11
+  list_routes                         /list-routes                                  app.py:18054
+  liste_cartes                        /admin/cartes                                 app.py:18019
+  liste_clients                       /agent/clients                                app.py:12363
+  liste_decisions                     /direction/decisions                          app.py:6293
+  liste_documents                     /admin/documents/<int:employe_id>             app.py:23970
+  liste_dossiers                      /dossiers/<int:dossier_id>                    app.py:9941
+  liste_employes                      /admin/employes                               app.py:20963
+  liste_groupes                       /liste_groupes                                app.py:13033
+  liste_investisseurs                 /investisseurs                                app.py:31847
+  liste_recus                         /recus                                        app.py:30302
+  liste_succursales                   /admin/succursales                            app.py:14098
+  liste_users                         /liste_users                                  app.py:20386
+  login_qr                            /login-qr/{token}                             app.py:17932
+  logout                              /logout                                       routes\auth.py:95
+  maj_avancement                      /direction/decisions/<int:decision_id>/avancement app.py:6356
+  manage_clients                      /clients                                      employees\routes.py:43
+  mark_all_notifications_read         /api/notifications/mark-all-read              app.py:12859
+  mark_all_read                       /api/notifications/mark-all-read              app.py:23673
+  mark_notification_read              /notification/marquer/<int:notification_id>   app.py:19231
+  marquer_notification_lue_api        /api/notifications/<int:notif_id>/read        app.py:19325
+  marquer_tout_lu_api                 /api/notifications/tout-lu                    app.py:19357
+  mes_groupes                         /mes-groupes                                  app.py:19582
+  mes_prets                           /mes-prets                                    app.py:14069
+  mes_prets_succursale                /mes-prets-succursale                         app.py:31205
+  mes_remboursements                  /mes-remboursements                           app.py:12702
+  mobile_client_me                    /api/mobile/client/me                         routes\auth.py:765
+  mobile_dashboard                    /mobile/dashboard                             app.py:18041
+  mobile_demande_pret                 /api/mobile/demande-pret                      routes\mobile_api.py:773
+  mobile_health                       /api/mobile/health                            app.py:31508
+  mobile_login                        /api/mobile/login                             routes\auth.py:137
+  mobile_logout                       /api/mobile/logout                            routes\auth.py:519
+  mobile_me                           /api/mobile/me                                routes\mobile_api.py:207
+  mobile_notification_lire            /api/mobile/notifications/<int:notification_id>/lire routes\mobile_api.py:1296
+  mobile_notifications                /api/mobile/notifications                     routes\mobile_api.py:1228
+  mobile_prets                        /api/mobile/prets                             routes\mobile_api.py:257
+  mobile_recherche_compte             /api/mobile/recherche-compte                  routes\mobile_api.py:428
+  mobile_register                     /api/mobile/register                          routes\auth.py:539
+  mobile_test                         /api/mobile/test                              routes\auth.py:743
+  mobile_test                         /api/mobile/test                              routes\mobile_api.py:192
+  mobile_transactions                 /api/mobile/transactions                      routes\mobile_api.py:1355
+  mobile_transfert                    /api/mobile/transfert                         routes\mobile_api.py:480
+  modifier_client                     /agent/client/<int:client_id>/modifier        app.py:12482
+  modifier_employe                    /admin/employe/<int:employe_id>/modifier      app.py:21230
+  modifier_groupe                     /gestionnaire/groupes/modifier/<int:groupe_id> app.py:13405
+  mon_profil                          /mon-profil                                   app.py:31308
+  notes_demande                       /admin/notes/<int:employe_id>                 app.py:23873
+  notifications                       /notifications                                app.py:14859
+  nouveau_credit                      /nouveau-credit/<int:client_id>               app.py:12348
+  nouveau_remboursement               /remboursement/nouveau                        app.py:12567
+  nouvelle_decision                   /direction/decisions/nouvelle                 app.py:6314
+  operations                          /operations                                   app.py:24143
+  optimiser_flux                      /direction/operations/optimiser               app.py:11526
+  ouvrir_document                     /conseiller/document/<int:document_id>        app.py:30993
+  page_en_construction                /page_en_construction/<page_name>             app.py:28337
+  page_signature_client               /signature_client/<token>                     app.py:24823
+  pages_json                          /pages.json                                   super_admin_bp.py:112
+  parametres                          /parametres                                   app.py:14867
+  parametres_scoring                  /parametres/scoring                           app.py:15837
+  performance_agents                  /direction/agents/performance                 app.py:11751
+  plan_strategique                    /direction/plan-strategique                   app.py:6527
+  planifier_maintenance               /direction/maintenance/planifier              app.py:11660
+  pointage                            /pointage                                     app.py:27416
+  premier_changement_mot_de_passe     /premier-changement-mot-de-passe              app.py:7007
+  prets_en_attente                    /prets-en-attente                             app.py:14217
+  prets_par_succursale                /succursale/<int:succursale_id>/prets         app.py:31246
+  previsions_remboursement            /previsions-remboursement                     app.py:14846
+  process_transaction                 /process_transaction/<int:transaction_id>     employees\routes.py:81
+  profil                              /profil                                       app.py:14910
+  profil_employe                      /profil/employe/<int:employe_id>              app.py:31326
+  profil_gamification                 /profil-gamification                          app.py:14425
+  profile                             /profile                                      routes\clients.py:88
+  programmer_rapports_page            /programmer-rapports                          app.py:9523
+  projet_detail                       /projet/<int:id>                              app.py:28277
+  projets                             /projets                                      app.py:28271
+  punch_qr                            /punch/<token>                                app.py:27146
+  questions_secretes                  /questions-secretes/<int:employe_id>          app.py:9606
+  quick_access                        /go/<page_key>                                super_admin_bp.py:79
+  quitter_groupe                      /groupe/<int:groupe_id>/quitter               app.py:13608
+  rappels_quotidiens                  /cron/rappels-quotidiens                      app.py:13874
+  rapport_activite                    /<succursale_code>/agent-credit/rapport       app.py:23011
+  rapport_clients                     /rapport-clients                              app.py:7051
+  rapport_groupes                     /rapport-groupes                              app.py:7211
+  rapport_journalier                  /rapport_journalier/<int:succursale_id>       app.py:27468
+  rapport_operations                  /direction/operations/rapport                 app.py:11436
+  rapport_prets                       /admin/rapport-prets                          app.py:13744
+  rapport_remboursements              /admin/rapport-remboursements                 app.py:13783
+  rapport_strategique                 /direction/rapport-strategique                app.py:6211
+  rapports_brh                        /direction/rapports-brh                       app.py:6499
+  rapports_dashboard                  /employe/rapports                             app.py:18792
+  rapports_risque                     /rapports/risque                              app.py:15364
+  reactiver_employe                   /admin/employe/<int:employe_id>/reactiver     app.py:18741
+  recherche_client_pret               /api/recherche-client-pret                    app.py:14950
+  recherche_groupes                   /gestionnaire/groupes/recherche               app.py:13566
+  rechercher_client                   /rechercher-client                            app.py:24455
+  rechercher_client_par_compte        /api/client/recherche/<derniers_chiffres>     app.py:30254
+  rechercher_destinataire             /api/mobile/rechercher-destinataire           routes\mobile_api.py:377
+  recommandations_pret                /recommandations-pret                         app.py:14675
+  recompenses                         /recompenses                                  app.py:14636
+  reconnaissance_faciale              /reconnaissance-faciale                       app.py:14827
+  recu_depot                          /recu-depot/<int:transaction_id>              app.py:8723
+  recu_pret                           /pret/<int:pret_id>/recu                      app.py:15031
+  refuser_pret                        /pret/<int:pret_id>/refuser                   app.py:3311
+  register                            /register                                     routes\auth.py:80
+  reinitialiser_mot_de_passe          /reinitialiser-mot-de-passe/<token>           app.py:9640
+  rejeter_compte                      /admin/rejeter-compte/<int:employe_id>        app.py:22490
+  rejoindre_groupe                    /groupe/<int:groupe_id>/rejoindre             app.py:13593
+  relation_client_dashboard           /employe/relation-client                      app.py:28617
+  remboursements_retards              /<succursale_code>/remboursements/retards     app.py:19735
+  remboursements_succursale           /<succursale_code>/remboursements             app.py:20030
+  renvoyer_email_conditions_pret      /renvoyer-conditions-pret/<int:pret_id>       app.py:559
+  renvoyer_lien                       /conseiller/renvoyer-lien/<int:client_id>     app.py:23426
+  resend_conditions_email             /resend-conditions-email/<int:client_id>      app.py:982
+  resend_email                        /resend-email/<int:user_id>                   app.py:28297
+  reset_test_data                     /admin/reset_test_data                        app.py:21748
+  responsable_conformite_dashboard    /superviseurs/responsable_conformite/dashboard app.py:10428
+  retards                             /paiements/retards                            app.py:27018
+  retrait_client_form                 /client/<int:client_id>/retrait               app.py:24609
+  scan_pointage                       /scan/<token>                                 app.py:17913
+  score_credit                        /score-credit                                 app.py:14250
+  scoring_clients                     /analyste/scoring-clients                     app.py:18356
+  secretaire_dashboard                /employe/secretaire                           app.py:29522
+  securite                            /securite                                     app.py:14931
+  serve_output                        /output/<path:filename>                       app.py:17480
+  simulateur_credit                   /simulateur-credit                            app.py:23001
+  simulation_pret                     /simulation-pret                              app.py:28265
+  statistiques_groupes                /api/statistiques-groupes                     app.py:13666
+  statistiques_temps_reel             /api/statistiques-temps-reel                  app.py:13819
+  stats                               /stats                                        app.py:27379
+  status_retrait                      /api/retrait/status/<token>                   app.py:25624
+  statut_retrait                      /api/retrait/status/<token>                   app.py:25678
+  succursale_details                  /admin/succursale-details                     app.py:21059
+  superviser_transactions             /direction/superviser/transactions            app.py:11352
+  superviseur_activites               /superviseur/activites                        app.py:19116
+  superviseur_credit_dashboard        /employe/superviseur-credit                   app.py:28370
+  superviseur_dashboard               /superviseur/dashboard                        app.py:19066
+  superviseur_employes                /superviseur/employes                         app.py:19056
+  superviseur_index                   /superviseur/                                 app.py:19175
+  superviseur_operations_dashboard    /superviseur/operations/dashboard             app.py:10294
+  superviseur_rapports                /superviseur/rapports                         app.py:19038
+  superviseur_tous_employes           /superviseur/employes                         app.py:18982
+  superviseur_voir_employe            /superviseur/employe/<int:employe_id>         app.py:19017
+  superviseur_voir_fonction           /superviseur/fonction/<fonction>              app.py:18993
+  supprimer_client                    /admin/supprimer-client/<int:client_id>       app.py:20257
+  supprimer_employe                   /admin/supprimer-employe/<int:employe_id>     app.py:18604
+  supprimer_groupe                    /gestionnaire/groupes/supprimer/<int:groupe_id> app.py:13444
+  supprimer_succursale                /supprimer_succursale/<int:succursale_id>     app.py:20435
+  supprimer_tous_clients              /supprimer-tous-clients                       app.py:4624
+  suspendre_employe                   /admin/employe/<int:employe_id>/suspendre     app.py:18544
+  suspendre_utilisateur               /admin/suspendre-utilisateur/<int:employe_id> app.py:18960
+  switcher                                                                          super_admin_bp.py:14
+  synchroniser_donnees                /synchroniser-donnees                         app.py:22806
+  tableau_bord_personnalise           /tableau-bord-personnalise                    app.py:13980
+  tableau_de_bord                     /tableau-de-bord                              app.py:14240
+  telecharger_carte                   /admin/employe/<int:employe_id>/telecharger-carte app.py:17990
+  telecharger_recu                    /telecharger/recu/<reference>                 app.py:26834
+  test                                /test                                         app.py:23118
+  test_email                          /test-email                                   app.py:28285
+  test_email_notification             /api/test-email                               app.py:12922
+  test_login                          /test-login/<int:employe_id>                  app.py:19707
+  test_mobile                         /test-mobile                                  app.py:14936
+  test_mobile_routes                  /test-mobile-routes                           app.py:13831
+  test_notification                   /admin/test-notification                      app.py:13908
+  toggle_user                         /toggle_user/<int:employe_id>                 app.py:20289
+  traiter_depot                       /client/<int:client_id>/depot/traiter         app.py:25172
+  transactions                        /transactions                                 routes\clients.py:134
+  transferer_employe                  /transferer_employe/<int:employe_id>          app.py:20349
+  transfert_client_form               /client/<int:client_id>/transfert             app.py:26223
+  update_conformite                   /admin/employe/<int:employe_id>/update-conformite app.py:17088
+  upload_document                     /admin/document/upload/<int:employe_id>       app.py:23984
+  upload_file                         /upload                                       app.py:17065
+  upload_photo                        /upload_photo/<int:employe_id>                app.py:27097
+  valider_conditions                  /valider-conditions/<token>                   app.py:3777
+  verifications_brh                   /admin/verifications-brh                      app.py:21108
+  verifier_champ                      /conseiller/verifier-champ                    app.py:31095
+  verifier_compte                     /api/verifier-compte                          app.py:26008
+  verifier_document                   /conseiller/document/<int:document_id>/verifier app.py:31013
+  verifier_email                      /api/verifier-email                           app.py:30641
+  verifier_id_number                  /api/verifier-id_number                       app.py:30693
+  verifier_pret_en_cours              /api/client/pret-en-cours/<int:client_id>     app.py:31167
+  verifier_retrait_api                /api/compte/<int:compte_id>/verifier_retrait  app.py:25137
+  verifier_telephone                  /api/verifier-telephone                       app.py:30660
+  verifier_transfert                  /api/verifier_transfert                       app.py:26091
+  verifier_username                   /api/verifier-username                        app.py:30678
+  verify_document                     /admin/document/verify/<int:doc_id>           app.py:24025
+  verify_faces_api                    /api/face-recognition/verify                  app.py:12522
+  verify_qr                           /verify/<token>                               app.py:27062
+  vider_session                       /vider-session                                app.py:23126
+  voir_carte                          /admin/employe/<int:employe_id>/voir-carte    app.py:17978
+  voir_client                         /agent/client/<int:client_id>                 app.py:12452
+  voir_decision                       /direction/decisions/<int:decision_id>        app.py:6346
+  voir_dossier                        /admin/dossier/<int:employe_id>               app.py:23789
+  voir_dossiers                       /dossier/<int:dossier_id>                     app.py:9921
+  voir_employe                        /admin/employe/<int:employe_id>               app.py:21185
+  voir_piece_investisseur             /investisseurs/piece/<int:inv_id>/<int:numero> app.py:31992
+  voir_pret                           /prets/voir-pret/<int:pret_id>                app.py:2369
+  voir_succursale_ops                 /direction/succursale/<int:succ_id>/operations app.py:11291
+  voir_toutes_notifications           /notifications                                app.py:19186
+
+3) USAGES DES FORMATS DE TOKEN
+------------------------------------------------------------------------
+JWT: app.py:484, app.py:609, app.py:1021, app.py:3740, app.py:3869, app.py:4099, app.py:4763, app.py:5534, app.py:17934, app.py:27065, audit_gmes.py:197, emails.py:335, routes\auth.py:125, routes\auth.py:782, routes\mobile_api.py:48, routes\mobile_api.py:100, routes\mobile_api.py:498, routes\mobile_api.py:791
+ItsDangerous: app.py:34, app.py:3736, app.py:3736, app.py:23212, app.py:23212, app.py:23213, app.py:23452, app.py:23452, app.py:23453, app.py:25814, app.py:25814, app.py:25818, audit_gmes.py:142, audit_gmes.py:142, audit_gmes.py:142, audit_gmes.py:152, audit_gmes.py:153, audit_gmes.py:273, utils\notifications.py:6, utils\notifications.py:6, utils\notifications.py:56, utils\notifications.py:64, utils\tokens.py:1, utils\tokens.py:1, utils\tokens.py:5, utils\tokens.py:9
+TimedSerializer: audit_gmes.py:143, audit_gmes.py:143
+
+LIMITES IMPORTANTES
+------------------------------------------------------------------------
+* Audit statique en lecture seule : aucun fichier du projet n'est modifié.
+* Les résultats sont des pistes à vérifier, pas toujours des erreurs certaines.
+* Le script ne se connecte pas à la base, n'envoie pas d'e-mails et n'importe pas app.py.
+* Il ne peut pas prouver que toutes les fonctions appelées existent ni tester les parcours utilisateur.
+* Examinez le rapport avant toute correction automatique; ne partagez pas de fichier .env ni de secrets.

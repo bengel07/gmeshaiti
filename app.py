@@ -243,7 +243,7 @@ main = Blueprint('main', __name__)
 
 
 from routes.mobile_api import mobile_api_bp
-
+from routes.epargne import epargne_bp
 
 # Enregistre le Blueprint
 app.register_blueprint(auth_bp, url_prefix="/auth")
@@ -255,6 +255,9 @@ app.register_blueprint(clients_bp)
 app.register_blueprint(mobile_api_bp)
 
 app.register_blueprint(super_admin_bp)
+
+
+app.register_blueprint(epargne_bp)
 
 
 app._static_folder = 'static'
@@ -4109,7 +4112,7 @@ def generer_token_conditions(client):
 @role_required('employe', 'super_admin', 'direction')
 def creer_dossier():
     """Créer un nouveau dossier client avec processus d'approbation complet"""
-    from models import User, Succursale, Notification, TermsAcceptance, Competence, Action
+    from models import User, Succursale, Notification, TermsAcceptance, Competence, Action, ProduitEpargne, Epargne
     from werkzeug.utils import secure_filename
     import os
     import base64
@@ -4128,6 +4131,16 @@ def creer_dossier():
         return redirect(url_for('employe_dashboard_generique'))
     # Récupérer la succursale du conseiller connecté
     succursale = db.session.get(Succursale, current_user.succursale_id)
+
+    # Charger les produits d'épargne actifs
+    def charger_produits_epargne():
+        return ProduitEpargne.query.filter_by(
+            est_actif=True
+        ).order_by(
+            ProduitEpargne.id.asc()
+        ).all()
+
+    produits_epargne = charger_produits_epargne()
 
 
 
@@ -4150,7 +4163,8 @@ def creer_dossier():
                                succursale=succursale,
                                branch_code=branch_code,
                                default_code=default_code,
-                               default_suffix=default_suffix)
+                               default_suffix=default_suffix,
+                               produits_epargne=produits_epargne)
 
     # Fonctions utilitaires
     def allowed_file(filename):
@@ -4234,6 +4248,84 @@ def creer_dossier():
         photo_id_data = request.form.get('photo_id_data')
         photo_selfie_data = request.form.get('photo_selfie_data')
 
+        # Produit d'épargne sélectionné dans le formulaire
+        produit_id = request.form.get(
+            'produit_epargne_id',
+            type=int
+        )
+
+        if not produit_id:
+            raise ValueError(
+                "Veuillez sélectionner un produit d'épargne."
+            )
+
+        produit_selectionne = ProduitEpargne.query.filter_by(
+            id=produit_id,
+            est_actif=True
+        ).first()
+
+        if not produit_selectionne:
+            raise ValueError(
+                "Le produit d'épargne sélectionné n'existe pas "
+                "ou n'est plus actif."
+            )
+
+        from decimal import Decimal, InvalidOperation
+
+        montant_initial_str = request.form.get('montant_initial', '').strip()
+
+        try:
+            montant_initial = Decimal(montant_initial_str)
+        except (InvalidOperation, ValueError):
+            montant_initial = Decimal('0')
+
+        if not montant_initial.is_finite() or montant_initial <= 0:
+            flash("Veuillez saisir un montant initial valide.", "danger")
+            return render_template(
+                'creer_dossier.html',
+                succursales=Succursale.query.all(),
+                succursale=succursale,
+                branch_code=branch_code,
+                produits_epargne=charger_produits_epargne(),
+                default_code=default_code,
+                default_suffix=default_suffix
+            )
+
+        montant_min = Decimal(str(produit_selectionne.depot_initial_min))
+        montant_max = Decimal(str(produit_selectionne.depot_initial_max))
+
+        if montant_initial < montant_min:
+            flash(
+                f"Création impossible : le dépôt minimum pour ce produit est de "
+                f"{montant_min} GDS.",
+                "danger"
+            )
+            return render_template(
+                'creer_dossier.html',
+                succursales=Succursale.query.all(),
+                succursale=succursale,
+                branch_code=branch_code,
+                produits_epargne=charger_produits_epargne(),
+                default_code=default_code,
+                default_suffix=default_suffix
+            )
+
+        if montant_initial > montant_max:
+            flash(
+                f"Création impossible : le dépôt maximum pour ce produit est de "
+                f"{montant_max} GDS.",
+                "danger"
+            )
+            return render_template(
+                'creer_dossier.html',
+                succursales=Succursale.query.all(),
+                succursale=succursale,
+                branch_code=branch_code,
+                produits_epargne=charger_produits_epargne(),
+                default_code=default_code,
+                default_suffix=default_suffix
+            )
+
         # Validation
         if not all([nom, prenom, civilite , email, telephone, cin, date_naissance, sexe, adresse, code_postal, ville,
                     profession, revenu_mensuel, depenses_mensuelles, numero_compte]):
@@ -4242,7 +4334,9 @@ def creer_dossier():
                                    error="Tous les champs obligatoires doivent être remplis",
                                    succursales=succursales,
                                    succursale=succursale,
-                                   branch_code=extract_branch_code(succursale))
+                                   branch_code=extract_branch_code(succursale),
+                                   produits_epargne=charger_produits_epargne()
+                                   )
 
         print("🔥 AVANT VÉRIFICATION EMAIL")
 
@@ -4292,6 +4386,7 @@ def creer_dossier():
                                    default_profession=profession,
                                    default_revenu=revenu_mensuel,
                                    default_depenses=depenses_mensuelles,
+                                   produits_epargne=charger_produits_epargne(),
                                    default_suffix=str(random.randint(10000, 99999)))
 
         else:
@@ -4448,18 +4543,21 @@ def creer_dossier():
 
             nouveau_client.id_client = f"GMES-{nouveau_client.id:06d}"
 
-
             nouveau_compte = Epargne(
                 client_id=nouveau_client.id,
                 numero_compte=nouveau_client.numero_compte,
-                intitule_compte=f"{nouveau_client.prenom} {nouveau_client.nom}",
+                intitule_compte=(
+                    f"{nouveau_client.prenom} {nouveau_client.nom}"
+                ),
                 solde=0,
                 solde_disponible=0,
                 statut=nouveau_client.statut,
                 succursale_id=nouveau_client.succursale_id,
                 employe_id=nouveau_client.employe_id,
                 created_by=current_user.id,
-                produit_epargne_id=1
+
+                # Utiliser le produit réellement sélectionné
+                produit_epargne_id=produit_selectionne.id
             )
 
             db.session.add(nouveau_compte)
@@ -4577,8 +4675,10 @@ def creer_dossier():
             succursales=succursales,
             succursale=succursale,
             branch_code=branch_code,
+
             default_code=f"7-12519-{branch_code}-{random.randint(10000, 99999)}",
-            default_suffix=str(random.randint(10000, 99999))
+            default_suffix=str(random.randint(10000, 99999)),
+            produits_epargne=charger_produits_epargne()
 
         )
 
@@ -4752,69 +4852,87 @@ def client_terms(token):
     client = None
 
 
-    # ===== 1. DÉCODER LE TOKEN JWT =====
+
+    # ===== 1. VALIDER LE TOKEN DE SIGNATURE =====
     import jwt
+    from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
     from datetime import datetime, timezone
 
     try:
         token = token.strip()
+        client_id = None
 
-        # Décoder le JWT
-        payload = jwt.decode(
-            token,
-            app.config['SECRET_KEY'],
-            algorithms=['HS256']
-        )
+        # Compatibilité avec les anciens liens JWT
+        try:
+            payload = jwt.decode(
+                token,
+                app.config['SECRET_KEY'],
+                algorithms=['HS256']
+            )
+            client_id = payload.get('client_id')
 
-        print(f"🔐 Payload JWT : {payload}")
+        except jwt.ExpiredSignatureError:
+            # Un ancien JWT expiré ne doit pas être accepté.
+            raise
 
-        # Récupérer client_id
-        client_id = payload.get('client_id')
+        except jwt.InvalidTokenError:
+            # Les liens générés par itsdangerous sont vérifiés ci-dessous.
+            pass
 
+        # Vérifier les liens générés avec itsdangerous
         if not client_id:
-            raise ValueError("client_id absent du token")
+            serializer = URLSafeTimedSerializer(
+                app.config['SECRET_KEY']
+            )
+            client_id = serializer.loads(
+                token,
+                salt="terms-accept",
+                max_age=7 * 24 * 60 * 60
+            )
 
-        # Récupérer le client
         client = db.session.get(Client, int(client_id))
 
         if not client:
-            flash('❌ Client non trouvé.', 'danger')
+            flash(
+                'Client introuvable. Veuillez contacter votre conseiller.',
+                'danger'
+            )
             return redirect(url_for('connexion'))
 
-        print(
-            f"✅ Token JWT valide - "
-            f"Client trouvé: {client.email}"
-        )
+        print(f"Signature : jeton valide pour {client.email}")
 
     except jwt.ExpiredSignatureError:
-        print("❌ Token JWT expiré")
-
+        print("Lien JWT expiré")
         flash(
-            '⚠️ Le lien a expiré. Veuillez demander un nouveau lien.',
+            'Ce lien a expiré. Veuillez demander un nouveau lien.',
             'danger'
         )
-
         return redirect(url_for('connexion'))
 
-    except jwt.InvalidTokenError as e:
-        print(f"❌ Token JWT invalide: {e}")
-
+    except SignatureExpired:
+        print("Lien de signature itsdangerous expiré")
         flash(
-            '❌ Lien invalide. Veuillez contacter votre conseiller.',
+            'Ce lien a expiré. Veuillez demander un nouveau lien.',
             'danger'
         )
+        return redirect(url_for('connexion'))
 
+    except (BadSignature, ValueError, TypeError) as e:
+        print(f"Lien de signature invalide : {e}")
+        flash(
+            'Lien de signature invalide. Veuillez contacter votre conseiller.',
+            'danger'
+        )
         return redirect(url_for('connexion'))
 
     except Exception as e:
-        print(f"❌ Erreur décodage JWT: {e}")
-
+        print(f"Erreur de validation du lien : {e}")
         flash(
-            '❌ Impossible de vérifier ce lien.',
+            'Impossible de vérifier ce lien. Veuillez réessayer.',
             'danger'
         )
-
         return redirect(url_for('connexion'))
+
 
 
     # ===== 2. VÉRIFIER SI LE CLIENT EST DÉJÀ TRAITÉ =====
@@ -6109,23 +6227,47 @@ def directeur_rejeter_dossier(pret_id):
 
 
 
+
+
 @app.route('/conseiller/mes-dossiers')
 @login_required
 def conseiller_mes_dossiers():
-    """L'agent voit uniquement ses dossiers"""
+    """Affiche les dossiers créés par le conseiller connecté."""
 
     if current_user.role != 'employe' or current_user.fonction != 'conseiller':
-        flash('⛔ Accès non autorisé', 'danger')
+        flash('Accès non autorisé', 'danger')
         return redirect(url_for('dashboard_redirect'))
 
-    dossiers = Client.query.filter_by(
-        cree_par_id=current_user.id,
-    ).order_by(Client.date_inscription.desc()).all()
+    dossiers = Client.query.filter(
+        Client.cree_par_id == current_user.id
+    ).order_by(
+        Client.date_inscription.desc()
+    ).all()
 
-    return render_template('employees/conseiller_dossiers_en_attente.html',
-                           dossiers=dossiers,
-                           agent_nom=f"{current_user.prenom} {current_user.nom}",
-                           succursale_code=current_user.succursale.code if current_user.succursale else '')
+    succursale_code = ''
+    if current_user.succursale:
+        succursale_code = current_user.succursale.code or ''
+
+    print(
+        f"[MES DOSSIERS] Conseiller ID={current_user.id} "
+        f"({current_user.prenom} {current_user.nom}) : "
+        f"{len(dossiers)} dossier(s)"
+    )
+
+    for dossier in dossiers:
+        print(
+            f"[DOSSIER] ID={dossier.id_client}, "
+            f"cree_par_id={dossier.cree_par_id}, "
+            f"employe_id={dossier.employe_id}, "
+            f"statut={dossier.statut}"
+        )
+
+    return render_template(
+        'employees/conseiller_dossiers_en_attente.html',
+        dossiers=dossiers,
+        agent_nom=f"{current_user.prenom} {current_user.nom}",
+        succursale_code=succursale_code
+    )
 
 
 
@@ -6143,7 +6285,7 @@ def conseiller_dossier_en_attente(succursale_code=None):
 
         # ✅ FILTRE IMPORTANT : SEULEMENT les dossiers créés par CET agent
     dossiers = Client.query.filter_by(
-        cree_par_id=current_user.id,  # ← Clé : créé par CET agent
+        employer_id=current_user.id,  # ← Clé : créé par CET agent
     ).order_by(Client.date_inscription.desc()).all()
 
     print(f"✅ {len(dossiers)} dossier(s) trouvé(s) pour l'agent {current_user.prenom}")

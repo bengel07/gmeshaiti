@@ -529,6 +529,56 @@
                     </div>
                 </div>
 
+
+                <div class="mb-3">
+                    <label for="produit_epargne_id" class="form-label">
+                        Produit d'épargne <span class="text-danger">*</span>
+                    </label>
+
+                    <select
+                        class="form-select"
+                        id="produit_epargne_id"
+                        name="produit_epargne_id"
+                        required
+                    >
+                        <option value="">-- Sélectionner un produit --</option>
+
+                        {% for produit in produits_epargne %}
+                            <option
+                                value="{{ produit.id }}"
+                                {% if request.form.get('produit_epargne_id')|string == produit.id|string %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ produit.nom }}
+                                — {{ produit.taux_interet_annuel }} %
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <small class="form-text text-muted">
+                        Seuls les produits d'épargne actifs sont proposés.
+                    </small>
+                </div>
+
+
+
+                <div class="mb-3">
+                    <label for="montant_initial">Montant initial (GDS) *</label>
+
+                    <input
+                        type="number"
+                        id="montant_initial"
+                        name="montant_initial"
+                        min="{{ produit_selectionne.depot_initial_min }}"
+                        step="0.01"
+                        required
+                        placeholder="Minimum : {{ produit_selectionne.depot_initial_min }} GDS"
+                    >
+                </div>
+
+
+
                 <!-- SIGNATURE PARENT (affichée si mineur) -->
                 <div id="parentBlock" class="parent-signature-card">
                     <div class="parent-title"><i class="fas fa-file-signature"></i> Signature obligatoire du représentant légal</div>
@@ -896,6 +946,43 @@ form.addEventListener('submit', function(e) {
         submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Envoyer la demande';
     }
 });
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const champ = document.getElementById('montant_initial');
+    const erreur = document.getElementById('erreur_montant');
+    const formulaire = champ.closest('form');
+
+    function verifierMontant() {
+        const montant = champ.value.trim() === ''
+            ? NaN
+            : Number(champ.value);
+
+        const valide = Number.isFinite(montant)
+            && montant >= 1000;
+
+        champ.setCustomValidity(
+            valide ? '' : 'Le dépôt minimum est de 1 000 GDS.'
+        );
+
+        erreur.style.display =
+            champ.value !== '' && !valide ? 'block' : 'none';
+
+        return valide;
+    }
+
+    champ.addEventListener('input', verifierMontant);
+
+    formulaire.addEventListener('submit', function (event) {
+        if (!verifierMontant()) {
+            event.preventDefault();
+            champ.reportValidity();
+        }
+    });
+
+    verifierMontant();
+});
+</script>
+
 </script>
 </body>
 </html>

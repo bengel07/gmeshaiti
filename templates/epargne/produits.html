@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}">
+<title>GMES - Configuration du produit d'épargne</title>
+<style>
+  :root{
+    --navy:#0b2a5b; --navy-2:#0f3170; --blue:#1a56c4; --blue-soft:#e3f0fc;
+    --bg:#eef3fa; --border:#dbe3f0; --text:#1d2b44; --muted:#5b7bb0;
+    --green:#1fa971; --green-soft:#d4f5e3; --red-soft:#fde0e0; --red:#d33;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;font-size:12px;color:var(--text);background:var(--bg);display:flex;min-height:100vh}
+  svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+  /* Sidebar */
+  .sidebar{width:204px;background:linear-gradient(180deg,#0b2a5b,#08204a);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex:none}
+  .brand{height:47px;display:flex;align-items:center;gap:8px;padding:0 16px;background:var(--navy-2)}
+  .logo{width:36px;height:36px;border-radius:50%;border:6px solid #2bb673;border-right-color:#1a56c4;flex:none}
+  .brand b{font-size:24px;letter-spacing:1px;display:block;line-height:1}
+  .brand small{font-size:8px;display:block;opacity:.9}
+  nav{padding:12px 8px;flex:1}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;cursor:pointer;font-size:12.5px;margin-bottom:2px}
+  .nav-item .chev{margin-left:auto;width:12px;height:12px}
+  .nav-item.active{background:#e9eefa;color:var(--navy)}
+  .sub{background:#173f82;border-radius:6px;margin:-2px 0 6px;padding:6px 0}
+  .sub div{display:flex;align-items:center;gap:10px;padding:8px 14px;font-size:12px}
+  .sub div.on{background:#24509a;border-radius:6px;margin:0 4px}
+  .sub i{width:8px;height:8px;border:1.5px solid #fff;border-radius:50%}
+  .sidebar footer{padding:14px;text-align:center;font-size:10px;line-height:1.6;opacity:.85}
+
+  /* Main */
+  .main{flex:1;min-width:0}
+  header{height:47px;background:var(--navy-2);color:#fff;display:flex;align-items:center;padding:0 24px;gap:12px}
+  header .spacer{flex:1}
+  .bell{position:relative}
+  .bell span{position:absolute;top:-6px;right:-6px;background:#e33;border-radius:50%;font-size:8px;width:13px;height:13px;display:grid;place-items:center}
+  .user{display:flex;align-items:center;gap:10px;margin-left:20px}
+  .avatar{width:28px;height:28px;border-radius:50%;background:#e8eefb;color:var(--navy);display:grid;place-items:center}
+  .user b{display:block;font-size:11.5px}
+  .user small{font-size:9.5px;opacity:.9}
+
+  .content{padding:14px 16px 24px}
+  .crumbs{display:flex;gap:10px;align-items:center;color:var(--blue);font-size:12px;margin:0 0 12px 0}
+  .crumbs span.cur{font-weight:600}
+  .crumbs i{font-style:normal;color:#8aa0c8}
+  .title{display:flex;gap:14px;align-items:center;margin-bottom:12px}
+  .title svg{width:30px;height:30px;color:var(--navy-2)}
+  .title h1{font-size:20px;color:var(--navy-2)}
+  .title p{font-size:12px;margin-top:6px}
+
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) 392px;gap:16px;align-items:start}
+  .card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+  .info{background:var(--blue-soft);border:1px solid #bcd9f5;border-radius:8px;padding:14px 18px;display:flex;gap:16px;align-items:center;margin-bottom:12px;color:var(--navy-2)}
+  .info .ic{width:24px;height:24px;border-radius:50%;background:#2a7de1;color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+  .info b{display:block;margin-bottom:6px}
+  .info span{color:#2d5fa8}
+
+  .form{padding:6px 14px 14px}
+  .sec{display:flex;align-items:center;gap:10px;margin:12px 0 10px;font-size:14px;font-weight:700;color:var(--navy-2);padding-top:6px}
+  .sec + .row,.sec ~ .row{}
+  .sec.border{border-top:1px solid var(--border);margin-top:10px}
+  .num{width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+  .row{display:grid;gap:18px;margin-bottom:10px}
+  .r2{grid-template-columns:1fr 1fr}
+  .r3{grid-template-columns:1fr 1fr 1fr;gap:20px}
+  label{display:block;font-size:11px;font-weight:500;margin-bottom:4px;color:#2a3a5a}
+  label em{color:#e33;font-style:normal}
+  input,select,textarea{width:100%;height:28px;border:1px solid #c9d5e8;border-radius:5px;padding:0 10px;font:inherit;font-size:11.5px;background:#fff;color:var(--text);outline:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(26,86,196,.15)}
+  textarea{height:58px;padding:8px 10px;resize:none;display:block}
+  small.h{display:block;font-size:9.5px;color:var(--muted);margin-top:3px}
+  .count{text-align:right;font-size:9.5px;color:var(--muted);margin-top:4px}
+  input[type=file]{padding:3px 6px;font-size:10px}
+
+  .actions{display:flex;gap:10px;border-top:1px solid var(--border);padding-top:14px;margin-top:6px}
+  .btn{height:32px;border-radius:5px;display:flex;align-items:center;gap:8px;padding:0 16px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer}
+  .btn svg{width:14px;height:14px}
+  .btn.primary{background:#1a64e0;color:#fff;border:0;height:33px;padding:0 20px}
+  .btn.ghost{background:#fff;border:1px solid var(--border);color:#2a3a5a}
+
+  /* Right column */
+  .side{display:flex;flex-direction:column;gap:14px}
+  .side h3{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--navy-2);margin-bottom:10px}
+  .badge-ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;flex:none}
+  .badge-ic svg{width:13px;height:13px}
+  .g{background:#d4f5e3;color:var(--green)} .b{background:#dbe8fb;color:var(--blue)}
+  .preview{border:1px solid #7fdcb4;background:#f1fcf7;border-radius:8px;padding:12px 12px 8px}
+  .preview .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .preview .top b{font-size:14px;color:var(--navy-2)}
+  .pill{font-size:10.5px;font-weight:600;border-radius:12px;padding:3px 10px}
+  .pill.ok{background:var(--green);color:#fff}
+  .pill.ok.s{background:#bdf0d6;color:#157a52;border:1px solid #8ee0b8}
+  .pill.no{background:var(--red-soft);color:var(--red);border:1px solid #f5b5b5}
+  dl{display:grid;grid-template-columns:140px 1fr;row-gap:9px;font-size:11px;padding-top:6px}
+  dt{color:#4a5b7a} dd{color:#2a3a5a}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  thead th{background:#f4f7fc;text-align:left;font-weight:600;padding:9px 10px;color:#2a3a5a;font-size:10.5px}
+  tbody td{padding:15px 10px;border-top:1px solid #eef1f7}
+  tbody td:first-child{color:#1a8a5a;font-weight:600}
+  .dots{color:#556;font-weight:700;text-align:right}
+  .see{margin-left:auto;font-size:11px;color:var(--blue);font-weight:500;cursor:pointer}
+  .how{border:1px solid #a9cdf3;background:#fff;padding:14px 16px}
+  .how h3 svg{width:20px;height:20px;color:var(--blue)}
+  .step{display:flex;gap:12px;align-items:flex-start;margin:14px 0;font-size:10.5px;line-height:1.5}
+  .step .num{width:20px;height:20px;font-size:10.5px;margin-top:2px;background:#1a4fae}
+  .step small{display:block;font-size:10.5px}
+
+  @media(max-width:1100px){.grid{grid-template-columns:1fr}}
+  @media(max-width:760px){.sidebar{display:none}.r2,.r3{grid-template-columns:1fr}}
+
+  .toast{position:fixed;right:20px;bottom:20px;background:#157a52;color:#fff;padding:10px 16px;border-radius:6px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:50;max-width:360px}
+  .toast.err{background:#c62828}
+  tbody tr[data-id]{cursor:pointer}
+  tbody tr[data-id]:hover{background:#f4f8ff}
+  .dots{cursor:pointer}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="logo"></div>
+    <div><b>GMES</b><small>Ensemble pour votre avenir</small></div>
+  </div>
+  <nav>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v10H3z"/></svg>Tableau de bord</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 3-6 6-6s6 2 6 6"/><circle cx="17" cy="9" r="2"/></svg>Clients<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V4h8v3"/></svg>Comptes<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M4 18l6-6 4 4 6-8"/></svg>Prêts<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>
+    <div class="nav-item active"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>Épargne<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+    <div class="sub">
+      <div class="on"><i></i>Produits d'épargne</div>
+      <div><i></i>Ouverture de compte</div>
+    </div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M13 8l3 4-3 4"/></svg>Transactions<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/></svg>Rapports<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>Paramètres<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M9 8V5h6v3"/></svg>Administration<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>
+  </nav>
+  <footer>GMES v1.0<br>© 2025 GMES. Tous droits réservés.</footer>
+</aside>
+
+<div class="main">
+  <header>
+    <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    <div class="spacer"></div>
+    <div class="bell"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0112 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 004 0"/></svg><span>3</span></div>
+    <div class="user">
+      <div class="avatar"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+      <div><b>Super Admin</b><small>Administrateur général</small></div>
+      <svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+  </header>
+
+  <div class="content">
+    <div class="crumbs">Accueil <i>›</i> Épargne <i>›</i> <span class="cur">Produits d'épargne</span></div>
+
+    <div class="title">
+      <svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
+      <div>
+        <h1>Configuration du produit d'épargne</h1>
+        <p>Définissez les conditions du produit d'épargne que les clients pourront souscrire.</p>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- COLONNE GAUCHE -->
+      <div>
+        <div class="info">
+          <div class="ic">i</div>
+          <div><b>Important :</b><span>Le compte d'épargne ne peut pas être ouvert tant qu'aucun produit d'épargne actif n'est configuré et enregistré.</span></div>
+        </div>
+
+        <form class="card form" id="form" onsubmit="return false">
+          <input type="hidden" name="produit_id" id="produit_id" value="">
+          <div class="sec"><span class="num">1</span>Informations générales</div>
+          <div class="row r2">
+            <div><label>Code du produit <em>*</em></label><input name="code" id="code" value="EPARGNE-CLASSIQUE"><small class="h">Code unique du produit (ex: EPARGNE-CLASSIQUE)</small></div>
+            <div><label>Nom du produit <em>*</em></label><input name="nom" id="nom" value="Épargne classique GMES"><small class="h">Nom affiché aux clients</small></div>
+          </div>
+          <div class="row r2">
+            <div><label>Type de produit <em>*</em></label>
+              <select name="type_produit" id="type">{% for valeur, libelle in types %}<option value="{{ valeur }}">{{ libelle }}</option>{% endfor %}</select>
+              <small class="h">Type d'épargne (Classique, Jeune, etc.)</small></div>
+            <div><label>Statut <em>*</em></label>
+              <select name="statut" id="statut"><option>Actif</option><option>Inactif</option></select>
+              <small class="h">Activer ou désactiver le produit</small></div>
+          </div>
+          <div class="row">
+            <div><label>Description</label>
+              <textarea name="description" id="desc" maxlength="500">Produit d'épargne classique avec des conditions avantageuses.</textarea>
+              <div class="count"><span id="cnt">46</span>/500</div></div>
+          </div>
+
+          <div class="sec border"><span class="num">2</span>Conditions financières</div>
+          <div class="row r2">
+            <div><label>Taux d'intérêt annuel (%) <em>*</em></label><input name="taux_interet_annuel" id="taux" type="number" step="0.01" value="0"><small class="h">Taux d'intérêt annuel proposé aux clients</small></div>
+            <div><label>Taux d'intérêt mensuel (%)</label><input name="taux_interet_mensuel" id="tauxm" type="number" step="0.001" value="0"><small class="h">(Calculé automatiquement si besoin)</small></div>
+          </div>
+          <div class="row r2">
+            <div><label>Dépôt initial minimum (Gdes) <em>*</em></label><input name="depot_initial_min" id="depmin" type="number" value="0"><small class="h">Montant minimum pour ouvrir le compte</small></div>
+            <div><label>Dépôt initial maximum (Gdes) <em>*</em></label><input name="depot_initial_max" id="depmax" type="number" value="10000000"><small class="h">Montant maximum pour le dépôt initial</small></div>
+          </div>
+          <div class="row r2">
+            <div><label>Solde minimum (Gdes)</label><input name="solde_min" id="solmin" type="number" value="0"><small class="h">Solde minimum à maintenir</small></div>
+            <div><label>Solde maximum (Gdes)</label><input name="solde_max" id="solmax" type="number" value="100000000"><small class="h">Solde maximum autorisé</small></div>
+          </div>
+
+          <div class="sec border"><span class="num">3</span>Frais et commissions</div>
+          <div class="row r3">
+            <div><label>Frais d'ouverture (Gdes) <em>*</em></label><input name="frais_ouverture" id="fouv" type="number" value="0"><small class="h">Frais de création du compte</small></div>
+            <div><label>Frais mensuels (Gdes) <em>*</em></label><input name="frais_tenue_compte_mensuel" id="fmen" type="number" value="0"><small class="h">Frais de gestion mensuelles</small></div>
+            <div><label>Frais de clôture (Gdes)</label><input name="frais_cloture" type="number" value="0"><small class="h">Frais de fermeture du compte</small></div>
+          </div>
+          <div class="row r3">
+            <div><label>Plafond de dépôt mensuel (Gdes)</label><input name="plafond_depot_mensuel" type="number" value="5000000"><small class="h">Montant maximum des dépôts par mois</small></div>
+            <div><label>Plafond de retrait mensuel (Gdes)</label><input name="plafond_retrait_mensuel" type="number" value="3000000"><small class="h">Montant maximum des retraits par mois</small></div>
+            <div><label>Durée de blocage (mois)</label><input name="duree_blocage_mois" type="number" value="0"><small class="h">Période de blocage des fonds (si applicable)</small></div>
+          </div>
+          <div class="row r3">
+            <div><label>Pénalité retrait anticipé (%)</label><input name="penalite_retrait_anticipe" type="number" step="0.01" min="0" max="100" value="0"><small class="h">Pourcentage retenu en cas de retrait avant échéance</small></div>
+            <div><label>Âge minimum (ans)</label><input name="age_min" type="number" value="18"><small class="h">Âge minimum du client</small></div>
+            <div><label>Âge maximum (ans)</label><input name="age_max" type="number" value="120"><small class="h">Âge maximum du client</small></div>
+          </div>
+
+          <div class="sec border" style="font-size:12px"><span class="num">4</span>Informations complémentaires</div>
+          <div class="row r2" style="grid-template-columns:1fr 1fr">
+            <div><label>Pièce jointe (optionnel)</label><input name="piece_jointe" type="file" accept=".pdf,.jpg,.jpeg,.png"><small class="h">(PDF, JPG, PNG · Max 5 Mo)</small></div>
+            <div><label>Date de lancement <em>*</em></label><input name="date_lancement" type="date" required value="2025-10-16"><small class="h">Date à partir de laquelle le produit est disponible</small></div>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" type="submit" id="save"><svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h7V3M8 21v-7h8v7"/></svg>Enregistrer le produit</button>
+            <button class="btn ghost" type="button" id="reset"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 109-9 9 9 0 00-7 3M3 4v5h5"/></svg>Réinitialiser</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- COLONNE DROITE -->
+      <div class="side">
+        <div class="card">
+          <h3><span class="badge-ic g"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/></svg></span>Produit en cours de configuration</h3>
+          <div class="preview">
+            <div class="top"><b id="p-nom">Épargne classique GMES</b><span class="pill ok" id="p-statut">Actif</span></div>
+            <dl>
+              <dt>Code</dt><dd id="p-code">EPARGNE-CLASSIQUE</dd>
+              <dt>Type</dt><dd id="p-type">Classique</dd>
+              <dt>Taux annuel</dt><dd id="p-taux">0 %</dd>
+              <dt>Dépôt initial min.</dt><dd id="p-depmin">0 Gdes</dd>
+              <dt>Dépôt initial max.</dt><dd id="p-depmax">10 000 000 Gdes</dd>
+              <dt>Solde max.</dt><dd id="p-solmax">100 000 000 Gdes</dd>
+              <dt>Frais ouverture</dt><dd id="p-fouv">0 Gdes</dd>
+              <dt>Frais mensuels</dt><dd id="p-fmen">0 Gdes</dd>
+            </dl>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3><span class="badge-ic b"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 12h6"/></svg></span>Produits d'épargne existants<span class="see">Voir tout</span></h3>
+          <table>
+            <thead><tr><th>Nom du produit</th><th>Type</th><th>Taux</th><th>Statut</th><th></th></tr></thead>
+            <tbody id="liste"><tr><td colspan="5" style="color:#5b7bb0">Chargement…</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="card how">
+          <h3><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0012 3z"/></svg>Comment ça fonctionne ?</h3>
+          <div class="step"><span class="num">1</span><div>L'administrateur configure les produits d'épargne<small>avec leurs taux, frais et conditions.</small></div></div>
+          <div class="step"><span class="num">2</span><div>Le conseiller sélectionne le produit lors de l'ouverture<small>du compte client.</small></div></div>
+          <div class="step"><span class="num">3</span><div>GMES associe le compte au client et au produit choisi.</div></div>
+          <div class="step"><span class="num">4</span><div>Sans produit actif configuré, aucun compte d'épargne<small>ne peut être ouvert.</small></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const fmt = n => Number(n || 0).toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ');
+  const form = $('form');
+  const defaults = {};
+  form.querySelectorAll('input,select,textarea').forEach((el,i) => defaults[i] = el.value);
+
+  function refresh(){
+    $('p-nom').textContent = $('nom').value;
+    $('p-code').textContent = $('code').value;
+    $('p-type').textContent = $('type').selectedOptions[0].text;
+    $('p-taux').textContent = ($('taux').value || 0) + ' %';
+    $('p-depmin').textContent = fmt($('depmin').value) + ' Gdes';
+    $('p-depmax').textContent = fmt($('depmax').value) + ' Gdes';
+    $('p-solmax').textContent = fmt($('solmax').value) + ' Gdes';
+    $('p-fouv').textContent = fmt($('fouv').value) + ' Gdes';
+    $('p-fmen').textContent = fmt($('fmen').value) + ' Gdes';
+    const actif = $('statut').value === 'Actif';
+    const pill = $('p-statut');
+    pill.textContent = $('statut').value;
+    pill.className = 'pill ' + (actif ? 'ok' : 'no');
+    $('cnt').textContent = $('desc').value.length;
+  }
+
+  $('taux').addEventListener('input', () => {
+    $('tauxm').value = ((parseFloat($('taux').value) || 0) / 12).toFixed(3);
+  });
+  form.addEventListener('input', refresh);
+  form.addEventListener('change', refresh);
+
+  $('reset').addEventListener('click', () => {
+    form.querySelectorAll('input:not([type=file]),select,textarea').forEach((el) => {
+      const i = [...form.querySelectorAll('input,select,textarea')].indexOf(el);
+      el.value = defaults[i];
+    });
+    refresh();
+  });
+
+  const API = "{{ url_for('epargne.api_liste') }}";
+  const TYPES = Object.fromEntries({{ types|tojson }});
+  const csrf = (document.querySelector('meta[name=csrf-token]') || {}).content || '';
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function toast(msg, ok = true){
+    const t = document.createElement('div');
+    t.className = 'toast' + (ok ? '' : ' err');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+  }
+
+  async function chargerListe(){
+    try{
+      const res = await fetch(API);
+      if (!res.ok) throw new Error(res.status);
+      const produits = await res.json();
+      $('liste').innerHTML = produits.length ? produits.map(p => {
+        const actif = p.statut === 'Actif';
+        return `<tr data-id="${p.id}">
+          <td style="${actif ? '' : 'color:#2a3a5a;font-weight:500'}">${esc(p.nom)}</td>
+          <td>${esc(TYPES[p.type_produit] || p.type_produit)}</td>
+          <td>${Number(p.taux_interet_annuel)} %</td>
+          <td><span class="pill ${actif ? 'ok s' : 'no'}">${esc(p.statut)}</span></td>
+          <td class="dots" title="Supprimer">⋮</td></tr>`;
+      }).join('') : '<tr><td colspan="5" style="color:#5b7bb0">Aucun produit configuré.</td></tr>';
+    }catch(e){
+      $('liste').innerHTML = '<tr><td colspan="5" style="color:#c62828">Impossible de charger les produits.</td></tr>';
+    }
+  }
+
+  function remplir(p){
+    form.querySelectorAll('[name]').forEach(el => {
+      if (el.type === 'file' || el.name === 'produit_id') return;
+      if (p[el.name] !== undefined) el.value = p[el.name] ?? '';
+    });
+    $('produit_id').value = p.id;
+    refresh();
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+
+  $('liste').addEventListener('click', async e => {
+    const tr = e.target.closest('tr[data-id]');
+    if (!tr) return;
+    const id = tr.dataset.id;
+    if (e.target.closest('.dots')) {
+      if (!confirm('Supprimer ce produit ? Cette action est irréversible.')) return;
+      const res = await fetch(`${API}/${id}`, {method: 'DELETE', headers: {'X-CSRFToken': csrf}});
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { toast(json.erreur || 'Suppression impossible.', false); return; }
+      if ($('produit_id').value === id) $('reset').click();
+      toast('Produit supprimé.');
+      chargerListe();
+      return;
+    }
+    const res = await fetch(`${API}/${id}`);
+    if (!res.ok) { toast('Produit introuvable.', false); return; }
+    remplir(await res.json());
+  });
+
+  $('save').addEventListener('click', async () => {
+    if (!$('code').value.trim() || !$('nom').value.trim()) { toast('Le code et le nom du produit sont obligatoires.', false); return; }
+    const id = $('produit_id').value;
+    const btn = $('save');
+    btn.disabled = true;
+    try{
+      const res = await fetch(id ? `${API}/${id}` : API, {
+        method: id ? 'PUT' : 'POST',
+        headers: {'X-CSRFToken': csrf},
+        body: new FormData(form)
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { toast(json.erreur || "Erreur lors de l'enregistrement.", false); return; }
+      $('produit_id').value = json.id;
+      toast(`Produit « ${json.nom} » enregistré.`);
+      chargerListe();
+    }catch(e){
+      toast('Impossible de joindre le serveur.', false);
+    }finally{
+      btn.disabled = false;
+    }
+  });
+
+  refresh();
+  chargerListe();
+</script>
+</body>
+</html>
