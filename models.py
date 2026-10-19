@@ -7613,24 +7613,33 @@ class Epargne(db.Model):
     succursale = db.relationship('Succursale', backref='epargnes')
 
     # Après (corrigé - utilise compte_id)
-    transactions = db.relationship('TransactionEpargne',
-                                   foreign_keys='TransactionEpargne.compte_id',
-                                   backref='compte',
-                                   lazy='dynamic')
+    transactions = db.relationship(
+        'TransactionEpargne',
+        foreign_keys='TransactionEpargne.compte_id',
+        back_populates='compte',
+        lazy='dynamic'
+    )
 
     pret_garanti = db.relationship('Credit', foreign_keys=[pret_garanti_id], backref='epargne_garantie')
 
     # Transferts où ce compte est la source
-    transferts_sortants = db.relationship('TransactionEpargne',
-                                          foreign_keys='TransactionEpargne.transfert_source_id',
-                                          backref='source_epargne',
-                                          lazy='dynamic')
+
+    # Transferts où ce compte est la source
+    transferts_sortants = db.relationship(
+        'TransactionEpargne',
+        foreign_keys='TransactionEpargne.transfert_source_id',
+        back_populates='transfert_source',
+        lazy='dynamic'
+    )
 
     # Transferts où ce compte est la destination
-    transferts_entrants = db.relationship('TransactionEpargne',
-                                          foreign_keys='TransactionEpargne.transfert_destination_id',
-                                          backref='dest_epargne',
-                                          lazy='dynamic')
+    transferts_entrants = db.relationship(
+        'TransactionEpargne',
+        foreign_keys='TransactionEpargne.transfert_destination_id',
+        back_populates='transfert_destination',
+        lazy='dynamic'
+    )
+
 
     def __repr__(self):
         return f'<Epargne {self.numero_compte}: {self.solde} HTG>'
@@ -8129,7 +8138,8 @@ class TransactionEpargne(db.Model):
 
     compte = db.relationship(
         "Epargne",
-        foreign_keys=[compte_id]
+        foreign_keys=[compte_id],
+        back_populates='transactions'
     )
 
     transfert_source = db.relationship(
