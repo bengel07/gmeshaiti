@@ -259,10 +259,11 @@
                         <td>{{ compte.intitule_compte or "—" }}</td>
 
                         <td>
-                            {% if compte.produit_epargne %}
-                                {{ compte.produit_epargne.nom }}
+                            {% set produit = produit_par_id.get(compte.produit_epargne_id) %}
+                            {% if produit %}
+                                {{ produit.nom }}
                             {% else %}
-                                —
+                                Produit #{{ compte.produit_epargne_id }}
                             {% endif %}
                         </td>
 
