@@ -1,0 +1,108 @@
+{# Rapport financier de l'épargne : comptes de GMES (frais encaissés, intérêts versés) et contrôle d'intégrité.
+   Pour l'intégrer : remplacez <html>…<body> par {% extends "base.html" %}. #}
+{% macro g(x) %}{{ ("{:,.2f}".format((x or 0)|float)).replace(",", " ") }} Gdes{% endmacro %}
+{% set LIB = {"depot_initial": "Dépôts initiaux", "depot": "Dépôts", "retrait": "Retraits", "interets": "Intérêts versés aux clients",
+              "frais_ouverture": "Frais d'ouverture encaissés", "frais_mensuel": "Frais de tenue de compte encaissés",
+              "frais_cloture": "Frais de clôture encaissés", "penalite": "Pénalités de retrait anticipé",
+              "retrait_cloture": "Versements de clôture"} %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rapport épargne</title>
+<style>
+  :root{--navy:#0f3170;--blue:#1a56c4;--bg:#eef3fa;--border:#dbe3f0;--text:#1d2b44;--muted:#5b7bb0;--green:#157a52;--red:#c62828}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;font-size:13px;color:var(--text);background:var(--bg);padding:20px}
+  .wrap{max-width:1000px;margin:0 auto;display:grid;gap:14px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:16px 18px}
+  h1{font-size:20px;color:var(--navy)} h2{font-size:14px;color:var(--navy);margin-bottom:10px}
+  .top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+  input,button{height:32px;font:inherit;border:1px solid #c9d5e8;border-radius:5px;padding:0 10px;background:#fff}
+  button,.lien{background:var(--blue);color:#fff;border:0;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;padding:0 14px;height:32px;border-radius:5px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#f4f7fc;text-align:left;padding:8px 10px;font-size:11px} td{padding:8px 10px;border-top:1px solid #eef1f7}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+  .ok{color:var(--green);font-weight:600} .ko{color:var(--red);font-weight:600} .hint{font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card top">
+    <h1>Rapport de l'épargne</h1>
+    <form method="get" style="display:flex;gap:8px">
+      <input type="month" name="periode" value="{{ periode }}">
+      <button>Afficher</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Comptes internes de GMES</h2>
+    <table>
+      <thead><tr><th>Compte</th><th>Nature</th><th class="n">Solde</th></tr></thead>
+      <tbody>
+      {% for ci in comptes %}
+        <tr><td>{{ ci.libelle }} <span class="hint">({{ ci.code }})</span></td><td>{{ ci.nature }}</td><td class="n">{{ g(ci.solde) }}</td></tr>
+      {% else %}
+        <tr><td colspan="3" class="ko">Comptes internes absents : lancez « flask epargne init-comptable ».</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="hint" style="margin-top:8px">Frais et pénalités encaissés = produits de GMES. Intérêts versés = charge de GMES. Caisse = liquidités reçues moins versées.</p>
+  </div>
+
+  <div class="card">
+    <h2>Opérations du mois {{ periode }}</h2>
+    <table>
+      <thead><tr><th>Type</th><th class="n">Nombre</th><th class="n">Total</th></tr></thead>
+      <tbody>
+      {% for t in totaux_periode %}
+        <tr><td>{{ LIB.get(t.type, t.type) }}</td><td class="n">{{ t.nombre }}</td><td class="n">{{ g(t.total) }}</td></tr>
+      {% else %}
+        <tr><td colspan="3" class="hint">Aucune opération ce mois-ci.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Depuis le début</h2>
+    <table>
+      <thead><tr><th>Type</th><th class="n">Nombre</th><th class="n">Total</th></tr></thead>
+      <tbody>
+      {% for t in totaux_global %}
+        <tr><td>{{ LIB.get(t.type, t.type) }}</td><td class="n">{{ t.nombre }}</td><td class="n">{{ g(t.total) }}</td></tr>
+      {% else %}
+        <tr><td colspan="3" class="hint">Aucune opération.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Contrôle d'intégrité</h2>
+    {% if controle is none %}
+      <p class="hint" style="margin-bottom:10px">Vérifie que chaque opération équilibre crédits et débits, et que le solde de chaque compte correspond à son relevé.</p>
+      <a class="lien" href="?periode={{ periode }}&controle=1">Lancer le contrôle</a>
+    {% else %}
+      {% if not controle.operations_desequilibrees and not controle.comptes_en_ecart %}
+        <p class="ok">✓ Tout est cohérent.</p>
+      {% endif %}
+      {% if controle.operations_desequilibrees %}
+        <p class="ko">{{ controle.operations_desequilibrees|length }} opération(s) déséquilibrée(s) : {{ controle.operations_desequilibrees|join(", ") }}</p>
+      {% endif %}
+      {% if controle.comptes_en_ecart %}
+        <p class="ko" style="margin:8px 0 4px">Comptes dont le solde ne correspond pas au relevé (les comptes antérieurs au grand livre apparaissent ici : c'est normal) :</p>
+        <table>
+          <thead><tr><th>Compte</th><th class="n">Solde</th><th class="n">Relevé</th></tr></thead>
+          <tbody>{% for e in controle.comptes_en_ecart %}
+            <tr><td><a href="{{ url_for('epargne.page_compte', compte_id=e.compte_id) }}">{{ e.compte_id }}</a></td><td class="n">{{ g(e.solde) }}</td><td class="n">{{ g(e.grand_livre) }}</td></tr>
+          {% endfor %}</tbody>
+        </table>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>

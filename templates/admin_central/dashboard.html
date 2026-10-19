@@ -417,9 +417,19 @@
         <a href="{{ url_for('liste_users') }}" class="menu-item"> ⚙ Gestion des Eployees </a>
         <a href="{{ url_for('liste_succursales') }}" class="btn btn-danger">🏢 Gestion des succursales</a>
 
+        
         <a href="{{ url_for('epargne.page_produits') }}" class="menu-item">
-            💰 Produit Épargne
+            💰 1. Produits d’épargne
         </a>
+
+        <a href="#" class="menu-item" onclick="alert('La page de liste des comptes d’épargne reste à créer.'); return false;">
+            🏦 2. Comptes d’épargne
+        </a>
+
+        <a href="{{ url_for('epargne.page_rapport') }}" class="menu-item">
+            📊 3. Rapports d’épargne
+        </a>
+
 
 
         <a href="{{ url_for('centre_it') }}" class="menu-item">

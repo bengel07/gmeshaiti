@@ -7912,44 +7912,243 @@ class ConfigurationHistory(db.Model):
     date_changement = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer)
 
+
 class TransactionEpargne(db.Model):
-    __tablename__ = 'transactions_epargne'
+    """
+    Une ligne représente une écriture sur un compte client ou interne.
+    Les écritures d'une même opération partagent le même groupe_id.
+
+    Les anciens champs sont conservés pour assurer la compatibilité
+    avec les routes historiques de GMES Haïti.
+    """
+
+    __tablename__ = "transactions_epargne"
+
+    __table_args__ = (
+        db.CheckConstraint(
+            "montant > 0",
+            name="ck_tx_montant_positif"
+        ),
+        db.CheckConstraint(
+            "sens IN ('credit', 'debit')",
+            name="ck_tx_sens"
+        ),
+        db.CheckConstraint(
+            "(compte_id IS NOT NULL AND compte_interne_id IS NULL) OR "
+            "(compte_id IS NULL AND compte_interne_id IS NOT NULL)",
+            name="ck_tx_une_seule_cible"
+        ),
+        db.Index(
+            "ix_tx_compte_date",
+            "compte_id",
+            "created_at"
+        ),
+    )
+
+    # --------------------------------------------------
+    # Identifiants et comptabilité à double écriture
+    # --------------------------------------------------
 
     id = db.Column(db.Integer, primary_key=True)
-    compte_id = db.Column(db.Integer, db.ForeignKey('epargnes.id'), nullable=False)
 
-    # Type de transaction
-    type_transaction = db.Column(db.String(20))  # 'depot', 'retrait', 'interets', 'blocage', 'deblocage'
+    groupe_id = db.Column(
+        db.String(32),
+        nullable=False,
+        index=True
+    )
 
-    # Montant
-    montant = db.Column(db.Float, nullable=False)
-    solde_avant = db.Column(db.Float)
-    solde_apres = db.Column(db.Float)
+    # Référence unique pour éviter les opérations en double.
+    reference = db.Column(
+        db.String(80),
+        unique=True,
+        nullable=True
+    )
 
-    # Description
-    description = db.Column(db.Text, nullable=True)
+    # --------------------------------------------------
+    # Comptes concernés
+    # --------------------------------------------------
 
-    # Référence externe
-    transaction_externe_ref = db.Column(db.String(100), nullable=True)  # Pour lier à une autre transaction
-    transaction_ref = db.Column(db.String(100), nullable=True)  # ← Ajoutez ceci
+    compte_id = db.Column(
+        db.Integer,
+        db.ForeignKey("epargnes.id"),
+        nullable=True
+    )
 
-    transfert_source_id = db.Column(db.Integer, db.ForeignKey('epargnes.id'), nullable=True)
-    transfert_destination_id = db.Column(db.Integer, db.ForeignKey('epargnes.id'), nullable=True)
-    transfert_motif = db.Column(db.String(50), default='autre')
-    transfert_effectue_par = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    compte_interne_id = db.Column(
+        db.Integer,
+        db.ForeignKey("comptes_internes.id"),
+        nullable=True
+    )
 
-    # Agent
-    employe_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    transfert_source_id = db.Column(
+        db.Integer,
+        db.ForeignKey("epargnes.id"),
+        nullable=True
+    )
 
-    # Date
-    date_transaction = db.Column(db.DateTime, default=datetime.utcnow)
+    transfert_destination_id = db.Column(
+        db.Integer,
+        db.ForeignKey("epargnes.id"),
+        nullable=True
+    )
 
-    # Relations
-    employe = db.relationship('User', foreign_keys=[employe_id], backref='transactions_epargne')
-    status = db.Column(db.String(20), default="PENDING")
+    transfert_motif = db.Column(
+        db.String(50),
+        default="autre"
+    )
+
+    transfert_effectue_par = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=True
+    )
+
+    # --------------------------------------------------
+    # Type et sens de l'écriture
+    # --------------------------------------------------
+
+    # Champ du nouveau système comptable.
+    type = db.Column(
+        db.String(30),
+        nullable=True,
+        index=True
+    )
+
+    # Champ historique, conservé pour les anciennes routes.
+    type_transaction = db.Column(
+        db.String(20),
+        nullable=True
+    )
+
+    sens = db.Column(
+        db.String(6),
+        nullable=True
+    )
+
+    # --------------------------------------------------
+    # Montants
+    # --------------------------------------------------
+
+    montant = db.Column(
+        db.Numeric(18, 2),
+        nullable=False
+    )
+
+    solde_avant = db.Column(
+        db.Numeric(18, 2),
+        nullable=True
+    )
+
+    solde_apres = db.Column(
+        db.Numeric(18, 2),
+        nullable=True
+    )
+
+    # --------------------------------------------------
+    # Description et références historiques
+    # --------------------------------------------------
+
+    description = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    libelle = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
+    transaction_externe_ref = db.Column(
+        db.String(100),
+        nullable=True
+    )
+
+    transaction_ref = db.Column(
+        db.String(100),
+        nullable=True
+    )
+
+    # --------------------------------------------------
+    # Période comptable et statut
+    # --------------------------------------------------
+
+    periode = db.Column(
+        db.String(7),
+        index=True,
+        nullable=True
+    )
+
+    status = db.Column(
+        db.String(20),
+        default="PENDING"
+    )
+
+    # --------------------------------------------------
+    # Employé et dates
+    # --------------------------------------------------
+
+    employe_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=True
+    )
+
+    created_by = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=True
+    )
+
+    date_transaction = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        index=True
+    )
+
+    # --------------------------------------------------
+    # Relations SQLAlchemy
+    # --------------------------------------------------
+
+    employe = db.relationship(
+        "User",
+        foreign_keys=[employe_id],
+        backref="transactions_epargne"
+    )
+
+    compte_interne = db.relationship(
+        "CompteInterne",
+        foreign_keys=[compte_interne_id]
+    )
+
+    compte = db.relationship(
+        "Epargne",
+        foreign_keys=[compte_id]
+    )
+
+    transfert_source = db.relationship(
+        "Epargne",
+        foreign_keys=[transfert_source_id]
+    )
+
+    transfert_destination = db.relationship(
+        "Epargne",
+        foreign_keys=[transfert_destination_id]
+    )
 
     def __repr__(self):
-        return f'<TransactionEpargne {self.id}: {self.type_transaction} {self.montant} FG>'
+        return (
+            f"<TransactionEpargne {self.id}: "
+            f"{self.type_transaction or self.type} "
+            f"{self.montant} FG>"
+        )
+
 
 
 class RetraitConfirmation(db.Model):
@@ -10350,6 +10549,28 @@ class Investissement(db.Model):
     def interet_accumule(self):
         jours = max((date.today() - self.date_debut).days, 0)
         return min(float(self.montant) * float(self.taux_annuel) / 100 * jours / 365, self.interet_total)
+
+
+
+# Nom de la table de votre modèle Epargne (voir son __tablename__)  <- adaptez
+EPARGNE_TABLE = "epargne"
+
+TYPES_TRANSACTION = (
+    "depot_initial", "depot", "retrait", "interets",
+    "frais_ouverture", "frais_mensuel", "frais_cloture", "penalite", "retrait_cloture",
+)
+
+
+class CompteInterne(db.Model):
+    """Compte de GMES lui-même : caisse, produits (frais), charges (intérêts versés)."""
+    __tablename__ = "comptes_internes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(30), nullable=False, unique=True)
+    libelle = db.Column(db.String(150), nullable=False)
+    nature = db.Column(db.String(10), nullable=False)  # actif | passif | charge | produit
+    solde = db.Column(db.Numeric(18, 2), nullable=False, default=0)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 
 

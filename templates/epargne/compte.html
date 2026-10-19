@@ -1,0 +1,184 @@
+{# Page d'un compte d'épargne : conditions du produit, opérations (activation, dépôt, retrait, clôture) et relevé.
+   Pour l'intégrer à votre application : remplacez <html>…<body> par {% extends "base.html" %} et gardez
+   le style, le contenu et le script. #}
+{% macro g(x) %}{{ ("{:,.2f}".format((x or 0)|float)).replace(",", " ") }} Gdes{% endmacro %}
+{% set LIB = {"depot_initial": "Dépôt initial", "depot": "Dépôt", "retrait": "Retrait", "interets": "Intérêts",
+              "frais_ouverture": "Frais d'ouverture", "frais_mensuel": "Frais de tenue de compte",
+              "frais_cloture": "Frais de clôture", "penalite": "Pénalité de retrait anticipé",
+              "retrait_cloture": "Versement de clôture"} %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}">
+<title>Compte d'épargne {{ compte.numero_compte }}</title>
+<style>
+  :root{--navy:#0f3170;--blue:#1a56c4;--bg:#eef3fa;--border:#dbe3f0;--text:#1d2b44;--muted:#5b7bb0;--green:#157a52;--red:#c62828}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;font-size:13px;color:var(--text);background:var(--bg);padding:20px}
+  .wrap{max-width:1100px;margin:0 auto;display:grid;gap:14px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:16px 18px}
+  h1{font-size:20px;color:var(--navy)} h2{font-size:14px;color:var(--navy);margin-bottom:10px}
+  .top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+  .pill{font-size:11px;font-weight:600;border-radius:12px;padding:3px 11px;background:#bdf0d6;color:#157a52}
+  .pill.off{background:#fde0e0;color:var(--red)} .pill.wait{background:#fff3cd;color:#856404}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px} @media(max-width:800px){.cols{grid-template-columns:1fr}}
+  .solde{font-size:28px;font-weight:700;color:var(--navy);margin:4px 0 2px}
+  dl{display:grid;grid-template-columns:190px 1fr;row-gap:7px;font-size:12px} dt{color:#4a5b7a}
+  label{display:block;font-size:12px;font-weight:600;margin-bottom:4px}
+  input{width:100%;height:34px;border:1px solid #c9d5e8;border-radius:5px;padding:0 10px;font:inherit}
+  .btn{height:34px;border:0;border-radius:5px;padding:0 16px;font:inherit;font-weight:600;cursor:pointer;color:#fff;background:var(--blue)}
+  .btn.out{background:#c0392b} .btn.green{background:var(--green)} .btn:disabled{opacity:.6;cursor:wait}
+  .ops{display:grid;gap:12px} .op{border:1px solid var(--border);border-radius:6px;padding:12px}
+  .hint{font-size:11px;color:var(--muted);margin-top:4px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#f4f7fc;text-align:left;padding:8px 10px;font-size:11px} td{padding:8px 10px;border-top:1px solid #eef1f7}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums} .cr{color:var(--green)} .de{color:var(--red)}
+  .toast{position:fixed;right:20px;bottom:20px;background:var(--green);color:#fff;padding:10px 16px;border-radius:6px;z-index:50;max-width:380px}
+  .toast.err{background:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card top">
+    <div>
+      <h1>{{ compte.intitule_compte or "Compte d'épargne" }}</h1>
+      <div class="hint">N° {{ compte.numero_compte }} · Produit : <strong>{{ produit.nom if produit else "—" }}</strong></div>
+    </div>
+    {% if cloture %}<span class="pill off">Clôturé</span>
+    {% elif actif %}<span class="pill">Actif</span>
+    {% else %}<span class="pill wait">{{ compte.statut }}</span>{% endif %}
+  </div>
+
+  <div class="cols">
+    <div class="card">
+      <h2>Solde</h2>
+      <div class="solde">{{ g(compte.solde) }}</div>
+      <div class="hint">Disponible : {{ g(compte.solde_disponible) }}</div>
+    </div>
+
+    <div class="card">
+      <h2>Conditions du produit</h2>
+      {% if produit %}
+      <dl>
+        <dt>Taux d'intérêt annuel</dt><dd>{{ produit.taux_interet_annuel or 0 }} %</dd>
+        <dt>Dépôt initial</dt><dd>{{ g(produit.depot_initial_min) }} à {{ g(produit.depot_initial_max) }}</dd>
+        <dt>Frais d'ouverture</dt><dd>{{ g(produit.frais_ouverture) }}</dd>
+        <dt>Frais mensuels</dt><dd>{{ g(produit.frais_tenue_compte_mensuel) }}</dd>
+        <dt>Frais de clôture</dt><dd>{{ g(produit.frais_cloture) }}</dd>
+        <dt>Plafond dépôts / mois</dt><dd>{{ g(produit.plafond_depot_mensuel) }}</dd>
+        <dt>Plafond retraits / mois</dt><dd>{{ g(produit.plafond_retrait_mensuel) }}</dd>
+        <dt>Blocage</dt><dd>{{ produit.duree_blocage_mois or 0 }} mois (pénalité {{ produit.penalite_retrait_anticipe or 0 }} %)</dd>
+      </dl>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Opérations</h2>
+    {% if cloture %}
+      <p>Ce compte est clôturé : aucune opération n'est possible.</p>
+    {% elif not deja_active %}
+      <form class="op" data-op="activation">
+        <label>Dépôt initial (Gdes)</label>
+        <input name="montant" type="number" step="0.01" min="0" required>
+        <div class="hint">
+          {% if produit %}Minimum {{ g(produit.depot_initial_min) }} · les frais d'ouverture ({{ g(produit.frais_ouverture) }})
+          sont prélevés sur ce dépôt.{% endif %}
+        </div>
+        <button class="btn green" style="margin-top:10px">Activer le compte et encaisser le dépôt</button>
+      </form>
+    {% elif actif %}
+      <div class="ops">
+        <form class="op" data-op="depot">
+          <label>Dépôt (Gdes)</label>
+          <input name="montant" type="number" step="0.01" min="0.01" required>
+          <button class="btn green" style="margin-top:10px">Enregistrer le dépôt</button>
+        </form>
+        <form class="op" data-op="retrait" data-confirm="Confirmer ce retrait ?">
+          <label>Retrait (Gdes)</label>
+          <input name="montant" type="number" step="0.01" min="0.01" required>
+          {% if produit and produit.duree_blocage_mois %}<div class="hint">Fonds bloqués {{ produit.duree_blocage_mois }} mois après l'ouverture ;
+            retrait anticipé : pénalité de {{ produit.penalite_retrait_anticipe or 0 }} % du montant retiré.</div>{% endif %}
+          <button class="btn" style="margin-top:10px">Enregistrer le retrait</button>
+        </form>
+        {% if peut_cloturer %}
+        <form class="op" data-op="cloture" data-confirm="Clôturer définitivement ce compte ? Le solde, moins les frais de clôture, sera versé au client.">
+          <div class="hint">Frais de clôture : {{ g(produit.frais_cloture if produit else 0) }}. Le solde restant est versé au client.</div>
+          <button class="btn out" style="margin-top:10px">Clôturer le compte</button>
+        </form>
+        {% endif %}
+      </div>
+    {% else %}
+      <p>Le compte est dans l'état « {{ compte.statut }} » : aucune opération n'est possible.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Relevé</h2>
+    <table>
+      <thead><tr><th>Date</th><th>Opération</th><th class="n">Débit</th><th class="n">Crédit</th><th class="n">Solde après</th></tr></thead>
+      <tbody>
+      {% for t in transactions %}
+        <tr>
+          <td>{{ t.created_at.strftime("%d/%m/%Y %H:%M") }}</td>
+          <td>{{ LIB.get(t.type, t.type) }}{% if t.periode %} <span class="hint">({{ t.periode }})</span>{% endif %}</td>
+          <td class="n de">{% if t.sens == "debit" %}{{ g(t.montant) }}{% endif %}</td>
+          <td class="n cr">{% if t.sens == "credit" %}{{ g(t.montant) }}{% endif %}</td>
+          <td class="n">{{ g(t.solde_apres) }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="hint">Aucune opération enregistrée.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const csrf = (document.querySelector('meta[name=csrf-token]') || {}).content || '';
+  const API = "{{ url_for('epargne.api_operation', compte_id=compte.id, operation='X') }}".slice(0, -1);
+
+  function toast(msg, ok = true){
+    const t = document.createElement('div');
+    t.className = 'toast' + (ok ? '' : ' err');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 5000);
+  }
+  const nouvelleCle = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+                                                                  : Date.now() + '-' + Math.random().toString(36).slice(2);
+
+  document.querySelectorAll('form[data-op]').forEach(form => {
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (form.dataset.confirm && !confirm(form.dataset.confirm)) return;
+      const montant = (form.elements.montant || {}).value;
+      // Même clé tant que le montant ne change pas : un double clic ne crée jamais deux opérations.
+      if (!form.dataset.cle || form.dataset.montant !== String(montant)) {
+        form.dataset.cle = nouvelleCle();
+        form.dataset.montant = String(montant);
+      }
+      const bouton = form.querySelector('button');
+      bouton.disabled = true;
+      try {
+        const res = await fetch(API + form.dataset.op, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+          body: JSON.stringify({montant: montant, cle: form.dataset.cle})
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) { toast(json.erreur || "Opération refusée.", false); bouton.disabled = false; return; }
+        toast(json.deja_traite ? 'Opération déjà enregistrée.' : 'Opération enregistrée.');
+        setTimeout(() => location.reload(), 900);
+      } catch (err) {
+        toast('Impossible de joindre le serveur : vérifiez le relevé avant de recommencer.', false);
+        bouton.disabled = false;
+      }
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,21 +1,38 @@
-"""Blueprint Épargne : configuration des produits d'épargne GMES.
+"""Blueprint Épargne : produits d'épargne GMES + opérations sur les comptes + rapports.
 
 Fonctionne avec votre modèle `ProduitEpargne` tel quel (aucune modification requise).
 
-Routes
-------
-GET     /epargne/produits                 page HTML
-GET     /epargne/api/produits             liste (JSON)
-POST    /epargne/api/produits             création (multipart/form-data)
-GET     /epargne/api/produits/<id>        détail
-PUT     /epargne/api/produits/<id>        mise à jour (multipart/form-data)
-DELETE  /epargne/api/produits/<id>        suppression
-CLI     flask epargne seed                insère les produits de démonstration
+Produits (super admin)
+    GET     /epargne/produits                      page de configuration
+    GET     /epargne/api/produits                  liste (JSON)
+    POST    /epargne/api/produits                  création (multipart/form-data)
+    GET     /epargne/api/produits/<id>             détail
+    PUT     /epargne/api/produits/<id>             mise à jour
+    DELETE  /epargne/api/produits/<id>             suppression (refusée si des comptes l'utilisent)
+
+Comptes (employés ; clôture : super admin / direction)
+    GET     /epargne/comptes/<id>                  page : conditions, opérations, relevé
+    POST    /epargne/api/comptes/<id>/activation   dépôt initial + frais d'ouverture
+    POST    /epargne/api/comptes/<id>/depot
+    POST    /epargne/api/comptes/<id>/retrait
+    POST    /epargne/api/comptes/<id>/cloture      frais de clôture, solde versé
+    GET     /epargne/api/comptes/<id>/transactions relevé (JSON)
+
+Rapports (super admin)
+    GET     /epargne/rapport                       comptes de GMES, totaux par type d'opération
+    GET     /epargne/api/rapport                   idem (JSON)
+
+Commandes
+    flask epargne init-comptable                   crée les comptes internes GMES (une seule fois)
+    flask epargne cloture-mensuelle [--periode AAAA-MM]   intérêts + frais mensuels (cron le 1er du mois)
+    flask epargne verifier-equilibre               contrôle d'intégrité du grand livre
+    flask epargne seed                             insère des produits de démonstration
 
 Enregistrement dans votre application :
     from routes.epargne import epargne_bp
     app.register_blueprint(epargne_bp)
 """
+import json
 import math
 import os
 import re
@@ -23,18 +40,26 @@ import uuid
 from datetime import date
 from functools import wraps
 
+import click
 from flask import Blueprint, abort, current_app, jsonify, render_template, request
 from flask_login import current_user, login_required
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
 from database import db  # <- adaptez : votre instance Flask-SQLAlchemy
-from models import ProduitEpargne  # <- adaptez : chemin de votre modèle
+from models import Epargne, ProduitEpargne  # <- adaptez : là où vos modèles sont importés
+from services import comptabilite as compta
+from services import epargne_ops as ops
 
 epargne_bp = Blueprint("epargne", __name__, url_prefix="/epargne")
 
-# Rôles autorisés à configurer les produits : adaptez à votre modèle utilisateur.
-ROLES_AUTORISES = {"super_admin", "admin"}
+# Rôles autorisés à configurer les produits (rôles de votre application : 'employe',
+# 'super_admin', 'direction'). Ajoutez "direction" si elle doit aussi pouvoir le faire.
+ROLES_AUTORISES = {"super_admin"}
+# Rôles autorisés à activer un compte, déposer et retirer ; la clôture est plus restreinte.
+ROLES_OPERATIONS = {"employe", "super_admin", "direction"}
+ROLES_CLOTURE = {"super_admin", "direction"}
 
 # (valeur stockée en base, libellé affiché) : reprend la liste de votre modèle
 TYPES_PRODUIT = [
@@ -55,14 +80,24 @@ MAX_MONTANT = 1e15
 # --------------------------------------------------------------------------- #
 # Sécurité
 # --------------------------------------------------------------------------- #
-def admin_required(vue):
-    @wraps(vue)
-    def wrapper(*args, **kwargs):
-        if getattr(current_user, "role", None) not in ROLES_AUTORISES:
-            abort(403)
-        return vue(*args, **kwargs)
+def _roles_requis(roles):
+    def decorateur(vue):
+        @wraps(vue)
+        def wrapper(*args, **kwargs):
+            if getattr(current_user, "role", None) not in roles:
+                abort(403)
+            return vue(*args, **kwargs)
 
-    return login_required(wrapper)
+        return login_required(wrapper)
+    return decorateur
+
+
+def admin_required(vue):
+    return _roles_requis(ROLES_AUTORISES)(vue)
+
+
+def operations_required(vue):
+    return _roles_requis(ROLES_OPERATIONS)(vue)
 
 
 @epargne_bp.errorhandler(403)
@@ -270,11 +305,9 @@ def _enregistrer(produit, valeurs):
 
 
 def _nb_comptes(produit):
-    """Nombre de comptes liés (si vous avez une relation `comptes` sur le modèle), sinon 0."""
-    comptes = getattr(produit, "comptes", None)
-    if comptes is None:
-        return 0
-    return len(comptes) if isinstance(comptes, (list, tuple, set)) else comptes.count()
+    """Nombre de comptes d'épargne rattachés à ce produit."""
+    return db.session.execute(
+        db.select(func.count()).select_from(Epargne).where(Epargne.produit_epargne_id == produit.id)).scalar()
 
 
 # --------------------------------------------------------------------------- #
@@ -335,8 +368,121 @@ def api_supprimer(produit_id):
 
 
 # --------------------------------------------------------------------------- #
-# CLI : flask epargne seed
+# Comptes : page, opérations, relevé
 # --------------------------------------------------------------------------- #
+def _transaction_json(t):
+    return {"id": t.id, "date": t.created_at.isoformat(timespec="seconds"), "type": t.type, "sens": t.sens,
+            "montant": str(t.montant), "solde_apres": None if t.solde_apres is None else str(t.solde_apres),
+            "libelle": t.libelle, "periode": t.periode}
+
+
+@epargne_bp.get("/comptes/<int:compte_id>")
+@operations_required
+def page_compte(compte_id):
+    compte = db.get_or_404(Epargne, compte_id)
+    return render_template(
+        "epargne/compte.html", compte=compte,
+        produit=db.session.get(ProduitEpargne, compte.produit_epargne_id),
+        transactions=ops.releve(compte_id),
+        actif=compte.statut == ops.STATUT_ACTIF,
+        cloture=compte.statut == ops.STATUT_CLOTURE,
+        deja_active=ops.est_active(compte_id),
+        peut_cloturer=getattr(current_user, "role", None) in ROLES_CLOTURE)
+
+
+@epargne_bp.get("/api/comptes/<int:compte_id>/transactions")
+@operations_required
+def api_releve(compte_id):
+    db.get_or_404(Epargne, compte_id)
+    return jsonify([_transaction_json(t) for t in ops.releve(compte_id, limite=request.args.get("limite", 200, type=int))])
+
+
+@epargne_bp.post("/api/comptes/<int:compte_id>/<operation>")
+@operations_required
+def api_operation(compte_id, operation):
+    """Corps JSON ou formulaire : montant, cle (clé d'idempotence : évite le double envoi)."""
+    if operation not in ("activation", "depot", "retrait", "cloture"):
+        abort(404)
+    if operation == "cloture" and getattr(current_user, "role", None) not in ROLES_CLOTURE:
+        return jsonify(erreur="La clôture est réservée à la direction."), 403
+    donnees = request.get_json(silent=True) or request.form
+    utilisateur, cle = getattr(current_user, "id", None), donnees.get("cle")
+    try:
+        if operation == "activation":
+            res = ops.activer_compte(compte_id, donnees.get("montant"), utilisateur)
+        elif operation == "depot":
+            res = ops.deposer(compte_id, donnees.get("montant"), utilisateur, cle)
+        elif operation == "retrait":
+            res = ops.retirer(compte_id, donnees.get("montant"), utilisateur, cle)
+        else:
+            res = ops.cloturer_compte(compte_id, utilisateur)
+    except compta.ErreurMetier as exc:
+        return jsonify(erreur=str(exc)), 400
+    return jsonify(solde=str(res["solde"]), deja_traite=res.get("deja_traite", False))
+
+
+# --------------------------------------------------------------------------- #
+# Rapports (super admin)
+# --------------------------------------------------------------------------- #
+def _periode_demandee():
+    periode = request.args.get("periode") or date.today().strftime("%Y-%m")
+    compta.bornes_periode(periode)  # valide le format
+    return periode
+
+
+@epargne_bp.get("/rapport")
+@admin_required
+def page_rapport():
+    try:
+        periode = _periode_demandee()
+    except compta.ErreurMetier:
+        abort(400)
+    return render_template(
+        "epargne/rapport.html", periode=periode, comptes=ops.comptes_internes(),
+        totaux_periode=ops.totaux_par_type(periode), totaux_global=ops.totaux_par_type(),
+        controle=ops.verifier_equilibre() if request.args.get("controle") else None)
+
+
+@epargne_bp.get("/api/rapport")
+@admin_required
+def api_rapport():
+    try:
+        periode = _periode_demandee()
+    except compta.ErreurMetier as exc:
+        return jsonify(erreur=str(exc)), 400
+    return jsonify(
+        periode=periode,
+        comptes_internes=[{"code": ci.code, "libelle": ci.libelle, "nature": ci.nature, "solde": str(ci.solde)}
+                          for ci in ops.comptes_internes()],
+        totaux_periode=[{**t, "total": str(t["total"])} for t in ops.totaux_par_type(periode)])
+
+
+# --------------------------------------------------------------------------- #
+# Commandes : flask epargne ...
+# --------------------------------------------------------------------------- #
+@epargne_bp.cli.command("init-comptable")
+def cli_init_comptable():
+    """Crée les comptes internes de GMES (caisse, frais, intérêts). À lancer une seule fois."""
+    crees = ops.initialiser_comptes_internes()
+    print("Comptes créés : " + ", ".join(crees) if crees else "Les comptes internes existent déjà.")
+
+
+@epargne_bp.cli.command("cloture-mensuelle")
+@click.option("--periode", default=None, help="Mois à traiter, AAAA-MM (défaut : le mois précédent).")
+def cli_cloture_mensuelle(periode):
+    """Verse les intérêts et prélève les frais mensuels de tous les comptes actifs.
+    Sans risque à relancer : un compte n'est traité qu'une fois par période."""
+    if not periode:
+        periode = compta.ajouter_mois(date.today().replace(day=1), -1).strftime("%Y-%m")
+    print(json.dumps(ops.cloture_mensuelle(periode), indent=2, ensure_ascii=False, default=str))
+
+
+@epargne_bp.cli.command("verifier-equilibre")
+def cli_verifier_equilibre():
+    """Contrôle que chaque opération est équilibrée et que les soldes correspondent au grand livre."""
+    print(json.dumps(ops.verifier_equilibre(), indent=2, ensure_ascii=False, default=str))
+
+
 @epargne_bp.cli.command("seed")
 def seed():
     """Insère les produits d'exemple s'ils n'existent pas encore."""
