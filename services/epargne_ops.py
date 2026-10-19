@@ -16,9 +16,9 @@ from functools import wraps
 from sqlalchemy import case, func
 from sqlalchemy.exc import IntegrityError
 
-from extensions import db  # <- adaptez
+from database import db # <- adaptez
 from models import Epargne, ProduitEpargne  # <- adaptez si vos modèles sont ailleurs
-from models.ledger import CompteInterne, TransactionEpargne
+from models import CompteInterne, TransactionEpargne
 from services import comptabilite as c
 
 log = logging.getLogger(__name__)
