@@ -504,3 +504,63 @@ def seed():
         ajoutes += 1
     db.session.commit()
     print(f"{ajoutes} produit(s) ajouté(s).")
+
+
+
+@epargne_bp.get("/comptes")
+@operations_required
+def liste_comptes():
+    """Affiche la liste des comptes d'épargne."""
+    from collections import defaultdict
+
+    recherche = (request.args.get("q") or "").strip()
+    statut_filtre = (request.args.get("statut") or "").strip()
+    produit_filtre = (request.args.get("produit") or "").strip()
+
+    requete = Epargne.query
+
+    if recherche:
+        conditions = [
+            Epargne.numero_compte.ilike(f"%{recherche}%"),
+            Epargne.intitule_compte.ilike(f"%{recherche}%"),
+        ]
+        requete = requete.filter(db.or_(*conditions))
+
+    if statut_filtre:
+        requete = requete.filter(Epargne.statut == statut_filtre)
+
+    if produit_filtre:
+        try:
+            requete = requete.filter(
+                Epargne.produit_epargne_id == int(produit_filtre)
+            )
+        except (TypeError, ValueError):
+            produit_filtre = ""
+
+    comptes = requete.order_by(Epargne.id.desc()).all()
+
+    produits = ProduitEpargne.query.order_by(ProduitEpargne.id.desc()).all()
+    produit_par_id = {produit.id: produit for produit in produits}
+
+    statuts = sorted({
+        compte.statut
+        for compte in Epargne.query.with_entities(Epargne.statut).all()
+        if compte.statut
+    })
+
+    total_solde = sum(
+        (compte.solde or 0 for compte in comptes),
+        0,
+    )
+
+    return render_template(
+        "epargne/liste_comptes.html",
+        comptes=comptes,
+        produits=produits,
+        produit_par_id=produit_par_id,
+        statuts=statuts,
+        recherche=recherche,
+        statut_filtre=statut_filtre,
+        produit_filtre=produit_filtre,
+        total_solde=total_solde,
+    )
