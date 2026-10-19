@@ -1014,7 +1014,29 @@ console.log('✅ Système de notifications initialisé');
 
 
 </style>
+<script>
+(function () {
+  const DELAI = 30 * 60 * 1000;
+  const csrf = "{{ csrf_token() }}";
+  let minuteur, dernierPing = Date.now();
 
+  function armer() {
+    clearTimeout(minuteur);
+    minuteur = setTimeout(() => location.reload(), DELAI);  // le serveur renverra vers la connexion
+  }
+  function activite() {
+    armer();
+    if (Date.now() - dernierPing > 60000) {                 // un ping par minute au maximum
+      dernierPing = Date.now();
+      fetch('/ping-activite', {method: 'POST', credentials: 'same-origin',
+                               headers: {'X-CSRFToken': csrf}});
+    }
+  }
+  ['mousemove', 'keydown', 'click', 'scroll', 'touchstart']
+    .forEach(e => document.addEventListener(e, activite, {passive: true}));
+  armer();
+})();
+</script>
 <!-- Footer -->
 <footer style="text-align: center; padding: 20px; margin-top: 40px; border-top: 1px solid #eee; color: #666;">
     © 2024 GMES Microcrédit - Système de Gestion

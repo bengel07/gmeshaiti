@@ -197,20 +197,23 @@ else:
 # app.config['SESSION_TYPE'] = 'filesystem'
 # app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
 # app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+DELAI_INACTIVITE = 30 * 60  # secondes
+# Requêtes automatiques qui ne comptent PAS comme activité de l'utilisateur
+SANS_ACTIVITE = ('/static/', '/api/notifications', '/notifications/count')
 
 from datetime import timedelta
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Sessions
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
-app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
+app.config['SESSION_REFRESH_EACH_REQUEST'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = True       # HTTPS uniquement
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # Cookie "remember me" de Flask-Login
-app.config['REMEMBER_COOKIE_DURATION'] = timedelta(hours=2)
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(minutes=30)
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_SECURE'] = True
 
@@ -427,9 +430,9 @@ def accueil():
     return "Bienvenue sur GMES"
 
 
-@app.before_request
-def make_session_permanent():
-    session.permanent = True
+@app.route('/ping-activite', methods=['POST'])
+def ping_activite():
+    return ('', 204)   # le before_request met déjà à jour l'activité
 
 
 def document_extension_autorisee(filename):
@@ -32264,6 +32267,24 @@ def changer_statut_investisseur(inv_id):
 
     return redirect(url_for('liste_investisseurs', voir=inv.id))
 
+
+
+@app.before_request
+def deconnexion_inactivite():
+    if not current_user.is_authenticated:
+        return
+    maintenant = time.time()
+    derniere = session.get('derniere_activite')
+
+    if derniere and maintenant - derniere > DELAI_INACTIVITE:
+        logout_user()
+        session.clear()
+        flash("Session expirée après 30 minutes d'inactivité. Veuillez vous reconnecter.", "warning")
+        return redirect(url_for(current_app.login_manager.login_view))
+
+    if not derniere or not request.path.startswith(SANS_ACTIVITE):
+        session.permanent = True
+        session['derniere_activite'] = maintenant
 
 
 
