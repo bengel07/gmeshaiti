@@ -1,0 +1,306 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Liste des comptes d'épargne - GMES Haïti</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+        :root {
+            --navy: #0f3170;
+            --blue: #1a56c4;
+            --bg: #eef3fa;
+            --border: #dbe3f0;
+            --text: #1d2b44;
+            --green: #157a52;
+            --red: #c62828;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Segoe UI", Arial, sans-serif;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1450px;
+            margin: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 22px;
+        }
+
+        h1 { color: var(--navy); margin: 0 0 8px; }
+        h2 { color: var(--navy); font-size: 17px; }
+
+        .muted { color: #64748b; }
+
+        .btn {
+            display: inline-block;
+            border: 0;
+            border-radius: 6px;
+            padding: 10px 15px;
+            background: var(--blue);
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-label { color: #64748b; margin-bottom: 10px; }
+        .stat-value { color: var(--navy); font-size: 26px; font-weight: 700; }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 7px;
+        }
+
+        input, select {
+            width: 100%;
+            min-height: 39px;
+            border: 1px solid #c9d5e8;
+            border-radius: 6px;
+            padding: 8px 10px;
+            background: white;
+            font: inherit;
+        }
+
+        .table-wrapper { overflow-x: auto; }
+
+        table {
+            width: 100%;
+            min-width: 900px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 13px 11px;
+            border-bottom: 1px solid #e7edf5;
+            text-align: left;
+        }
+
+        th {
+            background: #f4f7fc;
+            color: #475569;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .money {
+            text-align: right;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .actif { background: #dcfce7; color: #166534; }
+        .attente { background: #fef3c7; color: #92400e; }
+        .cloture { background: #fee2e2; color: #991b1b; }
+        .autre { background: #e2e8f0; color: #334155; }
+
+        .empty {
+            padding: 30px;
+            text-align: center;
+            color: #64748b;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .card { padding: 14px; }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <header class="header">
+        <div>
+            <h1>Liste des comptes d'épargne</h1>
+            <p class="muted">GMES Haïti · Consultation des comptes clients</p>
+        </div>
+        <a class="btn" href="{{ url_for('epargne.page_rapport') }}">
+            Consulter les rapports
+        </a>
+    </header>
+
+    <section class="stats">
+        <div class="card">
+            <div class="stat-label">Nombre de comptes</div>
+            <div class="stat-value">{{ comptes|length }}</div>
+        </div>
+
+        <div class="card">
+            <div class="stat-label">Comptes actifs</div>
+            <div class="stat-value">{{ comptes|selectattr('statut', 'equalto', 'actif')|list|length }}</div>
+        </div>
+
+        <div class="card">
+            <div class="stat-label">Solde total affiché</div>
+            <div class="stat-value">
+                {{ "{:,.2f}".format(total_solde|default(0, true)|float).replace(",", " ") }} Gdes
+            </div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Rechercher et filtrer</h2>
+
+        <form method="GET" action="{{ url_for('epargne.liste_comptes') }}"
+              class="filters">
+
+            <div>
+                <label for="q">Client ou numéro de compte</label>
+                <input id="q" type="search" name="q"
+                       value="{{ recherche }}"
+                       placeholder="Nom, numéro de compte...">
+            </div>
+
+            <div>
+                <label for="statut">Statut</label>
+                <select id="statut" name="statut">
+                    <option value="">Tous les statuts</option>
+                    {% for s in statuts %}
+                    <option value="{{ s }}"
+                        {% if statut_filtre == s %}selected{% endif %}>
+                        {{ s|capitalize }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="produit">Produit d'épargne</label>
+                <select id="produit" name="produit">
+                    <option value="">Tous les produits</option>
+                    {% for p in produits %}
+                    <option value="{{ p.id }}"
+                        {% if produit_filtre == p.id|string %}selected{% endif %}>
+                        {{ p.nom }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <button type="submit" class="btn">Rechercher</button>
+                <a class="btn" href="{{ url_for('epargne.liste_comptes') }}"
+                   style="background:#64748b">Réinitialiser</a>
+            </div>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>Comptes enregistrés</h2>
+        <p class="muted">{{ comptes|length }} compte(s) correspondant aux filtres.</p>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Numéro de compte</th>
+                        <th>Intitulé</th>
+                        <th>Produit</th>
+                        <th class="money">Solde</th>
+                        <th>Statut</th>
+                        <th>Consultation</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                {% for compte in comptes %}
+                    <tr>
+                        <td><strong>{{ compte.numero_compte }}</strong></td>
+
+                        <td>{{ compte.intitule_compte or "—" }}</td>
+
+                        <td>
+                            {% if compte.produit_epargne %}
+                                {{ compte.produit_epargne.nom }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+
+                        <td class="money">
+                            {{ "{:,.2f}".format((compte.solde or 0)|float).replace(",", " ") }}
+                            Gdes
+                        </td>
+
+                        <td>
+                            {% set st = (compte.statut or "")|lower %}
+                            <span class="badge
+                                {% if st == 'actif' %}actif
+                                {% elif st in ['en_attente', 'en attente', 'attente'] %}attente
+                                {% elif st in ['cloture', 'clôturé', 'cloturé', 'cloturee', 'clôturée'] %}cloture
+                                {% else %}autre{% endif %}">
+                                {{ compte.statut or "Non défini" }}
+                            </span>
+                        </td>
+
+                        <td>
+                            <a class="btn"
+                               href="{{ url_for('epargne.page_compte', compte_id=compte.id) }}">
+                                Voir le compte
+                            </a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="empty">
+                            Aucun compte d'épargne trouvé.
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</div>
+</body>
+</html>
