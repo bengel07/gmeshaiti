@@ -184,8 +184,8 @@
                         <div class="col-md-4">
                             <i class="fas fa-id-card fa-3x text-primary mb-2"></i>
                             <p>Face CIN</p>
-                            {% if client.photo_face %}
-                                <a href="{{ url_for('static', filename='uploads/clients/' + client.photo_face) }}"
+                            {% if client.photo_cin_recto %}
+                                <a href="{{ url_for('static', filename='uploads/clients/' + client.photo_cin_recto) }}"
                                    target="_blank" class="btn btn-sm btn-outline-primary">Voir</a>
                             {% else %}
                                 <span class="text-muted">Non fourni</span>
@@ -194,8 +194,8 @@
                         <div class="col-md-4">
                             <i class="fas fa-id-card fa-3x text-info mb-2"></i>
                             <p>Dos CIN</p>
-                            {% if client.photo_dos %}
-                                <a href="{{ url_for('static', filename='uploads/clients/' + client.photo_dos) }}"
+                            {% if client.photo_cin_verso %}
+                                <a href="{{ url_for('static', filename='uploads/clients/' + client.photo_cin_verso) }}"
                                    target="_blank" class="btn btn-sm btn-outline-info">Voir</a>
                             {% else %}
                                 <span class="text-muted">Non fourni</span>
