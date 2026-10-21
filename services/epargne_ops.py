@@ -16,9 +16,15 @@ from functools import wraps
 from sqlalchemy import case, func
 from sqlalchemy.exc import IntegrityError
 
-from database import db # <- adaptez
+from database import db  # <- adaptez
 from models import Epargne, ProduitEpargne  # <- adaptez si vos modèles sont ailleurs
-from models import CompteInterne, TransactionEpargne
+try:                                    # models/ est un dossier avec ledger.py
+    from models import CompteInterne, TransactionEpargne
+except ImportError:                     # models.py unique
+    try:
+        from models import CompteInterne, TransactionEpargne
+    except ImportError:                 # classe fusionnée avec l'ancienne TransactionEpargne
+        from models import CompteInterne, TransactionEpargne
 from services import comptabilite as c
 
 log = logging.getLogger(__name__)
@@ -96,12 +102,40 @@ def _solde(compte):
     return c.D(compte.solde)
 
 
+def _bloque(compte):
+    """Montant bloqué en garantie (colonne solde_bloque si elle existe)."""
+    return c.D(getattr(compte, "solde_bloque", 0) or 0)
+
+
 def _poser_solde(compte, valeur):
-    """Écrit le solde en conservant le type de colonne existant (Decimal ou Float)."""
-    for champ in ("solde", "solde_disponible"):
+    """Écrit le solde (et le solde disponible = solde - montant bloqué) en conservant le type
+    de colonne existant (Decimal ou Float)."""
+    for champ, v in (("solde", valeur), ("solde_disponible", valeur - _bloque(compte))):
         if hasattr(compte, champ):
             actuel = getattr(compte, champ)
-            setattr(compte, champ, valeur if isinstance(actuel, Decimal) else float(valeur))
+            setattr(compte, champ, v if isinstance(actuel, Decimal) else float(v))
+
+
+def _regles_du_compte(compte, operation, montant):
+    """Réutilise les règles déjà présentes dans votre modèle Epargne (compte bloqué, plafonds
+    journaliers) : méthodes peut_deposer / peut_retirer, si elles existent."""
+    verif = getattr(compte, "peut_" + operation, None)
+    if verif is None:
+        return
+    if hasattr(compte, "_reinitialiser_totaux_journaliers"):
+        compte._reinitialiser_totaux_journaliers()
+    autorise, message = verif(float(c.D(montant)))
+    if not autorise:
+        raise c.ErreurMetier(message)
+
+
+def _maj_compteurs(compte, operation, montant):
+    """Met à jour les totaux journaliers et la date de dernière opération (colonnes de votre Epargne)."""
+    champ = "total_depot_jour" if operation == "deposer" else "total_retrait_jour"
+    if hasattr(compte, champ):
+        setattr(compte, champ, float(getattr(compte, champ) or 0) + float(c.D(montant)))
+    if hasattr(compte, "date_derniere_transaction"):
+        compte.date_derniere_transaction = datetime.now()
 
 
 def _somme_mois(compte_id, types, jour):
@@ -142,7 +176,7 @@ def est_active(compte_id):
     return _deja_enregistre(f"OUV-{compte_id}")
 
 
-def _ecrire(compte, plan, *, reference=None, periode=None, created_by=None, libelle=None):
+def _ecrire(compte, plan, *, reference=None, periode=None, created_by=None, libelle=None, ref_externe=None):
     """Enregistre les écritures du plan et met à jour les soldes. Retourne le groupe_id,
     ou None si `reference` existe déjà (opération déjà faite)."""
     if reference and _deja_enregistre(reference):
@@ -154,11 +188,20 @@ def _ecrire(compte, plan, *, reference=None, periode=None, created_by=None, libe
     for e in plan.ecritures:
         commun = dict(groupe_id=groupe, type=e.type, sens=e.sens, montant=e.montant,
                       periode=periode, libelle=libelle or e.type.replace("_", " "), created_by=created_by)
+        # anciens champs de votre TransactionEpargne, renseignés seulement s'ils existent
+        commun.update({k: v for k, v in {
+            "status": "CONFIRMED", "type_transaction": e.type[:20], "description": commun["libelle"],
+            "employe_id": created_by, "date_transaction": datetime.utcnow()}.items()
+            if hasattr(TransactionEpargne, k)})
         if e.compte == c.CLIENT:
+            avant = courant
             courant += e.montant if e.sens == "credit" else -e.montant
+            ancien = {"solde_avant": avant} if hasattr(TransactionEpargne, "solde_avant") else {}
+            if ref_externe and hasattr(TransactionEpargne, "transaction_externe_ref"):
+                ancien["transaction_externe_ref"] = str(ref_externe)[:100]
             db.session.add(TransactionEpargne(
                 compte_id=compte.id, solde_apres=courant,
-                reference=reference if premiere_jambe_client else None, **commun))
+                reference=reference if premiere_jambe_client else None, **ancien, **commun))
             premiere_jambe_client = False
         else:
             nature = c.COMPTES_INTERNES[e.compte][1]
@@ -171,6 +214,18 @@ def _ecrire(compte, plan, *, reference=None, periode=None, created_by=None, libe
     _poser_solde(compte, courant)
     db.session.flush()
     return groupe
+
+
+def _id_ecriture(groupe, compte_id):
+    """Id de la première écriture du compte client dans l'opération (utile pour le reçu)."""
+    return db.session.execute(
+        db.select(TransactionEpargne.id).where(TransactionEpargne.groupe_id == groupe, TransactionEpargne.compte_id == compte_id)
+        .order_by(TransactionEpargne.id).limit(1)).scalar_one_or_none()
+
+
+def _id_par_reference(reference):
+    return db.session.execute(
+        db.select(TransactionEpargne.id).where(TransactionEpargne.reference == reference)).scalar_one_or_none()
 
 
 def _reference(prefixe, cle):
@@ -200,24 +255,40 @@ def activer_compte(compte_id, depot_initial, created_by=None):
 
 
 @atomique
-def deposer(compte_id, montant, created_by=None, cle=None):
+def deposer(compte_id, montant, created_by=None, cle=None, libelle=None, transaction_ref=None):
     compte = _verrouiller(compte_id)
     _exiger_actif(compte)
+    reference = _reference("DEP", f"{compte_id}-{cle}" if cle else None)
+    if reference and _deja_enregistre(reference):        # double envoi : rien à refaire
+        return {"solde": _solde(compte), "deja_traite": True, "transaction_id": _id_par_reference(reference)}
+    _regles_du_compte(compte, "deposer", montant)
     cond = _conditions(compte)
     deja = _somme_mois(compte.id, ("depot", "depot_initial"), date.today())
     plan = c.plan_depot(cond, _solde(compte), montant, deja)
-    groupe = _ecrire(compte, plan, reference=_reference("DEP", cle), created_by=created_by, libelle="Dépôt")
-    return {"solde": plan.solde_apres, "deja_traite": groupe is None}
+    groupe = _ecrire(compte, plan, reference=reference, created_by=created_by,
+                     libelle=(libelle or "Dépôt")[:255], ref_externe=transaction_ref)
+    if groupe is not None:
+        _maj_compteurs(compte, "deposer", montant)
+    return {"solde": plan.solde_apres, "deja_traite": groupe is None,
+            "transaction_id": _id_ecriture(groupe, compte.id) if groupe else None}
 
 
 @atomique
-def retirer(compte_id, montant, created_by=None, cle=None):
+def retirer(compte_id, montant, created_by=None, cle=None, libelle=None):
     compte = _verrouiller(compte_id)
     _exiger_actif(compte)
+    reference = _reference("RET", f"{compte_id}-{cle}" if cle else None)
+    if reference and _deja_enregistre(reference):
+        return {"solde": _solde(compte), "deja_traite": True}
+    _regles_du_compte(compte, "retirer", montant)
     cond = _conditions(compte)
     deja = _somme_mois(compte.id, ("retrait",), date.today())
     plan = c.plan_retrait(cond, _solde(compte), montant, deja, _fin_blocage(compte, cond))
-    groupe = _ecrire(compte, plan, reference=_reference("RET", cle), created_by=created_by, libelle="Retrait")
+    if plan.solde_apres < _bloque(compte):               # les fonds en garantie ne sortent pas
+        raise c.ErreurMetier(f"{_bloque(compte)} Gdes sont bloqués en garantie : retrait impossible.")
+    groupe = _ecrire(compte, plan, reference=reference, created_by=created_by, libelle=(libelle or "Retrait")[:255])
+    if groupe is not None:
+        _maj_compteurs(compte, "retirer", montant)
     return {"solde": plan.solde_apres, "deja_traite": groupe is None}
 
 
@@ -225,6 +296,8 @@ def retirer(compte_id, montant, created_by=None, cle=None):
 def cloturer_compte(compte_id, created_by=None):
     compte = _verrouiller(compte_id)
     _exiger_actif(compte)
+    if _bloque(compte) > 0:
+        raise c.ErreurMetier(f"Clôture impossible : {_bloque(compte)} Gdes sont bloqués en garantie.")
     cond = _conditions(compte)
     plan = c.plan_cloture(cond, _solde(compte), _fin_blocage(compte, cond))
     _ecrire(compte, plan, reference=f"CLO-{compte.id}", created_by=created_by, libelle="Clôture du compte")

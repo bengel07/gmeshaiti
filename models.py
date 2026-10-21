@@ -7961,8 +7961,8 @@ class TransactionEpargne(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     groupe_id = db.Column(
-        db.String(32),
-        nullable=False,
+        db.String(120),
+        nullable=True,
         index=True
     )
 
@@ -8114,12 +8114,7 @@ class TransactionEpargne(db.Model):
         nullable=True
     )
 
-    created_at = db.Column(
-        db.DateTime,
-        nullable=False,
-        default=datetime.utcnow,
-        index=True
-    )
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, server_default=db.func.now(), index=True)
 
     # --------------------------------------------------
     # Relations SQLAlchemy
@@ -8151,6 +8146,7 @@ class TransactionEpargne(db.Model):
         "Epargne",
         foreign_keys=[transfert_destination_id]
     )
+
 
     def __repr__(self):
         return (

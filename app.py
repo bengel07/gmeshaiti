@@ -4843,54 +4843,6 @@ def debug_employees_folder():
     return result
 
 
-# Route temporaire pour vérifier le mot de passe
-@app.route('/debug-password')
-def debug_password():
-    from models import User
-    from werkzeug.security import check_password_hash
-
-    user = User.query.filter_by(username='cc').first()
-
-    if not user:
-        return "❌ Utilisateur 'cc' non trouvé"
-
-    # Test avec différents mots de passe possibles
-    passwords_to_test = ['cc', 'password', 'admin123', 'employe123', 'cc123']
-
-    result = f"<h1>Utilisateur: {user.username}</h1>"
-    result += f"<p>Hash: {user.password_hash}</p>"
-
-    for pwd in passwords_to_test:
-        if user.check_password(pwd):
-            result += f"<p>✅ Mot de passe correct: '{pwd}'</p>"
-        else:
-            result += f"<p>❌ Mot de passe incorrect: '{pwd}'</p>"
-
-    return result
-
-
-# Route pour lister les utilisateurs
-@app.route('/debug-users')
-def debug_users():
-    from models import User
-
-    users = User.query.all()
-
-    result = "<h1>Liste des utilisateurs</h1>"
-    for user in users:
-        result += f"""
-        <div style="border:1px solid #ccc; margin:10px; padding:10px;">
-            <strong>{user.username}</strong> (ID: {user.id})<br>
-            Rôle: {user.role}<br>
-            Email: {user.email}<br>
-            Password hash: {user.password_hash[:50]}...<br>
-        </div>
-        """
-
-    return result
-
-
-
 @app.route('/client/terms/<token>', methods=['GET', 'POST'])
 def client_terms(token):
     """Page des termes et conditions pour le client - Version JWT"""
@@ -9671,6 +9623,7 @@ def get_alertes_suivi():
 
 
 def generer_pdf_rapport(stats, periode):
+
     """Générer un PDF du rapport"""
 
     try:
@@ -9774,6 +9727,7 @@ def creer_utilisateur():
 
 
 @app.route('/demande-reset-mot-de-passe', methods=['GET', 'POST'])
+@login_required
 def demande_reset_mot_de_passe():
     """Demande de réinitialisation avec questions secrètes"""
 
@@ -9797,6 +9751,7 @@ def demande_reset_mot_de_passe():
 
 
 @app.route('/questions-secretes/<int:employe_id>', methods=['GET', 'POST'])
+@login_required
 def questions_secretes(employe_id):
     """Vérification des questions secrètes"""
     from models import User
@@ -9831,6 +9786,7 @@ def questions_secretes(employe_id):
 
 
 @app.route('/reinitialiser-mot-de-passe/<token>', methods=['GET', 'POST'])
+@login_required
 def reinitialiser_mot_de_passe(token):
     """Réinitialisation après validation des questions secrètes"""
     from models import User
@@ -12708,50 +12664,6 @@ def deconnexion():
 @app.before_request
 def refresh_session():
     session.permanent = True   # applique PERMANENT_SESSION_LIFETIME, renouvelé à chaque requête
-
-
-
-# Ajoutez cette route pour la reconnaissance faciale avec DeepFace
-@app.route('/api/face-recognition/verify', methods=['POST'])
-def verify_faces_api():
-    """API pour vérifier deux visages"""
-    try:
-        if 'image1' not in request.files or 'image2' not in request.files:
-            return jsonify({'error': 'Deux images sont requises'}), 400
-
-        image1 = request.files['image1']
-        image2 = request.files['image2']
-
-        # Sauvegarder temporairement les images
-        temp_path1 = os.path.join(app.config['UPLOAD_FOLDER'], 'temp1.jpg')
-        temp_path2 = os.path.join(app.config['UPLOAD_FOLDER'], 'temp2.jpg')
-
-        image1.save(temp_path1)
-        image2.save(temp_path2)
-
-        # Comparer avec DeepFace
-        result = DeepFace.verify(
-            img1_path=temp_path1,
-            img2_path=temp_path2,
-            model_name="VGG-Face",
-            detector_backend="opencv",
-            distance_metric="cosine"
-        )
-
-        # Nettoyer les fichiers temporaires
-        os.remove(temp_path1)
-        os.remove(temp_path2)
-
-        return jsonify({
-            'verified': result['verified'],
-            'distance': float(result['distance']),
-            'similarity': float(1 - result['distance']),
-            'threshold': 0.6,
-            'model': 'VGG-Face'
-        })
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 
 
@@ -18401,23 +18313,6 @@ def has_permission_filter(user, permission_name):
     return user.has_permission( permission_name)
 
 
-@app.route('/debug/all-users')
-def debug_all_users():
-    """Voir tous les utilisateurs en base"""
-    users = User.query.all()
-    result = []
-    for user in users:
-        result.append({
-            'id': user.id,
-            'username': user.username,
-            'email': user.email,
-            'role': user.role,
-            'nom': user.nom,
-            'prenom': user.prenom,
-            'has_password': bool(user.password_hash)
-        })
-    return jsonify(result)
-
 
 @app.route('/admin/gerer-employes')
 @login_required
@@ -19617,43 +19512,6 @@ def debug_employes_fonctions():
     return result
 
 
-@app.route('/create-superviseur-test')
-def create_superviseur_test():
-    """Créer un compte superviseur de test"""
-    if User.query.filter_by(username='superviseur').first():
-        return """
-        <h1>Superviseur existe déjà!</h1>
-        <p>Identifiant: <strong>superviseur</strong></p>
-        <p>Mot de passe: <strong>superviseur123</strong></p>
-        <br>
-        <a href="/connexion">Se connecter</a>
-        """
-
-    superviseur = User(
-        username='superviseur',
-        email='superviseur@gmes.com',
-        role='superviseur',
-        nom='Superviseur',
-        prenom='Test',
-        telephone='+50900000001',
-        fonction='superviseur',
-        statut='actif'
-    )
-    superviseur.set_password('superviseur123')
-
-    session.add(superviseur)
-    session.commit()
-
-    return """
-    <h1>✅ Superviseur créé !</h1>
-    <p>Identifiant: <strong>superviseur</strong></p>
-    <p>Mot de passe: <strong>superviseur123</strong></p>
-    <p>Email: <strong>superviseur@gmes.com</strong></p>
-    <br>
-    <a href="connexion" style="background: blue; color: white; padding: 10px; text-decoration: none;">
-    🚀 Se connecter maintenant
-    </a>
-    """
 
 
 def calculer_stats_employe(employe):
@@ -19753,9 +19611,10 @@ def employe_dashboard_generique():
 
 
 @app.route('/activate-all-employes')
+@login_required
 def activate_all_employes():
     """Activer tous les employés en attente"""
-    if current_user.role != 'admin' and current_user.role != 'superviseur':
+    if current_user.role != 'super_admin' and current_user.role != 'direction':
         return "Accès non autorisé"
 
     employes = User.query.filter_by(role='employe', statut='en_attente').all()
@@ -19766,7 +19625,7 @@ def activate_all_employes():
         employe.date_approbation = datetime.utcnow()
         print(f"✅ {employe.prenom} {employe.nom} activé")
 
-    session.commit()
+    db.session.commit()
 
     return f"✅ {len(employes)} employé(s) activé(s)!"
 
@@ -19895,33 +19754,6 @@ def detecter_succursale():
             g.succursale = Succursale.query.get(current_user.succursale_id)
 
     return g.succursale
-
-
-@app.route('/test-login/<int:employe_id>')
-def test_login(employe_id):
-    """Route de test pour simuler une connexion"""
-    from flask_login import login_user
-
-    user = db.session.get(User, employe_id)
-    if user:
-        login_user(user, remember=True)
-        print(f"✅ Connexion forcée: {user.username}")
-        return f"""
-        <h2>✅ Connecté en tant que {user.username}</h2>
-        <p>Rôle: {user.role}</p>
-        <p>ID: {user.id}</p>
-        <p><a href="/debug-session">Vérifier session</a></p>
-        <p><a href="/debug-redirect">Tester redirection</a></p>
-        <p><a href="/logout">Déconnexion</a></p>
-        """
-    return "❌ Utilisateur non trouvé"
-
-
-
-
-from flask import abort
-
-
 
 
 @app.route('/<succursale_code>/remboursements/retards')
@@ -25367,6 +25199,12 @@ def traiter_depot(client_id):
     import re
     from models import Client, Epargne, ProduitEpargne, Transaction
     from datetime import datetime
+    from services import epargne_ops as ops
+
+    from services import comptabilite as compta, epargne_ops as ops, permissions as perms
+
+    if not perms.a_permission(current_user, "compte.deposer"):  # caissier, direction, super_admin
+        abort(403)
 
     client = db.session.get(Client, client_id)
 
@@ -25382,6 +25220,7 @@ def traiter_depot(client_id):
     description = request.form.get('description', 'Dépôt client')
     mode_paiement = request.form.get('mode_paiement', 'especes')
     reference = request.form.get('reference')
+    cle = (request.form.get('cle') or '').strip()
 
     # =========================
     # VALIDATION NUMÉRO
@@ -25444,11 +25283,23 @@ def traiter_depot(client_id):
         if reference:
             desc += f" | Ref: {reference}"
 
-        transaction = compte.deposer(
-            montant=montant,
-            description=desc,
+        # transaction = compte.deposer(
+        #     montant=montant,
+        #     description=desc,
+        #     transaction_ref=reference or f"DEP_{datetime.now().timestamp()}"
+        # )
+
+        # >>> CHANGÉ : ancien appel `transaction = compte.deposer(...)` remplacé par le grand livre.
+        # `cle` (champ caché, facultatif) évite qu'un double clic enregistre deux dépôts.
+        res = ops.deposer(
+            compte.id,
+            str(montant),
+            current_user.id,
+            request.form.get('cle') or None,
+            libelle=desc,
             transaction_ref=reference or f"DEP_{datetime.now().timestamp()}"
         )
+        # <<< FIN DU CHANGEMENT
 
         db.session.commit()
         print(f"✅ DÉPÔT RÉUSSI - Montant: {montant}, Compte: {numero_compte}, Nouveau solde: {compte.solde}")
@@ -28432,28 +28283,6 @@ def get_client_dependencies(client_id):
 
 
 
-@app.route('/fix_super_admin')
-def fix_super_admin():
-    """Correction du rôle super_admin"""
-    try:
-        user = User.query.filter_by(username='super_admin').first()
-        if user:
-            old_role = user.role
-            user.role = 'super_admin'
-            user.statut = 'actif'
-            db.session.commit()
-            return f"""
-            <h1 style="color:green;">✅ Super Admin corrigé !</h1>
-            <p><strong>Utilisateur:</strong> {user.username}</p>
-            <p><strong>Ancien rôle:</strong> {old_role}</p>
-            <p><strong>Nouveau rôle:</strong> {user.role}</p>
-            <p><strong>Statut:</strong> {user.statut}</p>
-            <br>
-            <a href="/dashboard" style="font-size:20px;">→ Aller au dashboard</a>
-            """
-        return "❌ Utilisateur super_admin non trouvé"
-    except Exception as e:
-        return f"❌ Erreur: {str(e)}"
 
 @app.route('/simulation-pret')
 def simulation_pret():
@@ -31699,6 +31528,7 @@ def profil_employe(employe_id):
 
 
 @app.route('/api/mobile/health')
+@login_required
 def mobile_health():
     return jsonify({
         "success": True,

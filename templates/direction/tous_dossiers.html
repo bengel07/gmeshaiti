@@ -550,7 +550,7 @@
                     <select class="filter-select" id="agentFilter">
                         <option value="">Tous les agents</option>
                         {% for agent in agents_liste %}
-                        <option value="{{ agent.id }}">{{ agent.prenom }} {{ agent.nom }}</option>
+                        <option value="{{ agent.prenom }} {{ agent.nom }}">{{ agent.prenom }} {{ agent.nom }}</option>
                         {% endfor %}
                     </select>
                 </div>
