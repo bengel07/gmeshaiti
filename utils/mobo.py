@@ -20,7 +20,7 @@ def notifier_directeurs_demande_pret(pret, type_action="nouvelle_demande"):
     """
     from models import User, Notification, Action  # ← AJOUTÉ Action
     from datetime import datetime, timedelta
-    from flask import url_for
+    from flask import url_for, current_app
     from flask_login import current_user
 
     print("=" * 70)

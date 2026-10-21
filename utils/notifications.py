@@ -4,7 +4,7 @@ import requests
 from datetime import datetime
 import logging
 from itsdangerous import URLSafeTimedSerializer
-from flask import url_for
+from flask import url_for, current_app
 from email_utils import send_email_via_brevo
 
 # # Import différé pour éviter circularité
@@ -48,21 +48,35 @@ class NotificationManager:
         if not self.brevo_api_key:
             print("⚠️ BREVO_API_KEY manquant dans les variables d'environnement")
 
+
+
     def _generate_terms_token(self, client_id):
-        """
-        Génère un token sécurisé pour accepter les terms
-        """
-        secret_key = os.getenv("SECRET_KEY", "dev_secret")  # ou ton SECRET_KEY Flask
-        s = URLSafeTimedSerializer(secret_key)
-        return s.dumps(client_id, salt="terms-accept")
+        """Génère un jeton signé avec la clé officielle de Flask."""
+        secret_key = current_app.config.get("SECRET_KEY")
+
+        if not secret_key:
+            raise RuntimeError(
+                "SECRET_KEY absente : génération du jeton refusée."
+            )
+
+        serializer = URLSafeTimedSerializer(secret_key)
+        return serializer.dumps(client_id, salt="terms-accept")
 
     def _verify_terms_token(self, token, max_age=86400):
-        """
-        Vérifie un token Terms (24h par défaut)
-        """
-        secret_key = os.getenv("SECRET_KEY", "dev_secret")
-        s = URLSafeTimedSerializer(secret_key)
-        return s.loads(token, salt="terms-accept", max_age=max_age)
+        """Vérifie un jeton et son délai de validité."""
+        secret_key = current_app.config.get("SECRET_KEY")
+
+        if not secret_key:
+            raise RuntimeError(
+                "SECRET_KEY absente : vérification du jeton refusée."
+            )
+
+        serializer = URLSafeTimedSerializer(secret_key)
+        return serializer.loads(
+            token,
+            salt="terms-accept",
+            max_age=max_age
+        )
 
     def notifier_acceptation_terms(self, client, lien_terms=None):
         """

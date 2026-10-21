@@ -184,7 +184,16 @@ from super_admin_bp import super_admin_bp
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'gmes-microcredit-2024')
+
+SECRET_KEY = os.environ.get("SECRET_KEY")
+
+if not SECRET_KEY or len(SECRET_KEY) < 32:
+    raise RuntimeError(
+        "ERREUR DE SECURITE : SECRET_KEY absente "
+        "ou trop courte. Demarrage refuse."
+    )
+
+app.config["SECRET_KEY"] = SECRET_KEY
 if os.environ.get('DATABASE_URL'):
     # Production sur Render
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
@@ -3584,7 +3593,7 @@ def envoyer_notification_pret(client, pret):
     au client après une demande de prêt.
     """
     from datetime import datetime
-    from flask import url_for
+    from flask import url_for, current_app
     from models import Action, Notification
 
     try:
@@ -25762,7 +25771,7 @@ def statut_retrait(token):
 def envoyer_email_recu_client(transaction, client):
     """Envoie le reçu par email au client"""
     from email_utils import send_email_via_brevo
-    from flask import url_for
+    from flask import url_for, current_app
 
     try:
         recu_url = url_for('imprimer_recu_retrait',

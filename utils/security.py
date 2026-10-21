@@ -1,6 +1,31 @@
 import hashlib
-import re
+
 from flask import current_app
+import re
+from werkzeug.security import (
+    generate_password_hash,
+    check_password_hash,
+)
+
+
+def hash_password(password):
+    """Produit un hachage adapté au stockage des mots de passe."""
+    if not isinstance(password, str) or not password:
+        raise ValueError("Le mot de passe est obligatoire.")
+
+    return generate_password_hash(password, method="scrypt")
+
+
+def verify_password(password_hash, password):
+    """Vérifie un mot de passe sans stocker le texte original."""
+    if not password_hash or not isinstance(password, str):
+        return False
+
+    try:
+        return check_password_hash(password_hash, password)
+    except (ValueError, TypeError):
+        return False
+
 
 
 def hash_password(password):
@@ -70,30 +95,7 @@ def filtrer_par_role(users, role):
         return [u for u in users if getattr(u, 'role', None) == role]
 
 
-#
-# # Dans utils/security.py, ajoute :
-# def filtrer_par_role(users, role):
-#     """
-#     Filtre une liste d'utilisateurs par rôle
-#     """
-#     if not users:
-#         return []
-#     return [user for user in users if getattr(user, 'role', None) == role]
-#
-#
-# # OU une version plus complète :
-# def filtrer_par_role(users, role):
-#     """Filtre les utilisateurs par rôle."""
-#     if not users:
-#         return []
-#
-#     filtered_users = []
-#     for user in users:
-#         user_role = getattr(user, 'role', None) or getattr(user, 'type', None)
-#         if user_role == role:
-#             filtered_users.append(user)
-#
-#     return filtered_users
+
 
 # Dans utils/security.py
 def filtrer_par_role(users, role=None):

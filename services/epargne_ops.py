@@ -394,22 +394,248 @@ def totaux_par_type(periode=None):
     return [{"type": t, "nombre": n, "total": c.D(s)} for t, n, s in db.session.execute(q).all()]
 
 
+# def verifier_equilibre():
+#     """Contrôle d'intégrité : (1) chaque opération équilibre crédits et débits ;
+#     (2) le solde de chaque compte client correspond au grand livre."""
+#     credit = func.sum(case((TransactionEpargne.sens == "credit", TransactionEpargne.montant), else_=0))
+#     debit = func.sum(case((TransactionEpargne.sens == "debit", TransactionEpargne.montant), else_=0))
+#     desequilibres = db.session.execute(
+#         db.select(
+#             TransactionEpargne.groupe_id,
+#             credit,
+#             debit
+#         )
+#         .where(TransactionEpargne.groupe_id.is_not(None))
+#         .group_by(TransactionEpargne.groupe_id)
+#         .having(credit != debit)
+#     ).all()
+#
+#     ecarts = []
+#     lignes = db.session.execute(
+#         db.select(TransactionEpargne.compte_id, credit, debit)
+#         .where(TransactionEpargne.compte_id.is_not(None)).group_by(TransactionEpargne.compte_id)).all()
+#     for compte_id, cr, de in lignes:
+#         compte = db.session.get(Epargne, compte_id)
+#         attendu = c.D(cr) - c.D(de)
+#         if compte is not None and _solde(compte) != attendu:
+#             ecarts.append({"compte_id": compte_id, "solde": _solde(compte), "grand_livre": attendu})
+#     return {"operations_desequilibrees": [r[0] for r in desequilibres], "comptes_en_ecart": ecarts}
+
 def verifier_equilibre():
-    """Contrôle d'intégrité : (1) chaque opération équilibre crédits et débits ;
-    (2) le solde de chaque compte client correspond au grand livre."""
-    credit = func.sum(case((TransactionEpargne.sens == "credit", TransactionEpargne.montant), else_=0))
-    debit = func.sum(case((TransactionEpargne.sens == "debit", TransactionEpargne.montant), else_=0))
+    """Contrôle les groupes comptables et les soldes des comptes clients."""
+
+    credit = func.coalesce(
+        func.sum(
+            case(
+                (TransactionEpargne.sens == "credit", TransactionEpargne.montant),
+                else_=0,
+            )
+        ),
+        0,
+    )
+
+    debit = func.coalesce(
+        func.sum(
+            case(
+                (TransactionEpargne.sens == "debit", TransactionEpargne.montant),
+                else_=0,
+            )
+        ),
+        0,
+    )
+
+    # Vérifier uniquement les opérations ayant un groupe identifié.
     desequilibres = db.session.execute(
         db.select(TransactionEpargne.groupe_id, credit, debit)
-        .group_by(TransactionEpargne.groupe_id).having(credit != debit)).all()
+        .where(TransactionEpargne.groupe_id.is_not(None))
+        .group_by(TransactionEpargne.groupe_id)
+        .having(credit != debit)
+    ).all()
+
+    # Signaler séparément les écritures historiques sans groupe.
+    anciennes_sans_groupe = db.session.execute(
+        db.select(func.count(TransactionEpargne.id))
+        .where(TransactionEpargne.groupe_id.is_(None))
+    ).scalar_one()
 
     ecarts = []
     lignes = db.session.execute(
         db.select(TransactionEpargne.compte_id, credit, debit)
-        .where(TransactionEpargne.compte_id.is_not(None)).group_by(TransactionEpargne.compte_id)).all()
+        .where(TransactionEpargne.compte_id.is_not(None))
+        .group_by(TransactionEpargne.compte_id)
+    ).all()
+
     for compte_id, cr, de in lignes:
         compte = db.session.get(Epargne, compte_id)
         attendu = c.D(cr) - c.D(de)
+
         if compte is not None and _solde(compte) != attendu:
-            ecarts.append({"compte_id": compte_id, "solde": _solde(compte), "grand_livre": attendu})
-    return {"operations_desequilibrees": [r[0] for r in desequilibres], "comptes_en_ecart": ecarts}
+            ecarts.append({
+                "compte_id": compte_id,
+                "solde": _solde(compte),
+                "grand_livre": attendu,
+            })
+
+    return {
+        "operations_desequilibrees": [r[0] for r in desequilibres],
+        "comptes_en_ecart": ecarts,
+        "ecritures_sans_groupe": anciennes_sans_groupe,
+    }
+
+
+@atomique
+def transferer(source_id, destination_id, montant, created_by=None,
+               cle=None, motif=None):
+    """Transfert atomique entre deux comptes d'épargne."""
+
+    if source_id == destination_id:
+        raise c.ErreurMetier("Les deux comptes doivent être différents.")
+
+    montant = c._montant_positif(montant)
+
+    if not cle:
+        raise c.ErreurMetier("La référence unique du transfert est obligatoire.")
+
+    reference = _reference("TRF", cle)
+    if not reference:
+        raise c.ErreurMetier("Référence de transfert invalide.")
+
+    deja = db.session.execute(
+        db.select(TransactionEpargne).where(
+            TransactionEpargne.reference == reference
+        )
+    ).scalar_one_or_none()
+
+    if deja:
+        if deja.transfert_source_id != source_id:
+            raise c.ErreurMetier("Cette référence appartient à un autre transfert.")
+        return {
+            "deja_traite": True,
+            "reference": reference,
+            "solde_source": float(
+                db.session.get(Epargne, source_id).solde
+            ),
+        }
+
+    # Verrouiller les comptes toujours dans le même ordre.
+    comptes = {}
+    for cid in sorted((source_id, destination_id)):
+        comptes[cid] = _verrouiller(cid)
+
+    source = comptes[source_id]
+    destination = comptes[destination_id]
+
+    _exiger_actif(source)
+    _exiger_actif(destination)
+
+    if source.bloque or destination.bloque:
+        raise c.ErreurMetier("Un des comptes est bloqué.")
+
+    solde_source = _solde(source)
+    solde_destination = _solde(destination)
+
+    if solde_source - _bloque(source) < montant:
+        raise c.ErreurMetier("Solde disponible insuffisant.")
+
+    # Vérifier les limites et règles de retrait du produit.
+    _regles_du_compte(source, "retirer", montant)
+    cond_source = _conditions(source)
+
+    deja_retire = _somme_mois(
+        source.id, ("retrait",), date.today()
+    )
+
+    plan_retrait = c.plan_retrait(
+        cond_source,
+        solde_source,
+        montant,
+        deja_retire,
+        _fin_blocage(source, cond_source),
+    )
+
+    # Un transfert ne doit pas ignorer une pénalité calculée.
+    if any(e.type == "penalite" for e in plan_retrait.ecritures):
+        raise c.ErreurMetier(
+            "Transfert refusé : le compte est soumis à une pénalité "
+            "de retrait anticipé. Effectuez un retrait autorisé."
+        )
+
+    if plan_retrait.solde_apres < _bloque(source):
+        raise c.ErreurMetier(
+            "Le transfert laisserait des fonds bloqués non couverts."
+        )
+
+    # Vérifier les limites de solde du produit destinataire.
+    cond_destination = _conditions(destination)
+    if (
+        cond_destination.solde_max > 0
+        and solde_destination + montant > cond_destination.solde_max
+    ):
+        raise c.ErreurMetier(
+            "Le solde maximal du compte destinataire serait dépassé."
+        )
+
+    source_apres = solde_source - montant
+    destination_apres = solde_destination + montant
+    groupe = uuid.uuid4().hex
+    description = (motif or "Transfert interne GMES")[:255]
+
+    commun = {
+        "groupe_id": groupe,
+        "montant": montant,
+        "created_by": created_by,
+        "employe_id": created_by,
+        "status": "CONFIRMED",
+        "periode": date.today().strftime("%Y-%m"),
+        "transfert_source_id": source.id,
+        "transfert_destination_id": destination.id,
+        "transfert_motif": (motif or "autre")[:50],
+        "transfert_effectue_par": created_by,
+    }
+
+    db.session.add(TransactionEpargne(
+        compte_id=source.id,
+        reference=reference,
+        type="transfert",
+        type_transaction="transfert_sortant",
+        sens="debit",
+        solde_avant=solde_source,
+        solde_apres=source_apres,
+        description=f"Transfert vers {destination.numero_compte}: {description}",
+        libelle=description,
+        transaction_ref=reference,
+        **commun,
+    ))
+
+    db.session.add(TransactionEpargne(
+        compte_id=destination.id,
+        reference=None,
+        type="transfert",
+        type_transaction="transfert_entrant",
+        sens="credit",
+        solde_avant=solde_destination,
+        solde_apres=destination_apres,
+        description=f"Transfert reçu de {source.numero_compte}: {description}",
+        libelle=description,
+        transaction_ref=reference,
+        **commun,
+    ))
+
+    _poser_solde(source, source_apres)
+    _poser_solde(destination, destination_apres)
+
+    source.date_derniere_transaction = datetime.utcnow()
+    destination.date_derniere_transaction = datetime.utcnow()
+
+    _maj_compteurs(source, "retirer", montant)
+    _maj_compteurs(destination, "deposer", montant)
+
+    db.session.flush()
+
+    return {
+        "deja_traite": False,
+        "reference": reference,
+        "montant": float(montant),
+        "solde_source": float(source_apres),
+        "solde_destination": float(destination_apres),
+    }

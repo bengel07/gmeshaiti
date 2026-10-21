@@ -25,6 +25,8 @@ from routes.auth import get_compte_epargne_actif
 from services.notifier_client import notifier_client
 from utils.mobo import notifier_directeurs_demande_pret, generer_numero_pret
 
+from services import epargne_ops as ops
+
 # ============================================================
 # BLUEPRINT
 # ============================================================
@@ -648,106 +650,55 @@ def mobile_transfert():
                 "error": "Client destinataire introuvable."
             }), 404
 
-        # =====================================================
-        # 8. RÉFÉRENCE DU TRANSFERT
-        # =====================================================
 
-        from datetime import datetime
+        # 8. Référence stable fournie par l'application mobile
+        cle = str(data.get("idempotency_key", "")).strip()
 
-        ref_transfert = (
-            f"TRF_"
-            f"{datetime.now().strftime('%Y%m%d%H%M%S')}_"
-            f"{client.id}_"
-            f"{compte_source.id}"
-        )
+        if not cle or len(cle) > 60:
+            return jsonify({
+                "success": False,
+                "error": "La clé idempotency_key est obligatoire (60 caractères maximum)."
+            }), 400
 
-        # =====================================================
-        # 9. DÉBIT SOURCE
-        # =====================================================
-
-        solde_source_avant = float(compte_source.solde or 0)
-        solde_source_apres = solde_source_avant - montant
-
-        compte_source.solde = solde_source_apres
-
-        transaction_source = TransactionEpargne(
-            compte_id=compte_source.id,
-            montant=-montant,
-            solde_avant=solde_source_avant,
-            solde_apres=solde_source_apres,
-            type_transaction="transfert_sortant",
-            description=(
-                f"Transfert vers {compte_destinataire.numero_compte}"
-                + (f" - {motif}" if motif else "")
-            ),
-            transaction_ref=ref_transfert,
-            transfert_source_id=compte_source.id,
-            transfert_destination_id=compte_destinataire.id,
-            transfert_motif=motif,
-            transfert_effectue_par=user.id
-        )
-
-        db.session.add(transaction_source)
-
-        # =====================================================
-        # 10. CRÉDIT DESTINATAIRE
-        # =====================================================
-
-        solde_dest_avant = float(compte_destinataire.solde or 0)
-        solde_dest_apres = solde_dest_avant + montant
-
-        compte_destinataire.solde = solde_dest_apres
-
-        transaction_destinataire = TransactionEpargne(
-            compte_id=compte_destinataire.id,
+        # 9. Transfert traité par le service comptable
+        resultat = ops.transferer(
+            source_id=compte_source.id,
+            destination_id=compte_destinataire.id,
             montant=montant,
-            solde_avant=solde_dest_avant,
-            solde_apres=solde_dest_apres,
-            type_transaction="transfert_entrant",
-            description=(
-                f"Transfert reçu de {compte_source.numero_compte}"
-                + (f" - {motif}" if motif else "")
-            ),
-            transaction_ref=ref_transfert,
-            transfert_source_id=compte_source.id,
-            transfert_destination_id=compte_destinataire.id,
-            transfert_motif=motif,
-            transfert_effectue_par=None
+            created_by=user.id,
+            cle=cle,
+            motif=motif or "transfert mobile",
         )
 
-        db.session.add(transaction_destinataire)
-
-        # =====================================================
-        # 11. METTRE À JOUR LE SOLDE CLIENT SOURCE
-        # =====================================================
-
+        # 10. Actualiser les soldes agrégés des clients
         client.solde = (
-            db.session.query(func.sum(Epargne.solde))
+            db.session.query(func.coalesce(func.sum(Epargne.solde), 0))
             .filter(Epargne.client_id == client.id)
             .scalar()
-            or 0
         )
 
-        # =====================================================
-        # 12. COMMIT
-        # =====================================================
+        client_destinataire.solde = (
+            db.session.query(func.coalesce(func.sum(Epargne.solde), 0))
+            .filter(Epargne.client_id == client_destinataire.id)
+            .scalar()
+        )
 
         db.session.commit()
 
-        # =====================================================
-        # 13. RÉPONSE MOBILE
-        # =====================================================
-
         return jsonify({
             "success": True,
-            "message": "Transfert effectué avec succès.",
-            "reference": ref_transfert,
-            "montant": montant,
+            "message": (
+                "Ce transfert avait déjà été traité."
+                if resultat["deja_traite"]
+                else "Transfert effectué avec succès."
+            ),
+            "reference": resultat["reference"],
+            "montant": resultat.get("montant", montant),
             "compte_source": compte_source.numero_compte,
             "destinataire": compte_destinataire.numero_compte,
-            "solde": float(compte_source.solde or 0)
+            "solde": resultat["solde_source"],
+            "deja_traite": resultat["deja_traite"],
         }), 200
-
     except Exception as e:
 
         db.session.rollback()
@@ -761,6 +712,8 @@ def mobile_transfert():
             "success": False,
             "error": "Erreur interne lors du transfert."
         }), 500
+
+
 
 # ============================================================
 # API MOBILE — DEMANDE DE PRÊT
