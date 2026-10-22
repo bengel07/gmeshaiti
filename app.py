@@ -3793,13 +3793,13 @@ def verifier_token_conditions(token):
 @app.route('/valider-conditions/<token>', methods=['POST'])
 def valider_conditions(token):
     """Valide l'acceptation des conditions"""
-    client_id = verifier_token_conditions(token)
+    client = verifier_token_conditions(token)
 
-    if not client_id:
+    if not client:
         flash("Lien d'acceptation invalide ou expiré.", "danger")
         return redirect(url_for('main.accueil'))
 
-    client = db.session.get(Client, client_id)
+    # client = db.session.get(Client, client_id)
     client.terms_accepted = True
     client.date_acceptation_terms = datetime.utcnow()
     client.compte_actif = True  # Active complètement le compte
