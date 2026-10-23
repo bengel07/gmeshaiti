@@ -22551,10 +22551,17 @@ def rejeter_compte(employe_id):
         username = user.username
         email = user.email
 
+        # Supprimer les notifications qui empêchent la suppression de l'utilisateur
+        Notification.query.filter_by(
+            destinataire_id=user.id
+        ).delete(synchronize_session=False)
 
-        # 🔴 SUPPRIMER L'UTILISATEUR
+        db.session.flush()
+
+        # Supprimer l'utilisateur
         db.session.delete(user)
         db.session.commit()
+
 
         # ✅ Optionnel: Envoyer un email de rejet
         try:
