@@ -391,7 +391,11 @@ function renvoyerLien(clientId) {
         return;
     }
 
-    // Jeton CSRF généré par Flask pour cette page.
+function renvoyerLien(clientId) {
+    if (!confirm('Renvoyer le lien de signature au client ?')) {
+        return;
+    }
+
     const csrfToken = {{ csrf_token() | tojson }};
 
     fetch(`/conseiller/renvoyer-lien/${clientId}`, {
@@ -417,6 +421,7 @@ function renvoyerLien(clientId) {
         console.error('Erreur renvoi du lien :', error);
         alert('Échec du renvoi : ' + error.message);
     });
+}
 }
 
 

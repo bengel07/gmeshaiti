@@ -248,9 +248,7 @@ sock = Sock(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 login_manager = LoginManager()
 login_manager.init_app(app)
-
 login_manager.login_view = "connexion"
-
 
 
 main = Blueprint('main', __name__)
@@ -3799,7 +3797,7 @@ def valider_conditions(token):
         flash("Lien d'acceptation invalide ou expiré.", "danger")
         return redirect(url_for('main.accueil'))
 
-    # client = db.session.get(Client, client_id)
+    
     client.terms_accepted = True
     client.date_acceptation_terms = datetime.utcnow()
     client.compte_actif = True  # Active complètement le compte
