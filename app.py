@@ -20347,11 +20347,16 @@ def supprimer_client(client_id):
             DELETE FROM actions WHERE assignee_a_id = :uid OR creee_par_id = :uid
         """), p)
 
-        # Suppression de l'utilisateur en SQL direct (contourne l'ORM)
-        # Demandes de documents liées à cet utilisateur
+        # Demandes de documents : d'abord les items (enfants), puis les demandes
+        db.session.execute(text("""
+            DELETE FROM demande_documents_items
+            WHERE demande_id IN (SELECT id FROM demande_documents WHERE employe_id = :uid)
+        """), p)
         db.session.execute(text("""
             DELETE FROM demande_documents WHERE employe_id = :uid
         """), p)
+
+        # Suppression de l'utilisateur en SQL direct (contourne l'ORM)
         db.session.execute(text("DELETE FROM users WHERE id = :uid"), p)
 
         db.session.commit()
