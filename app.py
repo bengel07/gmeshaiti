@@ -18756,37 +18756,43 @@ def supprimer_employe(employe_id):
 
 
             # 4. Supprimer les notifications qui référencent l'employé
-            # Vérifier d'abord les références en tant que destinataire
-            notifications_restantes = Notification.query.filter_by(
-                destinataire_id=employe_id
-            ).count()
+            # Suppression directe dans la table PostgreSQL concernée.
+            from sqlalchemy import text
 
-            print(
-                f"🔍 Notifications destinataires avant suppression : "
-                f"{notifications_restantes}"
+            db.session.execute(
+                text("""
+                    DELETE FROM notifications
+                    WHERE destinataire_id = :employe_id
+                """),
+                {"employe_id": employe_id}
             )
 
-            # Supprimer les notifications liées à cet employé
-            Notification.query.filter(
-                db.or_(
-                    Notification.destinataire_id == employe_id,
-                    Notification.acteur_id == employe_id,
-                    Notification.employe_id == employe_id
-                )
-            ).delete(synchronize_session=False)
+            # Supprimer aussi les autres notifications liées à cet employé.
+            db.session.execute(
+                text("""
+                    DELETE FROM notifications
+                    WHERE acteur_id = :employe_id
+                       OR employe_id = :employe_id
+                """),
+                {"employe_id": employe_id}
+            )
 
-            # Forcer l'application des suppressions avant de poursuivre
             db.session.flush()
 
-            # Contrôle obligatoire avant de supprimer l'employé
-            restantes = Notification.query.filter_by(
-                destinataire_id=employe_id
-            ).count()
+            # Vérification réelle dans PostgreSQL
+            restantes = db.session.execute(
+                text("""
+                    SELECT COUNT(*)
+                    FROM notifications
+                    WHERE destinataire_id = :employe_id
+                """),
+                {"employe_id": employe_id}
+            ).scalar_one()
 
-            if restantes > 0:
+            if restantes:
                 raise RuntimeError(
-                    f"Suppression interrompue : {restantes} notification(s) "
-                    f"référencent encore l'employé {employe_id}."
+                    f"{restantes} notification(s) référencent encore "
+                    f"l'employé {employe_id}."
                 )
 
             print("✅ Aucune notification destinataire restante.")
