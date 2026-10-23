@@ -516,15 +516,20 @@ def envoyer_lien_activation(client_id):
             user.username = client.email.strip()
             user.client_id = client.id
             # ⚠️ Ne pas écraser le rôle si c'était un employé (voir remarque plus bas)
-            user.role = 'client'
+            if user.role != 'client':
+                return jsonify({
+                    'success': False,
+                    'message': "Ce compte possède déjà un rôle professionnel ou différent."
+                }), 409
             # if user.role not in ['employe', 'employee', 'admin_succursale', 'admin_principal', 'direction', 'super_admin']:
             #     user.role = 'client'
 
         user.activation_token = secrets.token_urlsafe(48)
         user.activation_expiration = datetime.utcnow() + timedelta(hours=24)
-        user.statut = 'en_attente'
-        user.actif = False
-        user.est_actif = False
+        if user.role == 'client':
+            user.statut = 'en_attente'
+            user.actif = False
+            user.est_actif = False
 
         db.session.commit()
 

@@ -1,4 +1,3 @@
-
 workflows:
   gmes-ios:
     name: GMES iOS Simulator
@@ -6,16 +5,14 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       flutter: stable
+      python: 3.12
     scripts:
-      - name: Verify Flutter project
+      - name: Installer Flet
         script: |
-          cd mobile/build/flutter
-          test -f pubspec.yaml
-          test -f lib/main.dart
-          flutter pub get
+          python3 -m pip install "flet==VERSION"
       - name: Build iOS simulator app
         script: |
-          cd mobile/build/flutter
-          flutter build ios --simulator --debug
+          cd mobile
+          flet build ios-simulator -v
     artifacts:
-      - mobile/build/flutter/build/ios/iphonesimulator/*.app
+      - mobile/build/**/*.app
