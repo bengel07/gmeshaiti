@@ -404,6 +404,38 @@ function renvoyerLien(clientId) {
             alert('❌ Erreur lors de l\'envoi');
         });
     }
+
+function renvoyerLien(clientId) {
+    if (!confirm('Renvoyer le lien de signature au client ?')) {
+        return;
+    }
+
+    const csrfToken = {{ csrf_token() | tojson }};
+
+    fetch(`/conseiller/renvoyer-lien/${clientId}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Accept': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+    .then(async response => {
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.message || `Erreur HTTP ${response.status}`
+            );
+        }
+
+        alert(data.message || 'Lien renvoyé avec succès.');
+    })
+    .catch(error => {
+        console.error('Erreur renvoi du lien :', error);
+        alert('Échec du renvoi : ' + error.message);
+    });
+}
 }
 
 // Fonction pour voir les compétences

@@ -142,16 +142,16 @@ def _somme_mois(compte_id, types, jour):
     debut, fin = c.bornes_periode(f"{jour.year:04d}-{jour.month:02d}")
     q = db.select(func.coalesce(func.sum(TransactionEpargne.montant), 0)).where(
         TransactionEpargne.compte_id == compte_id,
-        TransactionEpargne.type.in_(types),
-        TransactionEpargne.created_at >= datetime.combine(debut, datetime.min.time()),
-        TransactionEpargne.created_at < datetime.combine(fin, datetime.min.time()))
+        TransactionEpargne.type_transaction.in_(types),
+        TransactionEpargne.date_transaction >= datetime.combine(debut, datetime.min.time()),
+        TransactionEpargne.date_transaction < datetime.combine(fin, datetime.min.time()))
     return c.D(db.session.execute(q).scalar())
 
 
 def _date_ouverture(compte):
     """Date d'ouverture : 1er dépôt initial du grand livre, sinon un champ date de l'Epargne."""
-    q = db.select(func.min(TransactionEpargne.created_at)).where(
-        TransactionEpargne.compte_id == compte.id, TransactionEpargne.type == "depot_initial")
+    q = db.select(func.min(TransactionEpargne.date_transaction)).where(
+        TransactionEpargne.compte_id == compte.id, TransactionEpargne.type_transaction == "depot_initial")
     premiere = db.session.execute(q).scalar()
     if premiere:
         return premiere.date() if hasattr(premiere, "date") else premiere
@@ -375,7 +375,7 @@ def cloture_mensuelle(periode, created_by=None):
 def releve(compte_id, limite=200):
     q = (db.select(TransactionEpargne)
          .where(TransactionEpargne.compte_id == compte_id)
-         .order_by(TransactionEpargne.created_at.desc(), TransactionEpargne.id.desc()).limit(limite))
+         .order_by(TransactionEpargne.date_transaction.desc(), TransactionEpargne.id.desc()).limit(limite))
     return list(db.session.execute(q).scalars())
 
 
@@ -385,12 +385,12 @@ def comptes_internes():
 
 def totaux_par_type(periode=None):
     """Totaux du grand livre côté clients, par type (ex. total des frais d'ouverture)."""
-    q = (db.select(TransactionEpargne.type, func.count(), func.coalesce(func.sum(TransactionEpargne.montant), 0))
-         .where(TransactionEpargne.compte_id.is_not(None)).group_by(TransactionEpargne.type))
+    q = (db.select(TransactionEpargne.type_transaction, func.count(), func.coalesce(func.sum(TransactionEpargne.montant), 0))
+         .where(TransactionEpargne.compte_id.is_not(None)).group_by(TransactionEpargne.type_transaction))
     if periode:
         debut, fin = c.bornes_periode(periode)
-        q = q.where(TransactionEpargne.created_at >= datetime.combine(debut, datetime.min.time()),
-                    TransactionEpargne.created_at < datetime.combine(fin, datetime.min.time()))
+        q = q.where(TransactionEpargne.date_transaction >= datetime.combine(debut, datetime.min.time()),
+                    TransactionEpargne.date_transaction < datetime.combine(fin, datetime.min.time()))
     return [{"type": t, "nombre": n, "total": c.D(s)} for t, n, s in db.session.execute(q).all()]
 
 
