@@ -20305,32 +20305,52 @@ def generer_code_pret(succursale_code):
     return f"{succursale_code}-PR{str(nouveau_num).zfill(3)}"
 
 
-
-# en developement il peux etre efface apres
 @app.route('/admin/supprimer-client/<int:client_id>')
 @login_required
 def supprimer_client(client_id):
-    """Supprimer UNIQUEMENT les clients (avec leurs prêts)"""
+    """Supprimer un client avec toutes ses dépendances"""
     if current_user.role not in ['super_admin', 'admin']:
         flash("⛔ Accès non autorisé", "danger")
         return redirect(url_for('liste_users'))
 
+    from sqlalchemy import text
+
     try:
         client = User.query.get_or_404(client_id)
 
-        # Vérifier que c'est bien un client
         if client.role != 'client':
             flash("⛔ Cette route est réservée aux clients", "danger")
             return redirect(url_for('liste_users'))
 
-        # Supprimer les prêts du client
-        Pret.query.filter_by(client_id=client_id).delete()
+        nom_complet = f"{client.prenom} {client.nom}"
 
-        # Supprimer le client
+        # 1. Remboursements des prêts du client
+        prets = Pret.query.filter_by(client_id=client_id).all()
+        for pret in prets:
+            Remboursement.query.filter_by(pret_id=pret.id).delete(synchronize_session=False)
+
+        # 2. Prêts
+        Pret.query.filter_by(client_id=client_id).delete(synchronize_session=False)
+
+        # 3. Notifications qui référencent ce client (toutes les colonnes)
+        db.session.execute(
+            text("""
+                DELETE FROM notifications
+                WHERE destinataire_id = :uid
+                   OR acteur_id = :uid
+                   OR employe_id = :uid
+                   OR client_id = :uid
+            """),
+            {"uid": client_id}
+        )
+
+        db.session.flush()
+
+        # 4. Le client
         db.session.delete(client)
         db.session.commit()
 
-        flash(f"✅ Client {client.prenom} {client.nom} supprimé", "success")
+        flash(f"✅ Client {nom_complet} supprimé", "success")
 
     except Exception as e:
         db.session.rollback()
