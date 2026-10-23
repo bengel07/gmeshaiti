@@ -20308,7 +20308,6 @@ def generer_code_pret(succursale_code):
 @app.route('/admin/supprimer-client/<int:client_id>')
 @login_required
 def supprimer_client(client_id):
-    """Supprimer un client avec toutes ses dépendances"""
     if current_user.role not in ['super_admin', 'admin']:
         flash("⛔ Accès non autorisé", "danger")
         return redirect(url_for('liste_users'))
@@ -20317,45 +20316,41 @@ def supprimer_client(client_id):
 
     try:
         client = User.query.get_or_404(client_id)
-
         if client.role != 'client':
             flash("⛔ Cette route est réservée aux clients", "danger")
             return redirect(url_for('liste_users'))
 
         nom_complet = f"{client.prenom} {client.nom}"
+        p = {"uid": client_id}
 
-        # 1. Remboursements des prêts du client
-        prets = Pret.query.filter_by(client_id=client_id).all()
-        for pret in prets:
-            Remboursement.query.filter_by(pret_id=pret.id).delete(synchronize_session=False)
+        # Remboursements puis prêts
+        db.session.execute(text("""
+            DELETE FROM remboursements
+            WHERE pret_id IN (SELECT id FROM prets WHERE client_id = :uid)
+        """), p)
+        db.session.execute(text("DELETE FROM prets WHERE client_id = :uid"), p)
 
-        # 2. Prêts
-        Pret.query.filter_by(client_id=client_id).delete(synchronize_session=False)
+        # Notifications liées au client ou à ses actions
+        db.session.execute(text("""
+            DELETE FROM notifications
+            WHERE action_id IN (SELECT id FROM actions
+                                WHERE assignee_a_id = :uid OR creee_par_id = :uid)
+        """), p)
+        db.session.execute(text("""
+            DELETE FROM notifications
+            WHERE destinataire_id = :uid OR acteur_id = :uid
+               OR employe_id = :uid OR client_id = :uid
+        """), p)
 
-        # 3b. Actions liées à ce client (assignées ou créées par lui)
-        db.session.execute(
-            text("""
-                DELETE FROM notifications
-                WHERE action_id IN (
-                    SELECT id FROM actions
-                    WHERE assignee_a_id = :uid OR creee_par_id = :uid
-                )
-            """),
-            {"uid": client_id}
-        )
-        db.session.execute(
-            text("""
-                DELETE FROM actions
-                WHERE assignee_a_id = :uid OR creee_par_id = :uid
-            """),
-            {"uid": client_id}
-        )
-        db.session.flush()
+        # Actions
+        db.session.execute(text("""
+            DELETE FROM actions WHERE assignee_a_id = :uid OR creee_par_id = :uid
+        """), p)
 
-        # 4. Le client
-        db.session.delete(client)
+        # Suppression de l'utilisateur en SQL direct (contourne l'ORM)
+        db.session.execute(text("DELETE FROM users WHERE id = :uid"), p)
+
         db.session.commit()
-
         flash(f"✅ Client {nom_complet} supprimé", "success")
 
     except Exception as e:
