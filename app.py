@@ -4821,35 +4821,6 @@ def supprimer_tous_clients():
 
 
 
-# Route pour voir le contenu du dossier employees
-@app.route('/debug-employees-folder')
-def debug_employees_folder():
-    import os
-    folder_path = os.path.join(app.root_path, 'templates', 'employees')
-
-    if not os.path.exists(folder_path):
-        return f"❌ Dossier non trouvé: {folder_path}"
-
-    files = os.listdir(folder_path)
-
-    result = f"<h1>Contenu de {folder_path}</h1>"
-    result += f"<p>{len(files)} fichier(s) trouvé(s):</p>"
-    result += "<ul>"
-
-    for file in files:
-        if file.endswith('.html'):
-            result += f"<li>✅ {file}</li>"
-        else:
-            result += f"<li>📄 {file}</li>"
-
-    result += "</ul>"
-
-    # Suggestion
-    if 'conseiller_dossiers_en_attente.html' not in files:
-        result += "<p style='color:red'>❌ Le fichier conseiller_dossiers_en_attente.html est MANQUANT !</p>"
-        result += "<p>✅ Créez ce fichier ou déplacez-le depuis un autre dossier.</p>"
-
-    return result
 
 
 @app.route('/client/terms/<token>', methods=['GET', 'POST'])
@@ -6284,29 +6255,39 @@ def conseiller_mes_dossiers():
 
 
 
+
+
+
 @app.route('/conseiller/dossiers-en-attente')
 @app.route('/conseiller/dossiers-en-attente/<succursale_code>')
 @login_required
 def conseiller_dossier_en_attente(succursale_code=None):
-    """Affiche les dossiers en attente du conseiller"""
+    """Affiche les dossiers créés par le conseiller connecté."""
 
-    print(f"🔍 Agent {current_user.id} - {current_user.prenom} {current_user.nom} consulte ses dossiers")
+    print(
+        f"🔍 Agent {current_user.id} - "
+        f"{current_user.prenom} {current_user.nom} consulte ses dossiers"
+    )
 
-    # Si pas de code, utiliser celui du current_user
     if not succursale_code and current_user.succursale:
         succursale_code = current_user.succursale.code
 
-        # ✅ FILTRE IMPORTANT : SEULEMENT les dossiers créés par CET agent
+    # Le filtre doit être exécuté indépendamment du code de succursale.
     dossiers = Client.query.filter_by(
-        employe_id=current_user.id,  # ← Clé : créé par CET agent
+        employe_id=current_user.id
     ).order_by(Client.date_inscription.desc()).all()
 
-    print(f"✅ {len(dossiers)} dossier(s) trouvé(s) pour l'agent {current_user.prenom}")
+    print(
+        f"✅ {len(dossiers)} dossier(s) trouvé(s) "
+        f"pour l'agent {current_user.prenom}"
+    )
 
-    return render_template('employees/conseiller_dossiers_en_attente.html',
-                           dossiers=dossiers,
-                           agent_nom=f"{current_user.prenom} {current_user.nom}",
-                           succursale_code=succursale_code)
+    return render_template(
+        'employees/conseiller_dossiers_en_attente.html',
+        dossiers=dossiers,
+        agent_nom=f"{current_user.prenom} {current_user.nom}",
+        succursale_code=succursale_code
+    )
 
 
 @app.route('/debug-template')
@@ -23573,7 +23554,18 @@ def renvoyer_lien(client_id):
         FROM_EMAIL = os.environ.get('FROM_EMAIL', 'gmeshaiti@gmail.com')
         FROM_NAME = os.environ.get('FROM_NAME', 'GMES Microcrédit')
 
+
         email_envoye = False
+
+        if not BREVO_API_KEY:
+            raise RuntimeError(
+                "BREVO_API_KEY absente de la configuration."
+            )
+
+        if not client.email or "@" not in client.email:
+            raise RuntimeError(
+                "L'adresse e-mail du client est absente ou invalide."
+            )
 
         url = "https://api.brevo.com/v3/smtp/email"
 
@@ -23591,11 +23583,12 @@ def renvoyer_lien(client_id):
             "to": [
                 {
                     "email": client.email,
-                    "name": client.email.split("@")[0]
+                    "name": f"{client.prenom} {client.nom}"
                 }
             ],
-            "subject": "🔐 GMES - Lien de signature de vos conditions générales",
-            "htmlContent": html
+            "subject": "GMES - Lien de signature de vos conditions générales",
+            "htmlContent": html,
+            "textContent": text
         }
 
         response = requests.post(
@@ -23605,15 +23598,26 @@ def renvoyer_lien(client_id):
             timeout=30
         )
 
-        print("📤 FROM :", FROM_EMAIL)
-        print("📥 TO :", client.email)
-        print("BREVO :", response.status_code, response.text)
+        print(
+            "Brevo :",
+            response.status_code,
+            response.text
+        )
+
+        if not 200 <= response.status_code < 300:
+            raise RuntimeError(
+                f"Brevo a refusé l'envoi (HTTP {response.status_code}). "
+                f"Détails : {response.text[:500]}"
+            )
+
+        email_envoye = True
+
 
 
 
 
         # 4. Créer une notification dans la base
-        from datetime import datetime
+        from datetime import datetime, timedelta
         from models import Notification, Action
 
         # Récupérer une action par défaut
@@ -31314,24 +31318,27 @@ def prets_par_succursale(succursale_id):
 
 
 
-# @app.errorhandler(CSRFError)
-# def handle_csrf_error(e):
-#     flash('⚠️ Le formulaire a expiré. Veuillez réessayer.', 'warning')
-#     return redirect(request.referrer or url_for('login'))
 
 @app.errorhandler(CSRFError)
 def handle_csrf_error(e):
+    app.logger.warning(
+        "CSRF failure on %s %s: %s | referrer=%s | has_session_cookie=%s | UA=%s",
+        request.method,
+        request.path,
+        e.description,
+        request.referrer,
+        app.config.get("SESSION_COOKIE_NAME", "session") in request.cookies,
+        request.user_agent.string,
+    )
 
     if request.path.startswith("/api/"):
-        flash('⚠️ Le formulaire a expiré. Veuillez réessayer.', 'warning')
         return jsonify({
             "success": False,
             "error": "Token CSRF manquant ou invalide."
         }), 400
 
-    return redirect(
-        request.referrer or url_for("login_qr")
-    )
+    flash("⚠️ Le formulaire a expiré. Veuillez réessayer.", "warning")
+    return redirect(request.referrer or url_for("login_qr"))
 
 
 

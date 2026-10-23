@@ -384,25 +384,11 @@ function filterTable() {
 }
 
 // Fonction pour renvoyer le lien de signature
+
+
 function renvoyerLien(clientId) {
-    if (confirm('Renvoyer le lien de signature au client ?')) {
-        fetch(`/conseiller/renvoyer-lien/${clientId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('✅ Lien renvoyé avec succès');
-            } else {
-                alert('❌ Erreur: ' + data.message);
-            }
-        })
-        .catch(error => {
-            alert('❌ Erreur lors de l\'envoi');
-        });
+    if (!confirm('Renvoyer le lien de signature au client ?')) {
+        return;
     }
 
 function renvoyerLien(clientId) {
@@ -437,6 +423,7 @@ function renvoyerLien(clientId) {
     });
 }
 }
+
 
 // Fonction pour voir les compétences
 function voirCompetences(clientId) {

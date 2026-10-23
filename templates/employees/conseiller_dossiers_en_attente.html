@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dossiers en attente - Conseiller</title>
     <!-- Font Awesome 6 -->
@@ -680,10 +681,7 @@
             window.location.href = `/conseiller/dossier/${id}`;
         }
 
-        function renvoyerLien(id) {
-            if (confirm('Renvoyer le lien de signature au client ?')) {
 
-                const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
 
                 fetch(`/conseiller/renvoyer-lien/${id}`, {
                     method: 'POST',
@@ -736,7 +734,36 @@ function renvoyerLien(id) {
 }
                 });
             }
+
+            // Jeton CSRF généré par Flask pour cette page.
+            const csrfToken = {{ csrf_token() | tojson }};
+
+            fetch(`/conseiller/renvoyer-lien/${clientId}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(async response => {
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok || !data.success) {
+                    throw new Error(
+                        data.message || `Erreur HTTP ${response.status}`
+                    );
+                }
+
+                alert(data.message || 'Lien renvoyé avec succès.');
+            })
+            .catch(error => {
+                console.error('Erreur renvoi du lien :', error);
+                alert('Échec du renvoi : ' + error.message);
+            });
         }
+
+
 
         function voirDocuments(id) {
             window.location.href = `/conseiller/documents/${id}`;
