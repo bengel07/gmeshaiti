@@ -20332,18 +20332,24 @@ def supprimer_client(client_id):
         # 2. Prêts
         Pret.query.filter_by(client_id=client_id).delete(synchronize_session=False)
 
-        # 3. Notifications qui référencent ce client (toutes les colonnes)
+        # 3b. Actions liées à ce client (assignées ou créées par lui)
         db.session.execute(
             text("""
                 DELETE FROM notifications
-                WHERE destinataire_id = :uid
-                   OR acteur_id = :uid
-                   OR employe_id = :uid
-                   OR client_id = :uid
+                WHERE action_id IN (
+                    SELECT id FROM actions
+                    WHERE assignee_a_id = :uid OR creee_par_id = :uid
+                )
             """),
             {"uid": client_id}
         )
-
+        db.session.execute(
+            text("""
+                DELETE FROM actions
+                WHERE assignee_a_id = :uid OR creee_par_id = :uid
+            """),
+            {"uid": client_id}
+        )
         db.session.flush()
 
         # 4. Le client
