@@ -356,6 +356,37 @@
             color: #dee2e6;
         }
 
+                .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            width: min(450px, calc(100% - 40px));
+        }
+        .flash-message {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 18px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            background: white;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            font-weight: 500;
+        }
+        .flash-success { border-left: 5px solid #198754; }
+        .flash-danger, .flash-error { border-left: 5px solid #dc3545; }
+        .flash-warning { border-left: 5px solid #ffc107; }
+        .flash-info { border-left: 5px solid #0dcaf0; }
+        .flash-icon { font-size: 20px; }
+        .flash-close {
+            margin-left: auto;
+            border: none;
+            background: transparent;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
         @media (max-width: 768px) {
             .filter-row {
                 flex-direction: column;
@@ -476,6 +507,8 @@
                 font-style: italic;
             }
         }
+
+
     </style>
 </head>
 <body>
