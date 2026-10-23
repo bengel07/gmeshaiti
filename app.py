@@ -18755,8 +18755,19 @@ def supprimer_employe(employe_id):
             print(f"🗑️ {len(clients)} client(s) supprimé(s)")
 
 
-            # 4. Supprimer les notifications liées à l'employé
-            deleted = Notification.query.filter(
+            # 4. Supprimer les notifications qui référencent l'employé
+            # Vérifier d'abord les références en tant que destinataire
+            notifications_restantes = Notification.query.filter_by(
+                destinataire_id=employe_id
+            ).count()
+
+            print(
+                f"🔍 Notifications destinataires avant suppression : "
+                f"{notifications_restantes}"
+            )
+
+            # Supprimer les notifications liées à cet employé
+            Notification.query.filter(
                 db.or_(
                     Notification.destinataire_id == employe_id,
                     Notification.acteur_id == employe_id,
@@ -18764,7 +18775,21 @@ def supprimer_employe(employe_id):
                 )
             ).delete(synchronize_session=False)
 
-            print(f"🗑️ {deleted} notifications liées à l'employé supprimées")
+            # Forcer l'application des suppressions avant de poursuivre
+            db.session.flush()
+
+            # Contrôle obligatoire avant de supprimer l'employé
+            restantes = Notification.query.filter_by(
+                destinataire_id=employe_id
+            ).count()
+
+            if restantes > 0:
+                raise RuntimeError(
+                    f"Suppression interrompue : {restantes} notification(s) "
+                    f"référencent encore l'employé {employe_id}."
+                )
+
+            print("✅ Aucune notification destinataire restante.")
 
             # 5. Supprimer les actions
             # Récupérer les actions de l'employé
@@ -18797,6 +18822,15 @@ def supprimer_employe(employe_id):
             db.session.flush()
 
             # 6. Supprimer l'employé
+
+            print(
+                "🔍 Notifications restantes juste avant suppression :",
+                Notification.query.filter_by(
+                    destinataire_id=employe_id
+                ).count()
+            )
+
+
             db.session.delete(employe)
 
             # 7. Commit final
