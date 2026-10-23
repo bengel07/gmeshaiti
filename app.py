@@ -4833,7 +4833,7 @@ def client_terms(token):
     from flask_login import login_user
     import jwt
 
-    print(f"🔍 ROUTE CLIENT_TERMS - Token reçu: {token[:50]}...")
+    print(f"🔍 ROUTE CLIENT_TERMS - Token reçu: ")
 
     client = None
 
