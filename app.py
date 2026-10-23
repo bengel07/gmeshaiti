@@ -20359,6 +20359,7 @@ def supprimer_client(client_id):
         """), p)
 
         # Suppression de l'utilisateur en SQL direct (contourne l'ORM)
+        
         db.session.execute(text("UPDATE epargnes SET employe_id = NULL WHERE employe_id = :uid"), p)
         db.session.execute(text("DELETE FROM users WHERE id = :uid"), p)
 
