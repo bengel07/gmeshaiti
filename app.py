@@ -20348,6 +20348,10 @@ def supprimer_client(client_id):
         """), p)
 
         # Suppression de l'utilisateur en SQL direct (contourne l'ORM)
+        # Demandes de documents liées à cet utilisateur
+        db.session.execute(text("""
+            DELETE FROM demande_documents WHERE employe_id = :uid
+        """), p)
         db.session.execute(text("DELETE FROM users WHERE id = :uid"), p)
 
         db.session.commit()
