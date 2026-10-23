@@ -20314,55 +20314,70 @@ def supprimer_client(client_id):
 
     from sqlalchemy import text
 
+    TABLES_CLIENT = [
+        'interactions','membres_groupes','dossiers_saisie','verifications_conformite','risques',
+        'rendez_vous','transactions','demande_documents','verifications_annuelles',
+        'retrait_confirmations','visites','terms_acceptance','competences','dossiers',
+        'satisfaction','notifications_client','participations_sessions','alertes_conformite',
+        'documents_archives','remboursements','credits','produit_simulations','alertes_aml',
+        'transactions_caisse','file_attente','anomalies','retards_paiement',
+        'historique_scoring','notifications','documents','scoring_credit','epargnes',
+        'journal','echeances','retraits','retraits_attente','prets'
+    ]
+
     try:
-        client = User.query.get_or_404(client_id)
-        if client.role != 'client':
+        user = User.query.get_or_404(client_id)
+        if user.role != 'client':
             flash("⛔ Cette route est réservée aux clients", "danger")
             return redirect(url_for('liste_users'))
 
-        nom_complet = f"{client.prenom} {client.nom}"
-        p = {"uid": client_id}
+        nom_complet = f"{user.prenom} {user.nom}"
+        uid = int(client_id)
+        p = {"uid": uid}
 
+        row = db.session.execute(
+            text("SELECT id FROM clients WHERE user_id = :uid"), p).first()
+        cid = int(row[0]) if row else None
 
+        if cid is not None:
+            # Les tables enfants se vident dans un ordre qui se règle tout seul
+            restantes = list(TABLES_CLIENT)
+            for _ in range(15):
+                progres = False
+                for t in list(restantes):
+                    sp = db.session.begin_nested()
+                    try:
+                        db.session.execute(text(f"DELETE FROM {t} WHERE client_id = {cid}"))
+                        sp.commit()
+                        restantes.remove(t)
+                        progres = True
+                    except Exception:
+                        sp.rollback()
+                if not restantes or not progres:
+                    break
+            if restantes:
+                raise RuntimeError(f"Tables non vidées: {restantes}")
 
-        # Remboursements puis prêts
-        db.session.execute(text("""
-            DELETE FROM remboursements
-            WHERE pret_id IN (SELECT id FROM prets WHERE client_id = :uid)
-        """), p)
-        db.session.execute(text("DELETE FROM prets WHERE client_id = :uid"), p)
+            db.session.execute(text("UPDATE users SET client_id = NULL WHERE client_id = :cid"), {"cid": cid})
+            db.session.execute(text("DELETE FROM clients WHERE id = :cid"), {"cid": cid})
 
-        # Notifications liées au client ou à ses actions
+        # Autres clients rattachés à ce compte : repris par l'utilisateur connecté
+        db.session.execute(text("UPDATE clients SET employe_id = :me WHERE employe_id = :uid"),
+                           {"me": current_user.id, "uid": uid})
+
+        # Références restantes vers ce compte
         db.session.execute(text("""
             DELETE FROM notifications
-            WHERE action_id IN (SELECT id FROM actions
+            WHERE destinataire_id = :uid OR acteur_id = :uid OR employe_id = :uid
+               OR action_id IN (SELECT id FROM actions
                                 WHERE assignee_a_id = :uid OR creee_par_id = :uid)
         """), p)
-        db.session.execute(text("""
-            DELETE FROM notifications
-            WHERE destinataire_id = :uid OR acteur_id = :uid
-               OR employe_id = :uid OR client_id = :uid
-        """), p)
+        db.session.execute(text("DELETE FROM actions WHERE assignee_a_id = :uid OR creee_par_id = :uid"), p)
+        db.session.execute(text("DELETE FROM demande_documents_items WHERE demande_id IN (SELECT id FROM demande_documents WHERE employe_id = :uid)"), p)
+        db.session.execute(text("DELETE FROM demande_documents WHERE employe_id = :uid"), p)
+        db.session.execute(text("UPDATE epargnes SET employe_id = NULL, created_by = NULL WHERE employe_id = :uid OR created_by = :uid"), p)
 
-        # Actions
-        db.session.execute(text("""
-            DELETE FROM actions WHERE assignee_a_id = :uid OR creee_par_id = :uid
-        """), p)
-
-        # Demandes de documents : d'abord les items (enfants), puis les demandes
-        db.session.execute(text("""
-            DELETE FROM demande_documents_items
-            WHERE demande_id IN (SELECT id FROM demande_documents WHERE employe_id = :uid)
-        """), p)
-        db.session.execute(text("""
-            DELETE FROM demande_documents WHERE employe_id = :uid
-        """), p)
-
-        # Suppression de l'utilisateur en SQL direct (contourne l'ORM)
-        
-        db.session.execute(text("UPDATE epargnes SET employe_id = NULL WHERE employe_id = :uid"), p)
         db.session.execute(text("DELETE FROM users WHERE id = :uid"), p)
-
         db.session.commit()
         flash(f"✅ Client {nom_complet} supprimé", "success")
 
