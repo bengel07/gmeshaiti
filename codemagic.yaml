@@ -1,7 +1,7 @@
 
 workflows:
   gmes-ios:
-    name: GMES iOS
+    name: GMES iOS Simulator
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
@@ -13,9 +13,9 @@ workflows:
           test -f pubspec.yaml
           test -f lib/main.dart
           flutter pub get
-      - name: Build unsigned iOS app
+      - name: Build iOS simulator app
         script: |
           cd mobile/build/flutter
-          flutter build ios --release --no-codesign
+          flutter build ios --simulator --debug
     artifacts:
-      - mobile/build/flutter/build/ios/iphoneos/*.app
+      - mobile/build/flutter/build/ios/iphonesimulator/*.app
