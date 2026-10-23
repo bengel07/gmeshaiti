@@ -181,9 +181,10 @@ def activation_client(token):
         activation_token=token,
     ).first()
 
-    if not user:
+    # Empêcher l'activation d'un compte professionnel par ce lien client
+    if user.role != 'client':
         flash(
-            "❌ Le lien d'activation est invalide ou n'existe plus.",
+            "❌ Ce lien ne permet pas d'activer un compte professionnel.",
             "danger"
         )
         return redirect(url_for('index'))
