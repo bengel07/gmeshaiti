@@ -18754,18 +18754,17 @@ def supprimer_employe(employe_id):
 
             print(f"🗑️ {len(clients)} client(s) supprimé(s)")
 
-            # 4. Supprimer les notifications
-            # Notifications où il est acteur
-            deleted = Notification.query.filter_by(acteur_id=employe_id).delete()
-            print(f"🗑️ {deleted} notifications supprimées (acteur_id)")
 
-            # Notifications où il est destinataire
-            deleted = Notification.query.filter_by(destinataire_id=employe_id).delete()
-            print(f"🗑️ {deleted} notifications supprimées (destinataire_id)")
+            # 4. Supprimer les notifications liées à l'employé
+            deleted = Notification.query.filter(
+                db.or_(
+                    Notification.destinataire_id == employe_id,
+                    Notification.acteur_id == employe_id,
+                    Notification.employe_id == employe_id
+                )
+            ).delete(synchronize_session=False)
 
-            # Notifications où il est employé
-            deleted = Notification.query.filter_by(employe_id=employe_id).delete()
-            print(f"🗑️ {deleted} notifications supprimées (employe_id)")
+            print(f"🗑️ {deleted} notifications liées à l'employé supprimées")
 
             # 5. Supprimer les actions
             # Récupérer les actions de l'employé
@@ -23152,14 +23151,6 @@ def clear_session_on_startup():
         app._session_cleared = True
 
 
-@app.route('/cleanup-test-users')
-def cleanup_test_users():
-    """Supprime les utilisateurs de test"""
-    test_users = User.query.filter(User.username.in_(['bonbon bel', 'test', 'demo'])).all()
-    for user in test_users:
-        db.session.delete(user)
-    db.session.commit()
-    return f"✅ {len(test_users)} utilisateurs de test supprimés"
 
 # Route temporaire à ajouter dans app.py
 @app.route('/client-notifications/<int:client_id>')
