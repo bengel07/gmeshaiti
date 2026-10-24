@@ -7,11 +7,11 @@ workflows:
 
     environment:
       flutter: stable
-      python: "3.12"
 
     scripts:
       - name: Installer Flet
         script: |
+          python3 --version
           python3 -m pip install --upgrade pip
           python3 -m pip install flet
           flet --version
@@ -19,8 +19,10 @@ workflows:
       - name: Vérifier le projet
         script: |
           cd mobile
-          test -f pubspec.yaml || exit 1
-          python3 --version
+          test -f pubspec.yaml || {
+            echo "ERREUR : mobile/pubspec.yaml est absent"
+            exit 1
+          }
           flutter --version
           flutter pub get
 
