@@ -20342,10 +20342,11 @@ def supprimer_client(client_id):
 
         if cid is not None:
             # Les tables enfants se vident dans un ordre qui se règle tout seul
-            restantes = list(TABLES_CLIENT)
+            restantes = TABLES_CLIENT[:]
             for _ in range(15):
                 progres = False
-                for t in list(restantes):
+                for t in restantes[:]:
+
                     sp = db.session.begin_nested()
                     try:
                         db.session.execute(text(f"DELETE FROM {t} WHERE client_id = {cid}"))
@@ -20366,6 +20367,9 @@ def supprimer_client(client_id):
         db.session.execute(text("UPDATE clients SET employe_id = :me WHERE employe_id = :uid"),
                            {"me": current_user.id, "uid": uid})
 
+        db.session.execute(text("UPDATE clients SET cree_par_id = :me WHERE cree_par_id = :uid"),
+                           {"me": current_user.id, "uid": uid})
+
         # Références restantes vers ce compte
         db.session.execute(text("""
             DELETE FROM notifications
@@ -20384,6 +20388,8 @@ def supprimer_client(client_id):
 
     except Exception as e:
         db.session.rollback()
+        import traceback
+        traceback.print_exc()
         flash(f"❌ Erreur: {e}", "danger")
 
     return redirect(url_for('liste_users'))
