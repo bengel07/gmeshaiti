@@ -9,27 +9,19 @@ workflows:
       flutter: stable
 
     scripts:
-      - name: Installer Flet
+      - name: Vérifier le projet Flutter
         script: |
-          python3 --version
-          python3 -m pip install --upgrade pip
-          python3 -m pip install flet
-          flet --version
-
-      - name: Vérifier le projet
-        script: |
-          cd mobile
-          test -f pubspec.yaml || {
-            echo "ERREUR : mobile/pubspec.yaml est absent"
-            exit 1
-          }
+          cd mobile/build/flutter
           flutter --version
+          test -f pubspec.yaml
+          grep -n -A 8 -B 3 "serious_python" pubspec.yaml
           flutter pub get
 
       - name: Build iOS Simulator
         script: |
-          cd mobile
+          cd mobile/build/flutter
+          flet --version
           flet build ios-simulator -v
 
     artifacts:
-      - mobile/build/**/*.app
+      - mobile/build/flutter/build/**/*.app
